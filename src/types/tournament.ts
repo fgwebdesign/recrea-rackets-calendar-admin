@@ -167,46 +167,53 @@ interface Score {
 export interface Match {
   id: string;
   tournament_id: string;
-  home_team_id?: string;
-  away_team_id?: string;
-  court_id?: string;
-  score?: string;
-  created_at: Date;
-  updated_at: Date;
+  home_team_id: string | null;
+  away_team_id: string | null;
+  court_id: string | null;
+  score: string | null;
+  created_at: string;
+  updated_at: string;
   status: string;
-  start_hour: string;
-  match_day: Date;
-  round_number: number;
-  winner_team_id?: string;
-  round: number;
-  start_time: string;
+  start_hour: string | null;
+  match_day: string | null;
+  round_number: number | null;
+  winner_team_id: string | null;
+  round: string | null;
+  start_time: string | null;
+  group_id: string | null;
   home_team?: {
     id: string;
+    name?: string;
     player1_id: string;
     player2_id: string;
-    player1: {
-      first_name: string;
-      last_name: string;
+    player1?: {
+      first_name?: string;
+      last_name?: string;
+      name?: string;
     };
-    player2: {
-      first_name: string;
-      last_name: string;
+    player2?: {
+      first_name?: string;
+      last_name?: string;
+      name?: string;
     };
   };
   away_team?: {
     id: string;
+    name?: string;
     player1_id: string;
     player2_id: string;
-    player1: {
-      first_name: string;
-      last_name: string;
+    player1?: {
+      first_name?: string;
+      last_name?: string;
+      name?: string;
     };
-    player2: {
-      first_name: string;
-      last_name: string;
+    player2?: {
+      first_name?: string;
+      last_name?: string;
+      name?: string;
     };
   };
-  nextMatchId?: string;
+  nextMatchId?: string | null;
 }
 
 interface TournamentDraw {

@@ -15,14 +15,59 @@ import { TournamentSchedule } from '@/components/Tournaments/TournamentSchedule'
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
+import { useEffect, useState } from 'react';
+import { Match as MatchType } from '@/types/tournament';
+import { TournamentMatchesList, HookTournamentTeam } from '@/components/Tournaments/TournamentMatchesList';
 
 export default function TournamentDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const { tournament, teams, loading } = useTournaments(params.id as string);
+  const { tournament, teams, loading: tournamentLoading } = useTournaments(params.id as string);
 
-  if (loading) return <LoadingSpinner />;
-  if (!tournament) return null;
+  // State for matches
+  const [matches, setMatches] = useState<MatchType[]>([]);
+  const [matchesLoading, setMatchesLoading] = useState<boolean>(true);
+  const [matchesError, setMatchesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (params.id) {
+      const fetchMatches = async () => {
+        setMatchesLoading(true);
+        setMatchesError(null);
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${params.id}/matches`);
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: 'Error fetching matches' }));
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          if (data.matches) {
+            setMatches(data.matches);
+          } else if (data.message && data.matches === undefined) { // Handle specific error messages from API
+             // If data.matches is explicitly empty array, it's handled by TournamentMatchesList
+            setMatchesError(data.message);
+            setMatches([]); // Ensure matches is empty if error implies no data
+          }
+        } catch (error) {
+          console.error("Failed to fetch matches:", error);
+          setMatchesError(error instanceof Error ? error.message : 'An unknown error occurred');
+          setMatches([]); // Clear matches on error
+        } finally {
+          setMatchesLoading(false);
+        }
+      };
+
+      fetchMatches();
+    }
+  }, [params.id]);
+
+  if (tournamentLoading) return <LoadingSpinner />;
+  if (!tournament) return <p className="text-center text-red-500">Torneo no encontrado.</p>;
+
+  // The `teams` variable from `useTournaments` hook should be an array of `HookTournamentTeam`.
+  // If `useTournaments` doesn't explicitly type its return for `teams` this way,
+  // this cast assumes its structure matches `HookTournamentTeam`.
+  const typedTeamsForMatchesList = teams as HookTournamentTeam[];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -75,7 +120,7 @@ export default function TournamentDetailsPage() {
         <div className="mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6
                         border border-gray-200 dark:border-gray-700">
-            <TournamentTeams teams={teams} />
+            <TournamentTeams teams={teams} tournamentId={tournament.id} />
           </div>
         </div>
 
@@ -101,8 +146,24 @@ export default function TournamentDetailsPage() {
 
         {/* Sexta fila: Reglas */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6
-                      border border-gray-200 dark:border-gray-700">
+                      border border-gray-200 dark:border-gray-700 mb-8">
           <TournamentRules tournament={tournament} />
+        </div>
+
+        {/* Nueva sección: Lista de Partidos */}
+        <div className="mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6
+                        border border-gray-200 dark:border-gray-700">
+            {matchesLoading && <LoadingSpinner />}
+            {matchesError && <p className="text-center text-red-500">Error al cargar partidos: {matchesError}</p>}
+            {!matchesLoading && !matchesError && (
+              <TournamentMatchesList
+                matches={matches}
+                teams={typedTeamsForMatchesList}
+                tournamentId={tournament.id}
+              />
+            )}
+          </div>
         </div>
 
         <div className="bg-gray-800 dark:bg-gray-900 rounded-xl p-6">

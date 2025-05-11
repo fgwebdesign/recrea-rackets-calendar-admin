@@ -3,15 +3,27 @@ import { formatDate } from '@/utils/date';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar, MapPin, Users, Trophy } from 'lucide-react';
+import { useEffect } from 'react';
+import { useState } from 'react';
 
 interface TournamentCardProps {
   tournament: Tournament;
 }
 
 const TournamentCard = ({ tournament }: TournamentCardProps) => {
-  const MAX_TEAMS = 12;
+  const [maxTeams, setMaxTeams] = useState(12);
+
+  useEffect(() => {
+    const fetchMaxTeams = async () => {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournament.id}`);
+      const data = await response.json();
+      setMaxTeams(data.max_teams);
+    };
+    fetchMaxTeams();
+  }, [tournament.id]);
+
   const teamsCount = tournament.tournament_teams?.length || 0;
-  const progressPercentage = (teamsCount / MAX_TEAMS) * 100;
+  const progressPercentage = (teamsCount / maxTeams) * 100;
 
   return (
     <Link 
@@ -69,7 +81,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
               <span className="text-green-800 dark:text-green-400 font-semibold">Cupos disponibles</span>
             </div>
             <span className="font-medium text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded-md">
-              {teamsCount}/{MAX_TEAMS}
+              {teamsCount}/{maxTeams}
             </span>
           </div>
           <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
