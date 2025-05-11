@@ -1,11 +1,24 @@
 import { Users, Shield } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface TournamentTeamsProps {
   teams: any[]; // TODO: Add proper type
+  tournamentId: string;
 }
 
-export function TournamentTeams({ teams }: TournamentTeamsProps) {
-  const MAX_TEAMS = 12;
+export function TournamentTeams({ teams, tournamentId }: TournamentTeamsProps) {
+  const [maxTeams, setMaxTeams] = useState(12);
+  useEffect(() => {
+    // fetch max teams from tournament
+    const fetchMaxTeams = async () => {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}`);
+      const data = await response.json();
+      setMaxTeams(data.max_teams);
+      console.log(maxTeams);
+    };
+    fetchMaxTeams();
+  }, []);
+
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
@@ -16,7 +29,7 @@ export function TournamentTeams({ teams }: TournamentTeamsProps) {
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Equipos</h2>
           </div>
           <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-sm font-medium">
-            {teams.length}/{MAX_TEAMS}
+            {teams.length}/{maxTeams}
           </span>
         </div>
 
@@ -36,7 +49,7 @@ export function TournamentTeams({ teams }: TournamentTeamsProps) {
           ))}
 
           {/* Espacios vacíos para equipos faltantes */}
-          {teams.length < MAX_TEAMS && Array.from({ length: MAX_TEAMS - teams.length }).map((_, index) => (
+          {teams.length < maxTeams && Array.from({ length: maxTeams - teams.length }).map((_, index) => (
             <div key={`empty-${index}`} className="flex items-center gap-4 p-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                 <Shield className="h-5 w-5 text-gray-400 dark:text-gray-600" />
