@@ -20,6 +20,7 @@ interface Team {
   id: string;
   league_team_id: string;
   inscription_paid: boolean;
+  alternate_player: string;
   player1: {
     id: string;
     name: string;
@@ -187,7 +188,7 @@ export function LeagueTeams({ teams: initialTeams, maxTeams, status, leagueId, h
                       dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 
                       transition-all duration-300 ease-in-out"
           >
-            <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-6 items-center">
+            <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-6 items-center">
               <div className="flex items-center gap-2">
                 <UserCircle2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -199,6 +200,15 @@ export function LeagueTeams({ teams: initialTeams, maxTeams, status, leagueId, h
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   {team.player2.name}
                 </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <UserCircle2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Suplente</span>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {team.alternate_player || 'No asignado'}
+                  </p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Switch

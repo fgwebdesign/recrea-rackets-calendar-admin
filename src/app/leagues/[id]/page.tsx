@@ -34,6 +34,7 @@ interface RegisteredTeam {
   id: string;
   league_team_id: string;
   inscription_paid: boolean;
+  alternate_player: string;
   player1: {
     id: string;
     name: string;
@@ -170,7 +171,10 @@ export default function LeagueDetailsPage() {
               <Collapsible.Content>
                 <CardContent className="p-6">
                   <LeagueTeams
-                    teams={league.teams || []}
+                    teams={(league.teams || []).map(team => ({
+                      ...team,
+                      alternate_player: (team as any).alternate_player || ''
+                    }))}
                     maxTeams={league.team_size}
                     status={league.status}
                     leagueId={leagueId}

@@ -49,15 +49,18 @@ function LabelWithTooltip({ htmlFor, label, tooltip }: { htmlFor?: string; label
 function calculateMinimumDays(teamSize: number, frequency: string): number {
   const numberOfRounds = teamSize - 1;
   
+  // Restamos 1 ronda porque la primera fecha se juega en la semana inicial
+  const remainingRounds = numberOfRounds - 1;
+  
   switch(frequency.toLowerCase()) {
     case 'semanal':
-      return numberOfRounds * 7;
+      return remainingRounds * 7;
     case 'quincenal':
-      return numberOfRounds * 14;
+      return remainingRounds * 14;
     case 'mensual':
-      return numberOfRounds * 30;
+      return remainingRounds * 30;
     default:
-      return numberOfRounds * 14; // Por defecto quincenal
+      return remainingRounds * 14; // Por defecto quincenal
   }
 }
 
@@ -121,8 +124,8 @@ export function LeagueScheduleInfo({
       const startDate = new Date(formData.start_date);
       const minimumDays = calculateMinimumDays(formData.team_size, formData.frequency);
       
-      // Agregar un 20% más de días para flexibilidad
-      const recommendedDays = Math.ceil(minimumDays * 1.2);
+      // Agregar un 5% más de días para flexibilidad
+      const recommendedDays = Math.ceil(minimumDays * 1.05);
       
       const suggestedDate = adjustDateToUruguay(new Date(startDate));
       suggestedDate.setDate(startDate.getDate() + recommendedDays);
