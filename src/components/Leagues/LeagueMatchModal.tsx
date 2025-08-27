@@ -242,12 +242,9 @@ export function LeagueMatchModal({
   const renderCompletedMatchView = () => {
     return (
       <div className="space-y-8">
-        <div className="flex flex-col items-center justify-center p-8 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 opacity-80"></div>
-          
+        <div className="flex flex-col items-center justify-center p-8 rounded-xl">
           {/* Content */}
-          <div className="relative z-10 w-full">
+          <div className="w-full">
             {/* Teams and Score */}
             <div className="grid grid-cols-3 gap-8 items-center w-full">
               {/* Team 1 */}
@@ -255,14 +252,14 @@ export function LeagueMatchModal({
                 <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-6">{match.team1}</h3>
                 <div className="space-y-4">
                   <div className="relative">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <div className="p-4 rounded-lg">
                       <div className="font-orbitron text-6xl font-bold text-green-600 dark:text-[#4ade80]">
                         {match.team1_sets1_won}
                       </div>
                     </div>
                   </div>
                   <div className="relative">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <div className="p-4 rounded-lg">
                       <div className="font-orbitron text-6xl font-bold text-green-600 dark:text-[#4ade80]">
                         {match.team1_sets2_won}
                       </div>
@@ -270,7 +267,7 @@ export function LeagueMatchModal({
                   </div>
                   {(match.team1_tie3_won ?? 0) > 0 && (
                     <div className="relative">
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
+                      <div className="p-4 rounded-lg">
                         <div className="font-orbitron text-6xl font-bold text-yellow-600 dark:text-[#fbbf24]">
                           {match.team1_tie3_won}
                         </div>
@@ -297,14 +294,14 @@ export function LeagueMatchModal({
                 <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-6">{match.team2}</h3>
                 <div className="space-y-4">
                   <div className="relative">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <div className="p-4 rounded-lg">
                       <div className="font-orbitron text-6xl font-bold text-green-600 dark:text-[#4ade80]">
                         {match.team2_sets1_won}
                       </div>
                     </div>
                   </div>
                   <div className="relative">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <div className="p-4 rounded-lg">
                       <div className="font-orbitron text-6xl font-bold text-green-600 dark:text-[#4ade80]">
                         {match.team2_sets2_won}
                       </div>
@@ -312,7 +309,7 @@ export function LeagueMatchModal({
                   </div>
                   {(match.team2_tie3_won ?? 0) > 0 && (
                     <div className="relative">
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
+                      <div className="p-4 rounded-lg">
                         <div className="font-orbitron text-6xl font-bold text-yellow-600 dark:text-[#fbbf24]">
                           {match.team2_tie3_won}
                         </div>

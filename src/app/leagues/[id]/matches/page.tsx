@@ -147,15 +147,18 @@ export default function LeagueMatchesPage() {
       toast({
         title: 'Éxito',
         description: 'Resultado guardado correctamente',
+        variant: 'default',
+        className: 'dark:bg-green-900 dark:text-green-100 dark:border-green-800',
       })
       handleModalClose()
-      await fetchMatches() // Recargar los partidos para obtener los datos actualizados
+      await fetchMatches() 
     } catch (error) {
       console.error('Error:', error)
       toast({
         title: 'Error',
         description: 'No se pudo guardar el resultado',
         variant: 'destructive',
+        className: 'dark:bg-red-900 dark:text-red-100 dark:border-red-800',
       })
     } finally {
       setIsUpdating(false)
@@ -330,21 +333,78 @@ export default function LeagueMatchesPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-900 py-6">
       <div className="container mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={() => router.push(`/leagues/${params.id}`)}
-            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Volver a la liga
-          </Button>
-        </div>
+        <div className="flex flex-col gap-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
+            <div className="border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-4 p-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => router.push(`/leagues/${params.id}`)}
+                  className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver a la liga
+                </Button>
+                <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {league.name}
+                    </h1>
+                    <Badge variant="secondary" className="text-sm font-medium bg-primary/10 text-primary hover:bg-primary/15">
+                      {categories.find(category => category.id === league.category_id)?.name}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Gestión de partidos y resultados
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
+              <div className="flex items-center gap-3 bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-800">
+                <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-green-900 dark:text-green-300">{completed} Completados</p>
+                  <p className="text-xs text-green-600 dark:text-green-400">Partidos finalizados</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+                <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-300">{scheduled} Programados</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">Partidos pendientes</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-100 dark:border-purple-800">
+                <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-purple-900 dark:text-purple-300">Fecha {matches[0]?.match_number || '-'}</p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400">Ronda actual</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
-        <div className="grid gap-6">
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-              <CardTitle className="text-gray-900 dark:text-white">Partidos de {league.name}</CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="text-xl text-gray-900 dark:text-white">Lista de Partidos</CardTitle>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Gestiona los resultados de cada partido
+                  </p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-6">
@@ -500,9 +560,7 @@ export default function LeagueMatchesPage() {
                                         <div className="text-right md:text-left">
                                           <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
                                           {match.status === 'COMPLETED' && (
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                              {match.team1_sets1_won + match.team1_sets2_won} sets
-                                            </p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400"></p>
                                           )}
                                         </div>
                                         <div className="flex justify-center">
@@ -519,11 +577,6 @@ export default function LeagueMatchesPage() {
                                         </div>
                                         <div className="text-left md:text-right">
                                           <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
-                                          {match.status === 'COMPLETED' && (
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                              {match.team2_sets1_won + match.team2_sets2_won} sets
-                                            </p>
-                                          )}
                                         </div>
                                       </div>
                                     </div>
@@ -547,7 +600,6 @@ export default function LeagueMatchesPage() {
             onClose={handleModalClose}
             match={selectedMatch}
             onSubmit={handleSaveResult}
-            onScheduleUpdate={handleScheduleUpdate}
             isLoading={isUpdating}
           />
         )}
