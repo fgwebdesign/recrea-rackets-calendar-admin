@@ -1,9 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
+import { useInView } from 'react-intersection-observer';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface GalleryImage {
   id: string;
@@ -15,40 +25,49 @@ interface GalleryImage {
 interface GalleryGridProps {
   images: GalleryImage[];
   isAdmin?: boolean;
-  onImageDelete?: () => void;
+  onImageDelete?: (imageId: string) => Promise<void>;
+  hasMore?: boolean;
+  isLoading?: boolean;
+  onLoadMore?: () => void;
 }
 
-export function GalleryGrid({ images, isAdmin = false, onImageDelete }: GalleryGridProps) {
+export function GalleryGrid({ 
+  images, 
+  isAdmin = false, 
+  onImageDelete,
+  hasMore = false,
+  isLoading = false,
+  onLoadMore
+}: GalleryGridProps) {
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [imageToDelete, setImageToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handleDelete = async (imageId: string) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar esta imagen?')) {
-      return;
+  // Intersection Observer para infinite scroll
+  const { ref: loadMoreRef, inView } = useInView({
+    threshold: 0.1,
+    triggerOnce: false
+  });
+
+  useEffect(() => {
+    if (inView && hasMore && !isLoading && onLoadMore) {
+      onLoadMore();
     }
+  }, [inView, hasMore, isLoading, onLoadMore]);
+
+  const handleDelete = async () => {
+    if (!imageToDelete) return;
 
     try {
       setIsDeleting(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/gallery/${imageId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al eliminar la imagen');
-      }
-
+      await onImageDelete?.(imageToDelete);
+      setImageToDelete(null);
       toast({
         title: "¡Éxito!",
         description: "Imagen eliminada correctamente",
         className: "bg-green-500 text-white"
       });
-
-      onImageDelete?.();
-
     } catch (error) {
       toast({
         variant: "destructive",
@@ -67,8 +86,9 @@ export function GalleryGrid({ images, isAdmin = false, onImageDelete }: GalleryG
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {images.map((image, index) => (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {images.map((image, index) => (
           <div key={image.id} className="relative group">
             <div 
               className="aspect-square relative overflow-hidden rounded-lg cursor-pointer"
@@ -76,8 +96,13 @@ export function GalleryGrid({ images, isAdmin = false, onImageDelete }: GalleryG
             >
               <Image
                 src={image.image_url}
-                alt={image.caption}
+                alt={image.caption || `Imagen de la liga ${image.id}`}
                 fill
+                loading="lazy"
+                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                quality={75}
+                placeholder="blur"
+                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLi44QjxAOEA4Njo0PkJBREVMTFZBVVxVQz9HVVVMV0z/2wBDAR0XFx0aHR4eHUw4ODhMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
                 className="object-cover transition-transform duration-300 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
@@ -89,7 +114,10 @@ export function GalleryGrid({ images, isAdmin = false, onImageDelete }: GalleryG
             
             {isAdmin && (
               <button
-                onClick={() => handleDelete(image.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImageToDelete(image.id);
+                }}
                 disabled={isDeleting}
                 className="absolute top-2 right-2 p-2 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
               >
@@ -98,7 +126,60 @@ export function GalleryGrid({ images, isAdmin = false, onImageDelete }: GalleryG
             )}
           </div>
         ))}
+        </div>
+
+        {/* Infinite Scroll Trigger */}
+        {(hasMore || isLoading) && (
+          <div 
+            ref={loadMoreRef}
+            className="flex justify-center items-center py-8"
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Cargando más imágenes...</span>
+              </div>
+            ) : (
+              <div className="h-8" />
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Modal de confirmación para eliminar */}
+      <Dialog open={imageToDelete !== null} onOpenChange={(open) => !open && setImageToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar eliminación</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que deseas eliminar esta imagen? Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setImageToDelete(null)}
+              disabled={isDeleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                'Eliminar'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Lightbox
         open={selectedImage !== null}

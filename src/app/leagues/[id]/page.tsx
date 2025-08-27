@@ -84,7 +84,14 @@ export default function LeagueDetailsPage() {
   const [isMatchesOpen, setIsMatchesOpen] = useState(true)
   const [isGalleryOpen, setIsGalleryOpen] = useState(true)
   
-  const { images, isLoading: isLoadingGallery, uploadImage, deleteImage } = useGallery(leagueId)
+  const { 
+    images, 
+    isLoading: isLoadingGallery, 
+    deleteImage, 
+    refetch: refetchGallery,
+    hasMore,
+    loadMore
+  } = useGallery(leagueId)
 
   if (isLoadingLeague || isLoadingCategories || isLoadingStandings) {
     return (
@@ -484,9 +491,7 @@ export default function LeagueDetailsPage() {
                 <CardContent className="p-6 space-y-6">
                   <GalleryUploadForm
                     leagueId={leagueId}
-                    onUploadSuccess={() => {
-                      // La galería se actualizará automáticamente gracias a React Query
-                    }}
+                    onUploadSuccess={refetchGallery}
                   />
                   
                   {isLoadingGallery ? (
@@ -497,9 +502,10 @@ export default function LeagueDetailsPage() {
                     <GalleryGrid
                       images={images || []}
                       isAdmin={true}
-                      onImageDelete={() => {
-                        // La galería se actualizará automáticamente gracias a React Query
-                      }}
+                      onImageDelete={deleteImage}
+                      hasMore={hasMore}
+                      isLoading={isLoadingGallery}
+                      onLoadMore={loadMore}
                     />
                   )}
                 </CardContent>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Swords, Calendar, Clock, AlertCircle, X, Info, CheckCircle2 } from 'lucide-react';
+import { Trophy, Swords, AlertCircle, X, Info, CheckCircle2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LeagueMatch } from '@/types/league';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -36,7 +35,6 @@ interface LeagueMatchModalProps {
   onClose: () => void;
   match: LeagueMatch;
   onSubmit: (matchId: string, result: any) => void;
-  onScheduleUpdate: (matchId: string, schedule: any) => void;
   isLoading?: boolean;
 }
 
@@ -49,23 +47,17 @@ export function LeagueMatchModal({
   onClose,
   match,
   onSubmit,
-  onScheduleUpdate,
+
   isLoading = false,
 }: LeagueMatchModalProps) {
-  const [activeTab, setActiveTab] = useState('result');
   const [set1, setSet1] = useState<SetScore>({ team1: null, team2: null, tiebreak: null });
   const [set2, setSet2] = useState<SetScore>({ team1: null, team2: null, tiebreak: null });
   const [superTiebreak, setSuperTiebreak] = useState<{ team1: number; team2: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
-  // Schedule state
-  const [date, setDate] = useState(match.match_date.split('T')[0]);
-  const [time, setTime] = useState(match.match_date.split('T')[1].substring(0, 5));
 
   useEffect(() => {
-    // Reset error when changing tabs
     setError(null);
-  }, [activeTab]);
+  }, []);
 
   const showSet1Tiebreak = (set1.team1 === 6 && set1.team2 === 6) || 
                           (set1.team1 === 5 && set1.team2 === 5);
@@ -129,22 +121,7 @@ export function LeagueMatchModal({
 
   const showSuperTiebreak = getSetWinner(set1) && getSetWinner(set2) && getSetWinner(set1) !== getSetWinner(set2);
 
-  const validateSchedule = () => {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
-    if (!dateRegex.test(date)) {
-      setError("El formato de fecha debe ser YYYY-MM-DD");
-      return false;
-    }
-
-    if (!timeRegex.test(time)) {
-      setError("El formato de hora debe ser HH:mm");
-      return false;
-    }
-
-    return true;
-  };
 
   const isSetValid = (set: SetScore): boolean => {
     if (!set.team1 || !set.team2) return false;
@@ -209,24 +186,7 @@ export function LeagueMatchModal({
     onSubmit(match.id, result);
   };
 
-  const handleSubmitSchedule = () => {
-    setError(null);
 
-    if (match.status === 'COMPLETED') {
-      setError("No se puede modificar un partido con resultado registrado");
-      return;
-    }
-
-    if (!validateSchedule()) {
-      return;
-    }
-
-    onScheduleUpdate(match.id, {
-      date,
-      time,
-      status: match.status
-    });
-  };
 
   const renderTeamScore = (teamName: string, isTeam1: boolean, set: SetScore, setNumber: number) => (
     <div className="space-y-2">
@@ -397,45 +357,9 @@ export function LeagueMatchModal({
             {match.status === 'COMPLETED' ? (
               renderCompletedMatchView()
             ) : (
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-                <div className="flex flex-col h-full">
-                  {/* Top Navigation */}
-                  <TabsList className="w-full grid grid-cols-2 px-2 pt-2 pb-3 bg-gray-100/80 dark:bg-gray-800/50 rounded-lg mx-0 mt-0 border-b border-gray-200 dark:border-gray-700 h-[64px]">
-                    <TabsTrigger
-                      value="result"
-                      className={cn(
-                        "flex items-center justify-center h-[52px] rounded-md transition-all",
-                        "data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700",
-                        "data-[state=active]:text-purple-600 dark:data-[state=active]:text-purple-400",
-                        "data-[state=active]:shadow-sm",
-                        "text-gray-600 dark:text-gray-400"
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Trophy className="w-4 h-4" />
-                        <span>Resultado</span>
-                      </div>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="schedule"
-                      className={cn(
-                        "flex items-center justify-center h-[52px] rounded-md transition-all",
-                        "data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700",
-                        "data-[state=active]:text-purple-600 dark:data-[state=active]:text-purple-400",
-                        "data-[state=active]:shadow-sm",
-                        "text-gray-600 dark:text-gray-400"
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        <span>Horario</span>
-                      </div>
-                    </TabsTrigger>
-                  </TabsList>
-
+              <div className="flex flex-col h-full">
                   {/* Content */}
                   <div className="flex-1 p-8">
-                    <TabsContent value="result" className="mt-0 h-full">
                       <div className="space-y-6">
                         <div className="grid grid-cols-3 gap-6">
                           {/* Set 1 */}
@@ -666,123 +590,39 @@ export function LeagueMatchModal({
                           </Alert>
                         )}
                       </div>
-                    </TabsContent>
-
-                    <TabsContent value="schedule" className="mt-0">
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label className="flex items-center gap-2 text-gray-900 dark:text-white">
-                              <Calendar className="w-4 h-4 text-purple-500 dark:text-purple-400" />
-                              Fecha
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="w-4 h-4 text-gray-400" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Selecciona la fecha del partido</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </Label>
-                            <Input
-                              type="date"
-                              value={date}
-                              onChange={(e) => setDate(e.target.value)}
-                              className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="flex items-center gap-2 text-gray-900 dark:text-white">
-                              <Clock className="w-4 h-4 text-purple-500 dark:text-purple-400" />
-                              Hora
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="w-4 h-4 text-gray-400" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Selecciona la hora del partido</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </Label>
-                            <Input
-                              type="time"
-                              value={time}
-                              onChange={(e) => setTime(e.target.value)}
-                              className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400"
-                            />
-                          </div>
-                        </div>
-
-                        {error && (
-                          <Alert variant="destructive" className="mt-4 animate-in fade-in slide-in-from-top-1">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{error}</AlertDescription>
-                          </Alert>
-                        )}
-                      </div>
-                    </TabsContent>
                   </div>
                 </div>
-              </Tabs>
             )}
           </div>
 
           {/* Footer */}
           <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-            {activeTab === 'result' && (
-              <>
-                <div className="flex justify-end gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={onClose}
-                    disabled={isLoading}
-                    className="text-gray-700 dark:text-gray-300"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={handleSubmitResult}
-                    disabled={Boolean(
-                      isLoading || 
-                      !validateSetScore(set1.team1) || 
-                      !validateSetScore(set1.team2) ||
-                      !validateSetScore(set2.team1) || 
-                      !validateSetScore(set2.team2) ||
-                      !isSetValid(set1) || 
-                      !isSetValid(set2) ||
-                      (showSuperTiebreak && (!superTiebreak || !validateTiebreakScore(superTiebreak.team1) || !validateTiebreakScore(superTiebreak.team2)))
-                    )}
-                    className="bg-purple-500 hover:bg-purple-600 text-white"
-                  >
-                    {isLoading ? "Guardando..." : "Guardar Resultado"}
-                  </Button>
-                </div>
-              </>
-            )}
-
-            {activeTab === 'schedule' && (
-              <div className="flex justify-end gap-3">
-                <Button
-                  variant="outline"
-                  onClick={onClose}
-                  disabled={isLoading}
-                  className="text-gray-700 dark:text-gray-300"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleSubmitSchedule}
-                  disabled={isLoading}
-                  className="bg-purple-500 hover:bg-purple-600 text-white"
-                >
-                  {isLoading ? "Guardando..." : "Actualizar Horario"}
-                </Button>
-              </div>
-            )}
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={onClose}
+                disabled={isLoading}
+                className="text-gray-700 dark:text-gray-300"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSubmitResult}
+                disabled={Boolean(
+                  isLoading || 
+                  !validateSetScore(set1.team1) || 
+                  !validateSetScore(set1.team2) ||
+                  !validateSetScore(set2.team1) || 
+                  !validateSetScore(set2.team2) ||
+                  !isSetValid(set1) || 
+                  !isSetValid(set2) ||
+                  (showSuperTiebreak && (!superTiebreak || !validateTiebreakScore(superTiebreak.team1) || !validateTiebreakScore(superTiebreak.team2)))
+                )}
+                className="bg-purple-500 hover:bg-purple-600 text-white"
+              >
+                {isLoading ? "Guardando..." : "Guardar Resultado"}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

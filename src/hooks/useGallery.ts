@@ -1,104 +1,119 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useToast } from '@/components/ui/use-toast';
 
 interface GalleryImage {
   id: string;
-  league_id: string;
   image_url: string;
   caption: string;
-  match_id: string | null;
   uploaded_at: string;
 }
 
-interface UploadResponse {
-  message: string;
-  photo: GalleryImage;
+interface GalleryResponse {
+  photos: GalleryImage[];
+  page: number;
+  pageSize: number;
+  total: number;
 }
-
-interface DeleteResponse {
-  message: string;
-}
-
-const galleryKeys = {
-  all: ['gallery'] as const,
-  league: (leagueId: string) => [...galleryKeys.all, leagueId] as const,
-};
 
 export function useGallery(leagueId: string) {
-  const queryClient = useQueryClient();
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const { toast } = useToast();
 
-  const { data: images, isLoading, error } = useQuery({
-    queryKey: galleryKeys.league(leagueId),
-    queryFn: async () => {
+  const fetchImages = async (pageToFetch = page) => {
+    try {
+      setIsLoading(true);
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/gallery/${leagueId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-          }
-        }
+        `${process.env.NEXT_PUBLIC_API_URL}/gallery/league/${leagueId}?page=${pageToFetch}&pageSize=${pageSize}`
       );
+
       if (!response.ok) {
         throw new Error('Error al cargar las imágenes');
       }
-      const data = await response.json();
-      return data.photos as GalleryImage[];
-    }
-  });
 
-  const uploadMutation = useMutation<UploadResponse, Error, FormData>({
-    mutationFn: async (formData: FormData) => {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/gallery/upload`,
-        {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-          }
-        }
-      );
-      if (!response.ok) {
-        throw new Error('Error al subir la imagen');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: galleryKeys.league(leagueId)
+      const data: GalleryResponse = await response.json();
+      
+      // Si es la primera página, reemplazar imágenes, si no, agregar a las existentes
+      setImages(prev => pageToFetch === 1 ? data.photos : [...prev, ...data.photos]);
+      setTotal(data.total);
+      setError(null);
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Error desconocido'));
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron cargar las imágenes"
       });
+      return null;
+    } finally {
+      setIsLoading(false);
     }
-  });
+  };
 
-  const deleteMutation = useMutation<DeleteResponse, Error, string>({
-    mutationFn: async (imageId: string) => {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/gallery/${imageId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-          }
+  const loadMore = async () => {
+    if (isLoading || images.length >= total) return;
+    
+    const nextPage = page + 1;
+    const data = await fetchImages(nextPage);
+    if (data) {
+      setPage(nextPage);
+    }
+  };
+
+  useEffect(() => {
+    if (leagueId) {
+      fetchImages();
+    }
+  }, [leagueId, page]);
+
+  const deleteImage = async (imageId: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/gallery/${imageId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         }
-      );
+      });
+
       if (!response.ok) {
         throw new Error('Error al eliminar la imagen');
       }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: galleryKeys.league(leagueId)
+
+      toast({
+        title: "¡Éxito!",
+        description: "Imagen eliminada correctamente",
+        className: "bg-green-500 text-white"
+      });
+
+      // Recargar imágenes
+      fetchImages();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo eliminar la imagen"
       });
     }
-  });
+  };
 
   return {
-    images: images || [],
+    images,
     isLoading,
     error,
-    uploadImage: uploadMutation.mutateAsync,
-    deleteImage: deleteMutation.mutateAsync,
-    isUploading: uploadMutation.isPending,
-    isDeleting: deleteMutation.isPending
+    page,
+    pageSize,
+    total,
+    hasMore: images.length < total,
+    loadMore,
+    deleteImage,
+    refetch: () => {
+      setPage(1);
+      return fetchImages(1);
+    }
   };
-} 
+}
