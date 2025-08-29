@@ -1,20 +1,12 @@
-export interface DashboardUser {
-  id: string;
-  name: string;
-  role: string;
-  avatar?: string;
-}
-
-export interface UserRole {
-  user_id: string;
-  role: 'owner' | 'admin' | 'user' | 'manager';
-}
-
-export interface SupabaseUser {
-  id: string;
-  email?: string;
-  user_metadata: {
-    full_name?: string;
-    avatar_url?: string;
-  };
+export interface User {
+  id: string
+  email: string
+  first_name: string
+  last_name: string
+  phone?: string
+  profile_photo?: string
+  role: 'user' | 'admin'
+  created_at: string
+  updated_at: string
+  onboarding_completed: boolean
 }

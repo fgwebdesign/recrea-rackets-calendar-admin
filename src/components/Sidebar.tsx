@@ -44,6 +44,28 @@ const MENU_ITEMS: MenuItem[] = [
     hoverColor: 'hover:bg-blue-50'
   },
   { 
+    name: 'Torneos', 
+    href: '/tournaments', 
+    icon: TrophyIcon,
+    iconColor: 'text-orange-500',
+    hoverColor: 'hover:bg-orange-50',
+    submenu: [
+      { 
+        name: 'Ver torneos', 
+        href: '/tournaments', 
+        icon: TrophyIcon,
+        iconColor: 'text-orange-500' 
+      },
+      { 
+        name: 'Crear torneo', 
+        href: '/tournaments/create', 
+        icon: PlusIcon,
+        iconColor: 'text-orange-600',
+        textColor: 'text-orange-600 font-medium'
+      },
+    ]
+  },
+  { 
     name: 'Ligas', 
     href: '/leagues', 
     icon: TableCellsIcon,

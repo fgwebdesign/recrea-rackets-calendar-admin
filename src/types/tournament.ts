@@ -1,214 +1,137 @@
-import { UUID } from 'crypto';
+import { Team } from './team'
+import { Category } from './category'
+import { Court } from './court'
 
-export interface Player {
-  id: UUID;
-  name: string;
+export interface Tournament {
+  id: string
+  name: string
+  category_id: string
+  start_date: string
+  end_date: string
+  status: 'upcoming' | 'in_progress' | 'completed'
+  courts_available: number
+  time_slots: [number, number][]
+  group_time_slots: GroupTimeSlot[]
+  tournament_type: 'NINE_PLAYERS' | 'TWELVE_PLAYERS'
+  max_teams: 9 | 12
+  tournament_info?: TournamentInfo
+  tournament_teams?: TournamentTeam[]
+  category?: Category
 }
 
-export interface Team {
-  id: UUID;
-  player1: Player;
-  player2: Player;
+export interface GroupTimeSlot {
+  id: string
+  day: 'friday' | 'saturday'
+  start: string
+  end: string
+  label: string
 }
 
-export interface TimeConstraint {
-  team_id: UUID;
-  start_time: Date;
-  end_time: Date;
-  
+export interface TournamentMatch {
+  id: string
+  tournament_id: string
+  home_team_id: string
+  away_team_id: string
+  group_number?: number
+  round: 'group' | 'quarter_final' | 'semi_final' | 'final'
+  stage: 'group' | 'quarter_final' | 'semi_final' | 'final'
+  match_number: number
+  match_day: string
+  start_time: string
+  court_id: string
+  team1_sets1_won?: number
+  team2_sets1_won?: number
+  team1_sets2_won?: number
+  team2_sets2_won?: number
+  team1_tie1_won?: number
+  team2_tie1_won?: number
+  team1_tie2_won?: number
+  team2_tie2_won?: number
+  team1_tie3_won?: number
+  team2_tie3_won?: number
+  winner_team_id?: string
+  status: 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
+  group_id?: string
+  home_team?: Team
+  away_team?: Team
+  court?: Court
 }
 
-export type TournamentFormat =
-  | 'single_elimination'
-  | 'round_robin'
-  | 'group_stage';
-
-export interface CreateTournamentRequest {
-  name: string;
-  players: Player[];
-  teams: Team[];
-  teams_limit: number;
-  category: string;
-  start_date: Date;
-  end_date: Date;
-  price: number;
-  sign_up_limit_date: Date;
-  format: TournamentFormat;
-  time_constraints?: TimeConstraint[];
-}
-
-export interface TournamentTimeConstraint {
-  id: UUID;
-  tournament_id: UUID;
-  team_id: UUID;
-  start_time: Date;
-  end_time: Date;
-}
-
-export interface TournamentTeam extends Team {
-  team_id: string;
-  group?: 'A' | 'B';
-  teams?: {
-    id: string;
-    player1_id: string;
-    player2_id: string;
-  };
-}
-
-export interface TimeSlot {
-  start: string;
-  end: string;
-  day: string;
-  date: string;
-  error?: string;
-}
-
-export interface TournamentBase {
-  name: string;
-  category_id: string;
-  start_date: string;
-  end_date: string;
-  status: 'draft' | 'upcoming' | 'in_progress' | 'finished';
-  courts_available: number;
-  time_slots: TimeSlot[];
+export interface TournamentTeam {
+  id: string
+  tournament_id: string
+  team_id: string
+  unavailable_times?: number[]
+  payment_status: 'pending' | 'paid' | 'failed'
+  payment_reference?: string
+  payment_date?: string
+  payment_amount?: number
+  unavailable_group_slot_id?: string
+  team?: Team
 }
 
 export interface TournamentInfo {
-  description: string;
-  rules: string;
-  tournament_location: string;
-  tournament_address: string;
-  tournament_club_name: string;
-  signup_limit_date: string;
-  inscription_cost: number;
-  first_place_prize: string;
-  second_place_prize: string;
-  third_place_prize: string;
-  tournament_thumbnail: string;
+  id: string
+  tournament_id: string
+  first_place_prize?: string
+  second_place_prize?: string
+  third_place_prize?: string
+  description: string
+  rules: string
+  tournament_location: string
+  tournament_address: string
+  tournament_club_name: string
+  signup_limit_date: string
+  inscription_cost: number
+  sponsors?: string
+  tournament_thumbnail?: string
 }
 
-export interface Category {
-  id: string;
-  name: string;
+export interface TournamentGroup {
+  id: string
+  tournament_id: string
+  group_number: number
+  teams: string[]
+  status: 'IN_PROGRESS' | 'COMPLETED'
 }
 
-export interface TournamentFormData {
-  name: string;
-  category_ids: string[];
-  categories: Array<{
-    id: string;
-    name: string;
-  }>;
-  start_date: string;
-  end_date: string;
-  status: string;
-  courts_available: number;
-  time_slots: Array<{
-    start: string;
-    end: string;
-    day: string;
-    date: string;
-  }>;
+export interface TournamentStanding {
+  id: string
+  tournament_id: string
+  team_id: string
+  group_id: string
+  points: number
+  matches_played: number
+  matches_won: number
+  matches_lost: number
+  sets_won: number
+  sets_lost: number
+  games_won: number
+  games_lost: number
+  team?: Team
+}
+
+export interface AvailabilityData {
   tournament_info: {
-    description: string;
-    rules: string;
-    tournament_location: string;
-    tournament_address: string;
-    tournament_club_name: string;
-    signup_limit_date: string;
-    inscription_cost: number;
-    first_place_prize: string;
-    second_place_prize?: string;
-    third_place_prize?: string;
-    tournament_thumbnail?: string;
-    sponsors?: string[];
-  };
-}
-
-export interface Tournament {
-  id: string;
-  name: string;
-  category_id: string;
-  status: 'upcoming' | 'in_progress' | 'finished';
-  start_date: string;
-  end_date: string;
-  teams_limit: number;
-  price?: number;
-  prize_pool?: number;
-  format: TournamentFormat;
-  tournament_teams: TournamentTeam[];
-  tournament_info: Array<{
-    tournament_club_name?: string;
-    inscription_cost?: number;
-    rules?: string;
-    tournament_location?: string;
-    tournament_address?: string;
-    signup_limit_date?: string;
-    tournament_thumbnail?: string;
-    sponsors?: string[];
-    description?: string;
-    first_place_prize?: string;
-    second_place_prize?: string;
-    third_place_prize?: string;
-  }>;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface Set {
-  games: number;
-  tiebreak: number | null;
-}
-
-interface Score {
-  sets: Set[];
-}
-
-export interface Match {
-  id: string;
-  tournament_id: string;
-  home_team_id?: string;
-  away_team_id?: string;
-  court_id?: string;
-  score?: string;
-  created_at: Date;
-  updated_at: Date;
-  status: string;
-  start_hour: string;
-  match_day: Date;
-  round_number: number;
-  winner_team_id?: string;
-  round: number;
-  start_time: string;
-  home_team?: {
-    id: string;
-    player1_id: string;
-    player2_id: string;
-    player1: {
-      first_name: string;
-      last_name: string;
-    };
-    player2: {
-      first_name: string;
-      last_name: string;
-    };
-  };
-  away_team?: {
-    id: string;
-    player1_id: string;
-    player2_id: string;
-    player1: {
-      first_name: string;
-      last_name: string;
-    };
-    player2: {
-      first_name: string;
-      last_name: string;
-    };
-  };
-  nextMatchId?: string;
-}
-
-interface TournamentDraw {
-  matches: Match[];
+    category: string
+    tournament_type: string
+    max_teams: number
+    courts_available: number
+    days: number
+    horasPorDia: number
+    totalMatches: number
+    slotsDisponibles: number
+    cupoPorSlot: number
+  }
+  availability: Record<string, {
+    total_capacity: number
+    selected_count: number
+    remaining_slots: number
+    percentage_full: number
+    teams: Array<{
+      team_id: string
+      player1_id: string
+      player2_id: string
+    }>
+  }>
 }
