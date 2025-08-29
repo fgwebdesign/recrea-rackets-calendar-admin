@@ -9,10 +9,16 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { TournamentFormData } from '@/hooks/useTournamentForm';
 import { Category } from '@/types/category';
 
+interface Court {
+  id: string;
+  name: string;
+}
+
 interface TournamentBasicInfoProps {
   formData: TournamentFormData;
   setFormData: (data: TournamentFormData) => void;
   categories: Category[];
+  courts: Court[];
   onSubmit: (data: TournamentFormData) => void;
   errors: Record<string, string | null | undefined>;
 }
@@ -43,7 +49,7 @@ function LabelWithTooltip({
   );
 }
 
-export function TournamentBasicInfo({ formData, setFormData, categories = [], onSubmit, errors }: TournamentBasicInfoProps) {
+export function TournamentBasicInfo({ formData, setFormData, categories = [], courts = [], onSubmit, errors }: TournamentBasicInfoProps) {
   const handleCategoryToggle = (categoryId: string) => {
     const currentCategories = Array.isArray(formData.categories) ? formData.categories : [];
     const isSelected = currentCategories.includes(categoryId);
@@ -188,18 +194,26 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
                 tooltip="Número de canchas disponibles para el torneo"
               />
               <div className="space-y-2">
-                <Input
-                  id="courts_available"
-                  type="number"
-                  min="1"
-                  value={formData.courts_available}
-                  onChange={(e) => setFormData({ ...formData, courts_available: parseInt(e.target.value) })}
-                  aria-invalid={!!errors.courts_available}
-                  className={cn(
-                    "bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700",
-                    errors.courts_available && "border-red-500 dark:border-red-500"
-                  )}
-                />
+                <Select
+                  value={formData.courts_available.toString()}
+                  onValueChange={(value) => setFormData({ ...formData, courts_available: parseInt(value) })}
+                >
+                  <SelectTrigger 
+                    className={cn(
+                      "bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700",
+                      errors.courts_available && "border-red-500 dark:border-red-500"
+                    )}
+                  >
+                    <SelectValue placeholder="Selecciona las canchas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courts.map((court, index) => (
+                      <SelectItem key={court.id} value={(index + 1).toString()}>
+                        {index + 1} {index === 0 ? 'cancha' : 'canchas'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {errors.courts_available && (
                   <p className="text-sm text-red-500">{errors.courts_available}</p>
                 )}

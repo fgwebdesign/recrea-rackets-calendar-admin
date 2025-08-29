@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { Court } from '@/types/court';
 
@@ -13,10 +13,17 @@ export function useCourts() {
   const [courts, setCourts] = useState<Court[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchCourts = async () => {
+  const fetchCourts = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_URL}/courts`);
+      const token = localStorage.getItem('adminToken');
+      if (!token) throw new Error('No estás autenticado');
+
+      const response = await fetch(`${API_URL}/courts`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) throw new Error('Error fetching courts');
       const data = await response.json();
       setCourts(data);
@@ -30,11 +37,11 @@ export function useCourts() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCourts();
-  }, []);
+  }, [fetchCourts]);
 
   const createCourt = async (courtData: CreateCourtData) => {
     try {

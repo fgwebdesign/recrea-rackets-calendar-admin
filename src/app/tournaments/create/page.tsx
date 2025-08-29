@@ -6,11 +6,13 @@ import Header from '@/components/Header';
 import { TournamentBasicInfo } from '@/components/Tournaments/create/TournamentBasicInfo';
 import { TournamentDetailInfo } from '@/components/Tournaments/create/TournamentDetailInfo';
 import { useCategories } from '@/hooks/useCategories';
+import { useCourts } from '@/hooks/useCourts';
 import { Progress } from '@/components/ui/progress';
 import { useTournamentForm } from '@/hooks/useTournamentForm';
 
 export default function CreateTournamentPage() {
   const { categories, isLoading: isLoadingCategories, fetchCategories } = useCategories();
+  const { courts, isLoading: isLoadingCourts, fetchCourts } = useCourts();
   const {
     step,
     formData,
@@ -23,10 +25,17 @@ export default function CreateTournamentPage() {
   } = useTournamentForm();
 
   useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
+    const loadInitialData = async () => {
+      await Promise.all([
+        fetchCategories(),
+        fetchCourts()
+      ]);
+    };
+    
+    loadInitialData();
+  }, []);
 
-  if (isLoadingCategories) {
+  if (isLoadingCategories || isLoadingCourts) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-8 flex items-center justify-center">
         <div className="text-center">
@@ -65,6 +74,7 @@ export default function CreateTournamentPage() {
                 formData={formData}
                 setFormData={setFormData}
                 categories={categories}
+                courts={courts}
                 onSubmit={handleFirstStep}
                 errors={errors}
               />

@@ -3,6 +3,13 @@ import { toast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
+interface TournamentResponse {
+  id: string;
+  tournament_info?: {
+    tournament_id: string;
+  };
+}
+
 export interface TournamentFormData {
   // Paso 1: Información Básica
   name: string;
@@ -197,46 +204,68 @@ export function useTournamentForm() {
         const token = localStorage.getItem('adminToken');
         if (!token) throw new Error('No estás autenticado');
 
+        // Asegurarnos de que los campos requeridos tengan valores válidos
+        const tournamentData = {
+          name: data.name.trim(),
+          categories: data.categories,
+          start_date: data.start_date,
+          end_date: data.end_date,
+          courts_available: data.courts_available,
+          tournament_type: data.tournament_type,
+          time_slots: data.time_slots,
+          group_time_slots: data.group_time_slots,
+          description: data.description.trim() || '',
+          rules: data.rules.trim() || '',
+          tournament_location: data.tournament_location.trim() || '',
+          tournament_address: data.tournament_address.trim() || '',
+          signup_limit_date: data.signup_limit_date || null,
+          inscription_cost: Number(data.inscription_cost) || 0,
+          sponsors: data.sponsors || [],
+          tournament_thumbnail: data.thumbnail_url || '',
+          first_place_prize: data.first_place_prize.trim() || '',
+          second_place_prize: data.second_place_prize.trim() || '',
+          third_place_prize: data.third_place_prize.trim() || ''
+        };
+
+        console.log('Enviando datos al backend:', tournamentData);
+
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/create`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({
-            name: data.name,
-            categories: data.categories,
-            start_date: data.start_date,
-            end_date: data.end_date,
-            courts_available: data.courts_available,
-            tournament_type: data.tournament_type,
-            description: data.description,
-            rules: data.rules,
-            tournament_location: data.tournament_location,
-            tournament_address: data.tournament_address,
-            signup_limit_date: data.signup_limit_date,
-            inscription_cost: data.inscription_cost,
-            sponsors: data.sponsors,
-            tournament_thumbnail: data.thumbnail_url,
-            first_place_prize: data.first_place_prize,
-            second_place_prize: data.second_place_prize,
-            third_place_prize: data.third_place_prize,
-            time_slots: data.time_slots,
-            group_time_slots: data.group_time_slots
-          })
+          body: JSON.stringify(tournamentData)
         });
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.message || 'Error al crear el torneo');
+          console.error('Error response:', error);
+          throw new Error(error.message || error.error || 'Error al crear el torneo');
         }
 
-        toast({
-          title: "¡Éxito!",
-          description: "El torneo se ha creado correctamente"
-        });
+        const result = await response.json();
+        console.log('Respuesta del backend:', result);
 
-        router.push('/tournaments');
+        if (result.torneos && result.torneos.length > 0) {
+          // Verificar que cada torneo tenga su información adicional
+          const allHaveInfo = result.torneos.every((torneo: TournamentResponse) => 
+            torneo.tournament_info && 
+            torneo.tournament_info.tournament_id === torneo.id
+          );
+
+          if (allHaveInfo) {
+            toast({
+              title: "¡Éxito!",
+              description: `Se han creado ${result.torneos.length} torneo(s) correctamente`
+            });
+            router.push('/tournaments');
+          } else {
+            throw new Error('Algunos torneos se crearon pero falta su información adicional');
+          }
+        } else {
+          throw new Error('No se recibió confirmación de la creación del torneo');
+        }
       } catch (error) {
         console.error('Error creating tournament:', error);
         toast({

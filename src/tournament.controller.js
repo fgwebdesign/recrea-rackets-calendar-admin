@@ -55,6 +55,7 @@ export async function createTournament(req, res) {
     rules,
     tournament_location,
     tournament_address,
+    tournament_club_name, // Añadido este campo
     signup_limit_date,
     inscription_cost,
     sponsors,
@@ -129,26 +130,41 @@ export async function createTournament(req, res) {
 
     if (tournamentError) return res.status(500).json({ message: tournamentError.message });
 
-    // 2. Crear la información adicional para cada torneo
+    // 2. Crear la información adicional para cada torneo usando la lógica existente
     const tournamentInfoPromises = tournaments.map(tournament => {
       const tournamentInfoData = {
         tournament_id: tournament.id,
-        description: description || null,
-        rules: rules || null,
-        tournament_location: tournament_location || null,
-        tournament_address: tournament_address || null,
-        signup_limit_date: signup_limit_date || null,
-        inscription_cost: inscription_cost || null,
-        sponsors: sponsors || null,
-        tournament_thumbnail: tournament_thumbnail || null,
-        first_place_prize: first_place_prize || null,
-        second_place_prize: second_place_prize || null,
-        third_place_prize: third_place_prize || null
+        description,
+        rules,
+        tournament_location,
+        tournament_address,
+        signup_limit_date,
+        inscription_cost,
+        sponsors,
+        tournament_thumbnail,
+        first_place_prize,
+        second_place_prize,
+        third_place_prize
       };
 
+      // Usar la lógica existente del controlador de tournament_info
       return supabase
         .from('tournament_info')
-        .insert(tournamentInfoData)
+        .insert({
+          tournament_id: tournament.id,
+          description: description || '',
+          rules: rules || '',
+          tournament_location: tournament_location || '',
+          tournament_address: tournament_address || '',
+          tournament_club_name: tournament_club_name || 'Recrea Padel Club', // Valor por defecto
+          signup_limit_date,
+          inscription_cost: Number(inscription_cost) || 0,
+          first_place_prize: first_place_prize || '',
+          second_place_prize: second_place_prize || '',
+          third_place_prize: third_place_prize || '',
+          tournament_thumbnail: tournament_thumbnail || '',
+          sponsors: sponsors || []
+        })
         .select();
     });
 
