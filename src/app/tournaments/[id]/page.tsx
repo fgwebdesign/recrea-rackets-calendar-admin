@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useTournaments } from '@/hooks/useTournaments'
 import { SimpleMatchScheduler } from '@/components/Tournaments/TournamentScheduler/SimpleMatchScheduler'
+import { AdminGroupsGenerator } from '@/components/Tournaments/groups/AdminGroupsGenerator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -13,7 +14,8 @@ import {
   TrophyIcon,
   ChartBarIcon,
   PhotoIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -139,35 +141,17 @@ export default function TournamentPage({ params }: PageProps) {
             </div>
           </div>
 
-          {tournament.status === 'upcoming' && teams?.length === tournament.max_teams && !groupsAlreadyGenerated && (
-            <Button 
-              onClick={handleGenerateGroups}
-              className="bg-orange-500 hover:bg-orange-600"
-              disabled={generatingGroups}
-            >
-              {generatingGroups ? (
-                <span className="flex items-center gap-2">
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                  Generando...
-                </span>
-              ) : (
-                <>
-                  <TrophyIcon className="w-5 h-5 mr-2" />
-                  Generar Grupos
-                </>
-              )}
-            </Button>
-          )}
-
-          {tournament.status === 'upcoming' && groupsAlreadyGenerated && (
-            <Button 
-              className="bg-green-500 hover:bg-green-600 cursor-default"
-              disabled
-            >
-              <TrophyIcon className="w-5 h-5 mr-2" />
-              Grupos Generados
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {groupsAlreadyGenerated && (
+              <Button 
+                className="bg-green-500 hover:bg-green-600 cursor-default"
+                disabled
+              >
+                <TrophyIcon className="w-5 h-5 mr-2" />
+                Grupos Generados
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -183,6 +167,12 @@ export default function TournamentPage({ params }: PageProps) {
               <UsersIcon className="w-4 h-4" />
               Equipos
             </TabsTrigger>
+            {tournament.status === 'upcoming' && teams?.length === tournament.max_teams && (
+              <TabsTrigger value="admin-groups" className="flex items-center gap-2">
+                <Cog6ToothIcon className="w-4 h-4" />
+                Gestión de Grupos
+              </TabsTrigger>
+            )}
             <TabsTrigger value="standings" className="flex items-center gap-2">
               <ChartBarIcon className="w-4 h-4" />
               Clasificación
@@ -196,6 +186,18 @@ export default function TournamentPage({ params }: PageProps) {
           <TabsContent value="schedule">
             {id && <SimpleMatchScheduler tournamentId={id} />}
           </TabsContent>
+
+          {tournament.status === 'upcoming' && teams?.length === tournament.max_teams && (
+            <TabsContent value="admin-groups">
+              {id && tournament && (
+                <AdminGroupsGenerator 
+                  tournamentId={id}
+                  tournamentType={tournament.tournament_type}
+                  maxTeams={tournament.max_teams}
+                />
+              )}
+            </TabsContent>
+          )}
 
           <TabsContent value="teams">
             <div className="rounded-lg border bg-card">

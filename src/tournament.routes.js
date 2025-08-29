@@ -15,6 +15,7 @@ import {
     validateScheduleEndpoint,
     getTournamentsByUserId,
     generateGroupsPhase,
+    generateGroupsManual,
     getGroups,
 } from '../controllers/tournament.controller.js'
 import { setTournamentRequiredInfo, setTournamentThumbnail, setTournamentPrize, setTournamentSponsors } from '../controllers/tournamentInfo.controller.js'
@@ -221,12 +222,23 @@ router.post('/:id/populate', verifyToken, verifyAdmin, async (req, res) => {
  * @swagger
  * /tournaments/{id}/generate-groups:
  *   post:
- *     summary: Genera grupos para un torneo
+ *     summary: Genera grupos automáticamente para un torneo
  *     tags: [Torneos]
  *     security:
  *       - bearerAuth: []
  */
 router.post('/:id/generate-groups', verifyToken, verifyAdmin, generateGroupsPhase)
+
+/**
+ * @swagger
+ * /tournaments/{id}/generate-groups-manual:
+ *   post:
+ *     summary: Genera grupos manualmente para un torneo
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/:id/generate-groups-manual', verifyToken, verifyAdmin, generateGroupsManual)
 
 /**
  * @swagger

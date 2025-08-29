@@ -582,7 +582,80 @@ async function generateTournamentGroups(tournament, teams) {
   return groups;
 }
 
-// --- NUEVO: wrapper HTTP para generar grupos ---
+// --- NUEVO: endpoint para generación manual de grupos ---
+export async function generateGroupsManual(req, res) {
+  const tournament_id = req.params.id;
+  const { groups } = req.body; // Array de { group_number, teams: [team_ids] }
+
+  try {
+    // 1) Validar request
+    if (!Array.isArray(groups) || groups.length === 0) {
+      return res.status(400).json({ message: 'Se requiere array de grupos' });
+    }
+
+    // 2) Traer torneo
+    const { data: tournament, error: tErr } = await supabase
+      .from('tournaments')
+      .select('id, name, tournament_type, max_teams')
+      .eq('id', tournament_id)
+      .single();
+    if (tErr || !tournament) return res.status(404).json({ message: 'Tournament not found' });
+
+    // 3) Validar cantidad de grupos
+    const expected = tournament.tournament_type === 'NINE_PLAYERS' ? 3 : 4;
+    if (groups.length !== expected) {
+      return res.status(400).json({
+        message: `Se esperaban ${expected} grupos y se recibieron ${groups.length}`
+      });
+    }
+
+    // 4) Validar que cada grupo tenga exactamente 3 equipos
+    for (const group of groups) {
+      if (!Array.isArray(group.teams) || group.teams.length !== 3) {
+        return res.status(400).json({
+          message: `El grupo ${group.group_number} debe tener exactamente 3 equipos`
+        });
+      }
+    }
+
+    // 5) Crear grupos en la BD
+    const createdGroups = [];
+    for (const groupConfig of groups) {
+      const { data: group, error } = await supabase
+        .from('tournament_groups')
+        .insert({
+          tournament_id,
+          group_number: groupConfig.group_number,
+          teams: groupConfig.teams,
+          status: 'IN_PROGRESS'
+        })
+        .select()
+        .single();
+
+      if (error) throw new Error(`Error creando grupo ${groupConfig.group_number}: ${error.message}`);
+      createdGroups.push(group);
+
+      // 6) Generar partidos del grupo
+      const groupTeams = groupConfig.teams.map(team_id => ({ id: team_id }));
+      await generateGroupMatches(tournament_id, group.id, groupTeams, group.group_number);
+    }
+
+    return res.status(201).json({
+      message: 'Grupos generados manualmente con éxito',
+      tournament_id,
+      groups_created: createdGroups.map(g => ({ 
+        id: g.id, 
+        group_number: g.group_number, 
+        teams: g.teams 
+      }))
+    });
+  } catch (err) {
+    console.error('generateGroupsManual error:', err);
+    return res.status(500).json({ message: err.message });
+  }
+}
+
+// --- NUEVO: wrapper HTTP para generar grupos automáticos ---
 export async function generateGroupsPhase(req, res) {
   const tournament_id = req.params.id;
 
@@ -1010,7 +1083,15 @@ export async function getTournamentTeams(req, res) {
         teams (
           id,
           player1_id,
-          player2_id
+          player2_id,
+          player1:users!teams_player1_id_fkey (
+            first_name,
+            last_name
+          ),
+          player2:users!teams_player2_id_fkey (
+            first_name,
+            last_name
+          )
         )
       `)
       .eq('tournament_id', tournament_id)

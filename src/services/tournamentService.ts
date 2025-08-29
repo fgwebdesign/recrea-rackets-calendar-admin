@@ -37,7 +37,19 @@ export const tournamentService = {
     const response = await fetch(`${API_URL}/tournaments/${id}/teams`)
     if (!response.ok) throw new Error('Error al obtener los equipos')
     const data = await response.json()
-    return data.teams
+    
+    // Procesar para incluir nombres de jugadores
+    return data.teams.map((team: any) => ({
+      team_id: team.team_id,
+      unavailable_times: team.unavailable_times,
+      team: {
+        id: team.teams.id,
+        player1_id: team.teams.player1_id,
+        player2_id: team.teams.player2_id,
+        player1: team.teams.player1,
+        player2: team.teams.player2
+      }
+    }))
   },
 
   // Obtener grupos de un torneo
