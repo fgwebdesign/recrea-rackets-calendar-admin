@@ -1,6 +1,7 @@
 import { Team } from './team'
 import { Category } from './category'
 import { Court } from './court'
+import { User } from './user'
 
 export interface Tournament {
   id: string
@@ -111,6 +112,18 @@ export interface TournamentStanding {
   team?: Team
 }
 
+export interface PlayerInfo {
+  id: string
+  first_name: string
+  last_name: string
+}
+
+export interface TeamWithPlayers {
+  team_id: string
+  player1: PlayerInfo
+  player2: PlayerInfo
+}
+
 export interface AvailabilityData {
   tournament_info: {
     category: string
@@ -128,10 +141,7 @@ export interface AvailabilityData {
     selected_count: number
     remaining_slots: number
     percentage_full: number
-    teams: Array<{
-      team_id: string
-      player1_id: string
-      player2_id: string
-    }>
+    available: boolean
+    teams: TeamWithPlayers[]
   }>
 }

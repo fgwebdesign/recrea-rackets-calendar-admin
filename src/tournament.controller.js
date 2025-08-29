@@ -43,19 +43,31 @@ export async function getTournamentById(req, res) {
 export async function createTournament(req, res) {
   const { 
     name, 
-    category_id, 
+    categories, // Cambiado de category_id a categories (array)
     start_date, 
     end_date, 
     courts_available, 
     time_slots,                
     group_time_slots,          
     tournament_type = 'NINE_PLAYERS',
-    tournament_info = {}
+    // Información adicional para tournament_info
+    description,
+    rules,
+    tournament_location,
+    tournament_address,
+    signup_limit_date,
+    inscription_cost,
+    sponsors,
+    tournament_thumbnail,
+    first_place_prize,
+    second_place_prize,
+    third_place_prize
   } = req.body;
 
   try {
-    if (!name || !category_id || !start_date || !end_date) {
-      return res.status(400).json({ message: 'Nombre, categoría, start_date y end_date son requeridos' });
+    // Validación de categorías
+    if (!name || !Array.isArray(categories) || categories.length === 0 || !start_date || !end_date) {
+      return res.status(400).json({ message: 'Nombre, categorías (al menos una), start_date y end_date son requeridos' });
     }
     if (new Date(start_date) > new Date(end_date)) {
       return res.status(400).json({ message: 'start_date debe ser menor o igual a end_date' });
@@ -94,7 +106,8 @@ export async function createTournament(req, res) {
       ];
     }
 
-    const newTournament = {
+    // Crear un torneo por cada categoría
+    const tournamentsToCreate = categories.map(category_id => ({
       name,
       category_id,
       start_date,
@@ -105,17 +118,69 @@ export async function createTournament(req, res) {
       group_time_slots: finalGroupSlots,
       tournament_type,
       max_teams: tournament_type === 'NINE_PLAYERS' ? 9 : 12
-    };
+    }));
 
-    const { data: tournament, error: tournamentError } = await supabase
+    // Insertar múltiples torneos
+    // 1. Crear los torneos primero
+    const { data: tournaments, error: tournamentError } = await supabase
       .from('tournaments')
-      .insert(newTournament)
-      .select()
-      .single();
+      .insert(tournamentsToCreate)
+      .select();
 
     if (tournamentError) return res.status(500).json({ message: tournamentError.message });
 
-    return res.status(201).json({ message: 'Torneo creado exitosamente', torneo: tournament });
+    // 2. Crear la información adicional para cada torneo
+    const tournamentInfoPromises = tournaments.map(tournament => {
+      const tournamentInfoData = {
+        tournament_id: tournament.id,
+        description: description || null,
+        rules: rules || null,
+        tournament_location: tournament_location || null,
+        tournament_address: tournament_address || null,
+        signup_limit_date: signup_limit_date || null,
+        inscription_cost: inscription_cost || null,
+        sponsors: sponsors || null,
+        tournament_thumbnail: tournament_thumbnail || null,
+        first_place_prize: first_place_prize || null,
+        second_place_prize: second_place_prize || null,
+        third_place_prize: third_place_prize || null
+      };
+
+      return supabase
+        .from('tournament_info')
+        .insert(tournamentInfoData)
+        .select();
+    });
+
+    try {
+      const tournamentInfoResults = await Promise.all(tournamentInfoPromises);
+      const errors = tournamentInfoResults.filter(result => result.error);
+      
+      if (errors.length > 0) {
+        console.error('Errores creando tournament_info:', errors);
+        return res.status(500).json({ 
+          message: 'Los torneos se crearon pero hubo errores al guardar la información adicional',
+          errors: errors.map(e => e.error.message)
+        });
+      }
+
+      // Combinar la información de torneos con su info adicional
+      const completeTournaments = tournaments.map((tournament, index) => ({
+        ...tournament,
+        tournament_info: tournamentInfoResults[index].data[0]
+      }));
+
+      return res.status(201).json({ 
+        message: 'Torneos creados exitosamente con toda su información', 
+        torneos: completeTournaments 
+      });
+    } catch (error) {
+      console.error('Error creating tournament_info:', error);
+      return res.status(500).json({ 
+        message: 'Los torneos se crearon pero hubo un error al guardar la información adicional',
+        error: error.message
+      });
+    }
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -969,7 +1034,22 @@ export async function getAvailableHoursForRegistration(req, res) {
     // Equipos inscriptos
     const { data: existingTeams, error: teamsError } = await supabase
       .from('tournament_teams')
-      .select('unavailable_times, team_id, teams ( player1_id, player2_id )')
+      .select(`
+        unavailable_times, 
+        team_id,
+        teams (
+          player1_id,
+          player2_id,
+          player1:users!teams_player1_id_fkey (
+            first_name,
+            last_name
+          ),
+          player2:users!teams_player2_id_fkey (
+            first_name,
+            last_name
+          )
+        )
+      `)
       .eq('tournament_id', id);
     if (teamsError) throw new Error(`Failed to get teams: ${teamsError.message}`);
 
@@ -998,8 +1078,16 @@ export async function getAvailableHoursForRegistration(req, res) {
         hourCounts[hour].count++;
         hourCounts[hour].teams.push({
           team_id: team.team_id,
-          player1_id: team.teams.player1_id,
-          player2_id: team.teams.player2_id
+          player1: {
+            id: team.teams.player1_id,
+            first_name: team.teams.player1.first_name,
+            last_name: team.teams.player1.last_name
+          },
+          player2: {
+            id: team.teams.player2_id,
+            first_name: team.teams.player2.first_name,
+            last_name: team.teams.player2.last_name
+          }
         });
       }
     });
