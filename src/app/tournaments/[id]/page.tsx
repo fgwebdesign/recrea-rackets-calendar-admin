@@ -15,7 +15,10 @@ import {
   ChartBarIcon,
   PhotoIcon,
   ArrowLeftIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  MapPinIcon,
+  BanknotesIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -130,7 +133,7 @@ export default function TournamentPage({ params }: PageProps) {
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <CalendarIcon className="w-4 h-4" />
-                    {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}
+                    {tournament.start_date} - {tournament.end_date}
                   </span>
                   <span className="flex items-center gap-1">
                     <UsersIcon className="w-4 h-4" />
@@ -142,6 +145,17 @@ export default function TournamentPage({ params }: PageProps) {
           </div>
 
           <div className="flex gap-2">
+            {/* Botón para ir a la gestión de grupos */}
+            {tournament.status === 'upcoming' && teams?.length === tournament.max_teams && (
+              <Button 
+                onClick={() => router.push(`/tournaments/${id}/admin-groups`)}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Cog6ToothIcon className="w-5 h-5 mr-2" />
+                Gestión de Grupos
+              </Button>
+            )}
+            
             {groupsAlreadyGenerated && (
               <Button 
                 className="bg-green-500 hover:bg-green-600 cursor-default"
@@ -166,6 +180,10 @@ export default function TournamentPage({ params }: PageProps) {
             <TabsTrigger value="teams" className="flex items-center gap-2">
               <UsersIcon className="w-4 h-4" />
               Equipos
+            </TabsTrigger>
+            <TabsTrigger value="info" className="flex items-center gap-2">
+              <InformationCircleIcon className="w-4 h-4" />
+              Información
             </TabsTrigger>
             {tournament.status === 'upcoming' && teams?.length === tournament.max_teams && (
               <TabsTrigger value="admin-groups" className="flex items-center gap-2">
@@ -240,6 +258,122 @@ export default function TournamentPage({ params }: PageProps) {
                 ) : (
                   <div className="text-muted-foreground">No hay equipos inscritos en este torneo</div>
                 )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="info">
+            <div className="rounded-lg border bg-card">
+              <div className="p-6">
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Información del Torneo</h3>
+                  
+                  {/* Información básica */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Descripción</h4>
+                        <p className="text-gray-600 text-sm">
+                          {tournament.tournament_info?.description || 'Sin descripción disponible'}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Ubicación</h4>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <MapPinIcon className="w-4 h-4" />
+                          <div>
+                            <p>{tournament.tournament_info?.tournament_location || 'Sin ubicación'}</p>
+                            {tournament.tournament_info?.tournament_address && (
+                              <p className="text-xs text-gray-500">{tournament.tournament_info.tournament_address}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Club</h4>
+                        <p className="text-gray-600 text-sm">
+                          {tournament.tournament_info?.tournament_club_name || 'Recrea Padel Club'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Costo de Inscripción</h4>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <BanknotesIcon className="w-4 h-4" />
+                          <span>${tournament.tournament_info?.inscription_cost || 0}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Límite de Inscripción</h4>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CalendarIcon className="w-4 h-4" />
+                          <span>
+                            {tournament.tournament_info?.signup_limit_date || 'Sin límite definido'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Formato</h4>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <TrophyIcon className="w-4 h-4" />
+                          <span>
+                            {tournament.tournament_type === 'NINE_PLAYERS' ? '9 Equipos (3 Grupos)' : '12 Equipos (4 Grupos)'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Premios */}
+                  {(tournament.tournament_info?.first_place_prize || 
+                    tournament.tournament_info?.second_place_prize || 
+                    tournament.tournament_info?.third_place_prize) && (
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-3">Premios</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {tournament.tournament_info?.first_place_prize && (
+                          <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                            <TrophyIcon className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
+                            <p className="font-medium text-yellow-800">1er Lugar</p>
+                            <p className="text-sm text-yellow-600">{tournament.tournament_info.first_place_prize}</p>
+                          </div>
+                        )}
+                        {tournament.tournament_info?.second_place_prize && (
+                          <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <TrophyIcon className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                            <p className="font-medium text-gray-800">2do Lugar</p>
+                            <p className="text-sm text-gray-600">{tournament.tournament_info.second_place_prize}</p>
+                          </div>
+                        )}
+                        {tournament.tournament_info?.third_place_prize && (
+                          <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
+                            <TrophyIcon className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+                            <p className="font-medium text-orange-800">3er Lugar</p>
+                            <p className="text-sm text-orange-600">{tournament.tournament_info.third_place_prize}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Reglas */}
+                  {tournament.tournament_info?.rules && (
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Reglas del Torneo</h4>
+                      <div className="bg-gray-50 rounded-lg p-4 border">
+                        <p className="text-gray-700 text-sm whitespace-pre-wrap">
+                          {tournament.tournament_info.rules}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </TabsContent>

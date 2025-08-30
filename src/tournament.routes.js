@@ -6,7 +6,6 @@ import {
     updateTournament, 
     deleteTournament, 
     joinTournament, 
-    getStandings, 
     getMatchesByTournamentId, 
     generateLeagueMatches,
     generateEliminationBracket,
@@ -19,6 +18,8 @@ import {
     generateGroupsManual,
     getGroups,
     validateGroupScheduleConflicts,
+    scheduleMatchesAutomatically,
+    getGroupStandings
 } from '../controllers/tournament.controller.js'
 import { setTournamentRequiredInfo, setTournamentThumbnail, setTournamentPrize, setTournamentSponsors } from '../controllers/tournamentInfo.controller.js'
 import { populateTournament } from '../helpers/tournament.helpers.js'
@@ -118,14 +119,7 @@ router.delete('/:id', verifyToken, verifyAdmin, deleteTournament)
  */
 router.post('/:id/join', joinTournament)
 
-/**
- * @swagger
- * /tournaments/{id}/standings:
- *   get:
- *     summary: Obtiene la clasificación del torneo
- *     tags: [Torneos]
- */
-router.get('/:id/standings', getStandings)
+// RUTA ELIMINADA: Conflictaba con la nueva implementación de getGroupStandings
 
 /**
  * @swagger
@@ -383,5 +377,160 @@ router.get('/:id/groups', getGroups)
  *                   type: array
  */
 router.post('/:id/validate-group-conflicts', verifyToken, verifyAdmin, validateGroupScheduleConflicts)
+
+/**
+ * @swagger
+ * /tournaments/{id}/schedule-matches:
+ *   post:
+ *     summary: Programa automáticamente los partidos de un torneo
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del torneo
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Partidos programados exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 tournament:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     type:
+ *                       type: string
+ *                 programming_summary:
+ *                   type: object
+ *                   properties:
+ *                     total_matches:
+ *                       type: number
+ *                     programming_period:
+ *                       type: object
+ *                     matches_by_day:
+ *                       type: object
+ *                     matches_by_court:
+ *                       type: object
+ *                     available_courts:
+ *                       type: number
+ *                 scheduled_matches:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       group:
+ *                         type: string
+ *                       teams:
+ *                         type: string
+ *                       date:
+ *                         type: string
+ *                       time:
+ *                         type: string
+ *                       court:
+ *                         type: number
+ *                       conflicts_avoided:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *       400:
+ *         description: No hay partidos pendientes de programación
+ *       404:
+ *         description: Torneo no encontrado
+ *       500:
+ *         description: Error en la programación automática
+ */
+router.post('/:id/schedule-matches', verifyToken, verifyAdmin, scheduleMatchesAutomatically)
+
+/**
+ * @swagger
+ * /tournaments/{id}/standings:
+ *   get:
+ *     summary: Obtener tabla de posiciones por grupo
+ *     tags: [Tournaments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del torneo
+ *     responses:
+ *       200:
+ *         description: Tabla de posiciones calculada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 tournament:
+ *                   type: object
+ *                 standings:
+ *                   type: object
+ *                 classification_summary:
+ *                   type: object
+ *       404:
+ *         description: Torneo no encontrado
+ *       500:
+ *         description: Error calculando standings
+ */
+router.get('/:id/standings', getGroupStandings)
+
+/**
+ * @swagger
+ * /tournaments/{id}/generate-elimination-bracket:
+ *   post:
+ *     summary: Generar cuadro eliminatorio automáticamente
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del torneo
+ *     responses:
+ *       200:
+ *         description: Cuadro eliminatorio generado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 tournament:
+ *                   type: object
+ *                 bracket:
+ *                   type: object
+ *                 elimination_matches:
+ *                   type: array
+ *                 qualified_teams:
+ *                   type: array
+ *       400:
+ *         description: No hay equipos clasificados
+ *       500:
+ *         description: Error generando cuadro eliminatorio
+ */
+router.post('/:id/generate-elimination-bracket', verifyToken, verifyAdmin, generateEliminationBracket)
 
 export default router

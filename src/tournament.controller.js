@@ -805,33 +805,11 @@ function generateDynamicTimeSlots(startDate, endDate) {
     );
   }
   
-  // DÍA 3: Tercer día para fase de grupos (si hay al menos 3 días)
+  // DÍA 3: RESERVADO PARA ELIMINATORIAS (cuartos, semis, final)
+  // NO se generan slots para inscripción - solo para programación automática posterior
   if (durationDays >= 3) {
-    const day3 = new Date(start);
-    day3.setDate(day3.getDate() + 2);
-    const day3Name = getDayName(day3);
-    
-    // Para 2 canchas con partidos de 45min, necesitamos más slots de grupos
-    slots.push(
-      {
-        id: `day3_morning`,
-        day: day3Name.toLowerCase(),
-        start: '08:00',
-        end: '12:00',
-        label: `${day3Name} Mañana (8-12hs)`,
-        tournament_day: 3,
-        date: formatDateSafe(day3)
-      },
-      {
-        id: `day3_afternoon`,
-        day: day3Name.toLowerCase(),
-        start: '13:00',
-        end: '17:00',
-        label: `${day3Name} Tarde (13-17hs)`,
-        tournament_day: 3,
-        date: formatDateSafe(day3)
-      }
-    );
+    console.log(`🏆 Día 3 (${getDayName(new Date(start.getTime() + 2 * 24 * 60 * 60 * 1000))}) reservado para fase eliminatoria`);
+    // Los slots del día 3 se generarán automáticamente cuando se programen las eliminatorias
   }
   
   console.log('🎯 Time slots generados dinámicamente:', slots.map(s => `${s.label} (${s.id})`));
@@ -1294,75 +1272,7 @@ async function getTournamentCourts(tournament_id) {
   return courts.map(court => court.id)
 }
 
-// Modified main function to get courts first
-export async function generateEliminationBracket(req, res) {
-  const tournament_id = req.params.id
-
-  try {
-    // Get tournament details
-    const { data: tournament, error: tournamentError } = await supabase
-      .from('tournaments')
-      .select('*')
-      .eq('id', tournament_id)
-      .single()
-
-    if (tournamentError) return res.status(500).json({ message: tournamentError.message })
-    if (!tournament) return res.status(404).json({ message: 'Torneo no encontrado' })
-
-    // Get all teams in tournament with their constraints
-    const { data: tournamentTeams, error: teamsError } = await supabase
-      .from('tournament_teams')
-      .select('*')
-      .eq('tournament_id', tournament_id)
-
-    if (teamsError) return res.status(500).json({ message: teamsError.message })
-    if (tournamentTeams.length !== 8) {
-      return res.status(400).json({ message: 'Torneo debe tener exactamente 8 equipos' })
-    }
-
-    // Generate all possible time slots
-    const allTimeSlots = generateAvailableTimeSlots(
-      tournament.time_slots,
-      tournament.start_date,
-      tournament.end_date
-    )
-
-    // Generate bracket matches
-    const bracketMatches = generateBracketStructure(tournamentTeams)
-
-    // Schedule matches with improved constraint checking
-    const { scheduledMatches, unscheduledMatches } = await scheduleMatches(
-      bracketMatches,
-      allTimeSlots,
-      tournament.courts_available,
-      tournamentTeams
-    )
-
-    // Validate the schedule before saving
-    const validationResult = validateSchedule(scheduledMatches, tournamentTeams, tournament.courts_available)
-    if (!validationResult.isValid) {
-      return res.status(400).json({
-        message: 'Generated schedule violates constraints',
-        errors: validationResult.errors
-      })
-    }
-
-    // Insert scheduled matches
-    const { error: insertError } = await supabase
-      .from('matches')
-      .insert(scheduledMatches)
-
-    if (insertError) return res.status(500).json({ message: insertError.message })
-
-    return res.json({
-      message: 'Elimination bracket generated',
-      scheduledMatches,
-      unscheduledMatches: unscheduledMatches.length ? unscheduledMatches : null
-    })
-  } catch (error) {
-    return res.status(500).json({ message: error.message })
-  }
-}
+// FUNCIÓN VIEJA ELIMINADA - Reemplazada por nueva implementación más avanzada
 
 function generateAvailableTimeSlots(timeSlots, startDate, endDate) {
   const slots = []
@@ -1382,43 +1292,7 @@ function generateAvailableTimeSlots(timeSlots, startDate, endDate) {
   return slots
 }
 
-function generateBracketStructure(teams) {
-  const shuffledTeams = teams.sort(() => 0.5 - Math.random())
-  const matches = []
-  
-  // Quarter-finals (Round 1)
-  for (let i = 0; i < 8; i += 2) {
-    matches.push({
-      tournament_id: teams[0].tournament_id,
-      home_team_id: shuffledTeams[i].team_id,
-      away_team_id: shuffledTeams[i + 1].team_id,
-      round: 1,
-      status: 'pending'
-    })
-  }
-
-  // Semi-finals (Round 2)
-  for (let i = 0; i < 2; i++) {
-    matches.push({
-      tournament_id: teams[0].tournament_id,
-      home_team_id: null,
-      away_team_id: null,
-      round: 2,
-      status: 'pending'
-    })
-  }
-
-  // Final (Round 3)
-  matches.push({
-    tournament_id: teams[0].tournament_id,
-    home_team_id: null,
-    away_team_id: null,
-    round: 3,
-    status: 'pending'
-  })
-
-  return matches
-}
+// FUNCIÓN VIEJA ELIMINADA - Reemplazada por nueva implementación avanzada
 
 function isSlotValidForTeams(slot, homeTeamId, awayTeamId, teams) {
   const hour = parseInt(slot.hour)
@@ -1886,4 +1760,1249 @@ export async function getTournamentsByUserId(req, res) {
   } catch (error) {
     res.status(500).json({ message: error.message })
   }
+}
+
+// ===================================================================
+// PROGRAMACIÓN AUTOMÁTICA DE PARTIDOS
+// ===================================================================
+
+/**
+ * Programa automáticamente los partidos de un torneo
+ * Asigna horarios y canchas respetando restricciones de equipos
+ * 
+ * @param {Request} req - tournamentId en params
+ * @param {Response} res - Partidos programados con horarios/canchas
+ */
+export const scheduleMatchesAutomatically = async (req, res) => {
+  try {
+    const { id: tournamentId } = req.params;
+    
+    console.log(`🏆 [PROGRAMACIÓN] Iniciando programación automática para torneo: ${tournamentId}`);
+    
+    // 1. Verificar que el torneo existe y obtener información
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select(`
+        id, name, start_date, end_date, courts_available, 
+        tournament_type, group_time_slots, category_id
+      `)
+      .eq('id', tournamentId)
+      .single();
+
+    if (tournamentError || !tournament) {
+      return res.status(404).json({ 
+        message: 'Torneo no encontrado',
+        error: tournamentError?.message 
+      });
+    }
+
+    // 2. Obtener todos los partidos pendientes de programación
+    const { data: matches, error: matchesError } = await supabase
+      .from('tournament_matches')
+      .select(`
+        id, home_team_id, away_team_id, group_id, group_number
+      `)
+      .eq('tournament_id', tournamentId)
+      .is('match_day', null)      // Solo partidos sin programar
+      .is('start_time', null)
+      .is('court_id', null);
+
+    if (matchesError) {
+      throw new Error(`Error obteniendo partidos: ${matchesError.message}`);
+    }
+
+    if (!matches || matches.length === 0) {
+      return res.status(400).json({ 
+        message: 'No hay partidos pendientes de programación para este torneo' 
+      });
+    }
+
+    console.log(`📊 [PARTIDOS] Encontrados ${matches.length} partidos pendientes`);
+
+    // 3. Obtener restricciones de todos los equipos participantes
+    const teamIds = [...new Set([
+      ...matches.map(m => m.home_team_id),
+      ...matches.map(m => m.away_team_id)
+    ])];
+
+    const { data: teamRestrictions, error: restrictionsError } = await supabase
+      .from('tournament_teams')
+      .select('team_id, unavailable_times')
+      .eq('tournament_id', tournamentId)
+      .in('team_id', teamIds);
+
+    if (restrictionsError) {
+      throw new Error(`Error obteniendo restricciones: ${restrictionsError.message}`);
+    }
+
+    // 4. Crear mapa de restricciones para acceso rápido
+    const restrictionsMap = new Map();
+    teamRestrictions.forEach(tr => {
+      restrictionsMap.set(tr.team_id, tr.unavailable_times);
+    });
+
+    // 5. Obtener time slots disponibles (solo días 1-2 para fase de grupos)
+    const availableTimeSlots = tournament.group_time_slots.filter(slot => 
+      slot.tournament_day === 1 || slot.tournament_day === 2
+    );
+
+    console.log(`⏰ [TIME SLOTS] ${availableTimeSlots.length} slots disponibles para programación`);
+
+    // 6. Obtener UUIDs reales de las canchas disponibles
+    const { data: courts, error: courtsError } = await supabase
+      .from('courts')
+      .select('id, name')
+      .limit(tournament.courts_available);
+    
+    if (courtsError) {
+      throw new Error(`Error obteniendo canchas: ${courtsError.message}`);
+    }
+    
+    if (!courts || courts.length < tournament.courts_available) {
+      throw new Error(`No hay suficientes canchas disponibles. Se requieren ${tournament.courts_available}, pero solo hay ${courts?.length || 0}`);
+    }
+
+    console.log(`🏟️ [CANCHAS] Usando ${courts.length} canchas: ${courts.map(c => c.name).join(', ')}`);
+
+    // 7. Ejecutar algoritmo de programación inteligente
+    const scheduledMatches = await scheduleMatchesIntelligently(
+      matches,
+      restrictionsMap,
+      availableTimeSlots,
+      courts,
+      tournament.start_date
+    );
+
+    // 7. Actualizar partidos en la base de datos
+    const updatePromises = scheduledMatches.map(match => 
+      supabase
+        .from('tournament_matches')
+        .update({
+          match_day: match.scheduled_date,
+          start_time: match.scheduled_time,
+          court_id: match.assigned_court
+        })
+        .eq('id', match.id)
+    );
+
+    const updateResults = await Promise.all(updatePromises);
+    
+    // Verificar errores en actualizaciones
+    const updateErrors = updateResults.filter(result => result.error);
+    if (updateErrors.length > 0) {
+      console.error('❌ [ERROR] Errores al actualizar partidos:', updateErrors.map(e => e.error));
+      console.error('❌ [ERROR] Ejemplo de datos enviados:', {
+        match_day: scheduledMatches[0]?.scheduled_date,
+        start_time: scheduledMatches[0]?.scheduled_time,
+        court_id: scheduledMatches[0]?.assigned_court
+      });
+      throw new Error(`Error actualizando ${updateErrors.length} partidos: ${updateErrors[0].error.message}`);
+    }
+
+    console.log(`✅ [ÉXITO] ${scheduledMatches.length} partidos programados exitosamente`);
+
+    // 8. Respuesta con estadísticas detalladas
+    const programmedByDay = scheduledMatches.reduce((acc, match) => {
+      const day = match.scheduled_date;
+      acc[day] = (acc[day] || 0) + 1;
+      return acc;
+    }, {});
+
+    const programmedByCourt = scheduledMatches.reduce((acc, match) => {
+      const court = match.assigned_court;
+      acc[court] = (acc[court] || 0) + 1;
+      return acc;
+    }, {});
+
+    res.json({
+      message: 'Partidos programados exitosamente',
+      tournament: {
+        id: tournament.id,
+        name: tournament.name,
+        type: tournament.tournament_type
+      },
+      programming_summary: {
+        total_matches: scheduledMatches.length,
+        programming_period: {
+          start_date: tournament.start_date,
+          end_date: tournament.end_date
+        },
+        matches_by_day: programmedByDay,
+        matches_by_court: programmedByCourt,
+        available_courts: tournament.courts_available
+      },
+      scheduled_matches: scheduledMatches.map(match => ({
+        id: match.id,
+        group: match.group_name,
+        teams: `${match.home_team_name} vs ${match.away_team_name}`,
+        date: match.scheduled_date,
+        time: match.scheduled_time,
+        court: match.assigned_court,
+        conflicts_avoided: match.conflicts_avoided || []
+      }))
+    });
+
+  } catch (error) {
+    console.error('❌ [ERROR PROGRAMACIÓN]:', error);
+    res.status(500).json({ 
+      message: 'Error en la programación automática',
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Algoritmo inteligente de programación de partidos
+ * Asigna horarios y canchas evitando conflictos
+ * 
+ * @param {Array} matches - Partidos a programar
+ * @param {Map} restrictionsMap - Mapa de restricciones por equipo
+ * @param {Array} timeSlots - Time slots disponibles
+ * @param {Array} courts - Array de objetos cancha con {id, name}
+ * @param {string} startDate - Fecha inicio del torneo
+ * @returns {Array} Partidos con programación asignada
+ */
+const scheduleMatchesIntelligently = async (matches, restrictionsMap, timeSlots, courts, startDate) => {
+  const scheduledMatches = [];
+  const courtSchedule = new Map(); // Tracking de ocupación por cancha/horario
+  
+  console.log(`🧠 [ALGORITMO] Iniciando programación inteligente:`);
+  console.log(`   📋 Partidos a programar: ${matches.length}`);
+  console.log(`   🏟️  Canchas disponibles: ${courts.length}`);
+  console.log(`   ⏰ Time slots: ${timeSlots.length}`);
+
+  // Generar horarios específicos para cada time slot
+  const specificTimeSlots = generateSpecificTimeSlots(timeSlots, startDate);
+  
+  console.log(`   🕐 Horarios específicos generados: ${specificTimeSlots.length}`);
+
+  // Ordenar partidos por prioridad (grupos más restringidos primero)
+  const prioritizedMatches = prioritizeMatchesByRestrictions(matches, restrictionsMap);
+
+  for (const match of prioritizedMatches) {
+    const homeRestriction = restrictionsMap.get(match.home_team_id);
+    const awayRestriction = restrictionsMap.get(match.away_team_id);
+    
+    console.log(`⚽ [PARTIDO] Programando ${match.id} (Grupo: ${match.group_number})`);
+    console.log(`   🏠 Equipo local restricción: ${homeRestriction || 'Ninguna'}`);
+    console.log(`   🏃 Equipo visitante restricción: ${awayRestriction || 'Ninguna'}`);
+
+    // Encontrar horarios compatibles para ambos equipos
+    const compatibleSlots = findCompatibleTimeSlots(
+      specificTimeSlots, 
+      homeRestriction, 
+      awayRestriction
+    );
+
+    console.log(`   ✅ Horarios compatibles encontrados: ${compatibleSlots.length}`);
+
+    // Buscar el mejor slot disponible considerando canchas
+    let bestSlot = null;
+    let assignedCourt = null;
+    let conflictsAvoided = [];
+
+    for (const slot of compatibleSlots) {
+      // Verificar disponibilidad de canchas en este horario
+      const availableCourt = findAvailableCourt(slot, courtSchedule, courts);
+      
+      if (availableCourt) {
+        bestSlot = slot;
+        assignedCourt = availableCourt;
+        
+        // Registrar conflictos evitados
+        if (homeRestriction && slot.slot_id === homeRestriction) {
+          conflictsAvoided.push(`Evitado conflicto equipo local: ${homeRestriction}`);
+        }
+        if (awayRestriction && slot.slot_id === awayRestriction) {
+          conflictsAvoided.push(`Evitado conflicto equipo visitante: ${awayRestriction}`);
+        }
+        
+        break;
+      }
+    }
+
+    if (!bestSlot || !assignedCourt) {
+      console.warn(`⚠️  [ADVERTENCIA] No se pudo programar partido ${match.id} - sin horarios/canchas disponibles`);
+      continue;
+    }
+
+    // Marcar horario/cancha como ocupado
+    const scheduleKey = `${bestSlot.date}_${bestSlot.time}_${assignedCourt.id}`;
+    courtSchedule.set(scheduleKey, {
+      match_id: match.id,
+      date: bestSlot.date,
+      time: bestSlot.time,
+      court: assignedCourt
+    });
+
+    // Agregar a resultados
+    scheduledMatches.push({
+      id: match.id,
+      group_name: `Grupo ${match.group_number}`,
+      home_team_name: `Equipo ${match.home_team_id.slice(-6)}`, // Últimos 6 chars del UUID
+      away_team_name: `Equipo ${match.away_team_id.slice(-6)}`,
+      scheduled_date: bestSlot.date,
+      scheduled_time: bestSlot.time,
+      assigned_court: assignedCourt.id, // UUID de la cancha
+      assigned_court_name: assignedCourt.name,
+      slot_info: bestSlot,
+      conflicts_avoided: conflictsAvoided
+    });
+
+    console.log(`   ✅ Programado: ${bestSlot.date} ${bestSlot.time} - Cancha ${assignedCourt.name}`);
+  }
+
+  console.log(`🎉 [RESULTADO] ${scheduledMatches.length}/${matches.length} partidos programados exitosamente`);
+  
+  return scheduledMatches;
+};
+
+/**
+ * Genera horarios específicos (fecha + hora) para cada time slot
+ */
+const generateSpecificTimeSlots = (timeSlots, startDate) => {
+  const specificSlots = [];
+  const matchDurationMinutes = 45;
+  
+  for (const slot of timeSlots) {
+    const slotDate = slot.date;
+    const startHour = parseInt(slot.start.split(':')[0]);
+    const endHour = parseInt(slot.end.split(':')[0]);
+    
+    // Manejar slots que cruzan medianoche
+    const actualEndHour = endHour === 0 ? 24 : endHour;
+    
+    // Generar horarios cada 45 minutos
+    for (let hour = startHour; hour < actualEndHour; hour++) {
+      for (let minutes = 0; minutes < 60; minutes += matchDurationMinutes) {
+        const timeStr = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        
+        // Verificar que no se salga del time slot
+        const slotEndTime = actualEndHour * 60 + (slot.end.includes(':') ? parseInt(slot.end.split(':')[1]) : 0);
+        const currentTime = hour * 60 + minutes;
+        
+        if (currentTime + matchDurationMinutes <= slotEndTime) {
+          specificSlots.push({
+            slot_id: slot.id,
+            slot_label: slot.label,
+            date: slotDate,
+            time: timeStr,
+            tournament_day: slot.tournament_day,
+            priority: slot.tournament_day === 1 ? 1 : 2 // Priorizar día 1
+          });
+        }
+      }
+    }
+  }
+  
+  // Ordenar por prioridad (día 1 primero) y luego por hora
+  return specificSlots.sort((a, b) => {
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return a.time.localeCompare(b.time);
+  });
+};
+
+/**
+ * Prioriza partidos por restricciones (más restringidos primero)
+ */
+const prioritizeMatchesByRestrictions = (matches, restrictionsMap) => {
+  return matches.sort((a, b) => {
+    const aRestrictions = [
+      restrictionsMap.get(a.home_team_id),
+      restrictionsMap.get(a.away_team_id)
+    ].filter(Boolean).length;
+    
+    const bRestrictions = [
+      restrictionsMap.get(b.home_team_id),
+      restrictionsMap.get(b.away_team_id)
+    ].filter(Boolean).length;
+    
+    return bRestrictions - aRestrictions; // Más restricciones primero
+  });
+};
+
+/**
+ * Encuentra time slots compatibles para ambos equipos
+ */
+const findCompatibleTimeSlots = (specificSlots, homeRestriction, awayRestriction) => {
+  return specificSlots.filter(slot => {
+    // Verificar que no conflicte con restricción de equipo local
+    if (homeRestriction && slot.slot_id === homeRestriction) {
+      return false;
+    }
+    
+    // Verificar que no conflicte con restricción de equipo visitante
+    if (awayRestriction && slot.slot_id === awayRestriction) {
+      return false;
+    }
+    
+    return true;
+  });
+};
+
+/**
+ * Encuentra una cancha disponible para el horario específico
+ */
+const findAvailableCourt = (slot, courtSchedule, courts) => {
+  for (const court of courts) {
+    const scheduleKey = `${slot.date}_${slot.time}_${court.id}`;
+    
+    if (!courtSchedule.has(scheduleKey)) {
+      return court; // Retorna el objeto completo {id, name}
+    }
+  }
+  
+  return null; // No hay canchas disponibles
+};
+
+/**
+ * 🏆 OBTENER TABLA DE POSICIONES POR GRUPO (Sistema Híbrido)
+ * Lee desde tournament_standings para máxima performance
+ */
+export async function getGroupStandings(req, res) {
+  const { id: tournamentId } = req.params;
+  
+  try {
+    console.log(`🏆 Obteniendo standings para torneo: ${tournamentId}`);
+    
+    // Obtener información del torneo
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('*, categories(name)')
+      .eq('id', tournamentId)
+      .single();
+      
+    if (tournamentError) throw tournamentError;
+    
+    // Obtener standings desde la tabla persistente con información de equipos
+    const { data: standings, error: standingsError } = await supabase
+      .from('tournament_standings')
+      .select(`
+        *,
+        teams!team_id(
+          id,
+          player1:users!player1_id(first_name, last_name),
+          player2:users!player2_id(first_name, last_name)
+        ),
+        tournament_groups!group_id(group_number)
+      `)
+      .eq('tournament_id', tournamentId)
+      .order('group_id')
+      .order('points', { ascending: false })
+      .order('sets_won', { ascending: false })
+      .order('games_won', { ascending: false });
+      
+    if (standingsError) throw standingsError;
+    
+    // Si no hay standings persistidos, calcular dinámicamente como fallback
+    if (!standings || standings.length === 0) {
+      console.log('⚠️ No hay standings persistidos, calculando dinámicamente...');
+      return await calculateStandingsDynamically(req, res);
+    }
+    
+    // Organizar standings por grupo
+    const standingsByGroup = organizeStandingsByGroup(standings);
+    
+    // Generar resumen de clasificación
+    const classificationSummary = generateClassificationSummaryFromStandings(standingsByGroup, tournament.tournament_type);
+    
+    res.json({
+      message: 'Standings obtenidos exitosamente',
+      tournament: {
+        id: tournament.id,
+        name: tournament.name,
+        category: tournament.categories?.name,
+        type: tournament.tournament_type
+      },
+      standings: standingsByGroup,
+      classification_summary: classificationSummary,
+      data_source: 'persistent' // Indica que viene de la tabla
+    });
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo standings:', error);
+    res.status(500).json({ message: error.message });
+  }
+}
+
+/**
+ * Organizar standings por grupo desde datos persistentes
+ */
+function organizeStandingsByGroup(standings) {
+  const groups = {};
+  
+  standings.forEach(standing => {
+    const groupNumber = standing.tournament_groups.group_number;
+    
+    if (!groups[groupNumber]) {
+      groups[groupNumber] = {
+        group_id: standing.group_id,
+        group_number: groupNumber,
+        teams: []
+      };
+    }
+    
+    // Calcular posición basada en el orden de la query
+    const position = groups[groupNumber].teams.length + 1;
+    
+    groups[groupNumber].teams.push({
+      position,
+      team_id: standing.team_id,
+      team_info: {
+        player1: `${standing.teams.player1.first_name} ${standing.teams.player1.last_name}`,
+        player2: `${standing.teams.player2.first_name} ${standing.teams.player2.last_name}`
+      },
+      points: standing.points,
+      matches_played: standing.matches_played,
+      matches_won: standing.matches_won,
+      matches_lost: standing.matches_lost,
+      sets_won: standing.sets_won,
+      sets_lost: standing.sets_lost,
+      sets_difference: standing.sets_won - standing.sets_lost,
+      games_won: standing.games_won,
+      games_lost: standing.games_lost,
+      games_difference: standing.games_won - standing.games_lost
+    });
+  });
+  
+  return groups;
+}
+
+/**
+ * Generar clasificación desde standings persistentes
+ */
+function generateClassificationSummaryFromStandings(standingsByGroup, tournamentType) {
+  const summary = {
+    qualified_teams: [],
+    format: tournamentType,
+    classification_rules: {}
+  };
+  
+  if (tournamentType === 'NINE_PLAYERS') {
+    summary.classification_rules = {
+      qualified_per_group: 'Top 1 + mejor 2do lugar',
+      total_qualified: 4,
+      next_phase: 'Semifinales'
+    };
+    
+    // Primeros de cada grupo
+    Object.keys(standingsByGroup).forEach(groupNumber => {
+      const firstPlace = standingsByGroup[groupNumber].teams[0];
+      if (firstPlace) {
+        summary.qualified_teams.push({
+          team_id: firstPlace.team_id,
+          team_info: firstPlace.team_info,
+          group: parseInt(groupNumber),
+          position: 1,
+          qualification_type: 'group_winner',
+          stats: {
+            matches_won: firstPlace.matches_won,
+            sets_difference: firstPlace.sets_difference,
+            games_difference: firstPlace.games_difference
+          }
+        });
+      }
+    });
+    
+    // Mejor segundo lugar
+    const secondPlaces = [];
+    Object.keys(standingsByGroup).forEach(groupNumber => {
+      const secondPlace = standingsByGroup[groupNumber].teams[1];
+      if (secondPlace) {
+        secondPlaces.push({
+          ...secondPlace,
+          group: parseInt(groupNumber)
+        });
+      }
+    });
+    
+    // Ordenar segundos lugares
+    secondPlaces.sort((a, b) => {
+      if (a.matches_won !== b.matches_won) return b.matches_won - a.matches_won;
+      if (a.sets_difference !== b.sets_difference) return b.sets_difference - a.sets_difference;
+      return b.games_difference - a.games_difference;
+    });
+    
+    if (secondPlaces[0]) {
+      summary.qualified_teams.push({
+        team_id: secondPlaces[0].team_id,
+        team_info: secondPlaces[0].team_info,
+        group: secondPlaces[0].group,
+        position: 2,
+        qualification_type: 'best_second',
+        stats: {
+          matches_won: secondPlaces[0].matches_won,
+          sets_difference: secondPlaces[0].sets_difference,
+          games_difference: secondPlaces[0].games_difference
+        }
+      });
+    }
+    
+  } else if (tournamentType === 'TWELVE_PLAYERS') {
+    summary.classification_rules = {
+      qualified_per_group: 'Top 2',
+      total_qualified: 8,
+      next_phase: 'Cuartos de Final'
+    };
+    
+    Object.keys(standingsByGroup).forEach(groupNumber => {
+      const group = standingsByGroup[groupNumber];
+      [0, 1].forEach(position => {
+        const team = group.teams[position];
+        if (team) {
+          summary.qualified_teams.push({
+            team_id: team.team_id,
+            team_info: team.team_info,
+            group: parseInt(groupNumber),
+            position: position + 1,
+            qualification_type: position === 0 ? 'group_winner' : 'group_runner_up',
+            stats: {
+              matches_won: team.matches_won,
+              sets_difference: team.sets_difference,
+              games_difference: team.games_difference
+            }
+          });
+        }
+      });
+    });
+  }
+  
+  return summary;
+}
+
+/**
+ * 🏆 GENERAR CUADRO ELIMINATORIO AUTOMÁTICAMENTE
+ * Crea la fase eliminatoria basada en equipos clasificados
+ */
+export async function generateEliminationBracket(req, res) {
+  const { id: tournamentId } = req.params;
+  
+  try {
+    console.log(`🏆 Generando cuadro eliminatorio para torneo: ${tournamentId}`);
+    
+    // Obtener información del torneo directamente
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('*, categories(name)')
+      .eq('id', tournamentId)
+      .single();
+      
+    if (tournamentError) throw tournamentError;
+    
+    // Obtener standings actuales  
+    const standingsResponse = await getStandingsData(tournamentId);
+    const { standings, classification_summary } = standingsResponse;
+    
+    if (!classification_summary.qualified_teams || classification_summary.qualified_teams.length === 0) {
+      return res.status(400).json({ 
+        message: 'No hay equipos clasificados aún. Complete la fase de grupos primero.' 
+      });
+    }
+    
+    // Generar estructura del bracket
+    const bracket = generateBracketStructure(
+      classification_summary.qualified_teams, 
+      tournament.tournament_type
+    );
+    
+    // Crear partidos eliminatorios en la BD
+    const eliminationMatches = await createEliminationMatches(tournamentId, bracket, tournament);
+    
+    res.json({
+      message: 'Cuadro eliminatorio generado exitosamente',
+      tournament: {
+        id: tournament.id,
+        name: tournament.name,
+        type: tournament.tournament_type,
+        category: tournament.categories?.name
+      },
+      bracket: bracket,
+      elimination_matches: eliminationMatches,
+      qualified_teams: classification_summary.qualified_teams
+    });
+    
+  } catch (error) {
+    console.error('❌ Error generando cuadro eliminatorio:', error);
+    res.status(500).json({ message: error.message });
+  }
+}
+
+/**
+ * Obtener datos de standings (helper interno)
+ */
+async function getStandingsData(tournamentId) {
+  // Simular el request para reutilizar la función getGroupStandings
+  const mockReq = { params: { id: tournamentId } };
+  let responseData = null;
+  
+  const mockRes = {
+    json: (data) => {
+      responseData = data;
+      return data;
+    },
+    status: (code) => ({ 
+      json: (data) => {
+        responseData = { status: code, ...data };
+        return responseData;
+      } 
+    })
+  };
+  
+  await getGroupStandings(mockReq, mockRes);
+  
+  if (!responseData || responseData.status >= 400) {
+    throw new Error('Error obteniendo standings del torneo');
+  }
+  
+  return responseData;
+}
+
+/**
+ * Generar estructura del bracket según formato
+ */
+function generateBracketStructure(qualifiedTeams, tournamentType) {
+  if (tournamentType === 'NINE_PLAYERS') {
+    return generateNinePlayersBracket(qualifiedTeams);
+  } else if (tournamentType === 'TWELVE_PLAYERS') {
+    return generateTwelvePlayersBracket(qualifiedTeams);
+  } else {
+    throw new Error(`Formato de torneo no soportado: ${tournamentType}`);
+  }
+}
+
+/**
+ * Bracket para 9 jugadores: 4 clasificados → Semifinales → Final
+ */
+function generateNinePlayersBracket(qualifiedTeams) {
+  // Ordenar equipos: primeros de grupo primero, luego mejor segundo
+  const groupWinners = qualifiedTeams.filter(t => t.qualification_type === 'group_winner');
+  const bestSecond = qualifiedTeams.filter(t => t.qualification_type === 'best_second');
+  
+  const orderedTeams = [...groupWinners, ...bestSecond];
+  
+  return {
+    format: 'NINE_PLAYERS',
+    total_teams: 4,
+    structure: {
+      semifinals: [
+        {
+          match_id: 'SF1',
+          round: 'semifinals',
+          match_number: 1,
+          team1: orderedTeams[0] || null, // Ganador Grupo 1
+          team2: orderedTeams[3] || null, // Mejor 2do lugar
+          winner: null,
+          status: 'pending'
+        },
+        {
+          match_id: 'SF2', 
+          round: 'semifinals',
+          match_number: 2,
+          team1: orderedTeams[1] || null, // Ganador Grupo 2
+          team2: orderedTeams[2] || null, // Ganador Grupo 3
+          winner: null,
+          status: 'pending'
+        }
+      ],
+      final: [
+        {
+          match_id: 'F1',
+          round: 'final',
+          match_number: 1,
+          team1: null, // Ganador SF1
+          team2: null, // Ganador SF2
+          winner: null,
+          status: 'pending',
+          depends_on: ['SF1', 'SF2']
+        }
+      ]
+    },
+    advancement_rules: {
+      semifinals: 'Ganadores avanzan a Final',
+      final: 'Ganador es Campeón'
+    }
+  };
+}
+
+/**
+ * Bracket para 12 jugadores: 8 clasificados → Cuartos → Semis → Final
+ */
+function generateTwelvePlayersBracket(qualifiedTeams) {
+  // Ordenar equipos: alternando ganadores y segundos de cada grupo
+  const groupWinners = qualifiedTeams.filter(t => t.qualification_type === 'group_winner')
+    .sort((a, b) => a.group - b.group);
+  const groupRunners = qualifiedTeams.filter(t => t.qualification_type === 'group_runner_up')
+    .sort((a, b) => a.group - b.group);
+    
+  // Emparejamiento: Ganador Grupo A vs Segundo Grupo B, etc.
+  const matchups = [
+    { team1: groupWinners[0], team2: groupRunners[1] }, // G1 vs 2do G2
+    { team1: groupWinners[1], team2: groupRunners[0] }, // G2 vs 2do G1  
+    { team1: groupWinners[2], team2: groupRunners[3] }, // G3 vs 2do G4
+    { team1: groupWinners[3], team2: groupRunners[2] }  // G4 vs 2do G3
+  ];
+
+
+  
+  return {
+    format: 'TWELVE_PLAYERS',
+    total_teams: 8,
+    structure: {
+      quarterfinals: matchups.map((matchup, index) => ({
+        match_id: `QF${index + 1}`,
+        round: 'quarterfinals',
+        match_number: index + 1,
+        team1: matchup.team1 || null,
+        team2: matchup.team2 || null,
+        winner: null,
+        status: 'pending'
+      })),
+      semifinals: [
+        {
+          match_id: 'SF1',
+          round: 'semifinals', 
+          match_number: 1,
+          team1: null, // Ganador QF1
+          team2: null, // Ganador QF2
+          winner: null,
+          status: 'pending',
+          depends_on: ['QF1', 'QF2']
+        },
+        {
+          match_id: 'SF2',
+          round: 'semifinals',
+          match_number: 2, 
+          team1: null, // Ganador QF3
+          team2: null, // Ganador QF4
+          winner: null,
+          status: 'pending',
+          depends_on: ['QF3', 'QF4']
+        }
+      ],
+      final: [
+        {
+          match_id: 'F1',
+          round: 'final',
+          match_number: 1,
+          team1: null, // Ganador SF1
+          team2: null, // Ganador SF2
+          winner: null,
+          status: 'pending',
+          depends_on: ['SF1', 'SF2']
+        }
+      ]
+    },
+    advancement_rules: {
+      quarterfinals: 'Ganadores avanzan a Semifinales',
+      semifinals: 'Ganadores avanzan a Final', 
+      final: 'Ganador es Campeón'
+    }
+  };
+}
+
+/**
+ * Crear partidos eliminatorios en la base de datos
+ */
+async function createEliminationMatches(tournamentId, bracket, tournament) {
+  const matches = [];
+  const startDate = new Date(tournament.end_date + 'T00:00:00'); // Día 3 del torneo
+  
+  // 1. Obtener todos los torneos del mismo evento (mismo nombre)
+  const { data: eventTournaments, error: eventError } = await supabase
+    .from('tournaments')
+    .select(`
+      id,
+      name,
+      category_id,
+      categories!inner (
+        id,
+        name,
+        "order"
+      )
+    `)
+    .eq('name', tournament.name);
+
+  if (eventError) throw eventError;
+
+  console.log('🎯 Torneos encontrados:', eventTournaments.map(t => ({
+    id: t.id,
+    category: t.categories?.name,
+    order: t.categories?.order
+  })));
+
+  // Ordenar torneos por el orden de sus categorías (7ma → 6ta → 5ta → 4ta)
+  eventTournaments.sort((a, b) => {
+    const orderA = a.categories?.order || 99;
+    const orderB = b.categories?.order || 99;
+    return orderB - orderA; // Orden descendente (7ma primero)
+  });
+
+  console.log('📊 Torneos ordenados:', eventTournaments.map(t => ({
+    id: t.id,
+    category: t.categories?.name,
+    order: t.categories?.order
+  })));
+
+  // 2. Obtener IDs de canchas
+  const { data: courts, error: courtsError } = await supabase
+    .from('courts')
+    .select('id')
+    .limit(tournament.courts_available);
+    
+  if (courtsError) throw courtsError;
+  
+  // 3. Encontrar la posición de este torneo en el orden de categorías
+  const tournamentIndex = eventTournaments.findIndex(t => t.id === tournamentId);
+  const MATCH_DURATION = 45; // minutos
+  const START_HOUR = 8; // Empezar a las 8:00 AM
+  
+  // 4. Calcular horarios por ronda para todas las categorías
+  const roundStartTimes = {
+    quarterfinals: START_HOUR,                    // 7:00 AM
+    semifinals: START_HOUR + 2.5,                 // 9:30 AM
+    final: START_HOUR + 5                         // 12:00 PM
+  };
+
+  // Tiempo por categoría dentro de cada ronda
+  const timePerCategory = MATCH_DURATION / 60; // 45 minutos en horas
+
+  console.log('🎯 Configuración de horarios:');
+  console.log('   ⏰ Hora inicio:', START_HOUR);
+  console.log('   ⌛ Duración partido:', MATCH_DURATION, 'minutos');
+  console.log('   📊 Tiempo por categoría:', timePerCategory, 'horas');
+  console.log('   📅 Horarios base por ronda:', roundStartTimes);
+  console.log('   🏆 Categoría actual:', tournament.categories?.name, '(orden:', tournament.categories?.order, ')');
+  console.log('   📍 Índice en el evento:', tournamentIndex);
+
+  // 5. Calcular el horario específico para esta categoría en cada ronda
+  Object.keys(bracket.structure).forEach(round => {
+    const roundBaseTime = roundStartTimes[round];
+    const categoryStartTime = roundBaseTime + (tournamentIndex * timePerCategory);
+    
+    console.log(`🕒 Categoría ${tournament.categories?.name} (orden: ${tournament.categories?.order}) - ${round}:`);
+    console.log(`   ⏰ Empezará a las ${Math.floor(categoryStartTime)}:${String(Math.round((categoryStartTime % 1) * 60)).padStart(2, '0')}`);
+    console.log(`   📍 Base time: ${roundBaseTime}, Index: ${tournamentIndex}, Offset: ${timePerCategory}h`);
+    
+    bracket.structure[round].forEach((match, index) => {
+      if (match.team1 && match.team2) {
+        // Calcular hora y minutos exactos
+        const matchTime = categoryStartTime;
+        const hour = Math.floor(matchTime);
+        const minutes = Math.round((matchTime % 1) * 60);
+        
+        const matchData = {
+          tournament_id: tournamentId,
+          home_team_id: match.team1.team_id,
+          away_team_id: match.team2.team_id,
+          match_day: startDate.toISOString().split('T')[0],
+          start_time: `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`,
+          court_id: courts[index % courts.length].id, // Distribuir en canchas disponibles
+          status: 'scheduled',
+          group_number: null,
+          round: 'group',
+          elimination_round: round,
+          bracket_match_id: match.match_id,
+          match_order: match.match_number,
+          stage: round === 'quarterfinals' ? 'quarter_final' : round === 'semifinals' ? 'semi_final' : 'final'
+        };
+        
+        matches.push(matchData);
+      }
+    });
+  });
+  
+  // Insertar partidos en la BD
+  if (matches.length > 0) {
+    const { data: insertedMatches, error: insertError } = await supabase
+      .from('tournament_matches')
+      .insert(matches)
+      .select();
+      
+    if (insertError) throw insertError;
+    
+    console.log(`✅ ${matches.length} partidos eliminatorios creados`);
+    return insertedMatches;
+  }
+  
+  return [];
+}
+
+/**
+ * Fallback: calcular standings dinámicamente si no están persistidos
+ */
+async function calculateStandingsDynamically(req, res) {
+  // Implementación original como fallback
+  // ... (código anterior)
+  const { id: tournamentId } = req.params;
+  
+  // Obtener partidos y calcular
+  const { data: matches, error: matchesError } = await supabase
+    .from('tournament_matches')
+    .select('*')
+    .eq('tournament_id', tournamentId)
+    .eq('status', 'completed');
+    
+  if (matchesError) throw matchesError;
+  
+  const { data: groups, error: groupsError } = await supabase
+    .from('tournament_groups')
+    .select('*')
+    .eq('tournament_id', tournamentId);
+    
+  if (groupsError) throw groupsError;
+  
+  const { data: tournament, error: tournamentError } = await supabase
+    .from('tournaments')
+    .select('*, categories(name)')
+    .eq('id', tournamentId)
+    .single();
+    
+  if (tournamentError) throw tournamentError;
+  
+  const standingsByGroup = calculateStandingsFromMatches(matches, groups, tournament.tournament_type);
+  
+  res.json({
+    message: 'Standings calculados dinámicamente (fallback)',
+    tournament: {
+      id: tournament.id,
+      name: tournament.name,
+      category: tournament.categories?.name,
+      type: tournament.tournament_type
+    },
+    standings: standingsByGroup,
+    classification_summary: generateClassificationSummary(standingsByGroup, tournament.tournament_type),
+    data_source: 'dynamic' // Indica que es cálculo dinámico
+  });
+}
+
+/**
+ * Calcular standings basado en partidos completados
+ */
+function calculateStandingsFromMatches(matches, groups, tournamentType) {
+  const standingsByGroup = {};
+  
+  // Inicializar standings para cada grupo
+  groups.forEach(group => {
+    standingsByGroup[group.group_number] = {
+      group_id: group.id,
+      group_number: group.group_number,
+      teams: []
+    };
+    
+    // Inicializar cada equipo del grupo
+    const teamIds = Array.isArray(group.teams) ? group.teams : JSON.parse(group.teams);
+    teamIds.forEach(teamId => {
+      standingsByGroup[group.group_number].teams.push({
+        team_id: teamId,
+        matches_played: 0,
+        matches_won: 0,
+        matches_lost: 0,
+        sets_won: 0,
+        sets_lost: 0,
+        games_won: 0,
+        games_lost: 0,
+        points: 0,
+        classification_status: null
+      });
+    });
+  });
+  
+  // Procesar cada partido completado
+  matches.forEach(match => {
+    const groupStanding = standingsByGroup[match.group_number];
+    if (!groupStanding) return;
+    
+    const homeTeamStats = groupStanding.teams.find(t => t.team_id === match.home_team_id);
+    const awayTeamStats = groupStanding.teams.find(t => t.team_id === match.away_team_id);
+    
+    if (!homeTeamStats || !awayTeamStats) return;
+    
+    // Calcular estadísticas del partido
+    const matchStats = calculateMatchStats(match);
+    
+    // Actualizar estadísticas del equipo local
+    homeTeamStats.matches_played++;
+    homeTeamStats.sets_won += matchStats.home.sets_won;
+    homeTeamStats.sets_lost += matchStats.home.sets_lost;
+    homeTeamStats.games_won += matchStats.home.games_won;
+    homeTeamStats.games_lost += matchStats.home.games_lost;
+    
+    // Actualizar estadísticas del equipo visitante
+    awayTeamStats.matches_played++;
+    awayTeamStats.sets_won += matchStats.away.sets_won;
+    awayTeamStats.sets_lost += matchStats.away.sets_lost;
+    awayTeamStats.games_won += matchStats.away.games_won;
+    awayTeamStats.games_lost += matchStats.away.games_lost;
+    
+    // Determinar ganador y perdedor
+    if (match.winner_team_id === match.home_team_id) {
+      homeTeamStats.matches_won++;
+      homeTeamStats.points += 3; // 3 puntos por ganar
+      awayTeamStats.matches_lost++;
+      awayTeamStats.points += 0; // 0 puntos por perder
+    } else {
+      awayTeamStats.matches_won++;
+      awayTeamStats.points += 3; // 3 puntos por ganar
+      homeTeamStats.matches_lost++;
+      homeTeamStats.points += 0; // 0 puntos por perder
+    }
+  });
+  
+  // Ordenar equipos en cada grupo por criterios de clasificación
+  Object.keys(standingsByGroup).forEach(groupNumber => {
+    standingsByGroup[groupNumber].teams.sort((a, b) => {
+      // 1. Partidos ganados (más importante)
+      if (a.matches_won !== b.matches_won) {
+        return b.matches_won - a.matches_won;
+      }
+      
+      // 2. Diferencia de sets
+      const aDiff = a.sets_won - a.sets_lost;
+      const bDiff = b.sets_won - b.sets_lost;
+      if (aDiff !== bDiff) {
+        return bDiff - aDiff;
+      }
+      
+      // 3. Diferencia de games
+      const aGamesDiff = a.games_won - a.games_lost;
+      const bGamesDiff = b.games_won - b.games_lost;
+      return bGamesDiff - aGamesDiff;
+    });
+    
+    // Asignar posiciones
+    standingsByGroup[groupNumber].teams.forEach((team, index) => {
+      team.position = index + 1;
+    });
+  });
+  
+  return standingsByGroup;
+}
+
+/**
+ * Calcular estadísticas de un partido individual
+ */
+function calculateMatchStats(match) {
+  const homeStats = {
+    sets_won: 0,
+    sets_lost: 0,
+    games_won: match.team1_sets1_won + match.team1_sets2_won,
+    games_lost: match.team2_sets1_won + match.team2_sets2_won
+  };
+  
+  const awayStats = {
+    sets_won: 0,
+    sets_lost: 0,
+    games_won: match.team2_sets1_won + match.team2_sets2_won,
+    games_lost: match.team1_sets1_won + match.team1_sets2_won
+  };
+  
+  // Contar sets ganados
+  if (match.team1_sets1_won > match.team2_sets1_won) {
+    homeStats.sets_won++;
+    awayStats.sets_lost++;
+  } else {
+    homeStats.sets_lost++;
+    awayStats.sets_won++;
+  }
+  
+  if (match.team1_sets2_won > match.team2_sets2_won) {
+    homeStats.sets_won++;
+    awayStats.sets_lost++;
+  } else {
+    homeStats.sets_lost++;
+    awayStats.sets_won++;
+  }
+  
+  return { home: homeStats, away: awayStats };
+}
+
+/**
+ * Generar resumen de clasificación
+ */
+function generateClassificationSummary(standingsByGroup, tournamentType) {
+  const summary = {
+    qualified_teams: [],
+    format: tournamentType,
+    classification_rules: {}
+  };
+  
+  if (tournamentType === 'NINE_PLAYERS') {
+    // Top 1 de cada grupo + mejor 2do = 4 equipos a semis
+    summary.classification_rules = {
+      qualified_per_group: 'Top 1 + mejor 2do lugar',
+      total_qualified: 4,
+      next_phase: 'Semifinales'
+    };
+    
+    // Obtener primeros de cada grupo
+    Object.keys(standingsByGroup).forEach(groupNumber => {
+      const firstPlace = standingsByGroup[groupNumber].teams[0];
+      if (firstPlace) {
+        summary.qualified_teams.push({
+          team_id: firstPlace.team_id,
+          group: parseInt(groupNumber),
+          position: 1,
+          qualification_type: 'group_winner'
+        });
+      }
+    });
+    
+    // Encontrar mejor segundo lugar
+    const secondPlaces = [];
+    Object.keys(standingsByGroup).forEach(groupNumber => {
+      const secondPlace = standingsByGroup[groupNumber].teams[1];
+      if (secondPlace) {
+        secondPlaces.push({
+          ...secondPlace,
+          group: parseInt(groupNumber)
+        });
+      }
+    });
+    
+    // Ordenar segundos lugares y tomar el mejor
+    secondPlaces.sort((a, b) => {
+      if (a.matches_won !== b.matches_won) return b.matches_won - a.matches_won;
+      const aDiff = a.sets_won - a.sets_lost;
+      const bDiff = b.sets_won - b.sets_lost;
+      if (aDiff !== bDiff) return bDiff - aDiff;
+      const aGamesDiff = a.games_won - a.games_lost;
+      const bGamesDiff = b.games_won - b.games_lost;
+      return bGamesDiff - aGamesDiff;
+    });
+    
+    if (secondPlaces[0]) {
+      summary.qualified_teams.push({
+        team_id: secondPlaces[0].team_id,
+        group: secondPlaces[0].group,
+        position: 2,
+        qualification_type: 'best_second'
+      });
+    }
+    
+  } else if (tournamentType === 'TWELVE_PLAYERS') {
+    // Top 2 de cada grupo = 8 equipos a cuartos
+    summary.classification_rules = {
+      qualified_per_group: 'Top 2',
+      total_qualified: 8,
+      next_phase: 'Cuartos de Final'
+    };
+    
+    Object.keys(standingsByGroup).forEach(groupNumber => {
+      const group = standingsByGroup[groupNumber];
+      [0, 1].forEach(position => {
+        const team = group.teams[position];
+        if (team) {
+          summary.qualified_teams.push({
+            team_id: team.team_id,
+            group: parseInt(groupNumber),
+            position: position + 1,
+            qualification_type: position === 0 ? 'group_winner' : 'group_runner_up'
+          });
+        }
+      });
+    });
+  }
+  
+  return summary;
 } 
