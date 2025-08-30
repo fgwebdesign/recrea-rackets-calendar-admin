@@ -29,6 +29,7 @@ interface AdminGroupsGeneratorProps {
 }
 
 interface TeamWithRestrictions extends TeamWithPlayers {
+  id: string // FormKit requiere un id único
   unavailable_hour?: number
   restrictions?: string[]
 }
@@ -67,7 +68,7 @@ export function AdminGroupsGenerator({
     conflicts: []
   }))
 
-  // Drag & Drop para equipos disponibles
+  // Drag & Drop usando useDragAndDrop hook directamente
   const [availableTeamsRef, availableTeams, setAvailableTeams] = useDragAndDrop<HTMLDivElement, TeamWithRestrictions>(
     [],
     {
@@ -76,7 +77,6 @@ export function AdminGroupsGenerator({
     }
   )
 
-  // Drag & Drop básico para grupos (evitar hooks condicionales)
   const [group1Ref, group1Teams, setGroup1Teams] = useDragAndDrop<HTMLDivElement, TeamWithRestrictions>([], {
     group: 'tournament-teams',
     sortable: true
@@ -92,16 +92,28 @@ export function AdminGroupsGenerator({
     sortable: true
   })
 
-  // Para torneos de 12 jugadores - siempre inicializar para evitar hooks condicionales
   const [group4Ref, group4Teams, setGroup4Teams] = useDragAndDrop<HTMLDivElement, TeamWithRestrictions>([], {
     group: 'tournament-teams',
     sortable: true
   })
 
+  // Debug: logear cuando los arrays cambien
+  useEffect(() => {
+    console.log('🔄 Arrays updated:', {
+      available: availableTeams.length,
+      group1: group1Teams.length,
+      group2: group2Teams.length,
+      group3: group3Teams.length,
+      group4: group4Teams.length
+    })
+  }, [availableTeams.length, group1Teams.length, group2Teams.length, group3Teams.length, group4Teams.length])
+
   // Obtener datos del torneo
   useEffect(() => {
     fetchTournamentData()
   }, [tournamentId])
+
+
 
   const fetchTournamentData = async () => {
     try {
@@ -118,16 +130,15 @@ export function AdminGroupsGenerator({
       const availabilityData = await availabilityResponse.json()
       
       // Procesar equipos con sus restricciones
-      console.log('Teams data received:', teamsData) // Debug
       
       if (!teamsData.teams || !Array.isArray(teamsData.teams)) {
         throw new Error('Invalid teams data structure')
       }
 
       const processedTeams: TeamWithRestrictions[] = teamsData.teams.map((team: any, index: number) => {
-        console.log('Processing team:', team) // Debug
-        
-        return {
+        // Importante: FormKit necesita que cada elemento tenga una propiedad única para identificación
+        const processedTeam = {
+          id: team.team_id, // FormKit usa esto como identificador único
           team_id: team.team_id,
           player1: {
             id: team.teams.player1_id,
@@ -142,6 +153,8 @@ export function AdminGroupsGenerator({
           unavailable_hour: team.unavailable_times,
           restrictions: team.unavailable_times ? [`No disponible a las ${team.unavailable_times}:00`] : []
         }
+        
+        return processedTeam
       })
       
       setAllTeams(processedTeams)
@@ -405,67 +418,69 @@ export function AdminGroupsGenerator({
         </TabsList>
 
         <TabsContent value="groups" className="space-y-4">
-          <div className="flex gap-6">
-            {/* Panel Lateral Izquierdo: Restricciones y Equipos */}
-            <div className="w-80 space-y-4">
-              {/* Panel de Restricciones Horarias */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Clock className="w-5 h-5" />
-                    Restricciones de Horarios
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {availability && Object.entries(availability.availability).map(([hour, data]) => (
-                    <div key={hour} className="border rounded-lg p-3">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium">{hour}:00</span>
-                        <Badge variant={data.available ? "default" : "destructive"}>
-                          {data.selected_count}/{data.total_capacity}
-                        </Badge>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                        <div 
-                          className="bg-orange-500 h-2 rounded-full transition-all"
-                          style={{ width: `${data.percentage_full}%` }}
-                        ></div>
-                      </div>
-                      {data.teams.length > 0 && (
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium text-gray-600">Equipos con restricción:</p>
-                          {data.teams.map((team) => (
-                            <div key={team.team_id} className="text-xs p-1 bg-orange-50 rounded">
-                              {team.player1.first_name} {team.player1.last_name} / {team.player2.first_name} {team.player2.last_name}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+          {/* Panel Superior: Restricciones de Horarios (100% ancho) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Clock className="w-5 h-5" />
+                Restricciones de Horarios
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+                {availability && Object.entries(availability.availability).map(([hour, data]) => (
+                  <div key={hour} className="border rounded-lg p-3 bg-white">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium text-sm">{hour}:00</span>
+                      <Badge variant={data.available ? "default" : "destructive"} className="text-xs">
+                        {data.selected_count}/{data.total_capacity}
+                      </Badge>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                      <div 
+                        className="bg-orange-500 h-2 rounded-full transition-all"
+                        style={{ width: `${data.percentage_full}%` }}
+                      ></div>
+                    </div>
+                    {data.teams.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-gray-600">Equipos:</p>
+                        {data.teams.map((team) => (
+                          <div key={team.team_id} className="text-xs p-1 bg-orange-50 rounded truncate" title={`${team.player1.first_name} ${team.player1.last_name} / ${team.player2.first_name} ${team.player2.last_name}`}>
+                            {team.player1.first_name} {team.player1.last_name} / {team.player2.first_name} {team.player2.last_name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-              {/* Equipos Disponibles */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
+          {/* Panel Inferior: Equipos Disponibles (20%) + Grupos (80%) */}
+          <div className="flex gap-4 min-h-[600px] pb-4">
+            {/* Equipos Disponibles - 20% con scroll */}
+            <div className="w-1/5">
+              <Card className="h-full">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Users className="w-4 h-4" />
                     Equipos Disponibles ({availableTeams.length})
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 pb-4">
                   <div 
                     ref={availableTeamsRef}
-                    className="space-y-2 min-h-[300px] p-2 border-2 border-dashed border-gray-200 rounded-lg"
+                    className="space-y-2 max-h-[500px] overflow-y-auto p-3 pb-4 border-2 border-dashed border-gray-200 rounded-lg"
                   >
                     {availableTeams.map((team: TeamWithRestrictions) => (
-                      <TeamCard key={team.team_id} team={team} isDragging />
+                      <TeamCard key={team.id} team={team} isDragging />
                     ))}
                     {availableTeams.length === 0 && (
                       <div className="text-center py-8 text-gray-500">
-                        <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        Todos los equipos han sido asignados
+                        <Users className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                        <div className="text-xs">Todos los equipos asignados</div>
                       </div>
                     )}
                   </div>
@@ -473,9 +488,9 @@ export function AdminGroupsGenerator({
               </Card>
             </div>
 
-            {/* Panel Principal: Grupos */}
+            {/* Panel de Grupos - 80% */}
             <div className="flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full">
                 {groups.map((group) => {
                   return (
                     <GroupDropZone
@@ -504,19 +519,19 @@ function TeamCard({ team, isDragging = false }: { team: TeamWithRestrictions, is
   return (
     <div 
       className={`
-        p-3 bg-white border rounded-lg shadow-sm transition-all
-        ${isDragging ? 'cursor-move hover:shadow-md' : ''}
+        p-2 bg-white border rounded-lg shadow-sm transition-all
+        ${isDragging ? 'cursor-move hover:shadow-md hover:bg-gray-50' : ''}
         ${team.unavailable_hour ? 'border-orange-200 bg-orange-50' : 'border-gray-200'}
       `}
     >
-      <div className="font-medium text-sm">
+      <div className="font-medium text-xs">
         {team.player1.first_name} {team.player1.last_name}
       </div>
-      <div className="font-medium text-sm">
+      <div className="font-medium text-xs">
         {team.player2.first_name} {team.player2.last_name}
       </div>
       {team.unavailable_hour && (
-        <Badge variant="outline" className="mt-1 text-xs bg-orange-100 text-orange-700">
+        <Badge variant="outline" className="mt-1 text-xs bg-orange-100 text-orange-700 px-1 py-0">
           <Clock className="w-3 h-3 mr-1" />
           No a las {team.unavailable_hour}:00
         </Badge>
@@ -580,7 +595,7 @@ function GroupDropZone({
           `}
         >
           {group.teams.map((team) => (
-            <TeamCard key={team.team_id} team={team} />
+            <TeamCard key={team.id} team={team} />
           ))}
           {group.teams.length === 0 && (
             <div className="text-center py-8 text-gray-400">

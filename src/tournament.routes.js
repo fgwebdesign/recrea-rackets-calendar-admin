@@ -12,11 +12,13 @@ import {
     generateEliminationBracket,
     getTournamentTeams,
     getAvailableHoursForRegistration,
+    getAvailableTimeSlotsForRegistration,
     validateScheduleEndpoint,
     getTournamentsByUserId,
     generateGroupsPhase,
     generateGroupsManual,
     getGroups,
+    validateGroupScheduleConflicts,
 } from '../controllers/tournament.controller.js'
 import { setTournamentRequiredInfo, setTournamentThumbnail, setTournamentPrize, setTournamentSponsors } from '../controllers/tournamentInfo.controller.js'
 import { populateTournament } from '../helpers/tournament.helpers.js'
@@ -253,10 +255,57 @@ router.get('/:id/teams', getTournamentTeams)
  * @swagger
  * /tournaments/{id}/available-hours:
  *   get:
- *     summary: Obtiene las horas disponibles
+ *     summary: Obtiene las horas disponibles (LEGACY)
  *     tags: [Torneos]
  */
 router.get('/:id/available-hours', getAvailableHoursForRegistration)
+
+/**
+ * @swagger
+ * /tournaments/{id}/available-time-slots:
+ *   get:
+ *     summary: Obtiene los time slots disponibles para inscripción
+ *     tags: [Torneos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del torneo
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Time slots disponibles con información de capacidad
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 tournament_info:
+ *                   type: object
+ *                 available_slots:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       slot_id:
+ *                         type: string
+ *                       label:
+ *                         type: string
+ *                       total_capacity:
+ *                         type: number
+ *                       current_usage:
+ *                         type: number
+ *                       remaining_slots:
+ *                         type: number
+ *                       is_available:
+ *                         type: boolean
+ *                       percentage_full:
+ *                         type: number
+ */
+router.get('/:id/available-time-slots', getAvailableTimeSlotsForRegistration)
 
 /**
  * @swagger
@@ -284,5 +333,55 @@ router.get('/user/:userId', getTournamentsByUserId)
  *     tags: [Torneos]
  */
 router.get('/:id/groups', getGroups)
+
+/**
+ * @swagger
+ * /tournaments/{id}/validate-group-conflicts:
+ *   post:
+ *     summary: Valida conflictos horarios en grupos propuestos
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del torneo
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               groups:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     group_number:
+ *                       type: number
+ *                     teams:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *     responses:
+ *       200:
+ *         description: Validación completada con detalles de conflictos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 summary:
+ *                   type: object
+ *                 validation_results:
+ *                   type: array
+ */
+router.post('/:id/validate-group-conflicts', verifyToken, verifyAdmin, validateGroupScheduleConflicts)
 
 export default router
