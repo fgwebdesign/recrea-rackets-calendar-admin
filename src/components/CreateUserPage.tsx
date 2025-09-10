@@ -28,11 +28,31 @@ export default function CreateUserPage() {
         return;
       }
 
-      // Store admin token if user is admin
-      if (data.user?.user_metadata?.role === 'admin') {
-        console.log('Storing admin token:', data.session.access_token);
-        localStorage.setItem('isAdmin', 'true');
-        localStorage.setItem('adminToken', data.session.access_token);
+      // Verificar si el usuario es admin consultando la tabla users
+      try {
+        const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${data.session.access_token}`
+          }
+        });
+        
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          if (userData.role === 'admin') {
+            console.log('Storing admin token:', data.session.access_token);
+            localStorage.setItem('isAdmin', 'true');
+            localStorage.setItem('adminToken', data.session.access_token);
+          } else {
+            console.error('Usuario no tiene permisos de administrador');
+            return;
+          }
+        } else {
+          console.error('Error al verificar usuario');
+          return;
+        }
+      } catch (error) {
+        console.error('Error al verificar rol de usuario:', error);
+        return;
       }
 
       router.push("/dashboard");

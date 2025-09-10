@@ -31,10 +31,34 @@ export default function Home() {
       if (response.ok) {
         const data = await response.json();
         
-        if (data.user?.user_metadata?.role === 'admin') {
-          localStorage.setItem('isAdmin', 'true');
-          localStorage.setItem('adminToken', data.session.access_token);
-          localStorage.setItem('userName', data.user.user_metadata.first_name);
+        // Verificar si el usuario es admin consultando la tabla users
+        try {
+          const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${data.session.access_token}`
+            }
+          });
+          
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            if (userData.role === 'admin') {
+              localStorage.setItem('isAdmin', 'true');
+              localStorage.setItem('adminToken', data.session.access_token);
+              localStorage.setItem('userName', userData.first_name);
+            } else {
+              console.error('Usuario no tiene permisos de administrador');
+              setIsLoading(false);
+              return;
+            }
+          } else {
+            console.error('Error al verificar usuario');
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error('Error al verificar rol de usuario:', error);
+          setIsLoading(false);
+          return;
         }
         
         await new Promise(resolve => setTimeout(resolve, 1500));

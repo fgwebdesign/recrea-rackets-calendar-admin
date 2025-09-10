@@ -1,0 +1,22 @@
+# Puerto del servidor
+PORT=9999
+
+# Configuración de Supabase PROD (recrea-ligas)
+SUPABASE_URL=https://goipmracccjxjmhpizib.supabase.co
+SUPABASE_ANON_PUBLIC_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvaXBtcmFjY2NqeGptaHBpemliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0ODIyNzEsImV4cCI6MjA1MzA1ODI3MX0.7K2qoAuz6UR4MAzUuhf8XXXaI2GN4p5fWO5_zJNKAaI
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvaXBtcmFjY2NqeGptaHBpemliIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzQ4MjI3MSwiZXhwIjoyMDUzMDU4MjcxfQ.ESxEkTog5_L8kB_usZPeed9Jk9YTfpWKnXKrBqrCRWg
+SUPABASE_SECRET_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvaXBtcmFjY2NqeGptaHBpemliIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzQ4MjI3MSwiZXhwIjoyMDUzMDU4MjcxfQ.ESxEkTog5_L8kB_usZPeed9Jk9YTfpWKnXKrBqrCRWg
+DB_PASSWORD=lp2ndBlVu7dz3PFn
+RESEND_API_KEY=re_bQeibSiX_Bn5HV3SUbnGYtYkwjWdK5QTm
+WEB_URL=https://www.recreapadel.com
+SUPABASE_STORAGE_URL=https://goipmracccjxjmhpizib.supabase.co/storage/v1/s3
+SUPABASE_BUCKET_ID=sponsors-logos
+
+# Zona horaria
+TZ=America/Montevideo
+
+# URLs permitidas para CORS (separadas por comas)
+ALLOWED_ORIGINS=https://recrea-rackets-calendar-admin.vercel.app,https://www.recreapadel.com
+
+# Variables de entorno
+NODE_ENV=production

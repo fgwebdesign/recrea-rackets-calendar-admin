@@ -3,8 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "cp .env.development .env.local && next dev --turbopack",
+    "dev:prod": "cp .env.production .env.local && next dev --turbopack",
     "build": "next build",
+    "build:dev": "cp .env.development .env.local && next build",
+    "build:prod": "cp .env.production .env.local && next build",
     "start": "next start",
     "lint": "next lint"
   },
