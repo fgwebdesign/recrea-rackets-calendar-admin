@@ -6,21 +6,83 @@ import handlebars from 'handlebars'
 
 
 export async function getTournaments(req, res) {
-  const { data, error } = await supabase
-    .from('tournaments')
-    .select(`
-      *,
-      tournament_teams (
-        team_id,
-        teams (*)
-      ),
-      tournament_info (*)
-    `)
-    .eq('status', 'upcoming')
-    .order('start_date', { ascending: true })
+  try {
+    const { start_date, end_date, date_range, status } = req.query;
+    
+    let query = supabase
+      .from('tournaments')
+      .select(`
+        *,
+        tournament_teams (
+          team_id,
+          teams (*)
+        ),
+        tournament_info (*)
+      `);
 
-  if (error) return res.status(500).json({ message: error.message })
-  res.json(data)
+    // 🗓️ Filtro por fechas
+    if (start_date && end_date) {
+      query = query
+        .gte('start_date', start_date)
+        .lte('end_date', end_date);
+    } else if (start_date) {
+      query = query.gte('start_date', start_date);
+    } else if (end_date) {
+      query = query.lte('end_date', end_date);
+    }
+
+    // 📅 Filtro por rango de fechas específico
+    if (date_range) {
+      const ranges = {
+        'this_month': () => {
+          const now = new Date();
+          const start = new Date(now.getFullYear(), now.getMonth(), 1);
+          const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          return [start.toISOString().split('T')[0], end.toISOString().split('T')[0]];
+        },
+        'next_month': () => {
+          const now = new Date();
+          const start = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          const end = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+          return [start.toISOString().split('T')[0], end.toISOString().split('T')[0]];
+        },
+        'this_year': () => {
+          const now = new Date();
+          const start = new Date(now.getFullYear(), 0, 1);
+          const end = new Date(now.getFullYear(), 11, 31);
+          return [start.toISOString().split('T')[0], end.toISOString().split('T')[0]];
+        },
+        'upcoming': () => {
+          const today = new Date().toISOString().split('T')[0];
+          return [today, null];
+        }
+      };
+
+      if (ranges[date_range]) {
+        const [rangeStart, rangeEnd] = ranges[date_range]();
+        query = query.gte('start_date', rangeStart);
+        if (rangeEnd) {
+          query = query.lte('end_date', rangeEnd);
+        }
+      }
+    }
+
+    // 📊 Filtro por status (mantener compatibilidad)
+    if (status) {
+      query = query.eq('status', status);
+    } else {
+      // Por defecto mostrar todos los estados si no se especifica
+      query = query.in('status', ['upcoming', 'in_progress', 'completed']);
+    }
+
+    const { data, error } = await query.order('start_date', { ascending: true });
+
+    if (error) return res.status(500).json({ message: error.message });
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching tournaments:', error);
+    res.status(500).json({ message: error.message });
+  }
 }
 
 export async function getTournamentById(req, res) {

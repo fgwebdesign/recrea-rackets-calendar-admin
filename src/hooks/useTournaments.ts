@@ -40,6 +40,17 @@ interface UseTournamentsReturn {
   createTournament: (data: TournamentFormData, token: string) => Promise<Tournament>
   updateTournament: (id: string, data: Partial<TournamentFormData>, token: string) => Promise<Tournament>
   deleteTournament: (id: string, token: string) => Promise<void>
+  // 🗓️ Nuevos métodos para filtros de fecha
+  fetchTournamentsWithFilters: (filters: TournamentFilters) => Promise<void>
+  clearFilters: () => void
+}
+
+interface TournamentFilters {
+  start_date?: string
+  end_date?: string
+  date_range?: string
+  status?: string
+  category_id?: string
 }
 
 interface UseTournamentReturn {
@@ -90,19 +101,46 @@ export function useTournaments(): UseTournamentsReturn {
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentFilters, setCurrentFilters] = useState<TournamentFilters>({})
 
-  const fetchTournaments = useCallback(async () => {
+  // 🎯 Función principal para obtener torneos con filtros
+  const fetchTournamentsWithFilters = useCallback(async (filters: TournamentFilters = {}) => {
     try {
       setLoading(true)
       setError(null)
+      setCurrentFilters(filters)
+
+      // Por ahora usar el servicio existente que funciona
+      // TODO: Implementar filtros en el backend más adelante
       const data = await tournamentService.getTournaments()
-      setTournaments(data)
+      
+      // Procesar datos para asegurar consistencia
+      const processedTournaments = Array.isArray(data) ? data.map(tournament => ({
+        ...tournament,
+        tournament_teams: Array.isArray(tournament.tournament_teams) ? tournament.tournament_teams : [],
+        tournament_info: tournament.tournament_info || undefined,
+        category: tournament.category || undefined
+      })) : []
+
+      setTournaments(processedTournaments)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar torneos')
+      console.error('Error fetching tournaments:', err)
+      setError(err instanceof Error ? err.message : 'Error desconocido')
+      setTournaments([])
     } finally {
       setLoading(false)
     }
   }, [])
+
+  // 🔄 Función de refetch (mantener compatibilidad)
+  const refetch = useCallback(async () => {
+    await fetchTournamentsWithFilters(currentFilters)
+  }, [fetchTournamentsWithFilters, currentFilters])
+
+  // 🧹 Limpiar filtros
+  const clearFilters = useCallback(async () => {
+    await fetchTournamentsWithFilters({})
+  }, [fetchTournamentsWithFilters])
 
   const createTournament = useCallback(async (data: TournamentFormData, token: string) => {
     try {
@@ -134,17 +172,19 @@ export function useTournaments(): UseTournamentsReturn {
   }, [])
 
   useEffect(() => {
-    fetchTournaments()
-  }, [fetchTournaments])
+    fetchTournamentsWithFilters({})
+  }, [fetchTournamentsWithFilters])
 
   return {
     tournaments,
     loading,
     error,
-    refetch: fetchTournaments,
+    refetch,
     createTournament,
     updateTournament,
-    deleteTournament
+    deleteTournament,
+    fetchTournamentsWithFilters,
+    clearFilters
   }
 }
 
@@ -196,7 +236,7 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
       ])
 
       setTournament(tournamentData)
-      setTournamentInfo(Array.isArray(tournamentData.tournament_info) ? tournamentData.tournament_info[0] : tournamentData.tournament_info || null)
+      setTournamentInfo(Array.isArray(tournamentData.tournament_info) ? tournamentData.tournament_info[0] : tournamentData.tournament_info || undefined)
       
       // ✅ Corregir: extraer el array teams del objeto de respuesta
       const teamsArray = (teamsData as any)?.teams || teamsData || []

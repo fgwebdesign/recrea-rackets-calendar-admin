@@ -10,26 +10,54 @@ import { useTournaments } from '@/hooks/useTournaments'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { CalendarIcon, PlusIcon, TrophyIcon, UsersIcon, ClockIcon } from '@heroicons/react/24/outline'
+import { CalendarIcon, PlusIcon, TrophyIcon, UsersIcon, ClockIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, TrendingUp, DollarSign } from 'lucide-react'
 import Image from 'next/image'
+import CalendarFilter from '@/components/Tournaments/CalendarFilter'
 
 export default function TournamentsPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
+  const [showCalendarFilter, setShowCalendarFilter] = useState(false)
   
   const { categories, isLoading: isLoadingCategories } = useCategories()
   const { 
     tournaments, 
     loading, 
     error, 
-    refetch 
+    refetch,
+    fetchTournamentsWithFilters,
+    clearFilters
   } = useTournaments()
+
+  // 🗓️ Manejar filtros de fecha
+  const handleDateRangeChange = async (startDate: Date | null, endDate: Date | null) => {
+    const filters: any = {}
+    
+    if (startDate) {
+      filters.start_date = startDate.toISOString().split('T')[0]
+    }
+    if (endDate) {
+      filters.end_date = endDate.toISOString().split('T')[0]
+    }
+    
+    await fetchTournamentsWithFilters(filters)
+  }
+
+  const handleQuickFilterChange = async (filter: string) => {
+    const filters: any = {}
+    
+    if (filter) {
+      filters.date_range = filter
+    }
+    
+    await fetchTournamentsWithFilters(filters)
+  }
 
   // 🎯 Filtrar torneos con lógica mejorada
   const filteredTournaments = tournaments.filter(tournament => {
@@ -232,6 +260,20 @@ export default function TournamentsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+
+                {/* 🗓️ Botón de filtro de calendario */}
+                <Button
+                  variant={showCalendarFilter ? "default" : "outline"}
+                  onClick={() => setShowCalendarFilter(!showCalendarFilter)}
+                  className={`h-10 px-4 transition-all duration-200 ${
+                    showCalendarFilter 
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md' 
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  <FunnelIcon className="h-4 w-4 mr-2" />
+                  Filtro Fechas
+                </Button>
               </div>
 
               <div className="flex items-center gap-2">
@@ -284,33 +326,62 @@ export default function TournamentsPage() {
           </CardContent>
         </Card>
 
-        {/* 🏆 Grid de Torneos Revolucionario */}
+        {/* 🗓️ Filtro de Calendario */}
+        {showCalendarFilter && (
+          <Card className="mb-8 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200 dark:border-blue-800">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <CalendarIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
+                  Filtro por Fechas
+                </h3>
+              </div>
+              <CalendarFilter
+                onDateRangeChange={handleDateRangeChange}
+                onQuickFilterChange={handleQuickFilterChange}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 🏆 Grid de Torneos Revolucionario Mejorado */}
         {filteredTournaments.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-            {filteredTournaments.map((tournament) => {
+            {filteredTournaments.map((tournament, index) => {
               const teamsCount = tournament.tournament_teams?.length || 0
               const progressPercentage = (teamsCount / tournament.max_teams) * 100
               const isFull = teamsCount === tournament.max_teams
               const isAlmostFull = progressPercentage >= 80
               
               return (
+                <div
+                  key={tournament.id}
+                  className="animate-fade-in-up"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
                 <Card
                   key={tournament.id}
-                  className="group bg-white dark:bg-slate-800/50 rounded-2xl shadow-lg hover:shadow-2xl border border-gray-200 dark:border-gray-700 transition-all duration-300 cursor-pointer overflow-hidden transform hover:scale-105 hover:-translate-y-2"
+                  className="group bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-900/50 rounded-3xl shadow-xl hover:shadow-2xl border border-gray-200/50 dark:border-gray-700/50 transition-all duration-500 cursor-pointer overflow-hidden transform hover:scale-[1.02] hover:-translate-y-3 backdrop-blur-sm"
                   onClick={() => router.push(`/tournaments/${tournament.id}`)}
                 >
-                  {/* 🖼️ Header con imagen */}
-                  <div className="relative h-48 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 overflow-hidden">
+                  {/* 🖼️ Header con imagen mejorado */}
+                  <div className="relative h-52 bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/40 dark:via-purple-900/40 dark:to-pink-900/40 overflow-hidden">
+                    {/* Efecto de overlay dinámico */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    
                     {tournament.tournament_info?.tournament_thumbnail ? (
                       <Image
                         src={tournament.tournament_info.tournament_thumbnail}
                         alt={tournament.name}
                         fill
-                        className="object-cover group-hover:scale-110 transition-transform duration-500"
+                        className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                       />
                     ) : (
                       <div className="flex items-center justify-center h-full">
-                        <TrophyIcon className="h-20 w-20 text-blue-400 opacity-60" />
+                        <div className="relative">
+                          <TrophyIcon className="h-24 w-24 text-blue-400 opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500" />
+                        </div>
                       </div>
                     )}
                     
@@ -324,116 +395,141 @@ export default function TournamentsPage() {
                       )}
                     </div>
 
-                    {/* 📊 Indicador de progreso */}
+                    {/* 📊 Indicador de progreso mejorado */}
                     {tournament.status === 'upcoming' && (
                       <div className="absolute bottom-4 left-4 right-4">
-                        <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg p-2">
-                          <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-                            <span>Inscripciones</span>
-                            <span className="font-semibold">{teamsCount}/{tournament.max_teams}</span>
+                        <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-2xl p-3 shadow-lg border border-white/20 dark:border-gray-700/50">
+                          <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-2">
+                            <span className="font-medium">Inscripciones</span>
+                            <span className="font-bold text-sm">{teamsCount}/{tournament.max_teams}</span>
                           </div>
-                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
                             <div
-                              className={`h-2 rounded-full transition-all duration-500 ${
-                                isFull ? 'bg-green-500' : 
-                                isAlmostFull ? 'bg-yellow-500' : 'bg-blue-500'
+                              className={`h-2.5 rounded-full transition-all duration-700 ease-out ${
+                                isFull ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 
+                                isAlmostFull ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : 'bg-gradient-to-r from-blue-500 to-purple-500'
                               }`}
                               style={{ width: `${Math.min(progressPercentage, 100)}%` }}
                             />
                           </div>
+                          {isFull && (
+                            <div className="flex items-center gap-1 mt-2">
+                              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                              <span className="text-xs font-medium text-green-600 dark:text-green-400">¡Completo!</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* 📋 Contenido principal */}
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      {/* 🏆 Título */}
-                      <div>
-                        <h3 className="font-bold text-xl text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  {/* 📋 Contenido principal mejorado */}
+                  <CardContent className="p-7">
+                    <div className="space-y-5">
+                      {/* 🏆 Título mejorado */}
+                      <div className="text-center">
+                        <h3 className="font-bold text-xl text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 mb-2">
                           {tournament.name}
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          {tournament.tournament_type === 'NINE_PLAYERS' ? '9 Equipos' : 
-                           tournament.tournament_type === 'TWELVE_PLAYERS' ? '12 Equipos' : '16 Equipos'}
-                        </p>
+                        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 px-3 py-1.5 rounded-full border border-blue-200 dark:border-blue-800">
+                          <TrophyIcon className="h-4 w-4 text-blue-500" />
+                          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                            {tournament.tournament_type === 'NINE_PLAYERS' ? '9 Equipos' : 
+                             tournament.tournament_type === 'TWELVE_PLAYERS' ? '12 Equipos' : '16 Equipos'}
+                          </p>
+                        </div>
                       </div>
 
-                      {/* 📅 Fechas */}
+                      {/* 📅 Fechas Mejoradas */}
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-3 border border-green-100 dark:border-green-800">
+                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-3 border border-green-100 dark:border-green-800 hover:shadow-md transition-all duration-300">
                           <div className="flex items-center gap-2 mb-1">
                             <CalendarIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
                             <p className="text-xs font-medium text-green-700 dark:text-green-300">Inicio</p>
                           </div>
                           <p className="text-sm font-semibold text-green-800 dark:text-green-200">
-                            {new Date(tournament.start_date).toLocaleDateString('es-ES', { 
-                              day: 'numeric', 
-                              month: 'short' 
-                            })}
+                            {(() => {
+                              const date = new Date(tournament.start_date + 'T00:00:00')
+                              return date.toLocaleDateString('es-ES', { 
+                                day: 'numeric', 
+                                month: 'short' 
+                              })
+                            })()}
                           </p>
                         </div>
                         
-                        <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-xl p-3 border border-red-100 dark:border-red-800">
+                        <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-xl p-3 border border-red-100 dark:border-red-800 hover:shadow-md transition-all duration-300">
                           <div className="flex items-center gap-2 mb-1">
                             <CalendarIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
                             <p className="text-xs font-medium text-red-700 dark:text-red-300">Fin</p>
                           </div>
                           <p className="text-sm font-semibold text-red-800 dark:text-red-200">
-                            {new Date(tournament.end_date).toLocaleDateString('es-ES', { 
-                              day: 'numeric', 
-                              month: 'short' 
-                            })}
+                            {(() => {
+                              const date = new Date(tournament.end_date + 'T00:00:00')
+                              return date.toLocaleDateString('es-ES', { 
+                                day: 'numeric', 
+                                month: 'short' 
+                              })
+                            })()}
                           </p>
                         </div>
                       </div>
 
-                      {/* 📊 Estadísticas */}
+                      {/* 📊 Estadísticas mejoradas */}
                       <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                        <div className="text-center">
-                          <div className="flex items-center justify-center gap-1 mb-1">
-                            <UsersIcon className="h-4 w-4 text-blue-500" />
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Equipos</p>
+                        <div className="text-center group/stat">
+                          <div className="flex items-center justify-center gap-2 mb-2">
+                            <div className="p-2 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl group-hover/stat:scale-110 transition-transform duration-300">
+                              <UsersIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Equipos</p>
                           </div>
-                          <p className="text-lg font-bold text-gray-900 dark:text-white">
+                          <p className="text-xl font-bold text-gray-900 dark:text-white">
                             {teamsCount}
                             <span className="text-sm text-gray-500 dark:text-gray-400">/{tournament.max_teams}</span>
                           </p>
                         </div>
                         
-                        <div className="text-center">
-                          <div className="flex items-center justify-center gap-1 mb-1">
-                            <TrophyIcon className="h-4 w-4 text-purple-500" />
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Canchas</p>
+                        <div className="text-center group/stat">
+                          <div className="flex items-center justify-center gap-2 mb-2">
+                            <div className="p-2 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 rounded-xl group-hover/stat:scale-110 transition-transform duration-300">
+                              <TrophyIcon className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Canchas</p>
                           </div>
-                          <p className="text-lg font-bold text-gray-900 dark:text-white">
+                          <p className="text-xl font-bold text-gray-900 dark:text-white">
                             {tournament.courts_available || 0}
                           </p>
                         </div>
                       </div>
 
-                      {/* 💰 Costo de inscripción */}
+                      {/* 💰 Costo de inscripción mejorado */}
                       {tournament.tournament_info?.inscription_cost && (
-                        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-xl p-3 border border-amber-100 dark:border-amber-800">
+                        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-2xl p-4 border border-amber-100 dark:border-amber-800 hover:shadow-lg transition-all duration-300">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <DollarSign className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-800/30 rounded-xl">
+                                <DollarSign className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                              </div>
                               <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Inscripción</p>
                             </div>
-                            <p className="text-lg font-bold text-amber-800 dark:text-amber-200">
+                            <p className="text-xl font-bold text-amber-800 dark:text-amber-200">
                               ${tournament.tournament_info.inscription_cost.toLocaleString()}
                             </p>
                           </div>
                         </div>
                       )}
 
-                      {/* 🎯 Estado especial */}
+                      {/* 🎯 Estado especial mejorado */}
                       {isFull && tournament.status === 'upcoming' && (
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-3 border border-green-200 dark:border-green-800">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                            <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-4 border border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse delay-100" />
+                              <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse delay-200" />
+                            </div>
+                            <p className="text-sm font-bold text-green-700 dark:text-green-300">
                               ¡Inscripciones completas!
                             </p>
                           </div>
@@ -442,6 +538,7 @@ export default function TournamentsPage() {
                     </div>
                   </CardContent>
                 </Card>
+                </div>
               )
             })}
           </div>

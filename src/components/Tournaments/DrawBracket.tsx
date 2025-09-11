@@ -183,4 +183,6 @@ export default function DrawBracket({ matches, onUpdateMatch }: {
       </ReactFlow>
     </div>
   );
-} 
+}
+
+export { DrawBracket };
