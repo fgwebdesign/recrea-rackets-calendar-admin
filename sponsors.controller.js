@@ -444,12 +444,27 @@ export async function getTournamentSponsors(req, res) {
       .eq('id', tournamentId)
       .single()
 
-    if (tournamentError) throw tournamentError
+    if (tournamentError) {
+      console.error('Error verificando torneo:', tournamentError)
+      throw tournamentError
+    }
     if (!tournament) {
+      console.log('🔍 Torneo no encontrado para ID:', tournamentId)
       return res.status(404).json({ 
         message: 'Torneo no encontrado' 
       })
     }
+
+    console.log('🔍 Torneo encontrado:', tournament)
+
+    // 🔍 DEBUG: Consulta simple para verificar registros en tournament_sponsors
+    const { data: rawTournamentSponsors, error: rawError } = await supabase
+      .from('tournament_sponsors')
+      .select('*')
+      .eq('tournament_id', tournamentId)
+    
+    console.log('🔍 Raw tournament_sponsors records:', rawTournamentSponsors)
+    console.log('🔍 Raw error:', rawError)
 
     // Obtener sponsors del torneo
     const { data: sponsors, error } = await supabase
@@ -465,15 +480,38 @@ export async function getTournamentSponsors(req, res) {
       `)
       .eq('tournament_id', tournamentId)
 
-    if (error) throw error
+    if (error) {
+      console.error('Error en consulta de sponsors:', error)
+      throw error
+    }
+
+    console.log('🔍 Raw sponsors data from DB:', sponsors)
+    console.log('🔍 Tournament ID buscado:', tournamentId)
 
     // Formatear respuesta
-    const formattedSponsors = (sponsors || []).map(item => ({
-      id: item.sponsors.id,
-      name: item.sponsors.name,
-      logo_url: item.sponsors.logo_url,
-      created_at: item.sponsors.created_at
-    }))
+    const formattedSponsors = (sponsors || []).map(item => {
+      console.log('🔍 Processing sponsor item:', item)
+      return {
+        id: item.sponsors?.id,
+        name: item.sponsors?.name,
+        logo_url: item.sponsors?.logo_url,
+        created_at: item.sponsors?.created_at
+      }
+    })
+
+    console.log('🔍 Formatted sponsors:', formattedSponsors)
+
+    // 🔍 DEBUG: Si no hay sponsors, mostrar todos los sponsors disponibles
+    if (formattedSponsors.length === 0) {
+      console.log('🔍 No hay sponsors para este torneo. Mostrando todos los sponsors disponibles...')
+      const { data: allSponsors, error: allSponsorsError } = await supabase
+        .from('sponsors')
+        .select('id, name, logo_url, created_at')
+      
+      if (!allSponsorsError) {
+        console.log('🔍 Todos los sponsors disponibles:', allSponsors)
+      }
+    }
 
     res.json({
       tournament: {
@@ -581,6 +619,59 @@ export async function assignSponsorToTournament(req, res) {
     })
   } catch (err) {
     console.error('Error assigning sponsor to tournament:', err)
+    res.status(500).json({ 
+      message: err.message || 'Error interno del servidor' 
+    })
+  }
+}
+
+// 🔧 ENDPOINT TEMPORAL PARA DEBUG: Asignar sponsor al torneo actual
+export async function debugAssignSponsorToTournament(req, res) {
+  try {
+    const tournamentId = 'd31c1fb5-b64d-4ed7-aa93-73c5bf6930f7' // Torneo actual
+    const sponsorId = 'dae19d86-f41f-42c3-b844-72a87ac00...' // Sponsor de la DB (truncado)
+
+    console.log('🔧 DEBUG: Asignando sponsor al torneo...')
+    console.log('🔧 Tournament ID:', tournamentId)
+    console.log('🔧 Sponsor ID:', sponsorId)
+
+    // Primero obtener el sponsor ID completo
+    const { data: sponsors, error: sponsorsError } = await supabase
+      .from('sponsors')
+      .select('id, name')
+      .limit(1)
+
+    if (sponsorsError) throw sponsorsError
+
+    if (sponsors && sponsors.length > 0) {
+      const fullSponsorId = sponsors[0].id
+      console.log('🔧 Sponsor ID completo:', fullSponsorId)
+
+      // Asignar sponsor al torneo
+      const { data, error } = await supabase
+        .from('tournament_sponsors')
+        .insert({
+          tournament_id: tournamentId,
+          sponsor_id: fullSponsorId
+        })
+
+      if (error) {
+        console.error('🔧 Error asignando sponsor:', error)
+        throw error
+      }
+
+      console.log('🔧 Sponsor asignado exitosamente:', data)
+      res.json({ 
+        message: 'Sponsor asignado exitosamente',
+        data 
+      })
+    } else {
+      res.json({ 
+        message: 'No hay sponsors disponibles para asignar' 
+      })
+    }
+  } catch (err) {
+    console.error('Error en debug assign sponsor:', err)
     res.status(500).json({ 
       message: err.message || 'Error interno del servidor' 
     })

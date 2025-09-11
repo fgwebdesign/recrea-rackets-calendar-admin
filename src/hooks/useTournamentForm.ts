@@ -30,7 +30,7 @@ export interface TournamentFormData {
   tournament_club_name: string; // Campo requerido por el backend
   signup_limit_date: string;
   inscription_cost: number;
-  sponsors: { name: string; logo: string }[];
+  sponsors: string[];
   first_place_prize: string;
   second_place_prize: string;
   third_place_prize: string;
@@ -228,7 +228,7 @@ export function useTournamentForm() {
           tournament_club_name: data.tournament_club_name.trim(),
           signup_limit_date: data.signup_limit_date,
           inscription_cost: Number(data.inscription_cost) || 0,
-          sponsors: data.sponsors || [],
+          sponsor_ids: data.sponsors || [],
           tournament_thumbnail: data.thumbnail_url || '',
           first_place_prize: data.first_place_prize.trim(),
           second_place_prize: data.second_place_prize.trim(),

@@ -9,6 +9,7 @@ import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { TournamentFormData } from '@/hooks/useTournamentForm';
 import { Category } from '@/types/category';
+import { SponsorSelector } from './SponsorSelector';
 
 interface Court {
   id: string;
@@ -135,6 +136,14 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
                 <p className="text-sm text-red-500">{errors.categories}</p>
               )}
             </div>
+          </div>
+
+          <div>
+            <SponsorSelector
+              selectedSponsors={formData.sponsors || []}
+              onSponsorsChange={(sponsorIds) => setFormData({ ...formData, sponsors: sponsorIds })}
+              error={errors.sponsors}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

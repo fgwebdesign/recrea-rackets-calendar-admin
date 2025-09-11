@@ -19,7 +19,7 @@ export interface TournamentCreationData {
   tournament_club_name: string;
   signup_limit_date: string;
   inscription_cost: number;
-  sponsors: { name: string; logo: string }[];
+  sponsor_ids: string[];
   tournament_thumbnail: string;
   first_place_prize: string;
   second_place_prize: string;
@@ -200,7 +200,7 @@ export class TournamentCreationService {
       second_place_prize: data.second_place_prize.trim(),
       third_place_prize: data.third_place_prize.trim(),
       inscription_cost: Number(data.inscription_cost) || 0,
-      sponsors: data.sponsors || [],
+      sponsor_ids: data.sponsor_ids || [],
       group_time_slots: [] // El backend genera estos dinámicamente
     };
   }

@@ -6,7 +6,8 @@ import {
   deleteSponsor,
   getTournamentSponsors,
   assignSponsorToTournament,
-  removeSponsorFromTournament
+  removeSponsorFromTournament,
+  debugAssignSponsorToTournament
 } from '../controllers/sponsor.controller.js'
 import { verifyToken } from '../middlewares/auth.middleware.js'
 import { verifyAdmin } from '../middlewares/admin.middleware.js'
@@ -23,5 +24,8 @@ router.delete('/:id', verifyToken, verifyAdmin, deleteSponsor)
 router.get('/tournaments/:tournamentId', verifyToken, getTournamentSponsors)
 router.post('/tournaments/:tournamentId/assign', verifyToken, verifyAdmin, assignSponsorToTournament)
 router.delete('/tournaments/:tournamentId/:sponsorId', verifyToken, verifyAdmin, removeSponsorFromTournament)
+
+// 🔧 Ruta temporal para debug
+router.post('/debug-assign-sponsor', debugAssignSponsorToTournament)
 
 export default router 

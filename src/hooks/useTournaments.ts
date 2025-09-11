@@ -211,7 +211,8 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
   // 🎯 Función para obtener sponsors del torneo
   const fetchTournamentSponsors = useCallback(async (tournamentId: string) => {
     try {
-      const token = localStorage.getItem('adminToken')
+      // Usar token de usuario normal, no admin token
+      const token = localStorage.getItem('userToken') || localStorage.getItem('adminToken')
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sponsors/tournaments/${tournamentId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -220,11 +221,13 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
       })
       
       if (!response.ok) {
-        // Si no hay sponsors o el endpoint no existe, retornar array vacío
+        console.warn(`Error fetching sponsors: ${response.status} ${response.statusText}`)
         return { sponsors: [] }
       }
       
-      return await response.json()
+      const data = await response.json()
+      console.log('🎯 Sponsors response from backend:', data)
+      return data
     } catch (error) {
       console.warn('Error fetching tournament sponsors:', error)
       return { sponsors: [] }
@@ -297,7 +300,9 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
       // ✅ Procesar sponsors del torneo
       const sponsorsArray = sponsorsData?.sponsors || []
       console.log('🔍 Sponsors data from backend:', sponsorsData)
+      console.log('🔍 Sponsors array:', sponsorsArray)
       console.log('🔍 Sponsors count:', sponsorsArray.length)
+      console.log('🔍 First sponsor:', sponsorsArray[0])
       setSponsors(Array.isArray(sponsorsArray) ? sponsorsArray : [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar datos del torneo')
