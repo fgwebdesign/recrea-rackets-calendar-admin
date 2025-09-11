@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/use-toast';
 import { useTournament } from '@/hooks/useTournaments';
 import { useCategories } from '@/hooks/useCategories';
 import { Badge } from '@/components/ui/badge';
@@ -52,8 +52,6 @@ export default function AdminRegisterTeamPage() {
     player2?: string;
     slot?: string;
   }>({});
-
-  const { toast } = useToast();
 
   const { tournament, loading: tournamentLoading } = useTournament(tournamentId);
   const { categories } = useCategories();
