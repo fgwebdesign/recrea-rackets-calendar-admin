@@ -3,15 +3,19 @@
 import { useParams, useRouter } from 'next/navigation';
 import { TournamentPaymentsPanel } from '@/components/Tournaments/TournamentPaymentsPanel';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { useTournaments } from '@/hooks/useTournaments';
+import { useTournament } from '@/hooks/useTournaments';
+import { useCategories } from '@/hooks/useCategories';
 import { ChevronLeft, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { getCategoryName } from '@/utils/category';
 
 export default function TournamentPaymentsPage() {
   const params = useParams();
   const router = useRouter();
-  const { tournament, teams, loading, mutate, categories } = useTournaments(params.id as string);
+  const { tournament, teams, loading, refetch } = useTournament(params.id as string);
+  const { categories } = useCategories();
 
   if (loading) return <LoadingSpinner />;
   if (!tournament) return null;
@@ -33,7 +37,7 @@ export default function TournamentPaymentsPage() {
         throw new Error('Error al marcar el pago');
       }
 
-      await mutate();
+      await refetch();
 
       toast({
         title: "Pago registrado",
@@ -82,7 +86,12 @@ export default function TournamentPaymentsPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Gestión de Pagos</h1>
-              <p className="text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-3 mt-1">
+                <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                  {getCategoryName(tournament.category_id, categories)}
+                </Badge>
+              </div>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">
                 Administra los pagos de inscripción para {tournament.name}
               </p>
             </div>

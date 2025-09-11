@@ -1,7 +1,8 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useTournaments } from '@/hooks/useTournaments';
+import { useTournament } from '@/hooks/useTournaments';
+import { useCategories } from '@/hooks/useCategories';
 import { DrawBracket } from "@/components/Tournaments/DrawBracket";
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Trophy, Users, ArrowLeft } from 'lucide-react';
@@ -10,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { MatchResultBracketModal } from "@/components/Tournaments/MatchResultBracketModal";
+import { Badge } from '@/components/ui/badge';
+import { getCategoryName } from '@/utils/category';
 
 interface Match {
   id: string;
@@ -45,7 +48,8 @@ interface Match {
 
 export default function TournamentBracketFullPage() {
   const params = useParams();
-  const { tournament, matches, teams, loading, generateBracket } = useTournaments(params.id as string);
+  const { tournament, matches, teams, loading } = useTournament(params.id as string);
+  const { categories } = useCategories();
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -100,7 +104,12 @@ export default function TournamentBracketFullPage() {
           <h1 className="mt-1 text-2xl font-bold text-gray-900">
             {tournament.name}
           </h1>
-          <p className="text-sm text-gray-500">Fase Final - Eliminación Directa</p>
+          <div className="flex items-center gap-3 mt-2">
+            <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+              {getCategoryName(tournament.category_id, categories)}
+            </Badge>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">Fase Final - Eliminación Directa</p>
         </div>
       </div>
 

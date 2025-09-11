@@ -3,11 +3,14 @@
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeftIcon, UsersIcon, TrophyIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { useTournament } from '@/hooks/useTournaments';
+import { useCategories } from '@/hooks/useCategories';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, RefreshCw, Plus, Settings } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { getCategoryName } from '@/utils/category';
 
 export default function TournamentGroupsPage() {
   const params = useParams();
@@ -22,6 +25,8 @@ export default function TournamentGroupsPage() {
     error,
     refetch
   } = useTournament(tournamentId);
+  
+  const { categories } = useCategories();
 
   // Función para obtener equipos de un grupo específico
   const getTeamsInGroup = (groupTeams: string[]) => {
@@ -162,6 +167,11 @@ export default function TournamentGroupsPage() {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 Grupos - {tournament?.name || 'Torneo'}
               </h1>
+              <div className="flex items-center gap-3 mt-2">
+                <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                  {getCategoryName(tournament?.category_id || '', categories)}
+                </Badge>
+              </div>
               <p className="mt-2 text-gray-600 dark:text-gray-400">
                 Gestión de grupos y distribución de equipos
               </p>

@@ -1,17 +1,18 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useTournaments } from '@/hooks/useTournaments';
+import { useTournament } from '@/hooks/useTournaments';
 import { useCategories } from '@/hooks/useCategories';
 import Header from '@/components/Header';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { getCategoryName } from '@/utils/category';
 import Link from 'next/link';
 import { CheckCircle2, Users, AlertCircle, UsersIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export default function TournamentDrawPage() {
   const params = useParams();
-  const { tournament, teams, loading } = useTournaments(params.id as string);
+  const { tournament, teams, loading } = useTournament(params.id as string);
   const { categories } = useCategories();
 
   if (loading) return <LoadingSpinner />;
@@ -35,11 +36,11 @@ export default function TournamentDrawPage() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">Estado del Torneo</h2>
-                  {tournament.category_id && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Categoría: {getCategoryName(tournament.category_id, categories)}
-                    </p>
-                  )}
+                  <div className="flex items-center gap-3 mt-2">
+                    <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                      {getCategoryName(tournament.category_id, categories)}
+                    </Badge>
+                  </div>
                 </div>
                 <div className={`px-4 py-2 rounded-full flex items-center gap-2 ${
                   isRegistrationComplete 

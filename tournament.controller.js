@@ -711,7 +711,7 @@ async function sendEmailToUser(user, tournamentData, tournamentInfo) {
 
 export async function joinTournament(req, res) {
   const tournament_id = req.params.id;
-  const { userId1, userId2, unavailable_time_slot, payment_status } = req.body;
+  const { userId1, userId2, unavailable_time_slot } = req.body;
 
   try {
     // ---------- 0) Validaciones básicas de body ----------
@@ -725,11 +725,6 @@ export async function joinTournament(req, res) {
     // Validar time slot seleccionado
     if (!unavailable_time_slot || typeof unavailable_time_slot !== 'string') {
       return res.status(400).json({ message: 'unavailable_time_slot es requerido y debe ser un string válido' });
-    }
-
-    const payMethod = (payment_status || '').toLowerCase();
-    if (payMethod && payMethod !== 'mercadopago' && payMethod !== 'cash') {
-      return res.status(400).json({ message: 'payment_status debe ser "mercadopago" o "cash"' });
     }
 
     // ---------- 1) Torneo ----------
@@ -874,16 +869,13 @@ export async function joinTournament(req, res) {
     }
 
     // ---------- 8) Registrar en tournament_teams ----------
-    const reference = payMethod === 'mercadopago' ? `MP-${Date.now()}` : `CASH-${Date.now()}`;
-
     const { error: joinErr } = await supabase
       .from('tournament_teams')
       .insert({
         tournament_id,
         team_id: teamId,
         unavailable_times: unavailable_time_slot,  // guardamos el ID del time slot
-        payment_status: 'pending',                 // se actualizará cuando confirmes pago
-        payment_reference: reference
+        payment_status: 'pending'                 // se actualizará cuando el admin confirme con switch
       });
 
     if (joinErr) {
@@ -933,6 +925,543 @@ export async function joinTournament(req, res) {
   }
 }
 
+
+/**
+ * Actualizar estado de pago de un equipo en torneo
+ */
+export async function updateTeamPaymentStatus(req, res) {
+  const { tournamentId, teamId } = req.params;
+  const { payment_status, payment_amount } = req.body;
+
+  try {
+    // Validaciones básicas
+    if (!payment_status || !['pending', 'paid', 'failed'].includes(payment_status)) {
+      return res.status(400).json({ 
+        message: 'payment_status es requerido y debe ser: pending, paid o failed' 
+      });
+    }
+
+    // Si se marca como pagado, obtener el costo de inscripción del torneo
+    let finalPaymentAmount = payment_amount;
+    if (payment_status === 'paid') {
+      // Obtener el costo de inscripción del torneo
+      const { data: tournamentInfo, error: infoError } = await supabase
+        .from('tournament_info')
+        .select('inscription_cost')
+        .eq('tournament_id', tournamentId)
+        .single();
+
+      if (infoError || !tournamentInfo) {
+        return res.status(404).json({ 
+          message: 'Información del torneo no encontrada' 
+        });
+      }
+
+      // Usar el costo del torneo si no se especifica un monto
+      finalPaymentAmount = payment_amount || tournamentInfo.inscription_cost;
+      
+      if (finalPaymentAmount <= 0) {
+        return res.status(400).json({ 
+          message: 'El monto del pago debe ser mayor a 0' 
+        });
+      }
+    }
+
+    // Verificar que el equipo está registrado en el torneo
+    const { data: tournamentTeam, error: checkError } = await supabase
+      .from('tournament_teams')
+      .select('id, tournament_id, team_id, payment_status')
+      .eq('tournament_id', tournamentId)
+      .eq('team_id', teamId)
+      .single();
+
+    if (checkError || !tournamentTeam) {
+      return res.status(404).json({ 
+        message: 'Equipo no encontrado en este torneo' 
+      });
+    }
+
+    // Preparar datos de actualización
+    const updateData = {
+      payment_status,
+      updated_at: new Date().toISOString()
+    };
+
+    // Si se marca como pagado, agregar fecha y monto
+    if (payment_status === 'paid') {
+      updateData.payment_date = new Date().toISOString();
+      updateData.payment_amount = finalPaymentAmount;
+    } else if (payment_status === 'pending') {
+      // Si se vuelve a pendiente, limpiar fecha y monto
+      updateData.payment_date = null;
+      updateData.payment_amount = null;
+    }
+
+    // Actualizar el registro
+    const { data: updatedTeam, error: updateError } = await supabase
+      .from('tournament_teams')
+      .update(updateData)
+      .eq('id', tournamentTeam.id)
+      .select(`
+        id,
+        tournament_id,
+        team_id,
+        payment_status,
+        payment_date,
+        payment_amount,
+        teams (
+          id,
+          player1_id,
+          player2_id
+        )
+      `)
+      .single();
+
+    if (updateError) {
+      return res.status(500).json({ 
+        message: 'Error actualizando estado de pago',
+        error: updateError.message 
+      });
+    }
+
+    // Obtener información de los jugadores por separado
+    const { data: teamData, error: teamError } = await supabase
+      .from('teams')
+      .select(`
+        id,
+        player1_id,
+        player2_id,
+        player1:users!player1_id (
+          first_name,
+          last_name
+        ),
+        player2:users!player2_id (
+          first_name,
+          last_name
+        )
+      `)
+      .eq('id', updatedTeam.team_id)
+      .single();
+
+    if (teamError) {
+      return res.status(500).json({ 
+        message: 'Error obteniendo información del equipo',
+        error: teamError.message 
+      });
+    }
+
+    // Log del cambio
+    console.log(`💰 Estado de pago actualizado: ${tournamentTeam.payment_status} → ${payment_status}`);
+    if (payment_status === 'paid') {
+      console.log(`💵 Monto: $${finalPaymentAmount}`);
+    }
+
+    return res.json({
+      message: `Estado de pago actualizado a: ${payment_status}`,
+      team: {
+        id: updatedTeam.id,
+        tournament_id: updatedTeam.tournament_id,
+        team_id: updatedTeam.team_id,
+        payment_status: updatedTeam.payment_status,
+        payment_date: updatedTeam.payment_date,
+        payment_amount: updatedTeam.payment_amount,
+        players: {
+          player1: teamData.player1 ? `${teamData.player1.first_name} ${teamData.player1.last_name}` : 'N/A',
+          player2: teamData.player2 ? `${teamData.player2.first_name} ${teamData.player2.last_name}` : 'N/A'
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error actualizando estado de pago:', error);
+    return res.status(500).json({
+      message: 'Error interno al actualizar estado de pago',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Obtener estadísticas de pagos del torneo
+ */
+export async function getTournamentPaymentStats(req, res) {
+  const { id } = req.params;
+
+  try {
+    // Obtener todos los equipos del torneo con sus estados de pago
+    const { data: tournamentTeams, error: teamsError } = await supabase
+      .from('tournament_teams')
+      .select(`
+        id,
+        team_id,
+        payment_status,
+        payment_amount,
+        payment_date,
+        teams (
+          id,
+          player1_id,
+          player2_id,
+          users!player1_id (
+            first_name,
+            last_name
+          ),
+          users!player2_id (
+            first_name,
+            last_name
+          )
+        )
+      `)
+      .eq('tournament_id', id);
+
+    if (teamsError) {
+      return res.status(500).json({ 
+        message: 'Error obteniendo equipos del torneo',
+        error: teamsError.message 
+      });
+    }
+
+    // Calcular estadísticas
+    const totalTeams = tournamentTeams.length;
+    const paidTeams = tournamentTeams.filter(team => team.payment_status === 'paid');
+    const pendingTeams = tournamentTeams.filter(team => team.payment_status === 'pending');
+    const failedTeams = tournamentTeams.filter(team => team.payment_status === 'failed');
+
+    // Obtener información del torneo y su costo de inscripción
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select(`
+        id, 
+        name,
+        tournament_info (
+          inscription_cost
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (tournamentError) {
+      return res.status(500).json({ 
+        message: 'Error obteniendo información del torneo',
+        error: tournamentError.message 
+      });
+    }
+
+    const totalRevenue = paidTeams.reduce((sum, team) => sum + (team.payment_amount || 0), 0);
+    
+    // Calcular ingresos pendientes usando el costo de inscripción del torneo
+    const inscriptionCost = tournament.tournament_info?.inscription_cost || 1500;
+    const pendingRevenue = pendingTeams.length * inscriptionCost;
+
+    return res.json({
+      message: 'Estadísticas de pagos obtenidas exitosamente',
+      tournament: {
+        id: tournament.id,
+        name: tournament.name,
+        inscription_cost: inscriptionCost
+      },
+      stats: {
+        total_teams: totalTeams,
+        paid_teams: paidTeams.length,
+        pending_teams: pendingTeams.length,
+        failed_teams: failedTeams.length,
+        total_revenue: totalRevenue,
+        pending_revenue: pendingRevenue,
+        completion_percentage: totalTeams > 0 ? Math.round((paidTeams.length / totalTeams) * 100) : 0
+      },
+      teams: tournamentTeams.map(team => ({
+        id: team.id,
+        team_id: team.team_id,
+        payment_status: team.payment_status,
+        payment_amount: team.payment_amount,
+        payment_date: team.payment_date,
+        players: {
+          player1: `${team.teams.users.first_name} ${team.teams.users.last_name}`,
+          player2: `${team.teams.users.first_name} ${team.teams.users.last_name}`
+        }
+      }))
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo estadísticas de pagos:', error);
+    return res.status(500).json({
+      message: 'Error interno al obtener estadísticas de pagos',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Registra un equipo en un torneo desde el panel de administración
+ * Misma lógica que joinTournament pero ejecutada por admin
+ */
+export async function adminRegisterTeam(req, res) {
+  const tournament_id = req.params.id;
+  const { userId1, userId2, unavailable_time_slot } = req.body;
+
+  try {
+    // ---------- 0) Validaciones básicas de body (IDÉNTICAS A joinTournament) ----------
+    if (!userId1 || !userId2) {
+      return res.status(400).json({ 
+        message: 'userId1 y userId2 son requeridos' 
+      });
+    }
+    if (userId1 === userId2) {
+      return res.status(400).json({ 
+        message: 'Los dos jugadores deben ser distintos' 
+      });
+    }
+
+    // Validar time slot seleccionado
+    if (!unavailable_time_slot || typeof unavailable_time_slot !== 'string') {
+      return res.status(400).json({ 
+        message: 'unavailable_time_slot es requerido y debe ser un string válido' 
+      });
+    }
+
+    // ---------- 1) Torneo (IDÉNTICO A joinTournament) ----------
+    const { data: tournament, error: tErr } = await supabase
+      .from('tournaments')
+      .select('id, name, category_id, courts_available, time_slots, group_time_slots, tournament_type, max_teams')
+      .eq('id', tournament_id)
+      .single();
+
+    if (tErr || !tournament) {
+      return res.status(404).json({ 
+        message: 'Tournament not found' 
+      });
+    }
+
+    // ---------- 2) Usuarios existen (IDÉNTICO A joinTournament) ----------
+    const { data: users, error: uErr } = await supabase
+      .from('users')
+      .select('id, first_name, last_name, email')
+      .in('id', [userId1, userId2]);
+
+    if (uErr) {
+      return res.status(500).json({ 
+        message: uErr.message 
+      });
+    }
+    if (!users || users.length !== 2) {
+      return res.status(400).json({ 
+        message: 'Uno o ambos usuarios no existen' 
+      });
+    }
+
+    // ---------- 3) Time slot válido dentro de group_time_slots (IDÉNTICO A joinTournament) ----------
+    if (!Array.isArray(tournament.group_time_slots) || tournament.group_time_slots.length === 0) {
+      return res.status(400).json({ 
+        message: 'Torneo sin time_slots configurados' 
+      });
+    }
+    const validSlot = tournament.group_time_slots.find(slot => slot.id === unavailable_time_slot);
+    if (!validSlot) {
+      return res.status(400).json({ 
+        message: `Time slot "${unavailable_time_slot}" no es válido para este torneo. Slots disponibles: ${tournament.group_time_slots.map(s => s.id).join(', ')}` 
+      });
+    }
+
+    // ---------- 4) Nadie de los dos ya está inscripto en este torneo (IDÉNTICO A joinTournament) ----------
+    const { data: existingPlayers, error: epErr } = await supabase
+      .from('tournament_teams')
+      .select(`
+        team_id,
+        teams (
+          id,
+          player1_id,
+          player2_id
+        )
+      `)
+      .eq('tournament_id', tournament_id);
+
+    if (epErr) {
+      return res.status(500).json({ 
+        message: epErr.message 
+      });
+    }
+
+    const someoneAlreadyInTournament = (existingPlayers || []).some(reg => {
+      const p1 = reg.teams?.player1_id;
+      const p2 = reg.teams?.player2_id;
+      return p1 === userId1 || p1 === userId2 || p2 === userId1 || p2 === userId2;
+    });
+
+    if (someoneAlreadyInTournament) {
+      return res.status(400).json({ 
+        message: 'Uno o ambos jugadores ya están registrados en este torneo' 
+      });
+    }
+
+    // ---------- 5) Cupo del torneo (IDÉNTICO A joinTournament) ----------
+    const maxTeams = Number.isInteger(tournament.max_teams)
+      ? tournament.max_teams
+      : (tournament.tournament_type === 'NINE_PLAYERS' ? 9 : 12);
+
+    if ((existingPlayers || []).length >= maxTeams) {
+      return res.status(400).json({ 
+        message: `El torneo está completo (máximo ${maxTeams} equipos)` 
+      });
+    }
+
+    // ---------- 6) Cupo por time slot (IDÉNTICO A joinTournament) ----------
+    // Obtener información de todas las categorías del mismo torneo (evento)
+    const { data: allTournaments, error: allTournamentsErr } = await supabase
+      .from('tournaments')
+      .select('id, category_id, max_teams, tournament_type')
+      .eq('name', tournament.name);
+
+    if (allTournamentsErr) {
+      return res.status(500).json({ 
+        message: allTournamentsErr.message 
+      });
+    }
+
+    const totalCategoriesCount = allTournaments.length;
+    const totalTeamsAcrossCategories = allTournaments.reduce((sum, t) => sum + t.max_teams, 0);
+    
+    const slotCapacities = calculateTimeSlotCapacity(tournament, totalCategoriesCount, totalTeamsAcrossCategories);
+    const selectedSlotCapacity = slotCapacities.find(cap => cap.slot_id === unavailable_time_slot);
+    
+    if (!selectedSlotCapacity) {
+      return res.status(500).json({ 
+        message: 'Error calculando capacidad del time slot' 
+      });
+    }
+
+    // Contar equipos ya registrados en este time slot (TODAS las categorías del evento)
+    const allTournamentIds = allTournaments.map(t => t.id);
+    const { data: allRegisteredTeams, error: allTeamsErr } = await supabase
+      .from('tournament_teams')
+      .select('id, unavailable_times, tournament_id')
+      .in('tournament_id', allTournamentIds)
+      .eq('unavailable_times', unavailable_time_slot);
+
+    console.log(`📊 Verificando cupos en slot "${unavailable_time_slot}":`, {
+      current_usage: (allRegisteredTeams || []).length,
+      max_capacity: selectedSlotCapacity.final_capacity,
+      tournaments_checked: allTournamentIds
+    });
+
+    if (allTeamsErr) {
+      return res.status(500).json({ 
+        message: allTeamsErr.message 
+      });
+    }
+
+    const teamsInSelectedSlot = (allRegisteredTeams || []).length;
+    if (teamsInSelectedSlot >= selectedSlotCapacity.final_capacity) {
+      return res.status(400).json({
+        message: `El time slot "${validSlot.label}" está completo (${teamsInSelectedSlot}/${selectedSlotCapacity.final_capacity} equipos)`
+      });
+    }
+
+    // ---------- 7) Buscar o crear el equipo (IDÉNTICO A joinTournament) ----------
+    const { data: existingTeam, error: findTeamErr } = await supabase
+      .from('teams')
+      .select('id, player1_id, player2_id')
+      .or(`and(player1_id.eq.${userId1},player2_id.eq.${userId2}),and(player1_id.eq.${userId2},player2_id.eq.${userId1})`)
+      .limit(1)
+      .single();
+
+    if (findTeamErr && findTeamErr.code !== 'PGRST116') {
+      // PGRST116 suele ser "no rows" en modo single(); la ignoramos
+      return res.status(500).json({ 
+        message: findTeamErr.message 
+      });
+    }
+
+    let teamId = existingTeam?.id;
+
+    if (!teamId) {
+      const { data: createdTeam, error: teamErr } = await supabase
+        .from('teams')
+        .insert({
+          player1_id: userId1,
+          player2_id: userId2
+        })
+        .select('id')
+        .single();
+
+      if (teamErr) {
+        return res.status(500).json({ 
+          message: teamErr.message 
+        });
+      }
+
+      teamId = createdTeam.id;
+    }
+
+    // ---------- 8) Registrar en tournament_teams (IDÉNTICO A joinTournament) ----------
+    const { data: tournamentTeam, error: joinErr } = await supabase
+      .from('tournament_teams')
+      .insert({
+        tournament_id,
+        team_id: teamId,
+        unavailable_times: unavailable_time_slot,
+        payment_status: 'pending'
+      })
+      .select(`
+        id,
+        tournament_id,
+        team_id,
+        payment_status,
+        teams (
+          id,
+          player1_id,
+          player2_id,
+          player1:users!player1_id (
+            first_name,
+            last_name
+          ),
+          player2:users!player2_id (
+            first_name,
+            last_name
+          )
+        )
+      `)
+      .single();
+
+    if (joinErr) {
+      return res.status(500).json({ 
+        message: joinErr.message 
+      });
+    }
+
+    // Log del registro (MEJORADO)
+    console.log(`🎾 Equipo registrado por admin en torneo ${tournament_id}:`);
+    console.log(`👥 Jugadores: ${users[0].first_name} ${users[0].last_name} & ${users[1].first_name} ${users[1].last_name}`);
+    console.log(`⏰ Slot no disponible: ${unavailable_time_slot} (${validSlot.label})`);
+    console.log(`📊 Capacidad del slot: ${teamsInSelectedSlot + 1}/${selectedSlotCapacity.final_capacity} equipos`);
+
+    return res.json({
+      message: 'Equipo registrado exitosamente por administrador',
+      tournament_team: {
+        id: tournamentTeam.id,
+        tournament_id: tournamentTeam.tournament_id,
+        team_id: tournamentTeam.team_id,
+        payment_status: tournamentTeam.payment_status,
+        players: {
+          player1: tournamentTeam.teams?.player1 ? `${tournamentTeam.teams.player1.first_name} ${tournamentTeam.teams.player1.last_name}` : 'N/A',
+          player2: tournamentTeam.teams?.player2 ? `${tournamentTeam.teams.player2.first_name} ${tournamentTeam.teams.player2.last_name}` : 'N/A'
+        }
+      },
+      slot_info: {
+        slot_id: unavailable_time_slot,
+        slot_label: validSlot.label,
+        current_usage: teamsInSelectedSlot + 1,
+        max_capacity: selectedSlotCapacity.final_capacity,
+        remaining_slots: selectedSlotCapacity.final_capacity - (teamsInSelectedSlot + 1)
+      }
+    });
+
+  } catch (error) {
+    console.error('Error en adminRegisterTeam:', error);
+    return res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message 
+    });
+  }
+}
 
 export async function getStandings(req, res) {
 

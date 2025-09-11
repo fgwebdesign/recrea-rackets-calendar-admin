@@ -21,7 +21,10 @@ import {
     validateGroupScheduleConflicts,
     scheduleMatchesAutomatically,
     scheduleMatchesByGroupAndDayEndpoint,
-    getGroupStandings
+    getGroupStandings,
+    updateTeamPaymentStatus,
+    getTournamentPaymentStats,
+    adminRegisterTeam
 } from '../controllers/tournament.controller.js'
 import { setTournamentRequiredInfo, setTournamentThumbnail, setTournamentPrize, setTournamentSponsors } from '../controllers/tournamentInfo.controller.js'
 import { populateTournament } from '../helpers/tournament.helpers.js'
@@ -191,6 +194,78 @@ router.put('/:id/change-type', verifyToken, verifyAdmin, changeTournamentType)
  *     tags: [Torneos]
  */
 router.post('/:id/join', joinTournament)
+
+/**
+ * @swagger
+ * /tournaments/{id}/admin-register-team:
+ *   post:
+ *     summary: Registra un equipo en un torneo desde el panel de administración
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del torneo
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId1
+ *               - userId2
+ *               - unavailable_time_slot
+ *             properties:
+ *               userId1:
+ *                 type: string
+ *                 description: ID del primer jugador
+ *               userId2:
+ *                 type: string
+ *                 description: ID del segundo jugador
+ *               unavailable_time_slot:
+ *                 type: string
+ *                 description: Slot de tiempo no disponible para el equipo
+ *     responses:
+ *       200:
+ *         description: Equipo registrado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 tournament_team:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     tournament_id:
+ *                       type: string
+ *                     team_id:
+ *                       type: string
+ *                     payment_status:
+ *                       type: string
+ *                     players:
+ *                       type: object
+ *                       properties:
+ *                         player1:
+ *                           type: string
+ *                         player2:
+ *                           type: string
+ *       400:
+ *         description: Datos inválidos o jugadores ya registrados
+ *       404:
+ *         description: Torneo o usuarios no encontrados
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post('/:id/admin-register-team', verifyToken, verifyAdmin, adminRegisterTeam)
 
 // RUTA ELIMINADA: Conflictaba con la nueva implementación de getGroupStandings
 
@@ -684,5 +759,116 @@ router.get('/:id/standings', getGroupStandings)
  *         description: Error generando cuadro eliminatorio
  */
 router.post('/:id/generate-elimination-bracket', verifyToken, verifyAdmin, generateEliminationBracket)
+
+/**
+ * @swagger
+ * /tournaments/{tournamentId}/teams/{teamId}/payment:
+ *   put:
+ *     summary: Actualizar estado de pago de un equipo
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tournamentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del torneo
+ *       - in: path
+ *         name: teamId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del equipo
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - payment_status
+ *             properties:
+ *               payment_status:
+ *                 type: string
+ *                 enum: [pending, paid, failed]
+ *                 description: Estado del pago
+ *               payment_amount:
+ *                 type: number
+ *                 description: Monto del pago (opcional, si no se especifica usa inscription_cost del torneo)
+ *     responses:
+ *       200:
+ *         description: Estado de pago actualizado exitosamente
+ *       400:
+ *         description: Datos inválidos
+ *       404:
+ *         description: Equipo no encontrado en el torneo
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.put('/:tournamentId/teams/:teamId/payment', verifyToken, verifyAdmin, updateTeamPaymentStatus)
+
+/**
+ * @swagger
+ * /tournaments/{id}/payment-stats:
+ *   get:
+ *     summary: Obtener estadísticas de pagos del torneo
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del torneo
+ *     responses:
+ *       200:
+ *         description: Estadísticas de pagos obtenidas exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 tournament:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     inscription_cost:
+ *                       type: number
+ *                 stats:
+ *                   type: object
+ *                   properties:
+ *                     total_teams:
+ *                       type: number
+ *                     paid_teams:
+ *                       type: number
+ *                     pending_teams:
+ *                       type: number
+ *                     failed_teams:
+ *                       type: number
+ *                     total_revenue:
+ *                       type: number
+ *                     pending_revenue:
+ *                       type: number
+ *                     completion_percentage:
+ *                       type: number
+ *                 teams:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       404:
+ *         description: Torneo no encontrado
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/:id/payment-stats', verifyToken, verifyAdmin, getTournamentPaymentStats)
 
 export default router

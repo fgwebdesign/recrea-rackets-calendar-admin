@@ -2,6 +2,7 @@
 
 import { use } from 'react'
 import { useTournament } from '@/hooks/useTournaments'
+import { useCategories } from '@/hooks/useCategories'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,6 +25,7 @@ import {
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { AlertCircle, RefreshCw } from 'lucide-react'
+import { getCategoryName } from '@/utils/category'
 
 interface PageProps {
   params: Promise<{
@@ -45,6 +47,8 @@ export default function TournamentPage({ params }: PageProps) {
     error, 
     refetch 
   } = useTournament(id)
+  
+  const { categories } = useCategories()
 
   if (loading) {
     return (
@@ -251,6 +255,13 @@ export default function TournamentPage({ params }: PageProps) {
                     {tournament.name}
                   </h1>
                   {getStatusBadge(tournament.status)}
+                </div>
+                
+                {/* Categoría */}
+                <div className="mb-4">
+                  <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                    {getCategoryName(tournament.category_id, categories)}
+                  </Badge>
                 </div>
                 
                 <div className="flex items-center gap-8 text-sm text-gray-600 dark:text-gray-400 mb-6">

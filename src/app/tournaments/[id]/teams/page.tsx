@@ -1,18 +1,25 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeftIcon, UsersIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, UsersIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useTournament } from '@/hooks/useTournaments';
+import { useCategories } from '@/hooks/useCategories';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { getCategoryName } from '@/utils/category';
+import { TeamCard } from '@/components/Tournaments/TeamCard';
+import { TournamentStats } from '@/components/Tournaments/TournamentStats';
 
 export default function TournamentTeamsPage() {
   const params = useParams();
   const router = useRouter();
   const tournamentId = params.id as string;
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const { 
     tournament, 
@@ -21,6 +28,14 @@ export default function TournamentTeamsPage() {
     error, 
     refetch 
   } = useTournament(tournamentId);
+  
+  const { categories } = useCategories();
+
+  // Verificar si el usuario es admin
+  useEffect(() => {
+    const adminStatus = localStorage.getItem('isAdmin');
+    setIsAdmin(adminStatus === 'true');
+  }, []);
 
   if (loading) {
     return (
@@ -112,67 +127,41 @@ export default function TournamentTeamsPage() {
         </div>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Equipos - {tournament.name}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Lista de equipos inscritos en el torneo
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                Equipos - {tournament.name}
+              </h1>
+              <div className="flex items-center gap-3 mb-2">
+                <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                  {getCategoryName(tournament.category_id, categories)}
+                </Badge>
+              </div>
+              <p className="text-gray-600 dark:text-gray-400">
+                Lista de equipos inscritos en el torneo
+              </p>
+            </div>
+            {isAdmin && (
+              <Button 
+                onClick={() => router.push(`/tournaments/${tournamentId}/admin-register-team`)}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Registrar Equipo
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <UsersIcon className="h-4 w-4 text-green-500" />
-                Equipos Registrados
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {totalTeams}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                de {tournament.max_teams} equipos
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <UsersIcon className="h-4 w-4 text-yellow-500" />
-                Pendientes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {pendingTeams}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                por pagar
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <UsersIcon className="h-4 w-4 text-blue-500" />
-                Ingresos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                ${totalRevenue}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                recaudado
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <TournamentStats
+          totalTeams={totalTeams}
+          maxTeams={tournament.max_teams}
+          paidTeams={paidTeams}
+          pendingTeams={pendingTeams}
+          totalRevenue={totalRevenue}
+          tournamentType={tournament.tournament_type}
+        />
 
         {/* Lista de equipos */}
         <Card className="shadow-lg border-0 bg-white dark:bg-gray-800">
@@ -189,88 +178,12 @@ export default function TournamentTeamsPage() {
           </CardHeader>
           <CardContent className="p-0">
             {Array.isArray(teams) && teams.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-900">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                        Equipo
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                        Estado de Pago
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                        Monto
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
-                        Fecha de Inscripción
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {teams.map((team, index) => {
-                      return (
-                      <tr key={team.team_id || team.id || index} className={`hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 transition-all duration-200 ${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50/50 dark:bg-gray-800/50'}`}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-3">
-                            <div className="flex-shrink-0">
-                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                                <span className="text-white text-xs font-semibold">
-                                  {(team as any).teams?.player1?.first_name?.[0] || (team as any).teams?.player2?.first_name?.[0] || '?'}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {(team as any).teams?.player1?.first_name && (team as any).teams?.player2?.first_name ? (
-                                  `${(team as any).teams.player1.first_name} ${(team as any).teams.player1.last_name || ''} / ${(team as any).teams.player2.first_name} ${(team as any).teams.player2.last_name || ''}`
-                                ) : (team as any).teams?.player1?.first_name ? (
-                                  `${(team as any).teams.player1.first_name} ${(team as any).teams.player1.last_name || ''}`
-                                ) : (team as any).teams?.player2?.first_name ? (
-                                  `${(team as any).teams.player2.first_name} ${(team as any).teams.player2.last_name || ''}`
-                                ) : (
-                                  `Equipo #${team.team_id?.slice(-4) || 'N/A'}`
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
-                                ID: {team.team_id?.slice(-8) || 'N/A'}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            team.payment_status === 'paid' 
-                              ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                              : team.payment_status === 'pending'
-                              ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
-                              : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-                          }`}>
-                            {team.payment_status === 'paid' ? 'Pagado' : 
-                             team.payment_status === 'pending' ? 'Pendiente' : 'Fallido'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                            ${team.payment_amount || 0}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {team.created_at ? new Date(team.created_at).toLocaleDateString('es-ES', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            }) : 'Sin fecha'}
-                          </div>
-                        </td>
-                      </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {teams.map((team, index) => (
+                    <TeamCard key={team.team_id || team.id || index} team={team} index={index} />
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="text-center py-16">
@@ -291,11 +204,15 @@ export default function TournamentTeamsPage() {
                   >
                     Volver al torneo
                   </Button>
-                  <Button 
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
-                  >
-                    Invitar equipos
-                  </Button>
+                  {isAdmin && (
+                    <Button 
+                      onClick={() => router.push(`/tournaments/${tournamentId}/admin-register-team`)}
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+                    >
+                      <PlusIcon className="h-4 w-4 mr-2" />
+                      Registrar Equipo
+                    </Button>
+                  )}
                 </div>
               </div>
             )}

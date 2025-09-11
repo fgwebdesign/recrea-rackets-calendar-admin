@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTournament } from '@/hooks/useTournaments';
+import { useCategories } from '@/hooks/useCategories';
 import { matchService } from '@/services/tournamentService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react';
 import { TournamentMatch, Team } from '@/types/tournament';
 import { TournamentMatchModal } from '@/components/Tournaments/TournamentMatchModal';
+import { getCategoryName } from '@/utils/category';
 
 interface MatchResult {
   matchId: string;
@@ -48,6 +50,7 @@ export default function TournamentMatchesPage() {
   const tournamentId = params.id as string;
   
   const { tournament, matches, teams, loading, error, refetch } = useTournament(tournamentId);
+  const { categories } = useCategories();
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
   const [isUpdatingResult, setIsUpdatingResult] = useState<string | null>(null);
   const [matchResults, setMatchResults] = useState<Record<string, MatchResult>>({});
@@ -268,7 +271,12 @@ export default function TournamentMatchesPage() {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 Partidos - {tournament?.name}
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
+              <div className="flex items-center gap-3 mt-2">
+                <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                  {getCategoryName(tournament?.category_id || '', categories)}
+                </Badge>
+              </div>
+              <p className="text-gray-600 dark:text-gray-400 mt-2">
                 Gestión de partidos y resultados del torneo
               </p>
             </div>

@@ -4,6 +4,7 @@ import './globals.css';
 import { UserProvider } from '@/components/UserProvider';
 import Providers from './providers';
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Toaster } from "@/components/ui/toaster"
 
 const plusJakarta = Plus_Jakarta_Sans({ 
   subsets: ['latin'],
@@ -40,6 +41,7 @@ export default function RootLayout({
           <UserProvider>
             {children}
           </UserProvider>
+          <Toaster />
         </Providers>
       </body>
     </html>
