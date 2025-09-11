@@ -222,50 +222,79 @@ export default function TournamentPage({ params }: PageProps) {
           <Button
             variant="ghost"
             onClick={() => router.push('/tournaments')}
-            className="mb-4 flex items-center"
+            className="mb-6 flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
           >
             <ArrowLeftIcon className="w-4 h-4 mr-2" />
             Volver a Torneos
           </Button>
 
-          <div className="flex items-center gap-6">
-            {/* Tournament Image */}
-            <div className="relative h-32 w-32 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-              {tournamentInfo?.tournament_thumbnail ? (
-                <Image
-                  src={tournamentInfo.tournament_thumbnail}
-                  alt={tournament.name}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <TrophyIcon className="h-16 w-16 text-gray-400" />
-              )}
-            </div>
-
-            {/* Tournament Info */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  {tournament.name}
-                </h1>
-                {getStatusBadge(tournament.status)}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-800/20 rounded-2xl p-8 border border-blue-200 dark:border-blue-800 shadow-lg">
+            <div className="flex items-center gap-6">
+              {/* Tournament Image */}
+              <div className="relative h-32 w-32 rounded-xl overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                {tournamentInfo?.tournament_thumbnail ? (
+                  <Image
+                    src={tournamentInfo.tournament_thumbnail}
+                    alt={tournament.name}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <TrophyIcon className="h-16 w-16 text-white" />
+                )}
               </div>
-              
-              <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  <span>
-                    {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}
-                  </span>
+
+              {/* Tournament Info */}
+              <div className="flex-1">
+                <div className="flex items-center gap-4 mb-4">
+                  <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">
+                    {tournament.name}
+                  </h1>
+                  {getStatusBadge(tournament.status)}
                 </div>
-                <div className="flex items-center gap-2">
-                  <UsersIcon className="h-4 w-4" />
-                  <span>{tournament.tournament_teams?.length || 0}/{tournament.max_teams} equipos</span>
+                
+                <div className="flex items-center gap-8 text-sm text-gray-600 dark:text-gray-400 mb-6">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-5 w-5 text-blue-500" />
+                    <span className="font-medium">
+                      {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <UsersIcon className="h-5 w-5 text-green-500" />
+                    <span className="font-medium">{tournament.tournament_teams?.length || 0}/{tournament.max_teams} equipos</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <TrophyIcon className="h-5 w-5 text-yellow-500" />
+                    <span className="font-medium">{formatTournamentType(tournament.tournament_type)}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <TrophyIcon className="h-4 w-4" />
-                  <span>{formatTournamentType(tournament.tournament_type)}</span>
+
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-700 dark:text-gray-300">Progreso de Inscripciones</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">
+                      {tournament.tournament_teams?.length || 0}/{tournament.max_teams}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                    <div 
+                      className={`h-3 rounded-full transition-all duration-500 ${
+                        (tournament.tournament_teams?.length || 0) >= tournament.max_teams
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                          : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                      }`}
+                      style={{ 
+                        width: `${Math.min(((tournament.tournament_teams?.length || 0) / tournament.max_teams) * 100, 100)}%` 
+                      }}
+                    />
+                  </div>
+                  {(tournament.tournament_teams?.length || 0) >= tournament.max_teams && (
+                    <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                      ¡Inscripciones completas!
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -275,61 +304,61 @@ export default function TournamentPage({ params }: PageProps) {
         {/* Tournament Info Cards */}
         {tournamentInfo && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <Card>
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <InformationCircleIcon className="h-4 w-4" />
+                <CardTitle className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                  <InformationCircleIcon className="h-5 w-5" />
                   Descripción
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                   {tournamentInfo.description || 'Sin descripción'}
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <MapPinIcon className="h-4 w-4" />
+                <CardTitle className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
+                  <MapPinIcon className="h-5 w-5" />
                   Ubicación
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
                   {tournamentInfo.tournament_club_name}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                   {tournamentInfo.tournament_address}
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border-yellow-200 dark:border-yellow-800 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <BanknotesIcon className="h-4 w-4" />
+                <CardTitle className="flex items-center gap-2 text-sm text-yellow-700 dark:text-yellow-300">
+                  <BanknotesIcon className="h-5 w-5" />
                   Costo de Inscripción
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   ${tournamentInfo.inscription_cost}
                 </p>
               </CardContent>
             </Card>
 
             {tournamentInfo.rules && (
-              <Card>
+              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800 shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <DocumentTextIcon className="h-4 w-4" />
+                  <CardTitle className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
+                    <DocumentTextIcon className="h-5 w-5" />
                     Reglamento
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                     {tournamentInfo.rules}
                   </p>
                 </CardContent>
@@ -337,29 +366,32 @@ export default function TournamentPage({ params }: PageProps) {
             )}
 
             {tournamentInfo.first_place_prize && (
-              <Card>
+              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-800 shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <TrophyIcon className="h-4 w-4" />
+                  <CardTitle className="flex items-center gap-2 text-sm text-orange-700 dark:text-orange-300">
+                    <TrophyIcon className="h-5 w-5" />
                     Premios
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-1 text-sm">
+                  <div className="space-y-2 text-sm">
                     {tournamentInfo.first_place_prize && (
-                      <p className="text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">1º:</span> {tournamentInfo.first_place_prize}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
+                        <p className="text-gray-700 dark:text-gray-300 font-medium">{tournamentInfo.first_place_prize}</p>
+                      </div>
                     )}
                     {tournamentInfo.second_place_prize && (
-                      <p className="text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">2º:</span> {tournamentInfo.second_place_prize}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
+                        <p className="text-gray-700 dark:text-gray-300 font-medium">{tournamentInfo.second_place_prize}</p>
+                      </div>
                     )}
                     {tournamentInfo.third_place_prize && (
-                      <p className="text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">3º:</span> {tournamentInfo.third_place_prize}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
+                        <p className="text-gray-700 dark:text-gray-300 font-medium">{tournamentInfo.third_place_prize}</p>
+                      </div>
                     )}
                   </div>
                 </CardContent>
@@ -367,15 +399,15 @@ export default function TournamentPage({ params }: PageProps) {
             )}
 
             {tournamentInfo.sponsors && (
-              <Card>
+              <Card className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 border-pink-200 dark:border-pink-800 shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <StarIcon className="h-4 w-4" />
+                  <CardTitle className="flex items-center gap-2 text-sm text-pink-700 dark:text-pink-300">
+                    <StarIcon className="h-5 w-5" />
                     Patrocinadores
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
                     {tournamentInfo.sponsors}
                   </p>
                 </CardContent>
@@ -391,19 +423,21 @@ export default function TournamentPage({ params }: PageProps) {
             return (
               <Card 
                 key={card.title}
-                className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+                className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-gray-200 dark:border-gray-700 shadow-lg"
                 onClick={() => router.push(card.href)}
               >
                 <CardHeader>
                   <CardTitle className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${card.color} text-white`}>
-                      <IconComponent className="h-5 w-5" />
+                    <div className={`p-3 rounded-xl ${card.color} text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                      <IconComponent className="h-6 w-6" />
                     </div>
-                    {card.title}
+                    <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {card.title}
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                     {card.description}
                   </p>
                 </CardContent>

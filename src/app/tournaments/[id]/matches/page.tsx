@@ -26,6 +26,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { TournamentMatch, Team } from '@/types/tournament';
+import { TournamentMatchModal } from '@/components/Tournaments/TournamentMatchModal';
 
 interface MatchResult {
   matchId: string;
@@ -51,6 +52,9 @@ export default function TournamentMatchesPage() {
   const [isUpdatingResult, setIsUpdatingResult] = useState<string | null>(null);
   const [matchResults, setMatchResults] = useState<Record<string, MatchResult>>({});
   const [showResultForm, setShowResultForm] = useState<string | null>(null);
+  const [selectedMatch, setSelectedMatch] = useState<TournamentMatch | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [savingResult, setSavingResult] = useState(false);
 
   // Calcular estadísticas
   const totalMatches = Array.isArray(matches) ? matches.length : 0;
@@ -92,6 +96,33 @@ export default function TournamentMatchesPage() {
     const name2 = `${player2.first_name || ''} ${player2.last_name || ''}`.trim();
     
     return `${name1} / ${name2}`;
+  };
+
+  // Abrir modal para setear resultado
+  const handleOpenResultModal = (match: TournamentMatch) => {
+    setSelectedMatch(match);
+    setIsModalOpen(true);
+  };
+
+  // Cerrar modal
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedMatch(null);
+  };
+
+  // Guardar resultado desde el modal
+  const handleSaveResult = async (matchId: string, result: any) => {
+    setSavingResult(true);
+    try {
+      await matchService.updateMatchResult(matchId, result);
+      await refetch(); // Recargar datos
+      handleCloseModal();
+    } catch (error) {
+      console.error('Error saving match result:', error);
+      throw error;
+    } finally {
+      setSavingResult(false);
+    }
   };
 
   // Generar partidos
@@ -468,7 +499,7 @@ export default function TournamentMatchesPage() {
                               <div className="flex gap-2">
                                 {match.status === 'pending' && (
                                   <Button
-                                    onClick={() => initializeResultForm(match)}
+                                    onClick={() => handleOpenResultModal(match)}
                                     className="flex-1 bg-green-600 hover:bg-green-700"
                                   >
                                     <Target className="h-4 w-4 mr-2" />
@@ -603,6 +634,18 @@ export default function TournamentMatchesPage() {
           </div>
         )}
       </div>
+
+      {/* Modal para setear resultados */}
+      {selectedMatch && (
+        <TournamentMatchModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          match={selectedMatch}
+          teams={teams}
+          onSubmit={handleSaveResult}
+          isLoading={savingResult}
+        />
+      )}
     </div>
   );
 }
