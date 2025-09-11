@@ -18,7 +18,8 @@ import {
   BanknotesIcon,
   InformationCircleIcon,
   DocumentTextIcon,
-  StarIcon
+  StarIcon,
+  PlayIcon
 } from '@heroicons/react/24/outline'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -182,6 +183,13 @@ export default function TournamentPage({ params }: PageProps) {
       icon: Cog6ToothIcon,
       href: `/tournaments/${id}/groups`,
       color: 'bg-purple-500'
+    },
+    {
+      title: 'Partidos',
+      description: 'Gestionar partidos y resultados',
+      icon: PlayIcon,
+      href: `/tournaments/${id}/matches`,
+      color: 'bg-indigo-500'
     },
     {
       title: 'Clasificación',

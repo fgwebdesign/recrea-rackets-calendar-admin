@@ -78,7 +78,7 @@ interface UseMatchesReturn {
   loading: boolean
   error: string | null
   scheduleMatches: (token: string) => Promise<void>
-  updateMatchResult: (matchId: string, result: any, token: string) => Promise<void>
+  updateMatchResult: (matchId: string, result: any) => Promise<void>
   refetch: () => Promise<void>
 }
 
@@ -201,10 +201,22 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
       // ✅ Corregir: extraer el array teams del objeto de respuesta
       const teamsArray = (teamsData as any)?.teams || teamsData || []
       
-      setTeams(Array.isArray(teamsArray) ? teamsArray : [])
-      setMatches(Array.isArray(matchesData) ? matchesData : [])
+      // Debug: verificar datos de equipos
+      console.log('🔍 Teams data from backend:', teamsData)
+      console.log('🔍 Teams is array?', Array.isArray(teamsArray))
+      console.log('🔍 Teams count:', teamsArray.length)
       
-      // Debug: verificar datos de grupos
+      setTeams(Array.isArray(teamsArray) ? teamsArray : [])
+      
+      // ✅ Corregir: extraer el array matches del objeto de respuesta
+      const matchesArray = (matchesData as any)?.matches || matchesData || []
+      
+      // Debug: verificar datos de partidos
+      console.log('🔍 Matches data from backend:', matchesData)
+      console.log('🔍 Matches is array?', Array.isArray(matchesArray))
+      console.log('🔍 Matches count:', matchesArray.length)
+      
+      setMatches(Array.isArray(matchesArray) ? matchesArray : [])
       console.log('🔍 Groups data from backend:', groupsData)
       console.log('🔍 Groups is array?', Array.isArray(groupsData))
       
@@ -366,9 +378,9 @@ export function useMatches(tournamentId: string): UseMatchesReturn {
     }
   }, [tournamentId])
 
-  const updateMatchResult = useCallback(async (matchId: string, result: any, token: string) => {
+  const updateMatchResult = useCallback(async (matchId: string, result: any) => {
     try {
-      const updatedMatch = await matchService.updateMatchResult(matchId, result, token)
+      const updatedMatch = await matchService.updateMatchResult(matchId, result)
       setMatches(prev => prev.map(m => m.id === matchId ? updatedMatch : m))
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Error al actualizar resultado')

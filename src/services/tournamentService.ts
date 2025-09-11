@@ -312,11 +312,20 @@ export class MatchService {
     return handleApiResponse<TournamentMatch[]>(response)
   }
 
+  // ⚡ Generar partidos del torneo
+  async generateMatches(tournamentId: string): Promise<TournamentMatch[]> {
+    const response = await fetch(`${this.baseUrl}/${tournamentId}/generate-matches`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    })
+    return handleApiResponse<TournamentMatch[]>(response)
+  }
+
   // 🏆 Actualizar resultado de partido
-  async updateMatchResult(matchId: string, result: any, token: string): Promise<TournamentMatch> {
+  async updateMatchResult(matchId: string, result: any): Promise<TournamentMatch> {
     const response = await fetch(`${this.baseUrl}/matches/${matchId}/result`, {
       method: 'PUT',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(),
       body: JSON.stringify(result)
     })
     return handleApiResponse<TournamentMatch>(response)

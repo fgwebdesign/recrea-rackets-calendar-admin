@@ -933,7 +933,7 @@ export async function generateLeagueMatches(req, res) {
 export async function getMatchesByTournamentId(req, res) {
   const tournament_id = req.params.id
   const { data, error } = await supabase
-    .from('matches')
+    .from('tournament_matches')
     .select('*')
     .eq('tournament_id', tournament_id)
 
