@@ -100,6 +100,13 @@ const MENU_ITEMS: MenuItem[] = [
     iconColor: 'text-purple-500'
   },
   { 
+    name: 'Patrocinadores', 
+    href: '/sponsors', 
+    icon: ImageIcon,
+    iconColor: 'text-pink-500',
+    hoverColor: 'hover:bg-pink-50'
+  },
+  { 
     name: 'Usuarios', 
     href: '/users', 
     icon: UsersIcon,

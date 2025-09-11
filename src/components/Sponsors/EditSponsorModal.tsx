@@ -1,42 +1,26 @@
-"use client";
-
 import { useState, useEffect } from "react";
-import { ImageIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-
-interface Sponsor {
-  id: string;
-  name: string;
-  logo_url: string;
-}
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ImageIcon } from "lucide-react";
 
 interface EditSponsorModalProps {
-  sponsor: Sponsor | null;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (id: string, formData: FormData) => Promise<void>;
+  onSubmit: (data: { id: string; name: string; logo: File | null }) => Promise<void>;
+  sponsor: {
+    id: string;
+    name: string;
+    logo_url: string;
+  } | null;
 }
 
-export default function EditSponsorModal({ 
-  sponsor, 
-  isOpen, 
-  onClose, 
-  onUpdate 
-}: EditSponsorModalProps) {
-  const [name, setName] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState(sponsor?.logo_url || "");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+export default function EditSponsorModal({ isOpen, onClose, onSubmit, sponsor }: EditSponsorModalProps) {
+  const [name, setName] = useState('');
+  const [logo, setLogo] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (sponsor) {
@@ -45,151 +29,134 @@ export default function EditSponsorModal({
     }
   }, [sponsor]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      if (selectedFile.size > 5 * 1024 * 1024) {
-        setError("La imagen no debe superar los 5MB");
-        return;
-      }
-      setFile(selectedFile);
-      setPreviewUrl(URL.createObjectURL(selectedFile));
-      setError("");
-    }
+  const handleClose = () => {
+    setName('');
+    setLogo(null);
+    setPreviewUrl('');
+    onClose();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sponsor) return;
-    
-    setIsLoading(true);
-    setError("");
 
     try {
-      const formData = new FormData();
-      formData.append("name", name);
-      if (file) {
-        formData.append("file", file);
-      }
-
-      await onUpdate(sponsor.id, formData);
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al actualizar el patrocinador");
+      setIsSubmitting(true);
+      await onSubmit({
+        id: sponsor.id,
+        name,
+        logo
+      });
+      handleClose();
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogo(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent 
+        className="sm:max-w-[425px] bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+        aria-describedby="edit-sponsor-description"
+      >
         <DialogHeader>
-          <DialogTitle>Editar Patrocinador</DialogTitle>
+          <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Editar patrocinador
+          </DialogTitle>
+          <p id="edit-sponsor-description" className="sr-only">
+            Formulario para editar la información del patrocinador, incluyendo nombre y logo
+          </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Nombre del Patrocinador</Label>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">
+              Nombre del patrocinador
+            </Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre del patrocinador"
+              placeholder="Ingresa el nombre del patrocinador"
+              disabled={isSubmitting}
               required
+              className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700"
             />
           </div>
 
-          <div>
-            <Label>Logo del Patrocinador</Label>
-            <div className="mt-2 mb-3 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  <ImageIcon className="h-5 w-5 text-blue-500 mt-0.5" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-blue-800">
-                    Recomendación para la imagen
-                  </h4>
-                  <ul className="mt-1 text-sm text-blue-700 space-y-1">
-                    <li>• Tamaño recomendado: 1920 x 1080 píxeles</li>
-                    <li>• Formato: PNG o JPG</li>
-                    <li>• Máximo 5MB</li>
-                  </ul>
-                  <p className="mt-2 text-sm text-blue-600">
-                    Usar estas dimensiones asegurará que tu logo se vea perfectamente en el banner del cliente.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-4">
-              <div className="flex flex-col items-center">
+          <div className="space-y-2">
+            <Label htmlFor="logo" className="text-gray-700 dark:text-gray-300">
+              Logo del patrocinador
+            </Label>
+            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md bg-gray-50 dark:bg-gray-900">
+              <div className="space-y-1 text-center">
                 {previewUrl ? (
-                  <div className="relative group">
+                  <div className="relative w-full h-40 mb-4">
                     <img
                       src={previewUrl}
-                      alt="Preview"
-                      className="h-40 w-40 object-contain rounded-lg"
+                      alt="Preview del logo"
+                      className="w-full h-full object-contain rounded-md"
+                      loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFile(null);
-                          setPreviewUrl(sponsor?.logo_url || "");
-                        }}
-                        className="text-white hover:text-red-400"
-                      >
-                        Cambiar imagen
-                      </button>
-                    </div>
                   </div>
                 ) : (
-                  <label className="w-full cursor-pointer">
-                    <div className="flex flex-col items-center">
-                      <ImageIcon className="h-12 w-12 text-gray-400" />
-                      <p className="mt-2 text-sm text-gray-500">
-                        Click para subir o arrastrar imagen
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        PNG, JPG (max. 5MB)
-                      </p>
-                    </div>
-                    <Input
+                  <ImageIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+                )}
+                <div className="flex text-sm text-gray-600 dark:text-gray-400">
+                  <label
+                    htmlFor="logo-upload"
+                    className="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 dark:focus-within:ring-offset-gray-800"
+                  >
+                    <span>Subir un logo</span>
+                    <input
+                      id="logo-upload"
+                      name="logo-upload"
                       type="file"
-                      accept="image/*"
+                      className="sr-only"
                       onChange={handleFileChange}
-                      className="hidden"
+                      accept="image/*"
+                      disabled={isSubmitting}
                     />
                   </label>
-                )}
+                  <p className="pl-1">o arrastra y suelta</p>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF hasta 5MB</p>
               </div>
             </div>
-            {error && (
-              <p className="text-sm text-red-500 mt-2">{error}</p>
-            )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <div className="flex justify-end gap-2">
             <Button
               type="button"
               variant="outline"
-              onClick={onClose}
-              disabled={isLoading}
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className="bg-transparent dark:bg-transparent dark:text-gray-300 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={isSubmitting}
+              className="bg-[#6B8AFF] text-white hover:bg-[#5A75E6] dark:bg-blue-600 dark:hover:bg-blue-700"
             >
-              {isLoading ? "Guardando..." : "Guardar"}
+              Guardar cambios
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
   );
-} 
+}

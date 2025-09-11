@@ -203,6 +203,7 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
   const [availableHours, setAvailableHours] = useState<any[]>([])
   const [availableTimeSlots, setAvailableTimeSlots] = useState<any[]>([])
   const [scheduleValidation, setScheduleValidation] = useState<any>(null)
+  const [sponsors, setSponsors] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -222,7 +223,8 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
         standingsData,
         availableHoursData,
         availableTimeSlotsData,
-        scheduleValidationData
+        scheduleValidationData,
+        sponsorsData
       ] = await Promise.all([
         tournamentService.getTournamentById(tournamentId),
         tournamentService.getTournamentTeams(tournamentId),
@@ -232,7 +234,8 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
         tournamentService.getTournamentStandings(tournamentId),
         tournamentDetailsService.getAvailableHours(tournamentId),
         tournamentDetailsService.getAvailableTimeSlots(tournamentId),
-        tournamentDetailsService.validateSchedule(tournamentId)
+        tournamentDetailsService.validateSchedule(tournamentId),
+        fetchTournamentSponsors(tournamentId)
       ])
 
       setTournament(tournamentData)

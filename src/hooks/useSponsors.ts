@@ -1,28 +1,146 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/components/ui/use-toast';
+import { Sponsor } from '@/types/sponsor';
 
-interface Sponsor {
-  id: string;
+interface CreateSponsorData {
   name: string;
-  logo_url: string;
-  created_at: string;
-  updated_at: string;
+  logo: File | null;
 }
 
-export const useSponsors = () => {
-  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  const fetchSponsors = async () => {
+export function useSponsors() {
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchSponsors = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sponsors`);
-      if (!response.ok) throw new Error('Error al cargar los patrocinadores');
+      setIsLoading(true);
+      const token = localStorage.getItem('adminToken');
+      if (!token) throw new Error('No estás autenticado');
+
+      const response = await fetch(`${API_URL}/sponsors`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Error fetching sponsors');
       const data = await response.json();
       setSponsors(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
-      console.error('Error fetching sponsors:', err);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al cargar los patrocinadores",
+        variant: "destructive",
+      });
+      console.error('Error fetching sponsors:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSponsors();
+  }, [fetchSponsors]);
+
+  const createSponsor = async (sponsorData: CreateSponsorData) => {
+    try {
+      setIsLoading(true);
+      
+      if (!sponsorData.logo) {
+        throw new Error('El logo es requerido');
+      }
+
+      const token = localStorage.getItem('adminToken');
+      if (!token) throw new Error('No estás autenticado');
+
+      const sanitizedFileName = sponsorData.logo.name
+        .replace(/[^a-zA-Z0-9.-]/g, '_')
+        .toLowerCase();
+
+      const formData = new FormData();
+      formData.append('name', sponsorData.name);
+      
+      const sanitizedFile = new File(
+        [sponsorData.logo],
+        `${Date.now()}_${sanitizedFileName}`,
+        { type: sponsorData.logo.type }
+      );
+      formData.append('file', sanitizedFile);
+
+      const response = await fetch(`${API_URL}/sponsors`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Error creating sponsor');
+      }
+      
+      const { sponsor } = await response.json();
+      setSponsors(prev => [...prev, sponsor]);
+      toast({
+        title: "Éxito",
+        description: "Patrocinador creado exitosamente",
+      });
+      return true;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al crear el patrocinador",
+        variant: "destructive",
+      });
+      console.error('Error creating sponsor:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateSponsor = async (id: string, sponsorData: CreateSponsorData) => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('adminToken');
+      if (!token) throw new Error('No estás autenticado');
+
+      const formData = new FormData();
+      formData.append('name', sponsorData.name);
+      if (sponsorData.logo) {
+        formData.append('file', sponsorData.logo);
+      }
+
+      const response = await fetch(`${API_URL}/sponsors/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Error updating sponsor');
+      }
+      
+      const { sponsor } = await response.json();
+      setSponsors(prev => prev.map(s => s.id === id ? sponsor : s));
+      toast({
+        title: "Éxito",
+        description: "Patrocinador actualizado exitosamente",
+      });
+      return true;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al actualizar el patrocinador",
+        variant: "destructive",
+      });
+      console.error('Error updating sponsor:', error);
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -30,98 +148,47 @@ export const useSponsors = () => {
 
   const deleteSponsor = async (id: string) => {
     try {
+      setIsLoading(true);
       const token = localStorage.getItem('adminToken');
       if (!token) throw new Error('No estás autenticado');
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sponsors/${id}`, {
+      const response = await fetch(`${API_URL}/sponsors/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Error al eliminar el patrocinador');
+        throw new Error(error.message || 'Error deleting sponsor');
       }
-
+      
       setSponsors(prev => prev.filter(sponsor => sponsor.id !== id));
       toast({
         title: "Éxito",
-        description: "Patrocinador eliminado correctamente",
+        description: "Patrocinador eliminado exitosamente",
       });
-    } catch (err) {
+      return true;
+    } catch (error) {
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Error al eliminar el patrocinador",
+        description: error instanceof Error ? error.message : "Error al eliminar el patrocinador",
         variant: "destructive",
       });
-      throw err;
+      console.error('Error deleting sponsor:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const updateSponsor = async (id: string, formData: FormData) => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('No estás autenticado');
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sponsors/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al actualizar el patrocinador');
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      throw err;
-    }
-  };
-
-  const createSponsor = async (formData: FormData) => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('No estás autenticado');
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sponsors`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al crear el patrocinador');
-      }
-
-      const data = await response.json();
-      setSponsors(prev => [...prev, data.sponsor]);
-      return data;
-    } catch (err) {
-      throw err;
-    }
-  };
-
-  useEffect(() => {
-    fetchSponsors();
-  }, []);
 
   return {
     sponsors,
     isLoading,
-    error,
-    refreshSponsors: fetchSponsors,
-    deleteSponsor,
+    fetchSponsors,
+    createSponsor,
     updateSponsor,
-    createSponsor
+    deleteSponsor
   };
-}; 
+}

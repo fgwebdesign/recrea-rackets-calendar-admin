@@ -123,7 +123,7 @@ export async function createTournament(req, res) {
     tournament_club_name, // Añadido este campo
     signup_limit_date,
     inscription_cost,
-    sponsors,
+    sponsor_ids = [], // Array de IDs de sponsors
     tournament_thumbnail,
     first_place_prize,
     second_place_prize,
@@ -143,6 +143,36 @@ export async function createTournament(req, res) {
     }
     if (!['NINE_PLAYERS', 'TWELVE_PLAYERS', 'SIXTEEN_PLAYERS'].includes(tournament_type)) {
       return res.status(400).json({ message: 'tournament_type inválido' });
+    }
+
+    // 🏆 Validación de sponsors (OPCIONAL)
+    if (sponsor_ids !== undefined && sponsor_ids !== null) {
+      // Si se proporciona sponsor_ids, debe ser un array válido
+      if (!Array.isArray(sponsor_ids)) {
+        return res.status(400).json({ 
+          message: 'sponsor_ids debe ser un array de IDs de sponsors' 
+        });
+      }
+
+      // Si el array no está vacío, validar que todos los sponsors existan
+      if (sponsor_ids.length > 0) {
+        const { data: existingSponsors, error: sponsorsError } = await supabase
+          .from('sponsors')
+          .select('id')
+          .in('id', sponsor_ids);
+
+        if (sponsorsError) {
+          return res.status(500).json({ message: 'Error validando sponsors', error: sponsorsError.message });
+        }
+
+        if (existingSponsors.length !== sponsor_ids.length) {
+          const foundIds = existingSponsors.map(s => s.id);
+          const notFoundIds = sponsor_ids.filter(id => !foundIds.includes(id));
+          return res.status(400).json({ 
+            message: `Los siguientes sponsors no existen: ${notFoundIds.join(', ')}` 
+          });
+        }
+      }
     }
 
     // ---- generación dinámica de group slots basada en fechas del torneo ----
@@ -202,7 +232,6 @@ export async function createTournament(req, res) {
         tournament_address,
         signup_limit_date,
         inscription_cost,
-        sponsors,
         tournament_thumbnail,
         first_place_prize,
         second_place_prize,
@@ -224,8 +253,7 @@ export async function createTournament(req, res) {
           first_place_prize: first_place_prize || '',
           second_place_prize: second_place_prize || '',
           third_place_prize: third_place_prize || '',
-          tournament_thumbnail: tournament_thumbnail || '',
-          sponsors: sponsors || []
+          tournament_thumbnail: tournament_thumbnail || ''
         })
         .select();
     });
@@ -247,6 +275,36 @@ export async function createTournament(req, res) {
         ...tournament,
         tournament_info: tournamentInfoResults[index].data[0]
       }));
+
+      // 🏆 CREAR RELACIONES DE SPONSORS (OPCIONAL)
+      if (sponsor_ids && Array.isArray(sponsor_ids) && sponsor_ids.length > 0) {
+        console.log('🏆 Asignando sponsors a torneos:', sponsor_ids);
+        
+        // Crear relaciones para cada torneo creado
+        const sponsorRelations = [];
+        tournaments.forEach(tournament => {
+          sponsor_ids.forEach(sponsor_id => {
+            sponsorRelations.push({
+              tournament_id: tournament.id,
+              sponsor_id: sponsor_id
+            });
+          });
+        });
+
+        // Insertar todas las relaciones de sponsors
+        const { error: sponsorRelationsError } = await supabase
+          .from('tournament_sponsors')
+          .insert(sponsorRelations);
+
+        if (sponsorRelationsError) {
+          console.error('❌ Error creando relaciones de sponsors:', sponsorRelationsError);
+          // No fallar la creación del torneo por esto, solo loggear el error
+        } else {
+          console.log('✅ Sponsors asignados exitosamente a todos los torneos');
+        }
+      } else {
+        console.log('ℹ️ No se asignaron sponsors a este torneo');
+      }
 
       // 📧 ENVIAR NOTIFICACIONES DE NUEVO TORNEO
       // Se ejecuta en background para no bloquear la respuesta
