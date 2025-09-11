@@ -4,8 +4,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { cn } from "@/lib/utils";
-import { Info } from "lucide-react";
+import { Info, ChevronDown, ChevronUp } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import Image from 'next/image';
 import { Sponsor } from '@/types/sponsor';
@@ -46,6 +47,9 @@ export function SponsorSelector({ selectedSponsors, onSponsorsChange, error }: S
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  
+  const MAX_VISIBLE_SPONSORS = 6;
 
   useEffect(() => {
     const fetchSponsors = async () => {
@@ -157,7 +161,7 @@ export function SponsorSelector({ selectedSponsors, onSponsorsChange, error }: S
           error && "border-2 border-red-500 dark:border-red-500 rounded-lg p-3"
         )}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sponsors.map((sponsor) => {
+            {(showAll ? sponsors : sponsors.slice(0, MAX_VISIBLE_SPONSORS)).map((sponsor) => {
               const isSelected = selectedSponsors.includes(sponsor.id);
               
               return (
@@ -217,6 +221,30 @@ export function SponsorSelector({ selectedSponsors, onSponsorsChange, error }: S
               );
             })}
           </div>
+
+          {/* Botón Ver Más / Ver Menos */}
+          {sponsors.length > MAX_VISIBLE_SPONSORS && (
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAll(!showAll)}
+                className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+              >
+                {showAll ? (
+                  <>
+                    <ChevronUp className="h-4 w-4" />
+                    Ver menos
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4" />
+                    Ver más ({sponsors.length - MAX_VISIBLE_SPONSORS} más)
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
 
           {/* Resumen de Sponsors Seleccionados */}
           {selectedSponsors.length > 0 && (
