@@ -17,7 +17,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       const token = localStorage.getItem('adminToken');
       if (!token) {
-        throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+        // No mostrar error si no hay token, simplemente limpiar y redirigir
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('userName');
+        setUsername('');
+        
+        if (!isLoginPage) {
+          router.push('/');
+        }
+        return;
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
@@ -27,17 +36,36 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
-        throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+        // Solo mostrar error si el token existe pero es inválido
+        console.error('Token inválido, limpiando sesión');
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('userName');
+        setUsername('');
+        
+        if (!isLoginPage) {
+          router.push('/');
+        }
+        return;
       }
 
       const data = await response.json();
       if (data.first_name) {
         setUsername(data.first_name);
       } else {
-        throw new Error('Invalid user data');
+        console.error('Datos de usuario inválidos');
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('userName');
+        setUsername('');
+        
+        if (!isLoginPage) {
+          router.push('/');
+        }
       }
     } catch (error) {
-      // Si hay cualquier error, limpiamos todo
+      // Solo mostrar error si es un error de red, no por logout intencional
+      console.error('Error de conexión:', error);
       localStorage.removeItem('adminToken');
       localStorage.removeItem('isAdmin');
       localStorage.removeItem('userName');

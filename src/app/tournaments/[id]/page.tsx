@@ -1,401 +1,458 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useTournaments } from '@/hooks/useTournaments'
-import { SimpleMatchScheduler } from '@/components/Tournaments/TournamentScheduler/SimpleMatchScheduler'
-import { AdminGroupsGenerator } from '@/components/Tournaments/groups/AdminGroupsGenerator'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { use } from 'react'
+import { useTournament } from '@/hooks/useTournaments'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { toast } from '@/components/ui/use-toast'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
-  CalendarIcon, 
-  UsersIcon, 
-  TrophyIcon,
-  ChartBarIcon,
-  PhotoIcon,
   ArrowLeftIcon,
+  TrophyIcon,
+  CalendarIcon,
+  UsersIcon,
+  ChartBarIcon,
   Cog6ToothIcon,
   MapPinIcon,
   BanknotesIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  DocumentTextIcon,
+  StarIcon
 } from '@heroicons/react/24/outline'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { AlertCircle, RefreshCw } from 'lucide-react'
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default function TournamentPage({ params }: PageProps) {
   const router = useRouter()
-  const [id, setId] = useState("")
-  const [generatingGroups, setGeneratingGroups] = useState(false)
   
-  useEffect(() => {
-    // Acceder a params.id dentro de useEffect para evitar errores
-    if (params) {
-      setId(params.id)
-    }
-  }, [params])
-
-  const {
-    tournament,
-    teams,
-    matches,
-    groups,
-    standings,
-    loading,
-    error,
-    generateGroups
-  } = useTournaments(id || undefined)
-
-  const handleGenerateGroups = async () => {
-    try {
-      setGeneratingGroups(true)
-      await generateGroups()
-      toast({
-        title: "Grupos generados",
-        description: "Los grupos se han generado correctamente"
-      })
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Error al generar los grupos"
-      })
-    } finally {
-      setGeneratingGroups(false)
-    }
-  }
-
-  // Verificar si ya existen grupos para este torneo
-  const groupsAlreadyGenerated = groups && groups.length > 0
+  // ✅ Usar React.use() para acceder a params
+  const { id } = use(params)
+  
+  const { 
+    tournament, 
+    tournamentInfo, 
+    stats,
+    loading, 
+    error, 
+    refetch 
+  } = useTournament(id)
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
-      </div>
-    )
-  }
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header Skeleton */}
+          <div className="mb-8">
+            <Skeleton className="h-8 w-32 mb-4" />
+            <div className="flex items-center gap-6">
+              <Skeleton className="h-32 w-32 rounded-lg" />
+              <div className="flex-1">
+                <Skeleton className="h-8 w-64 mb-2" />
+                <Skeleton className="h-6 w-48 mb-4" />
+                <div className="flex gap-4">
+                  <Skeleton className="h-6 w-24" />
+                  <Skeleton className="h-6 w-32" />
+                </div>
+              </div>
+            </div>
+          </div>
 
-  if (error || !tournament) {
-    return (
-      <div className="p-4">
-        <div className="bg-red-50 text-red-800 p-4 rounded-lg">
-          {error || 'No se pudo cargar el torneo'}
+          {/* Navigation Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-6 w-32" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-3/4" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     )
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="border-b">
-        <div className="flex h-16 items-center px-4">
-          <div className="flex items-center gap-4 flex-1">
-            <Button
-              variant="ghost"
-              size="icon"
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
+        <div className="max-w-7xl mx-auto">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Error al cargar el torneo: {error}</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => refetch()}
+                className="ml-4"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Reintentar
+              </Button>
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4">
+            <Button 
+              variant="outline" 
               onClick={() => router.push('/tournaments')}
             >
-              <ArrowLeftIcon className="w-5 h-5" />
+              <ArrowLeftIcon className="h-4 w-4 mr-2" />
+              Volver a Torneos
             </Button>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 relative rounded-lg overflow-hidden bg-gray-100">
-                {tournament.tournament_info?.tournament_thumbnail ? (
-                  <Image
-                    src={tournament.tournament_info.tournament_thumbnail}
-                    alt={tournament.name}
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <TrophyIcon className="w-6 h-6 text-gray-400 absolute inset-1/2 -translate-x-1/2 -translate-y-1/2" />
-                )}
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold flex items-center gap-3">
-                  {tournament.name}
-                  <Badge className={
-                    tournament.status === 'upcoming' ? 'bg-blue-100 text-blue-800' :
-                    tournament.status === 'in_progress' ? 'bg-green-100 text-green-800' :
-                    'bg-gray-100 text-gray-800'
-                  }>
-                    {tournament.status === 'upcoming' ? 'Inscripciones abiertas' :
-                     tournament.status === 'in_progress' ? 'En Curso' : 'Finalizado'}
-                  </Badge>
-                </h2>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <CalendarIcon className="w-4 h-4" />
-                    {tournament.start_date} - {tournament.end_date}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <UsersIcon className="w-4 h-4" />
-                    {teams?.length || 0} / {tournament.max_teams} equipos
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            {/* Botón para ir a la gestión de grupos */}
-            {tournament.status === 'upcoming' && teams?.length === tournament.max_teams && (
-              <Button 
-                onClick={() => router.push(`/tournaments/${id}/admin-groups`)}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                <Cog6ToothIcon className="w-5 h-5 mr-2" />
-                Gestión de Grupos
-              </Button>
-            )}
-            
-            {groupsAlreadyGenerated && (
-              <Button 
-                className="bg-green-500 hover:bg-green-600 cursor-default"
-                disabled
-              >
-                <TrophyIcon className="w-5 h-5 mr-2" />
-                Grupos Generados
-              </Button>
-            )}
           </div>
         </div>
       </div>
+    )
+  }
 
-      {/* Content */}
-      <div className="px-4 space-y-6">
-        <Tabs defaultValue="schedule" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="schedule" className="flex items-center gap-2">
-              <CalendarIcon className="w-4 h-4" />
-              Calendario
-            </TabsTrigger>
-            <TabsTrigger value="teams" className="flex items-center gap-2">
-              <UsersIcon className="w-4 h-4" />
-              Equipos
-            </TabsTrigger>
-            <TabsTrigger value="info" className="flex items-center gap-2">
-              <InformationCircleIcon className="w-4 h-4" />
-              Información
-            </TabsTrigger>
-            {tournament.status === 'upcoming' && teams?.length === tournament.max_teams && (
-              <TabsTrigger value="admin-groups" className="flex items-center gap-2">
-                <Cog6ToothIcon className="w-4 h-4" />
-                Gestión de Grupos
-              </TabsTrigger>
-            )}
-            <TabsTrigger value="standings" className="flex items-center gap-2">
-              <ChartBarIcon className="w-4 h-4" />
-              Clasificación
-            </TabsTrigger>
-            <TabsTrigger value="gallery" className="flex items-center gap-2">
-              <PhotoIcon className="w-4 h-4" />
-              Galería
-            </TabsTrigger>
-          </TabsList>
+  if (!tournament) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
+        <div className="max-w-7xl mx-auto">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No se encontró el torneo solicitado.
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => router.push('/tournaments')}
+            >
+              <ArrowLeftIcon className="h-4 w-4 mr-2" />
+              Volver a Torneos
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-          <TabsContent value="schedule">
-            {id && <SimpleMatchScheduler tournamentId={id} />}
-          </TabsContent>
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      upcoming: { label: 'Inscripciones Abiertas', variant: 'default' as const },
+      in_progress: { label: 'En Progreso', variant: 'secondary' as const },
+      completed: { label: 'Finalizado', variant: 'outline' as const }
+    }
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.upcoming
+    return <Badge variant={config.variant}>{config.label}</Badge>
+  }
 
-          {tournament.status === 'upcoming' && teams?.length === tournament.max_teams && (
-            <TabsContent value="admin-groups">
-              {id && tournament && (
-                <AdminGroupsGenerator 
-                  tournamentId={id}
-                  tournamentType={tournament.tournament_type}
-                  maxTeams={tournament.max_teams}
+  const formatTournamentType = (type: string) => {
+    const typeConfig = {
+      NINE_PLAYERS: '9 Jugadores',
+      TWELVE_PLAYERS: '12 Jugadores', 
+      SIXTEEN_PLAYERS: '16 Jugadores'
+    }
+    return typeConfig[type as keyof typeof typeConfig] || type
+  }
+
+  const navigationCards = [
+    {
+      title: 'Calendario',
+      description: 'Programar partidos y gestionar horarios',
+      icon: CalendarIcon,
+      href: `/tournaments/${id}/draw`,
+      color: 'bg-blue-500'
+    },
+    {
+      title: 'Equipos',
+      description: 'Ver equipos inscritos y pagos',
+      icon: UsersIcon,
+      href: `/tournaments/${id}/teams`,
+      color: 'bg-green-500'
+    },
+    {
+      title: 'Grupos',
+      description: 'Generar y gestionar grupos',
+      icon: Cog6ToothIcon,
+      href: `/tournaments/${id}/groups`,
+      color: 'bg-purple-500'
+    },
+    {
+      title: 'Clasificación',
+      description: 'Ver posiciones y estadísticas',
+      icon: ChartBarIcon,
+      href: `/tournaments/${id}/admin-groups`,
+      color: 'bg-orange-500'
+    },
+    {
+      title: 'Eliminatorias',
+      description: 'Bracket de eliminación',
+      icon: TrophyIcon,
+      href: `/tournaments/${id}/bracket`,
+      color: 'bg-yellow-500'
+    },
+    {
+      title: 'Pagos',
+      description: 'Gestionar pagos e inscripciones',
+      icon: BanknotesIcon,
+      href: `/tournaments/${id}/payments`,
+      color: 'bg-emerald-500'
+    }
+  ]
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/tournaments')}
+            className="mb-4 flex items-center"
+          >
+            <ArrowLeftIcon className="w-4 h-4 mr-2" />
+            Volver a Torneos
+          </Button>
+
+          <div className="flex items-center gap-6">
+            {/* Tournament Image */}
+            <div className="relative h-32 w-32 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+              {tournamentInfo?.tournament_thumbnail ? (
+                <Image
+                  src={tournamentInfo.tournament_thumbnail}
+                  alt={tournament.name}
+                  fill
+                  className="object-cover"
                 />
+              ) : (
+                <TrophyIcon className="h-16 w-16 text-gray-400" />
               )}
-            </TabsContent>
-          )}
-
-          <TabsContent value="teams">
-            <div className="rounded-lg border bg-card">
-              <div className="p-6">
-                {teams && teams.length > 0 ? (
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-semibold">Equipos Inscritos</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {teams.map((team, index) => (
-                        <div key={team.team_id} className="border rounded-lg p-4 bg-white shadow-sm">
-                          <div className="flex justify-between items-center">
-                            <div className="font-medium">Equipo {index + 1}</div>
-                            {team.unavailable_times && (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                No disponible: {Array.isArray(team.unavailable_times) ? 
-                                  team.unavailable_times.join(', ') : team.unavailable_times}:00
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="mt-2 text-sm text-gray-600">
-                            <div className="flex flex-col gap-1">
-                              <div className="flex gap-2 items-center">
-                                <UsersIcon className="w-4 h-4 text-gray-500" />
-                                <span>
-                                  {team.team?.player1?.first_name || 'Jugador'} {team.team?.player1?.last_name || '1'} 
-                                </span>
-                              </div>
-                              <div className="flex gap-2 items-center">
-                                <UsersIcon className="w-4 h-4 text-gray-500" />
-                                <span>
-                                  {team.team?.player2?.first_name || 'Jugador'} {team.team?.player2?.last_name || '2'}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-muted-foreground">No hay equipos inscritos en este torneo</div>
-                )}
-              </div>
             </div>
-          </TabsContent>
 
-          <TabsContent value="info">
-            <div className="rounded-lg border bg-card">
-              <div className="p-6">
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold">Información del Torneo</h3>
-                  
-                  {/* Información básica */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Descripción</h4>
-                        <p className="text-gray-600 text-sm">
-                          {tournament.tournament_info?.description || 'Sin descripción disponible'}
-                        </p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Ubicación</h4>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <MapPinIcon className="w-4 h-4" />
-                          <div>
-                            <p>{tournament.tournament_info?.tournament_location || 'Sin ubicación'}</p>
-                            {tournament.tournament_info?.tournament_address && (
-                              <p className="text-xs text-gray-500">{tournament.tournament_info.tournament_address}</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Club</h4>
-                        <p className="text-gray-600 text-sm">
-                          {tournament.tournament_info?.tournament_club_name || 'Recrea Padel Club'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Costo de Inscripción</h4>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <BanknotesIcon className="w-4 h-4" />
-                          <span>${tournament.tournament_info?.inscription_cost || 0}</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Límite de Inscripción</h4>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CalendarIcon className="w-4 h-4" />
-                          <span>
-                            {tournament.tournament_info?.signup_limit_date || 'Sin límite definido'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Formato</h4>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <TrophyIcon className="w-4 h-4" />
-                          <span>
-                            {tournament.tournament_type === 'NINE_PLAYERS' ? '9 Equipos (3 Grupos)' : '12 Equipos (4 Grupos)'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Premios */}
-                  {(tournament.tournament_info?.first_place_prize || 
-                    tournament.tournament_info?.second_place_prize || 
-                    tournament.tournament_info?.third_place_prize) && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-3">Premios</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {tournament.tournament_info?.first_place_prize && (
-                          <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                            <TrophyIcon className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
-                            <p className="font-medium text-yellow-800">1er Lugar</p>
-                            <p className="text-sm text-yellow-600">{tournament.tournament_info.first_place_prize}</p>
-                          </div>
-                        )}
-                        {tournament.tournament_info?.second_place_prize && (
-                          <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <TrophyIcon className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-                            <p className="font-medium text-gray-800">2do Lugar</p>
-                            <p className="text-sm text-gray-600">{tournament.tournament_info.second_place_prize}</p>
-                          </div>
-                        )}
-                        {tournament.tournament_info?.third_place_prize && (
-                          <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
-                            <TrophyIcon className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                            <p className="font-medium text-orange-800">3er Lugar</p>
-                            <p className="text-sm text-orange-600">{tournament.tournament_info.third_place_prize}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Reglas */}
-                  {tournament.tournament_info?.rules && (
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">Reglas del Torneo</h4>
-                      <div className="bg-gray-50 rounded-lg p-4 border">
-                        <p className="text-gray-700 text-sm whitespace-pre-wrap">
-                          {tournament.tournament_info.rules}
-                        </p>
-                      </div>
-                    </div>
-                  )}
+            {/* Tournament Info */}
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                  {tournament.name}
+                </h1>
+                {getStatusBadge(tournament.status)}
+              </div>
+              
+              <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  <span>
+                    {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <UsersIcon className="h-4 w-4" />
+                  <span>{tournament.tournament_teams?.length || 0}/{tournament.max_teams} equipos</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <TrophyIcon className="h-4 w-4" />
+                  <span>{formatTournamentType(tournament.tournament_type)}</span>
                 </div>
               </div>
             </div>
-          </TabsContent>
+          </div>
+        </div>
 
-          <TabsContent value="standings">
-            <div className="rounded-lg border bg-card">
-              <div className="p-6">
-                {/* TODO: Implementar vista de clasificación */}
-                <div className="text-muted-foreground">Vista de clasificación en desarrollo</div>
-              </div>
-            </div>
-          </TabsContent>
+        {/* Tournament Info Cards */}
+        {tournamentInfo && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <InformationCircleIcon className="h-4 w-4" />
+                  Descripción
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {tournamentInfo.description || 'Sin descripción'}
+                </p>
+              </CardContent>
+            </Card>
 
-          <TabsContent value="gallery">
-            <div className="rounded-lg border bg-card">
-              <div className="p-6">
-                {/* TODO: Implementar galería de fotos */}
-                <div className="text-muted-foreground">Galería en desarrollo</div>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <MapPinIcon className="h-4 w-4" />
+                  Ubicación
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {tournamentInfo.tournament_club_name}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                  {tournamentInfo.tournament_address}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <BanknotesIcon className="h-4 w-4" />
+                  Costo de Inscripción
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  ${tournamentInfo.inscription_cost}
+                </p>
+              </CardContent>
+            </Card>
+
+            {tournamentInfo.rules && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <DocumentTextIcon className="h-4 w-4" />
+                    Reglamento
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {tournamentInfo.rules}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {tournamentInfo.first_place_prize && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <TrophyIcon className="h-4 w-4" />
+                    Premios
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-1 text-sm">
+                    {tournamentInfo.first_place_prize && (
+                      <p className="text-gray-600 dark:text-gray-400">
+                        <span className="font-medium">1º:</span> {tournamentInfo.first_place_prize}
+                      </p>
+                    )}
+                    {tournamentInfo.second_place_prize && (
+                      <p className="text-gray-600 dark:text-gray-400">
+                        <span className="font-medium">2º:</span> {tournamentInfo.second_place_prize}
+                      </p>
+                    )}
+                    {tournamentInfo.third_place_prize && (
+                      <p className="text-gray-600 dark:text-gray-400">
+                        <span className="font-medium">3º:</span> {tournamentInfo.third_place_prize}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {tournamentInfo.sponsors && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <StarIcon className="h-4 w-4" />
+                    Patrocinadores
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {tournamentInfo.sponsors}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* Navigation Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {navigationCards.map((card) => {
+            const IconComponent = card.icon
+            return (
+              <Card 
+                key={card.title}
+                className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+                onClick={() => router.push(card.href)}
+              >
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${card.color} text-white`}>
+                      <IconComponent className="h-5 w-5" />
+                    </div>
+                    {card.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {card.description}
+                  </p>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+
+        {/* Stats Summary */}
+        {stats && (
+          <div className="mt-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ChartBarIcon className="h-5 w-5" />
+                  Estadísticas del Torneo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      {stats.total_teams || 0}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Equipos Registrados
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      {stats.matches_scheduled || 0}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Partidos Programados
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      {stats.groups_generated ? 'Sí' : 'No'}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Grupos Generados
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      ${stats.total_revenue || 0}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Ingresos Totales
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   )

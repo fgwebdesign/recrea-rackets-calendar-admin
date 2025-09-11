@@ -1,207 +1,408 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useTournaments } from '@/hooks/useTournaments';
-import Link from 'next/link';
-import { useState } from 'react';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { MatchResultModal } from "@/components/Tournaments/groups/MatchResultModal";
-import { GroupTable } from '../../../../components/Tournaments/groups/GroupTable';
-import { Info, Users, AlertCircle } from "lucide-react";
+import { ArrowLeftIcon, UsersIcon, TrophyIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { useTournament } from '@/hooks/useTournaments';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, RefreshCw, Plus, Settings } from 'lucide-react';
 
 export default function TournamentGroupsPage() {
   const params = useParams();
   const router = useRouter();
-  const { tournament, teams, matches, loading } = useTournaments(params.id as string);
-  const [selectedFormat, setSelectedFormat] = useState<'3groups' | '4groups'>('3groups');
-  const [selectedMatch, setSelectedMatch] = useState<{
-    team1: { name: string };
-    team2: { name: string };
-  } | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  if (loading) return <LoadingSpinner />;
-  if (!tournament) return null;
+  const tournamentId = params.id as string;
 
-  const generateGroupMatches = (teams: any[]) => {
-    const matches = [];
-    for (let i = 0; i < teams.length; i++) {
-      for (let j = i + 1; j < teams.length; j++) {
-        // Partido de ida
-        matches.push({
-          id: `${i}-${j}-ida`,
-          team1: teams[i].name,
-          team2: teams[j].name,
-          score: null,
-          completed: false
-        });
-        // Partido de vuelta
-        matches.push({
-          id: `${i}-${j}-vuelta`,
-          team1: teams[j].name,
-          team2: teams[i].name,
-          score: null,
-          completed: false
-        });
-      }
+  const { 
+    tournament, 
+    groups,
+    teams,
+    loading, 
+    error,
+    refetch
+  } = useTournament(tournamentId);
+
+  // Función para obtener equipos de un grupo específico
+  const getTeamsInGroup = (groupTeams: string[]) => {
+    if (!Array.isArray(teams) || !Array.isArray(groupTeams)) return [];
+    
+    return groupTeams.map(teamId => {
+      const team = teams.find(t => t.team_id === teamId);
+      return team;
+    }).filter(Boolean);
+  };
+
+  // Función para formatear nombres de jugadores
+  const formatPlayerNames = (team: any) => {
+    if (!team?.teams) return 'Equipo desconocido';
+    
+    const player1 = team.teams.player1;
+    const player2 = team.teams.player2;
+    
+    if (player1?.first_name && player2?.first_name) {
+      return `${player1.first_name} ${player1.last_name || ''} / ${player2.first_name} ${player2.last_name || ''}`;
+    } else if (player1?.first_name) {
+      return `${player1.first_name} ${player1.last_name || ''}`;
+    } else if (player2?.first_name) {
+      return `${player2.first_name} ${player2.last_name || ''}`;
     }
-    return matches;
+    
+    return `Equipo #${team.team_id?.slice(-4) || 'N/A'}`;
   };
 
-  const generateGroupTeams = (groupIndex: number) => {
-    return Array.from({ length: 3 }).map((_, index) => ({
-      id: `${groupIndex}-${index}`,
-      name: `Equipo ${index + 1}`,
-      players: ['Jugador 1', 'Jugador 2'],
-      stats: {
-        played: 0,
-        won: 0,
-        lost: 0,
-        points: 0
-      }
-    }));
+  // Función para obtener inicial del equipo
+  const getTeamInitial = (team: any) => {
+    if (team?.teams?.player1?.first_name) {
+      return team.teams.player1.first_name[0].toUpperCase();
+    } else if (team?.teams?.player2?.first_name) {
+      return team.teams.player2.first_name[0].toUpperCase();
+    }
+    return '?';
   };
 
-  const handleUpdateMatch = (match: any) => {
-    setSelectedMatch({
-      team1: { name: match.team1 },
-      team2: { name: match.team2 }
-    });
-    setIsModalOpen(true);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <Skeleton className="h-6 w-48 mb-4" />
+            <Skeleton className="h-8 w-64" />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-20 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-6 w-32" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {[1, 2, 3, 4].map((j) => (
+                      <Skeleton key={j} className="h-12 w-full" />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+          <Alert className="mb-8">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Error al cargar los grupos: {error}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={refetch}
+                className="ml-4"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Reintentar
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  const totalTeams = Array.isArray(teams) ? teams.length : 0;
+  const totalGroups = Array.isArray(groups) ? groups.length : 0;
+  const teamsPerGroup = totalGroups > 0 ? Math.ceil(totalTeams / totalGroups) : 0;
+
+  // Calcular cupo según tipo de torneo
+  const getTournamentCapacity = (tournamentType: string) => {
+    switch (tournamentType) {
+      case 'NINE_PLAYERS': return 9;
+      case 'TWELVE_PLAYERS': return 12;
+      case 'SIXTEEN_PLAYERS': return 16;
+      default: return 9;
+    }
   };
+
+  const tournamentCapacity = tournament?.tournament_type ? getTournamentCapacity(tournament.tournament_type) : 9;
+  const isTournamentFull = totalTeams >= tournamentCapacity;
+  const canGenerateGroups = isTournamentFull && totalGroups === 0;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header mejorado */}
+        {/* Header */}
         <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => router.push(`/tournaments/${tournamentId}`)}
+            className="mb-4 p-0 h-auto font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+          >
+            <ArrowLeftIcon className="h-4 w-4 mr-2" />
+            Volver al torneo
+          </Button>
+          
           <div className="flex items-center justify-between">
             <div>
-              <Link
-                href={`/tournaments/${params.id}`}
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium flex items-center"
-              >
-                ← Volver al torneo
-              </Link>
-              <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">Fase de Grupos</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Grupos - {tournament?.name || 'Torneo'}
+              </h1>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Gestión de grupos y distribución de equipos
+              </p>
             </div>
+            
             <div className="flex gap-3">
-              <button
-                onClick={() => setSelectedFormat('3groups')}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  selectedFormat === '3groups'
-                    ? 'bg-blue-600 text-white dark:bg-blue-500'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
+              <Button
+                variant="outline"
+                onClick={refetch}
+                className="flex items-center gap-2"
               >
-                3 Grupos
-              </button>
-              <button
-                onClick={() => setSelectedFormat('4groups')}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  selectedFormat === '4groups'
-                    ? 'bg-blue-600 text-white dark:bg-blue-500'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                <RefreshCw className="h-4 w-4" />
+                Actualizar
+              </Button>
+              <Button 
+                className={`flex items-center gap-2 ${
+                  !canGenerateGroups
+                    ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed opacity-60' 
+                    : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
                 }`}
+                disabled={!canGenerateGroups}
+                title={
+                  totalGroups > 0 
+                    ? 'Los grupos ya han sido generados' 
+                    : !isTournamentFull 
+                    ? `Faltan ${tournamentCapacity - totalTeams} equipos para completar el cupo`
+                    : 'Generar grupos para el torneo'
+                }
               >
-                4 Grupos
-              </button>
+                <Plus className="h-4 w-4" />
+                {totalGroups > 0 
+                  ? 'Grupos Generados' 
+                  : !isTournamentFull 
+                  ? `Esperando ${tournamentCapacity - totalTeams} equipos`
+                  : 'Generar Grupos'
+                }
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Panel de Acción Principal */}
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card de Equipos Inscriptos */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-4">
-              <div className="bg-blue-100 dark:bg-blue-900/50 rounded-full p-3">
-                <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+        {/* Estadísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-500 rounded-lg">
+                  <UsersIcon className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Equipos Inscritos</p>
+                  <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{totalTeams} / {tournamentCapacity}</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    {isTournamentFull ? 'Cupo completo' : `Faltan ${tournamentCapacity - totalTeams} equipos`}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Equipos Inscriptos</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">12 equipos en total</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Card de Formato */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-4">
-              <div className="bg-purple-100 dark:bg-purple-900/50 rounded-full p-3">
-                <AlertCircle className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-500 rounded-lg">
+                  <TrophyIcon className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Grupos Creados</p>
+                  <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{totalGroups}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Formato Seleccionado</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {selectedFormat === '3groups' ? '3 grupos de 4 equipos' : '4 grupos de 3 equipos'}
-                </p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Card de Acción */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <h3 className="font-medium text-gray-900 dark:text-white mb-2">Generar Grupos</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Al generar los grupos, se distribuirán automáticamente todos los equipos inscriptos.
-            </p>
-            <button
-              className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white font-medium rounded-lg shadow-sm transition-colors"
-            >
-              Generar Fase de Grupos
-            </button>
-          </div>
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-green-500 rounded-lg">
+                  <CalendarIcon className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-green-600 dark:text-green-400">Equipos por Grupo</p>
+                  <p className="text-2xl font-bold text-green-900 dark:text-green-100">{teamsPerGroup}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className={`${
+            totalGroups > 0 
+              ? 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800'
+              : 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-800'
+          }`}>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-lg ${
+                  totalGroups > 0 ? 'bg-green-500' : 'bg-orange-500'
+                }`}>
+                  <Settings className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className={`text-sm font-medium ${
+                    totalGroups > 0 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : 'text-orange-600 dark:text-orange-400'
+                  }`}>Estado</p>
+                  <p className={`text-lg font-bold ${
+                    totalGroups > 0 
+                      ? 'text-green-900 dark:text-green-100' 
+                      : 'text-orange-900 dark:text-orange-100'
+                  }`}>
+                    {totalGroups > 0 ? 'Grupos Activos' : 'Sin grupos'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Banner Informativo */}
-        <div className="mb-8 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-xl p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <Info className="h-5 w-5 text-green-500 dark:text-green-400 mt-0.5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-green-900 dark:text-green-200 mb-1">
-                ¿Cómo configurar los resultados de los partidos?
+        {/* Contenido principal */}
+        {Array.isArray(groups) && groups.length > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {groups.map((group, index) => {
+              const groupTeams = getTeamsInGroup(group.teams || []);
+              
+              return (
+                <Card key={group.id || index} className="shadow-lg border-0 bg-white dark:bg-gray-800">
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-b border-gray-200 dark:border-gray-700">
+                    <CardTitle className="flex items-center gap-3 text-lg">
+                      <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                        <TrophyIcon className="h-5 w-5 text-white" />
+                      </div>
+                      Grupo {group.group_number || index + 1}
+                      <span className="ml-auto text-sm font-normal text-gray-500 dark:text-gray-400">
+                        {groupTeams.length} equipos
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  
+                  <CardContent className="p-0">
+                    {groupTeams.length > 0 ? (
+                      <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {groupTeams.map((team, teamIndex) => (
+                          <div key={team?.team_id || teamIndex} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <div className="flex items-center gap-4">
+                              <div className="flex-shrink-0">
+                                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                  <span className="text-white text-sm font-semibold">
+                                    {getTeamInitial(team)}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {formatPlayerNames(team)}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  ID: {team?.team_id?.slice(-8) || 'N/A'}
+                                </div>
+                              </div>
+                              
+                              <div className="flex-shrink-0">
+                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                  group.status === 'IN_PROGRESS' 
+                                    ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                                }`}>
+                                  {group.status === 'IN_PROGRESS' ? 'En progreso' : 'Pendiente'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center">
+                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <UsersIcon className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                          Sin equipos asignados
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400">
+                          Este grupo aún no tiene equipos asignados.
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <Card className="shadow-lg border-0 bg-white dark:bg-gray-800">
+            <CardContent className="p-12 text-center">
+              <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
+                <TrophyIcon className="h-12 w-12 text-gray-400" />
+              </div>
+              
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                No hay grupos creados
               </h3>
-              <div className="text-sm text-green-700 dark:text-green-300 space-y-2">
-                <p>• Los partidos están organizados por fechas. Utiliza la navegación para ver todos los partidos del grupo.</p>
-                <p>• Cada equipo jugará partidos de ida y vuelta contra los demás equipos del grupo.</p>
-                <p>• Para registrar un resultado, haz clic en "Actualizar Resultado" y completa el marcador del partido.</p>
-                <p>• La tabla de posiciones se actualizará automáticamente según los resultados ingresados.</p>
+              
+              <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">
+                {!isTournamentFull 
+                  ? `Este torneo necesita ${tournamentCapacity} equipos para generar grupos. Actualmente hay ${totalTeams} equipos inscritos.`
+                  : 'Este torneo aún no tiene grupos generados. Genera los grupos para organizar los equipos y comenzar la fase de grupos.'
+                }
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button 
+                  variant="outline"
+                  onClick={() => router.push(`/tournaments/${tournamentId}`)}
+                  className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/20"
+                >
+                  Volver al torneo
+                </Button>
+                <Button 
+                  className={`${
+                    !canGenerateGroups
+                      ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed opacity-60'
+                      : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
+                  } text-white`}
+                  disabled={!canGenerateGroups}
+                  title={
+                    !isTournamentFull 
+                      ? `Faltan ${tournamentCapacity - totalTeams} equipos para completar el cupo`
+                      : 'Generar grupos para organizar los equipos del torneo'
+                  }
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {!isTournamentFull 
+                    ? `Esperando ${tournamentCapacity - totalTeams} equipos`
+                    : 'Generar Grupos'
+                  }
+                </Button>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Grid de grupos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {Array.from({ length: selectedFormat === '3groups' ? 3 : 4 }).map((_, groupIndex) => {
-            const groupTeams = generateGroupTeams(groupIndex);
-            return (
-              <GroupTable
-                key={groupIndex}
-                groupIndex={groupIndex}
-                teams={groupTeams}
-                matches={generateGroupMatches(groupTeams)}
-                onUpdateMatch={handleUpdateMatch}
-              />
-            );
-          })}
-        </div>
-
-        {selectedMatch && (
-          <MatchResultModal
-            isOpen={isModalOpen}
-            onClose={() => {
-              setIsModalOpen(false);
-              setSelectedMatch(null);
-            }}
-            match={selectedMatch}
-            onSubmit={(result) => {
-              console.log(result);
-            }}  
-          />
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

@@ -21,7 +21,9 @@ export function useCategories() {
       setIsLoading(true);
       const token = localStorage.getItem('adminToken');
       if (!token) {
-        throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+        // No mostrar error si no hay token, simplemente retornar
+        setCategories([]);
+        return;
       }
 
       const response = await fetch(`${API_URL}/categories`, {
@@ -34,11 +36,14 @@ export function useCategories() {
       const data = await response.json();
       setCategories(Array.isArray(data) ? data : []);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Error al cargar las categorías",
-        variant: "destructive",
-      });
+      // Solo mostrar toast si es un error real de API, no por falta de token
+      if (error instanceof Error && !error.message.includes('sesión ha expirado')) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
       console.error('Error fetching categories:', error);
       setCategories([]);
     } finally {

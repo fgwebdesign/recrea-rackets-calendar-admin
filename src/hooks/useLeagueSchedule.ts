@@ -42,7 +42,9 @@ export function useLeagueSchedule(leagueId?: string) {
 
         const token = localStorage.getItem('adminToken');
         if (!token) {
-          throw new Error('No authentication token found');
+          // No mostrar error si no hay token, simplemente retornar
+          setMatches([]);
+          return;
         }
 
         const response = await fetch(url, {

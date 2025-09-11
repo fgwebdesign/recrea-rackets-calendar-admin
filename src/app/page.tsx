@@ -45,24 +45,21 @@ export default function Home() {
               localStorage.setItem('isAdmin', 'true');
               localStorage.setItem('adminToken', data.session.access_token);
               localStorage.setItem('userName', userData.first_name);
+              
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              router.push("/dashboard");
             } else {
               console.error('Usuario no tiene permisos de administrador');
               setIsLoading(false);
-              return;
             }
           } else {
-            console.error('Error al verificar usuario');
+            console.error('Error al verificar usuario:', userResponse.status);
             setIsLoading(false);
-            return;
           }
         } catch (error) {
           console.error('Error al verificar rol de usuario:', error);
           setIsLoading(false);
-          return;
         }
-        
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        router.push("/dashboard");
       } else {
         console.error('Error signing in:', response.statusText);
         setIsLoading(false);

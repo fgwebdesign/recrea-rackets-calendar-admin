@@ -5,6 +5,7 @@ import {
     createTournament, 
     updateTournament, 
     deleteTournament, 
+    changeTournamentType,
     joinTournament, 
     getMatchesByTournamentId, 
     generateLeagueMatches,
@@ -19,6 +20,7 @@ import {
     getGroups,
     validateGroupScheduleConflicts,
     scheduleMatchesAutomatically,
+    scheduleMatchesByGroupAndDayEndpoint,
     getGroupStandings
 } from '../controllers/tournament.controller.js'
 import { setTournamentRequiredInfo, setTournamentThumbnail, setTournamentPrize, setTournamentSponsors } from '../controllers/tournamentInfo.controller.js'
@@ -109,6 +111,77 @@ router.put('/:id', verifyToken, verifyAdmin, updateTournament)
  *       - bearerAuth: []
  */
 router.delete('/:id', verifyToken, verifyAdmin, deleteTournament)
+
+/**
+ * @swagger
+ * /tournaments/{id}/change-type:
+ *   put:
+ *     summary: Cambia el tipo de torneo (9 o 12 jugadores) antes de cerrar inscripciones
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del torneo
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - new_tournament_type
+ *             properties:
+ *               new_tournament_type:
+ *                 type: string
+ *                 enum: [NINE_PLAYERS, TWELVE_PLAYERS]
+ *                 description: Nuevo tipo de torneo
+ *     responses:
+ *       200:
+ *         description: Tipo de torneo cambiado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 tournament:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     old_type:
+ *                       type: string
+ *                     new_type:
+ *                       type: string
+ *                     old_max_teams:
+ *                       type: number
+ *                     new_max_teams:
+ *                       type: number
+ *                 impact:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                     new_capacity:
+ *                       type: number
+ *                     available_for_registration:
+ *                       type: boolean
+ *       400:
+ *         description: No se puede cambiar el tipo (equipos inscritos, grupos generados, etc.)
+ *       404:
+ *         description: Torneo no encontrado
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.put('/:id/change-type', verifyToken, verifyAdmin, changeTournamentType)
 
 /**
  * @swagger
@@ -454,6 +527,85 @@ router.post('/:id/validate-group-conflicts', verifyToken, verifyAdmin, validateG
  *         description: Error en la programación automática
  */
 router.post('/:id/schedule-matches', verifyToken, verifyAdmin, scheduleMatchesAutomatically)
+
+/**
+ * @swagger
+ * /tournaments/{id}/schedule-matches-by-group:
+ *   post:
+ *     summary: Programa automáticamente los partidos por grupo y día
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del torneo
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Partidos programados exitosamente por grupo y día
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 tournament:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     type:
+ *                       type: string
+ *                 programming_summary:
+ *                   type: object
+ *                   properties:
+ *                     total_matches:
+ *                       type: number
+ *                     programming_period:
+ *                       type: object
+ *                     matches_by_day:
+ *                       type: object
+ *                     matches_by_court:
+ *                       type: object
+ *                     matches_by_group:
+ *                       type: object
+ *                     available_courts:
+ *                       type: number
+ *                 scheduled_matches:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       group:
+ *                         type: string
+ *                       teams:
+ *                         type: string
+ *                       date:
+ *                         type: string
+ *                       time:
+ *                         type: string
+ *                       court:
+ *                         type: number
+ *                       conflicts_avoided:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *       400:
+ *         description: No hay partidos pendientes de programación
+ *       404:
+ *         description: Torneo no encontrado
+ *       500:
+ *         description: Error en la programación por grupo y día
+ */
+router.post('/:id/schedule-matches-by-group', verifyToken, verifyAdmin, scheduleMatchesByGroupAndDayEndpoint)
 
 /**
  * @swagger

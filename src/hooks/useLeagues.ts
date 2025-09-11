@@ -12,8 +12,9 @@ export function useLeagues() {
       try {
         const token = localStorage.getItem('adminToken');
         if (!token) {
-          console.error('No authentication token found');
-          throw new Error('No authentication token found');
+          // No mostrar error si no hay token, simplemente retornar
+          setLeagues([]);
+          return;
         }
 
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leagues/all?page=1&pageSize=10&include=teams`, {
