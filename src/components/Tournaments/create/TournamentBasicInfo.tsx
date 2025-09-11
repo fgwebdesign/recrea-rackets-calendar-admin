@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { DatePicker, formatDateForInput, parseDateFromInput } from '@/components/ui/date-picker';
 import { cn } from "@/lib/utils";
 import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -144,16 +145,14 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
                 tooltip="Fecha de inicio del torneo"
               />
               <div className="space-y-2">
-                <Input
-                  id="start_date"
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                  aria-invalid={!!errors.start_date}
-                  className={cn(
-                    "bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700",
-                    errors.start_date && "border-red-500 dark:border-red-500"
-                  )}
+                <DatePicker
+                  value={formData.start_date ? parseDateFromInput(formData.start_date) : undefined}
+                  onChange={(date) => setFormData({ 
+                    ...formData, 
+                    start_date: date ? formatDateForInput(date) : '' 
+                  })}
+                  placeholder="Selecciona fecha de inicio"
+                  error={!!errors.start_date}
                 />
                 {errors.start_date && (
                   <p className="text-sm text-red-500">{errors.start_date}</p>
@@ -168,16 +167,14 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
                 tooltip="Fecha de finalización del torneo"
               />
               <div className="space-y-2">
-                <Input
-                  id="end_date"
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                  aria-invalid={!!errors.end_date}
-                  className={cn(
-                    "bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700",
-                    errors.end_date && "border-red-500 dark:border-red-500"
-                  )}
+                <DatePicker
+                  value={formData.end_date ? parseDateFromInput(formData.end_date) : undefined}
+                  onChange={(date) => setFormData({ 
+                    ...formData, 
+                    end_date: date ? formatDateForInput(date) : '' 
+                  })}
+                  placeholder="Selecciona fecha de fin"
+                  error={!!errors.end_date}
                 />
                 {errors.end_date && (
                   <p className="text-sm text-red-500">{errors.end_date}</p>

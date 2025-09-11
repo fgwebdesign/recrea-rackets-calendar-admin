@@ -1,0 +1,971 @@
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+Getting matches for league: 441ae8f3-ef83-439f-aa42-2ab1465842d2
+Completed matches: 0
+Pending matches: 0
+Getting matches for league: 441ae8f3-ef83-439f-aa42-2ab1465842d2
+Completed matches: 0
+Pending matches: 0
+Getting matches for league: 441ae8f3-ef83-439f-aa42-2ab1465842d2
+Completed matches: 0
+Pending matches: 0
+Getting matches for league: 441ae8f3-ef83-439f-aa42-2ab1465842d2
+Completed matches: 0
+Pending matches: 0
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: a7f06c57-56db-4801-94e3-0c00c2f1a055
+⚠️ No hay standings persistidos, calculando dinámicamente...
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+🏆 Obteniendo standings para torneo: 2a000466-44c8-4a5f-902f-b1c8b5804a67
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 9 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 9 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+🏆 Obteniendo standings para torneo: 2a000466-44c8-4a5f-902f-b1c8b5804a67
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 2a000466-44c8-4a5f-902f-b1c8b5804a67
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 2a000466-44c8-4a5f-902f-b1c8b5804a67
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 2a000466-44c8-4a5f-902f-b1c8b5804a67
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 9 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+🏆 Obteniendo standings para torneo: 2a000466-44c8-4a5f-902f-b1c8b5804a67
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 9 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 2a000466-44c8-4a5f-902f-b1c8b5804a67
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 2a000466-44c8-4a5f-902f-b1c8b5804a67
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 2a000466-44c8-4a5f-902f-b1c8b5804a67
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 9 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+🏆 Obteniendo standings para torneo: 2a000466-44c8-4a5f-902f-b1c8b5804a67
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 9 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 2a000466-44c8-4a5f-902f-b1c8b5804a67
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 2a000466-44c8-4a5f-902f-b1c8b5804a67
+⚠️ No hay standings persistidos, calculando dinámicamente...
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+🏆 Obteniendo standings para torneo: e1c67116-5395-4918-a8cd-9fac89ab9004
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+🏆 Obteniendo standings para torneo: e1c67116-5395-4918-a8cd-9fac89ab9004
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 45 parejas totales
+🎾 Total de partidos en fase de grupos: 45
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 5 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 9 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 9 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 21
+🎯 Uso actual de slots (compartido): {
+  day1_evening: 5,
+  day1_night: 5,
+  day2_morning: 5,
+  day2_afternoon: 2,
+  day2_evening: 2,
+  day2_late_night: 2
+}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: e1c67116-5395-4918-a8cd-9fac89ab9004
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: e1c67116-5395-4918-a8cd-9fac89ab9004
+⚠️ No hay standings persistidos, calculando dinámicamente...
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+Auth Header: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6Imd2c1pmT0NCR29sMCtVNUsiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xvaHNveGl6b2xpdWhpcmx4eXBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJmMzE4ZWEzNC1hNTFkLTRhOTEtOGE4OC1lM2NiMmEwZDJiNGQiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU3NTY3NjI1LCJpYXQiOjE3NTc1NjQwMjUsImVtYWlsIjoieWVnb2Vsdmlnb3RlMTVAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InllZ29lbHZpZ290ZTE1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJmaXJzdF9uYW1lIjoiRmVsaXBlIiwibGFzdF9uYW1lIjoiR3V0aWVycmV6IiwicGhvbmUiOiIxMjMtNDU2NyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiZjMxOGVhMzQtYTUxZC00YTkxLThhODgtZTNjYjJhMGQyYjRkIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTc1NjQwMjV9XSwic2Vzc2lvbl9pZCI6Ijc2OTIzODU3LWU2ZjMtNGQ2Yy04MjUwLWM3NTQwOTQ3N2VkMCIsImlzX2Fub255bW91cyI6ZmFsc2V9.tlBOiCxcJcBgf-RcQMgfAUhj19BbUensYUxxO9zrgIo
+🗓️ Generando time slots dinámicos para torneo de 3 días (Fri Dec 05 2025 - Sun Dec 07 2025)
+🏆 Día 3 (Domingo) reservado para fase eliminatoria
+🎯 Time slots generados dinámicamente: [
+  'Viernes Tarde (18-21hs) (day1_evening)',
+  'Viernes Noche (22-24hs) (day1_night)',
+  'Sábado Mañana (8-12hs) (day2_morning)',
+  'Sábado Tarde (13-17hs) (day2_afternoon)',
+  'Sábado Noche (18-21hs) (day2_evening)',
+  'Sábado Noche Tardía (22-01hs) (day2_late_night)'
+]
+📧 Enviando notificaciones de torneo: test diciembre
+🧪 MODO DESARROLLO: Enviando solo a fgwebdesign0@gmail.com
+✅ Email enviado a fgwebdesign0@gmail.com (Felipe Gutierrez)
+✅ Email de prueba enviado exitosamente
+📧 Notificaciones completadas: 1 enviadas
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 48 parejas totales
+🎾 Total de partidos en fase de grupos: 48
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 6 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 0
+🎯 Uso actual de slots (compartido): {}
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 48 parejas totales
+🎾 Total de partidos en fase de grupos: 48
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 6 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+📊 Equipos registrados en TODAS las categorías: 0
+🎯 Uso actual de slots (compartido): {}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 48 parejas totales
+🎾 Total de partidos en fase de grupos: 48
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 6 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 0
+🎯 Uso actual de slots (compartido): {}
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 48 parejas totales
+🎾 Total de partidos en fase de grupos: 48
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 6 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+📊 Equipos registrados en TODAS las categorías: 0
+🎯 Uso actual de slots (compartido): {}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 48 parejas totales
+🎾 Total de partidos en fase de grupos: 48
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 6 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 0
+🎯 Uso actual de slots (compartido): {}
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 48 parejas totales
+🎾 Total de partidos en fase de grupos: 48
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 6 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+⚠️ No hay standings persistidos, calculando dinámicamente...
+📊 Equipos registrados en TODAS las categorías: 0
+🎯 Uso actual de slots (compartido): {}
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 48 parejas totales
+🎾 Total de partidos en fase de grupos: 48
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 6 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 0
+🎯 Uso actual de slots (compartido): {}
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+🎯 Slots disponibles para jugadores (solo días 1-2): [
+  'Viernes Tarde (18-21hs)',
+  'Viernes Noche (22-24hs)',
+  'Sábado Mañana (8-12hs)',
+  'Sábado Tarde (13-17hs)',
+  'Sábado Noche (18-21hs)',
+  'Sábado Noche Tardía (22-01hs)'
+]
+📊 Calculando cupos para 4 categorías × 12 equipos = 48 parejas totales
+🎾 Total de partidos en fase de grupos: 48
+⏰ Capacidad total de programación: 48 partidos entre todos los slots
+🎯 Capacidades calculadas por time slot (MEJORADO):
+  Viernes Tarde (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Viernes Noche (22-24hs): 6 cupos (2h, 2t, 4 partidos máx, 8% peso)
+  Sábado Mañana (8-12hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Tarde (13-17hs): 10 cupos (4h, 5t, 10 partidos máx, 21% peso)
+  Sábado Noche (18-21hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+  Sábado Noche Tardía (22-01hs): 10 cupos (3h, 4t, 8 partidos máx, 17% peso)
+📊 Equipos registrados en TODAS las categorías: 0
+🎯 Uso actual de slots (compartido): {}
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+⚠️ No hay standings persistidos, calculando dinámicamente...
+🏆 Obteniendo standings para torneo: 6b606108-3f23-48d4-808a-ce629551478d
+⚠️ No hay standings persistidos, calculando dinámicamente...

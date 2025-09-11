@@ -220,7 +220,7 @@ export function useTournamentForm() {
           courts_available: data.courts_available,
           tournament_type: data.tournament_type,
           time_slots: data.time_slots,
-          group_time_slots: data.group_time_slots,
+          group_time_slots: [], // El backend genera estos dinámicamente
           description: data.description.trim(),
           rules: data.rules.trim(),
           tournament_location: data.tournament_location.trim(),

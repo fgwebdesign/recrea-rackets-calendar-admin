@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { DatePicker, formatDateForInput, parseDateFromInput } from '@/components/ui/date-picker';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from "@/lib/utils";
 import { Info, Trophy, MapPin, Users } from "lucide-react";
@@ -137,12 +138,13 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
                 <Label htmlFor="signup_limit_date">
                   Fecha Límite de Inscripción
                 </Label>
-                <Input
-                  id="signup_limit_date"
-                  type="date"
-                  value={formData.signup_limit_date}
-                  onChange={(e) => setFormData({ ...formData, signup_limit_date: e.target.value })}
-                  className="bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
+                <DatePicker
+                  value={formData.signup_limit_date ? parseDateFromInput(formData.signup_limit_date) : undefined}
+                  onChange={(date) => setFormData({ 
+                    ...formData, 
+                    signup_limit_date: date ? formatDateForInput(date) : '' 
+                  })}
+                  placeholder="Selecciona fecha límite"
                 />
               </div>
             </CardContent>

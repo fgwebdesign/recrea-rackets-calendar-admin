@@ -9,13 +9,7 @@ export interface TournamentCreationData {
   courts_available: number;
   tournament_type: 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS';
   time_slots: number[][];
-  group_time_slots: {
-    id: string;
-    day: string;
-    start: string;
-    end: string;
-    label: string;
-  }[];
+  group_time_slots: any[]; // El backend genera estos dinámicamente
   
   // Información detallada (tournament_info)
   description: string;
@@ -206,7 +200,8 @@ export class TournamentCreationService {
       second_place_prize: data.second_place_prize.trim(),
       third_place_prize: data.third_place_prize.trim(),
       inscription_cost: Number(data.inscription_cost) || 0,
-      sponsors: data.sponsors || []
+      sponsors: data.sponsors || [],
+      group_time_slots: [] // El backend genera estos dinámicamente
     };
   }
 }
