@@ -121,6 +121,19 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
               </div>
 
               <div>
+                <Label htmlFor="tournament_club_name">
+                  Nombre del Club
+                </Label>
+                <Input
+                  id="tournament_club_name"
+                  value={formData.tournament_club_name}
+                  onChange={(e) => setFormData({ ...formData, tournament_club_name: e.target.value })}
+                  placeholder="Ej: Recrea Padel Club"
+                  className="bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
+                />
+              </div>
+
+              <div>
                 <Label htmlFor="signup_limit_date">
                   Fecha Límite de Inscripción
                 </Label>

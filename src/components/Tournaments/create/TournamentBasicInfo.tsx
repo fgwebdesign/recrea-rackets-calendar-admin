@@ -229,7 +229,7 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
               <div className="space-y-2">
                 <Select
                   value={formData.tournament_type}
-                  onValueChange={(value: 'NINE_PLAYERS' | 'TWELVE_PLAYERS') => 
+                  onValueChange={(value: 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS') => 
                     setFormData({ ...formData, tournament_type: value })
                   }
                 >
@@ -244,6 +244,7 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
                   <SelectContent>
                     <SelectItem value="NINE_PLAYERS">9 Jugadores</SelectItem>
                     <SelectItem value="TWELVE_PLAYERS">12 Jugadores</SelectItem>
+                    <SelectItem value="SIXTEEN_PLAYERS">16 Jugadores</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.tournament_type && (

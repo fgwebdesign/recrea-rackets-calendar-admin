@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { tournamentCreationService, TournamentCreationData } from '@/services/tournamentCreationService';
 
 interface TournamentResponse {
   id: string;
@@ -17,7 +18,7 @@ export interface TournamentFormData {
   start_date: string;
   end_date: string;
   courts_available: number;
-  tournament_type: 'NINE_PLAYERS' | 'TWELVE_PLAYERS';
+  tournament_type: 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS';
   tournament_thumbnail: File | null;
   thumbnail_url?: string | null;
 
@@ -26,6 +27,7 @@ export interface TournamentFormData {
   rules: string;
   tournament_location: string;
   tournament_address: string;
+  tournament_club_name: string; // Campo requerido por el backend
   signup_limit_date: string;
   inscription_cost: number;
   sponsors: { name: string; logo: string }[];
@@ -54,6 +56,7 @@ const INITIAL_FORM_DATA: TournamentFormData = {
   rules: '',
   tournament_location: '',
   tournament_address: '',
+  tournament_club_name: '',
   signup_limit_date: '',
   inscription_cost: 0,
   sponsors: [],
@@ -135,6 +138,10 @@ export function useTournamentForm() {
       newErrors.tournament_address = 'La dirección del torneo es requerida';
     }
 
+    if (!data.tournament_club_name.trim()) {
+      newErrors.tournament_club_name = 'El nombre del club es requerido';
+    }
+
     if (!data.signup_limit_date) {
       newErrors.signup_limit_date = 'La fecha límite de inscripción es requerida';
     }
@@ -204,8 +211,8 @@ export function useTournamentForm() {
         const token = localStorage.getItem('adminToken');
         if (!token) throw new Error('No estás autenticado');
 
-        // Asegurarnos de que los campos requeridos tengan valores válidos
-        const tournamentData = {
+        // Formatear datos para el backend
+        const tournamentData: TournamentCreationData = {
           name: data.name.trim(),
           categories: data.categories,
           start_date: data.start_date,
@@ -214,37 +221,34 @@ export function useTournamentForm() {
           tournament_type: data.tournament_type,
           time_slots: data.time_slots,
           group_time_slots: data.group_time_slots,
-          description: data.description.trim() || '',
-          rules: data.rules.trim() || '',
-          tournament_location: data.tournament_location.trim() || '',
-          tournament_address: data.tournament_address.trim() || '',
-          signup_limit_date: data.signup_limit_date || null,
+          description: data.description.trim(),
+          rules: data.rules.trim(),
+          tournament_location: data.tournament_location.trim(),
+          tournament_address: data.tournament_address.trim(),
+          tournament_club_name: data.tournament_club_name.trim(),
+          signup_limit_date: data.signup_limit_date,
           inscription_cost: Number(data.inscription_cost) || 0,
           sponsors: data.sponsors || [],
           tournament_thumbnail: data.thumbnail_url || '',
-          first_place_prize: data.first_place_prize.trim() || '',
-          second_place_prize: data.second_place_prize.trim() || '',
-          third_place_prize: data.third_place_prize.trim() || ''
+          first_place_prize: data.first_place_prize.trim(),
+          second_place_prize: data.second_place_prize.trim(),
+          third_place_prize: data.third_place_prize.trim()
         };
 
-        console.log('Enviando datos al backend:', tournamentData);
-
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/create`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(tournamentData)
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          console.error('Error response:', error);
-          throw new Error(error.message || error.error || 'Error al crear el torneo');
+        // Validar datos antes de enviar
+        const validation = tournamentCreationService.validateTournamentData(tournamentData);
+        if (!validation.isValid) {
+          throw new Error(validation.errors.join(', '));
         }
 
-        const result = await response.json();
+        // Formatear datos para el backend
+        const formattedData = tournamentCreationService.formatDataForBackend(tournamentData);
+
+        console.log('Enviando datos al backend:', formattedData);
+
+        // Crear torneo usando el servicio
+        const result = await tournamentCreationService.createTournament(formattedData, token);
+        
         console.log('Respuesta del backend:', result);
 
         if (result.torneos && result.torneos.length > 0) {
