@@ -17,7 +17,12 @@ export async function getTournaments(req, res) {
           team_id,
           teams (*)
         ),
-        tournament_info (*)
+        tournament_info (*),
+        categories (*),
+        tournament_sponsors (
+          sponsor_id,
+          sponsors (*)
+        )
       `);
 
     // 🗓️ Filtro por fechas
@@ -94,7 +99,8 @@ export async function getTournamentById(req, res) {
         team_id,
         teams (*)
       ),
-      tournament_info (*)
+      tournament_info (*),
+      categories (*)
     `)
     .eq('id', req.params.id)
     .single()

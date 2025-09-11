@@ -115,13 +115,30 @@ export function useTournaments(): UseTournamentsReturn {
       // TODO: Implementar filtros en el backend más adelante
       const data = await tournamentService.getTournaments()
       
+      // 🔍 DEBUG: Verificar datos del backend
+      console.log('🔍 Raw data from backend:', data)
+      console.log('🔍 First tournament sample:', data?.[0])
+      
       // Procesar datos para asegurar consistencia
       const processedTournaments = Array.isArray(data) ? data.map(tournament => ({
         ...tournament,
         tournament_teams: Array.isArray(tournament.tournament_teams) ? tournament.tournament_teams : [],
-        tournament_info: tournament.tournament_info || undefined,
-        category: tournament.category || undefined
+        // ✅ Corregir: tournament_info es un array, tomar el primer elemento
+        tournament_info: Array.isArray(tournament.tournament_info) ? tournament.tournament_info[0] : tournament.tournament_info,
+        // ✅ Corregir: categories es un objeto, mapear a category
+        category: (tournament as any).categories || tournament.category || undefined,
+        // ✅ Corregir: tournament_sponsors es un array, extraer sponsors
+        tournament_sponsors: Array.isArray((tournament as any).tournament_sponsors) 
+          ? (tournament as any).tournament_sponsors.map((ts: any) => ts.sponsors).filter(Boolean)
+          : []
       })) : []
+
+      // 🔍 DEBUG: Verificar datos procesados
+      console.log('🔍 Processed tournaments:', processedTournaments)
+      console.log('🔍 First processed tournament:', processedTournaments?.[0])
+      console.log('🔍 Category data:', processedTournaments?.[0]?.category)
+      console.log('🔍 Tournament info data:', processedTournaments?.[0]?.tournament_info)
+      console.log('🔍 Tournament sponsors data:', processedTournaments?.[0]?.tournament_sponsors)
 
       setTournaments(processedTournaments)
     } catch (err) {

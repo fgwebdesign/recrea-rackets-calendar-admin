@@ -10,7 +10,7 @@ import { useTournaments } from '@/hooks/useTournaments'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { CalendarIcon, PlusIcon, TrophyIcon, UsersIcon, ClockIcon, FunnelIcon } from '@heroicons/react/24/outline'
+import { CalendarIcon, PlusIcon, TrophyIcon, UsersIcon, ClockIcon, FunnelIcon, StarIcon } from '@heroicons/react/24/outline'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -364,64 +364,75 @@ export default function TournamentsPage() {
                   className="group bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-900/50 rounded-3xl shadow-xl hover:shadow-2xl border border-gray-200/50 dark:border-gray-700/50 transition-all duration-500 cursor-pointer overflow-hidden transform hover:scale-[1.02] hover:-translate-y-3 backdrop-blur-sm"
                   onClick={() => router.push(`/tournaments/${tournament.id}`)}
                 >
-                  {/* 🖼️ Header con imagen mejorado */}
-                  <div className="relative h-52 bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/40 dark:via-purple-900/40 dark:to-pink-900/40 overflow-hidden">
-                    {/* Efecto de overlay dinámico */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    
-                    {tournament.tournament_info?.tournament_thumbnail ? (
+                  {/* 🖼️ Header con imagen (solo si existe) */}
+                  {tournament.tournament_info?.tournament_thumbnail && (
+                    <div className="relative h-52 overflow-hidden">
+                      {/* Efecto de overlay dinámico */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      
                       <Image
                         src={tournament.tournament_info.tournament_thumbnail}
                         alt={tournament.name}
                         fill
                         className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                       />
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="relative">
-                          <TrophyIcon className="h-24 w-24 text-blue-400 opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
-                          <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500" />
-                        </div>
+                      
+                      {/* 🏷️ Badges superpuestos */}
+                      <div className="absolute top-4 right-4 flex flex-col gap-2">
+                        {getStatusBadge(tournament.status)}
+                        {tournament.category && (
+                          <Badge variant="outline" className="bg-white/90 dark:bg-slate-800/90 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 backdrop-blur-sm">
+                            {tournament.category.name}
+                          </Badge>
+                        )}
                       </div>
-                    )}
-                    
-                    {/* 🏷️ Badges superpuestos */}
-                    <div className="absolute top-4 right-4 flex flex-col gap-2">
-                      {getStatusBadge(tournament.status)}
-                      {tournament.category && (
-                        <Badge variant="outline" className="bg-white/90 dark:bg-slate-800/90 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 backdrop-blur-sm">
-                          {tournament.category.name}
-                        </Badge>
+
+                      {/* 📊 Indicador de progreso mejorado */}
+                      {tournament.status === 'upcoming' && (
+                        <div className="absolute bottom-4 left-4 right-4">
+                          <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-2xl p-3 shadow-lg border border-white/20 dark:border-gray-700/50">
+                            <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-2">
+                              <span className="font-medium">Inscripciones</span>
+                              <span className="font-bold text-sm">{teamsCount}/{tournament.max_teams}</span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                              <div
+                                className={`h-2.5 rounded-full transition-all duration-700 ease-out ${
+                                  isFull ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 
+                                  isAlmostFull ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                                }`}
+                                style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                              />
+                            </div>
+                            {isFull && (
+                              <div className="flex items-center gap-1 mt-2">
+                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                                <span className="text-xs font-medium text-green-600 dark:text-green-400">¡Completo!</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
+                  )}
 
-                    {/* 📊 Indicador de progreso mejorado */}
-                    {tournament.status === 'upcoming' && (
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-2xl p-3 shadow-lg border border-white/20 dark:border-gray-700/50">
-                          <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-2">
-                            <span className="font-medium">Inscripciones</span>
-                            <span className="font-bold text-sm">{teamsCount}/{tournament.max_teams}</span>
-                          </div>
-                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
-                            <div
-                              className={`h-2.5 rounded-full transition-all duration-700 ease-out ${
-                                isFull ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 
-                                isAlmostFull ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : 'bg-gradient-to-r from-blue-500 to-purple-500'
-                              }`}
-                              style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-                            />
-                          </div>
-                          {isFull && (
-                            <div className="flex items-center gap-1 mt-2">
-                              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                              <span className="text-xs font-medium text-green-600 dark:text-green-400">¡Completo!</span>
-                            </div>
+                  {/* 🏷️ Badges para torneos sin imagen */}
+                  {!tournament.tournament_info?.tournament_thumbnail && (
+                    <div className="relative bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-col gap-2">
+                          {tournament.category && (
+                            <Badge variant="outline" className="bg-white/90 dark:bg-slate-800/90 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 backdrop-blur-sm w-fit">
+                              {tournament.category.name}
+                            </Badge>
                           )}
                         </div>
+                        <div>
+                          {getStatusBadge(tournament.status)}
+                        </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {/* 📋 Contenido principal mejorado */}
                   <CardContent className="p-7">
@@ -475,66 +486,53 @@ export default function TournamentsPage() {
                         </div>
                       </div>
 
-                      {/* 📊 Estadísticas mejoradas */}
-                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                        <div className="text-center group/stat">
-                          <div className="flex items-center justify-center gap-2 mb-2">
-                            <div className="p-2 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl group-hover/stat:scale-110 transition-transform duration-300">
-                              <UsersIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Equipos</p>
-                          </div>
-                          <p className="text-xl font-bold text-gray-900 dark:text-white">
-                            {teamsCount}
-                            <span className="text-sm text-gray-500 dark:text-gray-400">/{tournament.max_teams}</span>
-                          </p>
-                        </div>
-                        
-                        <div className="text-center group/stat">
-                          <div className="flex items-center justify-center gap-2 mb-2">
-                            <div className="p-2 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 rounded-xl group-hover/stat:scale-110 transition-transform duration-300">
-                              <TrophyIcon className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                            </div>
-                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Canchas</p>
-                          </div>
-                          <p className="text-xl font-bold text-gray-900 dark:text-white">
-                            {tournament.courts_available || 0}
-                          </p>
-                        </div>
-                      </div>
+                       {/* 📊 Estadísticas mejoradas */}
+                       <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                         {/* Sponsors con logos */}
+                         <div className="space-y-2">
+                           <div className="flex items-center gap-2">
+                             <StarIcon className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                             <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Patrocinadores</p>
+                           </div>
+                           <div className="flex flex-wrap gap-2">
+                             {tournament.tournament_sponsors && tournament.tournament_sponsors.length > 0 ? (
+                               tournament.tournament_sponsors.map((sponsor: any, index: number) => (
+                                 <div key={index} className="relative h-8 w-8 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-200">
+                                   {sponsor.logo_url ? (
+                                     <Image
+                                       src={sponsor.logo_url}
+                                       alt={sponsor.name}
+                                       fill
+                                       className="object-contain p-1"
+                                       sizes="32px"
+                                     />
+                                   ) : (
+                                     <div className="flex items-center justify-center h-full bg-gray-100 dark:bg-gray-800">
+                                       <StarIcon className="h-4 w-4 text-gray-400" />
+                                     </div>
+                                   )}
+                                 </div>
+                               ))
+                             ) : (
+                               <p className="text-xs text-gray-400 dark:text-gray-500">Sin patrocinadores</p>
+                             )}
+                           </div>
+                         </div>
 
-                      {/* 💰 Costo de inscripción mejorado */}
-                      {tournament.tournament_info?.inscription_cost && (
-                        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-2xl p-4 border border-amber-100 dark:border-amber-800 hover:shadow-lg transition-all duration-300">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-800/30 rounded-xl">
-                                <DollarSign className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                              </div>
-                              <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Inscripción</p>
-                            </div>
-                            <p className="text-xl font-bold text-amber-800 dark:text-amber-200">
-                              ${tournament.tournament_info.inscription_cost.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 🎯 Estado especial mejorado */}
-                      {isFull && tournament.status === 'upcoming' && (
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-4 border border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300">
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse delay-100" />
-                              <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse delay-200" />
-                            </div>
-                            <p className="text-sm font-bold text-green-700 dark:text-green-300">
-                              ¡Inscripciones completas!
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                         {/* Equipos */}
+                         <div className="text-center group/stat">
+                           <div className="flex items-center justify-center gap-2 mb-2">
+                             <div className="p-2 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl group-hover/stat:scale-110 transition-transform duration-300">
+                               <UsersIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                             </div>
+                             <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Equipos</p>
+                           </div>
+                           <p className="text-xl font-bold text-gray-900 dark:text-white">
+                             {teamsCount}
+                             <span className="text-sm text-gray-500 dark:text-gray-400">/{tournament.max_teams}</span>
+                           </p>
+                         </div>
+                       </div>
                     </div>
                   </CardContent>
                 </Card>
