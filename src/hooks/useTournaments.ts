@@ -64,6 +64,7 @@ interface UseTournamentReturn {
   availableHours: any[]
   availableTimeSlots: any[]
   scheduleValidation: any
+  sponsors: any[]
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
@@ -207,6 +208,29 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // 🎯 Función para obtener sponsors del torneo
+  const fetchTournamentSponsors = useCallback(async (tournamentId: string) => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sponsors/tournaments/${tournamentId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!response.ok) {
+        // Si no hay sponsors o el endpoint no existe, retornar array vacío
+        return { sponsors: [] }
+      }
+      
+      return await response.json()
+    } catch (error) {
+      console.warn('Error fetching tournament sponsors:', error)
+      return { sponsors: [] }
+    }
+  }, [])
+
   const fetchTournamentData = useCallback(async () => {
     if (!tournamentId) return
 
@@ -269,6 +293,12 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
       setAvailableHours(Array.isArray(availableHoursData) ? availableHoursData : [])
       setAvailableTimeSlots(Array.isArray(availableTimeSlotsData) ? availableTimeSlotsData : [])
       setScheduleValidation(scheduleValidationData)
+      
+      // ✅ Procesar sponsors del torneo
+      const sponsorsArray = sponsorsData?.sponsors || []
+      console.log('🔍 Sponsors data from backend:', sponsorsData)
+      console.log('🔍 Sponsors count:', sponsorsArray.length)
+      setSponsors(Array.isArray(sponsorsArray) ? sponsorsArray : [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar datos del torneo')
     } finally {
@@ -327,6 +357,7 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
     availableHours,
     availableTimeSlots,
     scheduleValidation,
+    sponsors,
     loading,
     error,
     refetch: fetchTournamentData,

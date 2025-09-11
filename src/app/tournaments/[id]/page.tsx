@@ -43,6 +43,7 @@ export default function TournamentPage({ params }: PageProps) {
     tournament, 
     tournamentInfo, 
     stats,
+    sponsors,
     loading, 
     error, 
     refetch 
@@ -409,7 +410,7 @@ export default function TournamentPage({ params }: PageProps) {
               </Card>
             )}
 
-            {tournamentInfo.sponsors && tournamentInfo.sponsors.length > 0 && (
+            {sponsors && sponsors.length > 0 && (
               <Card className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 border-pink-200 dark:border-pink-800 shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-sm text-pink-700 dark:text-pink-300">
@@ -419,7 +420,7 @@ export default function TournamentPage({ params }: PageProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-3">
-                    {tournamentInfo.sponsors.map((sponsor: any, index: number) => (
+                    {sponsors.map((sponsor: any, index: number) => (
                       <div key={index} className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-pink-200 dark:border-pink-800">
                         {sponsor.logo_url && (
                           <div className="relative h-8 w-8 rounded-md overflow-hidden">
