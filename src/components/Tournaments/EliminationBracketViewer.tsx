@@ -55,7 +55,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [useTestData, setUseTestData] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1.2); // Zoom inicial alejado
+  const [zoomLevel, setZoomLevel] = useState(1.0); // Zoom inicial alejado
   const svgViewerRef = useRef<any>(null);
 
   useEffect(() => {
@@ -393,41 +393,36 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
     );
   }
 
-  // Componente Match personalizado para mejor visualización
+  // Componente Match personalizado - usando estilos por defecto de la librería
   const CustomMatchComponent = ({ match, onMatchClick, onPartyClick }: any) => (
     <div 
-      className="match-component bg-white border-2 border-gray-300 rounded-lg p-8 cursor-pointer hover:border-green-500 hover:shadow-lg transition-all duration-200 min-w-[480px] max-w-[520px]"
+      className="match-component"
       onClick={() => onMatchClick && onMatchClick(match)}
     >
-      <div className="match-header mb-6">
-        <div className="text-lg font-bold text-gray-800 bg-blue-100 px-6 py-4 rounded-lg mb-4 text-center">
+      <div className="match-header">
+        <div className="tournament-round-text">
           {match.tournamentRoundText}
         </div>
-        <div className="text-base text-gray-600 flex items-center justify-center gap-2">
-          <Calendar className="h-5 w-5" />
-          <span className="text-center font-semibold">{match.startTime}</span>
+        <div className="start-time">
+          {match.startTime}
         </div>
       </div>
       
-      <div className="match-participants space-y-5">
+      <div className="match-participants">
         {match.participants.map((participant: any, index: number) => (
           <div 
             key={participant.id}
-            className={`participant flex flex-col items-center p-5 rounded-lg text-lg transition-all duration-200 ${
-              participant.isWinner 
-                ? 'bg-green-100 border-2 border-green-300 text-green-800 font-bold shadow-md' 
-                : 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100'
-            }`}
+            className={`participant ${participant.isWinner ? 'winner' : ''}`}
             onClick={(e) => {
               e.stopPropagation();
               onPartyClick && onPartyClick(participant, match);
             }}
           >
-            <span className="participant-name text-center font-bold leading-tight break-words w-full text-xl">
+            <span className="participant-name">
               {participant.name}
             </span>
             {participant.resultText && (
-              <span className="participant-score font-bold text-gray-800 mt-4 bg-white px-5 py-3 rounded-lg shadow-sm text-lg">
+              <span className="participant-score">
                 {participant.resultText}
               </span>
             )}
@@ -435,13 +430,9 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         ))}
       </div>
       
-      <div className="match-status mt-6 text-center">
-        <span className={`px-5 py-4 rounded-full text-base font-semibold ${
-          match.state === 'DONE' 
-            ? 'bg-green-200 text-green-800 border border-green-300' 
-            : 'bg-yellow-200 text-yellow-800 border border-yellow-300'
-        }`}>
-          {match.state === 'DONE' ? '✅ Completado' : '⏰ Programado'}
+      <div className="match-status">
+        <span className={`status ${match.state === 'DONE' ? 'completed' : 'scheduled'}`}>
+          {match.state === 'DONE' ? 'Completado' : 'Programado'}
         </span>
       </div>
     </div>
@@ -679,9 +670,9 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
       </div>
       
       {matches.length > 0 ? (
-        <div className="bracket-container bg-white rounded-xl p-8 shadow-lg overflow-hidden min-h-[900px] w-full">
+        <div className="bracket-container bg-white rounded-xl shadow-lg w-full min-h-[800px]">
           <div 
-            className="bracket-wrapper w-full h-full min-w-[2400px]"
+            className="bracket-wrapper w-full h-full"
             style={{
               transform: `scale(${zoomLevel})`,
               transformOrigin: 'center center',
@@ -706,8 +697,8 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
                 <SVGViewer
                   background={customTheme.svgBackground}
                   SVGBackground={customTheme.svgBackground}
-                  width={3200}
-                  height={1600}
+                  width={2560}
+                  height={1440}
                   {...props}
                 >
                   {children}

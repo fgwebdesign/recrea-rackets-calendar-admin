@@ -104,7 +104,7 @@ export default function TournamentBracketPage() {
       </div>
 
       {/* Contenido Principal */}
-      <div className="max-w-full mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <div className="max-w-full mx-auto px-4 py-8 sm:px-6 lg:px-8 overflow-hidden">
         {!hasEliminationMatches ? (
           <Card className="text-center py-16">
             <CardContent>
@@ -172,7 +172,7 @@ export default function TournamentBracketPage() {
             </Card>
 
             {/* Bracket en Pantalla Completa */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden w-full">
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-yellow-600" />
@@ -183,7 +183,7 @@ export default function TournamentBracketPage() {
                 </p>
               </div>
               
-              <div className="p-6">
+              <div className="p-6 w-full overflow-hidden">
                 <EliminationBracketViewer 
                   tournamentId={tournamentId}
                   bracketData={bracketData}
