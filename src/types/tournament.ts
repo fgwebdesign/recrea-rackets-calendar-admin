@@ -142,7 +142,21 @@ export interface TournamentTeam {
   payment_amount?: number
   unavailable_group_slot_id?: string
   unavailable_times?: string
-  // Relaciones expandidas
+  // Relaciones expandidas - usando 'teams' para coincidir con el backend
+  teams?: {
+    id: string
+    player1_id: string
+    player2_id: string
+    player1?: {
+      first_name: string
+      last_name: string
+    }
+    player2?: {
+      first_name: string
+      last_name: string
+    }
+  }
+  // Mantener 'team' para compatibilidad hacia atrás
   team?: Team
 }
 

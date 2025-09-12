@@ -15,29 +15,73 @@ export default function TournamentPaymentsPage() {
   const params = useParams();
   const router = useRouter();
   const { tournament, teams, loading, refetch } = useTournament(params.id as string);
+  
+  // ✅ Usar teams directamente del hook (ya incluye información de jugadores)
+  const actualTeams = teams || [];
   const { categories } = useCategories();
+
+  // 🔍 DEBUG: Ver qué datos tenemos
+  console.log('🔍 Tournament:', tournament);
+  console.log('🔍 Teams:', teams);
+  console.log('🔍 Teams length:', teams?.length);
+  console.log('🔍 Actual teams:', actualTeams);
+  
+  // 🔍 DEBUG: Ver estructura de un equipo
+  if (actualTeams && actualTeams.length > 0) {
+    console.log('🔍 First team structure:', actualTeams[0]);
+    console.log('🔍 Team keys:', Object.keys(actualTeams[0]));
+    console.log('🔍 Payment status inicial:', actualTeams[0].payment_status);
+    console.log('🔍 Payment date inicial:', actualTeams[0].payment_date);
+    if (actualTeams[0].teams) {
+      console.log('🔍 Teams structure:', actualTeams[0].teams);
+      console.log('🔍 Player1:', actualTeams[0].teams.player1);
+      console.log('🔍 Player2:', actualTeams[0].teams.player2);
+    }
+  }
 
   if (loading) return <LoadingSpinner />;
   if (!tournament) return null;
 
   const handleMarkAsPaid = async (teamId: string, paymentMethod: string) => {
     try {
-      const response = await fetch(`/api/tournaments/${params.id}/teams/${teamId}/mark-paid`, {
-        method: 'POST',
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('userToken');
+      
+      console.log('🔍 Marcando pago como completado para teamId:', teamId);
+      console.log('🔍 URL:', `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${params.id}/teams/${teamId}/payment`);
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${params.id}/teams/${teamId}/payment`, {
+        method: 'PUT',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          payment_reference: paymentMethod,
-          payment_status: 'completed'
+          payment_status: 'paid'
         }),
       });
 
+      console.log('🔍 Response status:', response.status);
+      console.log('🔍 Response ok:', response.ok);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('🔍 Error response:', errorText);
         throw new Error('Error al marcar el pago');
       }
 
+      const responseData = await response.json();
+      console.log('🔍 Response data:', responseData);
+
+      console.log('🔍 Refrescando datos...');
       await refetch();
+      console.log('🔍 Datos refrescados');
+      
+      // 🔍 DEBUG: Verificar que los datos se actualizaron
+      console.log('🔍 Teams después del refetch:', teams);
+      if (teams && teams.length > 0) {
+        console.log('🔍 Primer equipo después del refetch:', teams[0]);
+        console.log('🔍 Payment status del primer equipo:', teams[0].payment_status);
+      }
 
       toast({
         title: "Pago registrado",
@@ -46,6 +90,7 @@ export default function TournamentPaymentsPage() {
         }.`,
       });
     } catch (error) {
+      console.error('🔍 Error completo:', error);
       toast({
         title: "Error",
         description: "No se pudo registrar el pago. Por favor, intenta nuevamente.",
@@ -99,8 +144,28 @@ export default function TournamentPaymentsPage() {
         </div>
 
         <TournamentPaymentsPanel
-          teams={teams}
-          inscriptionCost={tournament.tournament_info?.[0]?.inscription_cost || 0}
+          teams={actualTeams.map(team => {
+            console.log('🔍 Mapping team:', team);
+            console.log('🔍 Team payment_status:', team.payment_status);
+            console.log('🔍 Team payment_date:', team.payment_date);
+            console.log('🔍 Team teams:', team.teams);
+            
+            return {
+              team_id: team.team_id,
+              payment_status: (team.payment_status === 'paid' ? 'paid' : 'pending') as 'pending' | 'paid' | 'completed',
+              payment_date: team.payment_date,
+              payment_reference: team.payment_reference,
+              created_at: team.created_at,
+              teams: {
+                id: team.team_id,
+                player1_id: team.teams?.player1_id || '',
+                player2_id: team.teams?.player2_id || '',
+                player1: team.teams?.player1,
+                player2: team.teams?.player2
+              }
+            };
+          })}
+          inscriptionCost={tournament.tournament_info?.inscription_cost || 0}
           category={getCategoryName(tournament.category_id, categories)}
           onMarkAsPaid={handleMarkAsPaid}
           handlePaymentMethodChange={handlePaymentMethodChange}

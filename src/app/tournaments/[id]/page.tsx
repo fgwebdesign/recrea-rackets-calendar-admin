@@ -3,6 +3,8 @@
 import { use } from 'react'
 import { useTournament } from '@/hooks/useTournaments'
 import { useCategories } from '@/hooks/useCategories'
+import { useTournamentPaymentStats } from '@/hooks/useTournamentStats'
+import { StatCard, TournamentPaymentChart, PaymentRateChart } from '@/components/Tournaments/stats/TournamentStats'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -48,6 +50,12 @@ export default function TournamentPage({ params }: PageProps) {
     error, 
     refetch 
   } = useTournament(id)
+
+  const { 
+    data: paymentStats, 
+    loading: paymentStatsLoading, 
+    error: paymentStatsError 
+  } = useTournamentPaymentStats(id)
   
   const { categories } = useCategories()
 
@@ -476,8 +484,56 @@ export default function TournamentPage({ params }: PageProps) {
           })}
         </div>
 
-        {/* Stats Summary */}
-        {stats && (
+        {/* Estadísticas Avanzadas */}
+        {paymentStats && !paymentStatsLoading && (
+          <div className="mt-8 space-y-6">
+            <div className="flex items-center gap-2">
+              <ChartBarIcon className="h-6 w-6 text-blue-600" />
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Estadísticas del Torneo</h2>
+            </div>
+
+            {/* Cards de Estadísticas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard
+                title="Revenue Potencial"
+                value={`$${paymentStats.total_potential_revenue.toLocaleString()}`}
+                subtitle={`$${paymentStats.inscription_cost} por equipo`}
+                icon={<BanknotesIcon className="h-6 w-6 text-green-600" />}
+              />
+              <StatCard
+                title="Revenue Actual"
+                value={`$${paymentStats.actual_revenue.toLocaleString()}`}
+                subtitle={`${paymentStats.paid_teams} equipos pagados`}
+                icon={<BanknotesIcon className="h-6 w-6 text-blue-600" />}
+              />
+              <StatCard
+                title="Revenue Pendiente"
+                value={`$${paymentStats.pending_revenue.toLocaleString()}`}
+                subtitle={`${paymentStats.pending_teams} equipos pendientes`}
+                icon={<BanknotesIcon className="h-6 w-6 text-orange-600" />}
+              />
+              <StatCard
+                title="Tasa de Pago"
+                value={`${paymentStats.payment_rate.toFixed(1)}%`}
+                subtitle={`${paymentStats.paid_teams}/${paymentStats.total_teams} equipos`}
+                icon={<ChartBarIcon className="h-6 w-6 text-purple-600" />}
+              />
+            </div>
+
+            {/* Gráficas */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <TournamentPaymentChart categoriesBreakdown={paymentStats.categories_breakdown} />
+              <PaymentRateChart 
+                paymentRate={paymentStats.payment_rate}
+                totalTeams={paymentStats.total_teams}
+                paidTeams={paymentStats.paid_teams}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Estadísticas Básicas (fallback) */}
+        {stats && !paymentStats && (
           <div className="mt-8">
             <Card>
               <CardHeader>
