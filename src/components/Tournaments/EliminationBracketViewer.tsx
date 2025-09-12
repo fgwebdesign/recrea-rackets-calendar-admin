@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SingleEliminationBracket, Match as TournamentMatch, MatchComponentProps, SVGViewer, createTheme } from '@g-loot/react-tournament-brackets';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Trophy, Calendar, Clock, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Loader2, Trophy, Calendar, Clock, ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
 
 interface EliminationBracketViewerProps {
   tournamentId: string;
@@ -18,6 +18,7 @@ interface Match {
   nextMatchId: string | null;
   tournamentRoundText: string;
   startTime: string;
+  courtName: string;
   state: 'DONE' | 'SCHEDULED' | 'NO_SHOW' | 'WALK_OVER' | 'NO_PARTY' | 'SCORE_DONE';
   participants: Array<{
     id: string;
@@ -54,8 +55,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [useTestData, setUseTestData] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1.0); // Zoom inicial alejado
+  const [zoomLevel, setZoomLevel] = useState(0.9); // Zoom inicial al 90%
   const svgViewerRef = useRef<any>(null);
 
   useEffect(() => {
@@ -68,8 +68,8 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
     try {
       setLoading(true);
       
-      // Obtener partidos y equipos en paralelo
-      const [matchesResponse, teamsResponse] = await Promise.all([
+      // Obtener partidos, equipos y canchas en paralelo
+      const [matchesResponse, teamsResponse, courtsResponse] = await Promise.all([
         fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/matches`,
           {
@@ -86,12 +86,21 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
               'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
             }
           }
+        ),
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/courts`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+            }
+          }
         )
       ]);
 
-      if (matchesResponse.ok && teamsResponse.ok) {
+      if (matchesResponse.ok && teamsResponse.ok && courtsResponse.ok) {
         const matchesData = await matchesResponse.json();
         const teamsData = await teamsResponse.json();
+        const courtsData = await courtsResponse.json();
         
         // Filtrar solo partidos eliminatorios
         const eliminationMatches = matchesData.matches.filter((match: any) => 
@@ -103,6 +112,14 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         if (teamsData.teams) {
           teamsData.teams.forEach((team: any) => {
             teamsMap.set(team.team_id, team);
+          });
+        }
+        
+        // Crear mapa de canchas para acceso rápido
+        const courtsMap = new Map();
+        if (courtsData.courts) {
+          courtsData.courts.forEach((court: any) => {
+            courtsMap.set(court.id, court);
           });
         }
         
@@ -120,6 +137,12 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
           const name2 = `${player2.first_name || ''} ${player2.last_name || ''}`.trim();
           
           return `${name1} / ${name2}`;
+        };
+        
+        // Función para obtener el nombre de la cancha
+        const getCourtName = (courtId: string): string => {
+          const court = courtsMap.get(courtId);
+          return court ? court.name : `Cancha ${courtId.slice(-4)}`;
         };
         
         // Crear estructura de bracket basada en los datos reales
@@ -150,6 +173,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
               nextMatchId: nextMatchId,
               tournamentRoundText: getRoundText(match.elimination_round),
               startTime: `${match.match_day} ${match.start_time}`,
+              courtName: getCourtName(match.court_id),
               state: matchState,
               participants: [
                 {
@@ -182,6 +206,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
               nextMatchId: nextMatchId,
               tournamentRoundText: roundText,
               startTime: startTime,
+              courtName: 'Por asignar',
               state: 'SCHEDULED' as const,
               participants: [
                 {
@@ -278,8 +303,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         // Verificar si tenemos suficientes partidos para un bracket completo
         if (formattedMatches.length < 4) {
           console.warn('⚠️ No hay suficientes partidos para mostrar un bracket completo');
-          console.warn('⚠️ Usando datos de prueba automáticamente...');
-          createTestData();
+          setError('No hay suficientes partidos para mostrar el bracket');
           return;
         }
         
@@ -293,8 +317,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         
         if (!hasCorrectStructure) {
           console.warn('⚠️ Los datos reales no tienen la estructura correcta');
-          console.warn('⚠️ Usando datos de prueba automáticamente...');
-          createTestData();
+          setError('Los datos del torneo no tienen la estructura correcta');
           return;
         }
         
@@ -363,15 +386,56 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
 
   // Funciones para controlar el zoom - ahora solo cambian el estado
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.1, 2.0));
+    setZoomLevel(prev => Math.min(prev + 0.1, 1.2)); // Máximo 120%
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.1, 0.3));
+    setZoomLevel(prev => Math.max(prev - 0.1, 0.6)); // Mínimo 60%
   };
 
   const handleResetZoom = () => {
-    setZoomLevel(0.6);
+    setZoomLevel(0.9);
+  };
+
+  // Función para generar PDF del bracket
+  const handleDownloadPDF = async () => {
+    try {
+      // Importar html2pdf dinámicamente
+      const html2pdf = (await import('html2pdf.js')).default;
+      
+      // Seleccionar el elemento del bracket
+      const element = document.querySelector('.bracket-container') as HTMLElement;
+      
+      if (!element) {
+        console.error('No se encontró el elemento del bracket');
+        return;
+      }
+
+      // Configuración del PDF
+      const options = {
+        margin: 0.5,
+        filename: `bracket-torneo-${tournamentId}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        },
+        jsPDF: { 
+          unit: 'in', 
+          format: 'a4', 
+          orientation: 'landscape' 
+        }
+      };
+
+      // Generar y descargar el PDF
+      await html2pdf().set(options).from(element).save();
+      
+      console.log('✅ PDF generado exitosamente');
+    } catch (error) {
+      console.error('❌ Error generando PDF:', error);
+    }
   };
 
   if (loading) {
@@ -393,22 +457,63 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
     );
   }
 
-  // Componente Match personalizado - usando estilos por defecto de la librería
+  // Componente Match personalizado - estilos por defecto de la librería
   const CustomMatchComponent = ({ match, onMatchClick, onPartyClick }: any) => (
     <div 
       className="match-component"
       onClick={() => onMatchClick && onMatchClick(match)}
     >
       <div className="match-header">
-        <div className="tournament-round-text">
-          {match.tournamentRoundText}
+        <div className="match-time" style={{
+          background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+          borderRadius: '6px',
+          color: 'white',
+          fontWeight: '600',
+          fontSize: '8px',
+          textAlign: 'center',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          marginBottom: '4px'
+        }}>
+          <span style={{
+            display: 'inline-block',
+            background: 'rgba(255,255,255,0.2)',
+            borderRadius: '4px',
+            padding: '2px 6px',
+            margin: '2px',
+            fontSize: '8px',
+            fontWeight: '700',
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase'
+          }}>
+            {match.startTime}
+          </span>
         </div>
-        <div className="start-time">
-          {match.startTime}
+        <div className="match-court" style={{
+          background: 'linear-gradient(135deg, #6c757d 0%, #495057 100%)',
+          borderRadius: '6px',
+          color: 'white',
+          fontWeight: '600',
+          fontSize: '8px',
+          textAlign: 'center',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <span style={{
+            display: 'inline-block',
+            background: 'rgba(255,255,255,0.2)',
+            borderRadius: '4px',
+            padding: '2px 6px',
+            margin: '2px',
+            fontSize: '8px',
+            fontWeight: '700',
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase'
+          }}>
+            🏟️ {match.courtName}
+          </span>
         </div>
       </div>
       
-      <div className="match-participants">
+      <div className="participants">
         {match.participants.map((participant: any, index: number) => (
           <div 
             key={participant.id}
@@ -418,225 +523,47 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
               onPartyClick && onPartyClick(participant, match);
             }}
           >
-            <span className="participant-name">
-              {participant.name}
-            </span>
-            {participant.resultText && (
-              <span className="participant-score">
-                {participant.resultText}
+            <div className="participant-name" style={{
+              background: index === 0 
+                ? 'linear-gradient(135deg, #ffb3ba 0%, #ff9a9e 100%)' // Rosa pastel para LOCAL
+                : 'linear-gradient(135deg, #a8d8ea 0%, #87ceeb 100%)', // Azul cielo pastel para VISITANTE
+              borderRadius: '6px',
+              color: '#333',
+              fontWeight: '600',
+              fontSize: '10px',
+              textAlign: 'center',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              marginBottom: participant.resultText ? '4px' : '0'
+            }}>
+              <span style={{
+                display: 'inline-block',
+                background: 'rgba(255,255,255,0.3)',
+                borderRadius: '4px',
+                padding: '2px 6px',
+                margin: '2px',
+                fontSize: '10px',
+                fontWeight: '700',
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                wordBreak: 'break-word'
+              }}>
+                {index === 0 ? '🏠 ' : '✈️ '}{participant.name}
               </span>
+            </div>
+            {participant.resultText && (
+              <div className="participant-score">
+                {participant.resultText}
+              </div>
             )}
           </div>
         ))}
       </div>
-      
-      <div className="match-status">
-        <span className={`status ${match.state === 'DONE' ? 'completed' : 'scheduled'}`}>
-          {match.state === 'DONE' ? 'Completado' : 'Programado'}
-        </span>
-      </div>
     </div>
   );
 
-  // Función para crear datos de prueba
-  const createTestData = () => {
-    const testMatches: Match[] = [
-      {
-        id: 'test1',
-        name: 'Match 1',
-        nextMatchId: 'test5',
-        tournamentRoundText: 'Cuartos de Final',
-        startTime: '2025-10-12 11:00:00',
-        state: 'SCHEDULED',
-        participants: [
-          {
-            id: 'team1',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'Arturo Tapia / Marcelo Tapia'
-          },
-          {
-            id: 'team2',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'Martin Cepero / Richard Cepero'
-          }
-        ]
-      },
-      {
-        id: 'test2',
-        name: 'Match 2',
-        nextMatchId: 'test5',
-        tournamentRoundText: 'Cuartos de Final',
-        startTime: '2025-10-12 12:00:00',
-        state: 'SCHEDULED',
-        participants: [
-          {
-            id: 'team3',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'Carlos Cepero / Felipe Cepero'
-          },
-          {
-            id: 'team4',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'MARCELO Cepero / Carlitos Cepero'
-          }
-        ]
-      },
-      {
-        id: 'test3',
-        name: 'Match 3',
-        nextMatchId: 'test6',
-        tournamentRoundText: 'Cuartos de Final',
-        startTime: '2025-10-12 13:00:00',
-        state: 'SCHEDULED',
-        participants: [
-          {
-            id: 'team5',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'Maxi Cepero / Travol Cepero'
-          },
-          {
-            id: 'team6',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'Josep Cepero / Deibis Cepero'
-          }
-        ]
-      },
-      {
-        id: 'test4',
-        name: 'Match 4',
-        nextMatchId: 'test6',
-        tournamentRoundText: 'Cuartos de Final',
-        startTime: '2025-10-12 14:00:00',
-        state: 'SCHEDULED',
-        participants: [
-          {
-            id: 'team7',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'Alvaro Cepero / Mateo Cepero'
-          },
-          {
-            id: 'team8',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'Runate Cepero / Runa Cepero'
-          }
-        ]
-      },
-      {
-        id: 'test5',
-        name: 'Match 5',
-        nextMatchId: 'test7',
-        tournamentRoundText: 'Semifinales',
-        startTime: '2025-10-12 15:00:00',
-        state: 'SCHEDULED',
-        participants: [
-          {
-            id: 'winner1',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'Ganador Match 1'
-          },
-          {
-            id: 'winner2',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'Ganador Match 2'
-          }
-        ]
-      },
-      {
-        id: 'test6',
-        name: 'Match 6',
-        nextMatchId: 'test7',
-        tournamentRoundText: 'Semifinales',
-        startTime: '2025-10-12 16:00:00',
-        state: 'SCHEDULED',
-        participants: [
-          {
-            id: 'winner3',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'Ganador Match 3'
-          },
-          {
-            id: 'winner4',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'Ganador Match 4'
-          }
-        ]
-      },
-      {
-        id: 'test7',
-        name: 'Match 7',
-        nextMatchId: null,
-        tournamentRoundText: 'Final',
-        startTime: '2025-10-12 17:00:00',
-        state: 'SCHEDULED',
-        participants: [
-          {
-            id: 'finalist1',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'Ganador Semifinal 1'
-          },
-          {
-            id: 'finalist2',
-            resultText: null,
-            isWinner: false,
-            status: null,
-            name: 'Ganador Semifinal 2'
-          }
-        ]
-      }
-    ];
-    
-    console.log('🧪 Test data created:', testMatches);
-    setMatches(testMatches);
-  };
 
   return (
     <div className="elimination-bracket-viewer">
-      {/* Botones de debug */}
-      <div className="mb-4 text-center space-x-4">
-        <Button 
-          onClick={createTestData}
-          variant="outline"
-          className="bg-yellow-100 border-yellow-300 text-yellow-800 hover:bg-yellow-200"
-        >
-          🧪 Usar Datos de Prueba
-        </Button>
-        <Button 
-          onClick={() => {
-            setUseTestData(false);
-            fetchEliminationMatches();
-          }}
-          variant="outline"
-          className="bg-blue-100 border-blue-300 text-blue-800 hover:bg-blue-200"
-        >
-          🔄 Usar Datos Reales
-        </Button>
-      </div>
 
       {/* Controles de zoom */}
       <div className="mb-4 flex justify-center items-center space-x-2">
@@ -666,6 +593,17 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
           className="bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200"
         >
           <RotateCcw className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Botón de descarga PDF */}
+      <div className="mb-4 flex justify-center">
+        <Button 
+          onClick={handleDownloadPDF}
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg shadow-md transition-colors duration-200 flex items-center gap-2"
+        >
+          <Download className="h-4 w-4" />
+          Descargar PDF del Bracket
         </Button>
       </div>
       

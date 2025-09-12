@@ -1,4 +1,4 @@
-/* Estilos básicos para el bracket - usando estilos por defecto de la librería */
+/* Estilos básicos para el bracket - sin interferir con la librería */
 
 /* Prevenir overflow horizontal global */
 * {
@@ -16,6 +16,16 @@ body {
   box-sizing: border-box;
 }
 
+/* Ocultar scrollbar horizontal cuando aparece por zoom */
+.elimination-bracket-viewer::-webkit-scrollbar {
+  display: none;
+}
+
+.elimination-bracket-viewer {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 .bracket-container {
   width: 100%;
   min-height: 800px;
@@ -23,6 +33,18 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow-x: hidden;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fafafa;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Estilos para dark mode */
+.dark .bracket-container {
+  border: 2px solid #374151;
+  background: #1f2937;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
 .bracket-wrapper {
@@ -31,11 +53,30 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow-x: hidden;
 }
 
-/* Estilos mínimos para el match component - usar estilos por defecto de la librería */
-.match-component {
-  /* Usar estilos por defecto de la librería */
+/* Ocultar scrollbar del SVGViewer y elementos internos */
+.bracket-wrapper svg {
+  overflow: hidden;
+}
+
+.bracket-wrapper div[style*="overflow"] {
+  overflow: hidden !important;
+}
+
+/* Ocultar scrollbar horizontal en todos los elementos del bracket */
+.bracket-wrapper * {
+  overflow-x: hidden !important;
+}
+
+.bracket-wrapper *::-webkit-scrollbar {
+  display: none !important;
+}
+
+.bracket-wrapper * {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
 }
 
 /* Controles de zoom */
