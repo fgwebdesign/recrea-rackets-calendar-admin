@@ -34,16 +34,10 @@ interface TournamentMatchModalProps {
   teams: any[];
   onSubmit: (matchId: string, result: any) => void;
   isLoading?: boolean;
+  error?: string | null;
+  success?: string | null;
 }
 
-function formatMatchDate(dateStr: string) {
-  if (!dateStr) return { date: 'Sin fecha', time: '' };
-  const date = new Date(dateStr);
-  return {
-    date: date.toLocaleDateString('es-UY'),
-    time: date.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' })
-  };
-}
 
 export function TournamentMatchModal({
   isOpen,
@@ -52,11 +46,13 @@ export function TournamentMatchModal({
   teams,
   onSubmit,
   isLoading = false,
+  error = null,
+  success = null,
 }: TournamentMatchModalProps) {
   const [set1, setSet1] = useState<SetScore>({ team1: null, team2: null, tiebreak: null });
   const [set2, setSet2] = useState<SetScore>({ team1: null, team2: null, tiebreak: null });
   const [superTiebreak, setSuperTiebreak] = useState<{ team1: number; team2: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   // Obtener equipo por ID
   const getTeamById = (teamId: string): any => {
@@ -83,7 +79,7 @@ export function TournamentMatchModal({
   const awayTeamName = formatPlayerNames(getTeamById(match.away_team_id));
 
   useEffect(() => {
-    setError(null);
+    setLocalError(null);
     // Inicializar con datos existentes del partido
     setSet1({
       team1: match.team1_sets1_won || null,
@@ -187,49 +183,58 @@ export function TournamentMatchModal({
   };
 
   const handleSubmitResult = () => {
-    setError(null);
+    setLocalError(null);
 
     // Validar que los sets sean números válidos
     if (!validateSetScore(set1.team1) || !validateSetScore(set1.team2) ||
         !validateSetScore(set2.team1) || !validateSetScore(set2.team2)) {
-      setError("Los sets deben ser números entre 0 y 7");
+      setLocalError("Los sets deben ser números entre 0 y 7");
       return;
     }
 
     // Validar que haya un ganador en cada set
     if (!getSetWinner(set1)) {
-      setError("El primer set debe tener un ganador claro (diferencia de 2 juegos o ganar el tiebreak)");
+      setLocalError("El primer set debe tener un ganador claro (diferencia de 2 juegos o ganar el tiebreak)");
       return;
     }
     if (!getSetWinner(set2)) {
-      setError("El segundo set debe tener un ganador claro (diferencia de 2 juegos o ganar el tiebreak)");
+      setLocalError("El segundo set debe tener un ganador claro (diferencia de 2 juegos o ganar el tiebreak)");
       return;
     }
 
     // Validar super tiebreak si es necesario
     if (showSuperTiebreak) {
       if (!superTiebreak || !validateTiebreakScore(superTiebreak.team1) || !validateTiebreakScore(superTiebreak.team2)) {
-        setError("El super tiebreak debe tener valores válidos");
+        setLocalError("El super tiebreak debe tener valores válidos");
         return;
       }
       if (superTiebreak.team1 === superTiebreak.team2) {
-        setError("El super tiebreak debe tener un ganador");
+        setLocalError("El super tiebreak debe tener un ganador");
         return;
       }
     }
 
     const result = {
-      team1_sets1_won: set1.team1 || 0,
-      team2_sets1_won: set1.team2 || 0,
-      team1_sets2_won: set2.team1 || 0,
-      team2_sets2_won: set2.team2 || 0,
-      team1_tie1_won: set1.tiebreak?.team1 || 0,
-      team2_tie1_won: set1.tiebreak?.team2 || 0,
-      team1_tie2_won: set2.tiebreak?.team1 || 0,
-      team2_tie2_won: set2.tiebreak?.team2 || 0,
-      team1_tie3_won: superTiebreak?.team1 || 0,
-      team2_tie3_won: superTiebreak?.team2 || 0,
-      winner_team_id: getMatchWinner().winner
+      set1: {
+        team1: set1.team1 || 0,
+        team2: set1.team2 || 0,
+        tiebreak: set1.tiebreak ? {
+          team1: set1.tiebreak.team1 || 0,
+          team2: set1.tiebreak.team2 || 0
+        } : undefined
+      },
+      set2: {
+        team1: set2.team1 || 0,
+        team2: set2.team2 || 0,
+        tiebreak: set2.tiebreak ? {
+          team1: set2.tiebreak.team1 || 0,
+          team2: set2.tiebreak.team2 || 0
+        } : undefined
+      },
+      superTiebreak: superTiebreak ? {
+        team1: superTiebreak.team1 || 0,
+        team2: superTiebreak.team2 || 0
+      } : undefined
     };
 
     onSubmit(match.id, result);
@@ -331,7 +336,7 @@ export function TournamentMatchModal({
                 </div>
                 <div className="relative">
                   <Badge className="bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-500/50 text-sm px-4 py-1.5 rounded-full">
-                    {match.match_day ? formatMatchDate(match.match_day).date : 'Sin fecha'} {match.start_time || ''}
+                    {match.match_day || 'Sin fecha'} {match.start_time || ''}
                   </Badge>
                 </div>
               </div>
@@ -627,10 +632,19 @@ export function TournamentMatchModal({
                           ) : <div />}
                         </div>
 
-                        {error && (
+                        {/* Alertas de error */}
+                        {(localError || error) && (
                           <Alert variant="destructive" className="mt-4 animate-in fade-in slide-in-from-top-1">
                             <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{error}</AlertDescription>
+                            <AlertDescription>{localError || error}</AlertDescription>
+                          </Alert>
+                        )}
+                        
+                        {/* Alertas de éxito */}
+                        {success && (
+                          <Alert className="mt-4 animate-in fade-in slide-in-from-top-1 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
+                            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            <AlertDescription className="text-green-800 dark:text-green-200">{success}</AlertDescription>
                           </Alert>
                         )}
                       </div>

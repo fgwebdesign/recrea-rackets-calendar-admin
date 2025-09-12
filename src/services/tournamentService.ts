@@ -286,11 +286,11 @@ export class GroupService {
 // ========================================
 
 export class MatchService {
-  private baseUrl = `${API_BASE_URL}/tournaments`
+  private baseUrl = `${API_BASE_URL}`
 
   // 📅 Programar partidos por grupo y día
   async scheduleMatchesByGroup(tournamentId: string, token: string): Promise<ApiResponse<ScheduledMatch[]>> {
-    const response = await fetch(`${this.baseUrl}/${tournamentId}/schedule-matches-by-group`, {
+    const response = await fetch(`${this.baseUrl}/tournaments/${tournamentId}/schedule-matches-by-group`, {
       method: 'POST',
       headers: getAuthHeaders(token)
     })
@@ -299,7 +299,7 @@ export class MatchService {
 
   // 🤖 Programar partidos automáticamente
   async scheduleMatchesAutomatically(tournamentId: string, token: string): Promise<ApiResponse<ScheduledMatch[]>> {
-    const response = await fetch(`${this.baseUrl}/${tournamentId}/schedule-matches-automatically`, {
+    const response = await fetch(`${this.baseUrl}/tournaments/${tournamentId}/schedule-matches-automatically`, {
       method: 'POST',
       headers: getAuthHeaders(token)
     })
@@ -308,13 +308,13 @@ export class MatchService {
 
   // 📋 Obtener partidos del torneo
   async getTournamentMatches(tournamentId: string): Promise<TournamentMatch[]> {
-    const response = await fetch(`${this.baseUrl}/${tournamentId}/matches`)
+    const response = await fetch(`${this.baseUrl}/tournaments/${tournamentId}/matches`)
     return handleApiResponse<TournamentMatch[]>(response)
   }
 
   // ⚡ Generar partidos del torneo
   async generateMatches(tournamentId: string): Promise<TournamentMatch[]> {
-    const response = await fetch(`${this.baseUrl}/${tournamentId}/generate-matches`, {
+    const response = await fetch(`${this.baseUrl}/tournaments/${tournamentId}/generate-matches`, {
       method: 'POST',
       headers: getAuthHeaders()
     })
@@ -322,10 +322,15 @@ export class MatchService {
   }
 
   // 🏆 Actualizar resultado de partido
-  async updateMatchResult(matchId: string, result: any): Promise<TournamentMatch> {
-    const response = await fetch(`${this.baseUrl}/matches/${matchId}/result`, {
+  async updateMatchResult(matchId: string, result: any, tournamentId?: string, token?: string): Promise<TournamentMatch> {
+    // Si no se proporciona tournamentId, intentar extraerlo del contexto o usar un valor por defecto
+    const url = tournamentId 
+      ? `${this.baseUrl}/matches/tournaments/${tournamentId}/matches/${matchId}/result`
+      : `${this.baseUrl}/matches/${matchId}/result`;
+    
+    const response = await fetch(url, {
       method: 'PUT',
-      headers: getAuthHeaders(),
+      headers: getAuthHeaders(token),
       body: JSON.stringify(result)
     })
     return handleApiResponse<TournamentMatch>(response)
@@ -333,7 +338,7 @@ export class MatchService {
 
   // 📊 Calcular standings dinámicamente
   async calculateStandings(tournamentId: string, token: string): Promise<ApiResponse<TournamentStanding[]>> {
-    const response = await fetch(`${this.baseUrl}/${tournamentId}/calculate-standings`, {
+    const response = await fetch(`${this.baseUrl}/tournaments/${tournamentId}/calculate-standings`, {
       method: 'POST',
       headers: getAuthHeaders(token)
     })

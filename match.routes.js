@@ -24,8 +24,7 @@ router.post('/', verifyToken, verifyAdmin, createMatch)
 // Actualizar partido
 router.put('/:id', verifyToken, verifyAdmin, updateMatch)
 
-// Actualizar resultado de partido (Sistema Pádel Uruguayo)
-router.put('/tournaments/:tournamentId/matches/:matchId/result', verifyToken, verifyAdmin, updateMatchResult)
+// Actualizar resultado de partido (Sistema Pádel Uruguayo) - MOVIDO A tournament.routes.js
 
 // Eliminar partido
 router.delete('/:id', verifyToken, verifyAdmin, deleteMatch)

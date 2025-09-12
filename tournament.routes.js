@@ -28,6 +28,7 @@ import {
     updateTeamPaymentStatus,
     adminRegisterTeam
 } from '../controllers/tournament.controller.js'
+import { updateMatchResult } from '../controllers/match.controller.js'
 import { setTournamentRequiredInfo, setTournamentThumbnail, setTournamentPrize, setTournamentSponsors } from '../controllers/tournamentInfo.controller.js'
 import { populateTournament } from '../helpers/tournament.helpers.js'
 import { verifyToken } from '../middlewares/auth.middleware.js'
@@ -1036,5 +1037,73 @@ router.get('/stats/period', verifyToken, verifyAdmin, getTournamentPeriodStats)
  *         description: Error interno del servidor
  */
 router.get('/stats/overview', verifyToken, verifyAdmin, getTournamentOverviewStats)
+
+/**
+ * @swagger
+ * /tournaments/{tournamentId}/matches/{matchId}/result:
+ *   put:
+ *     summary: Actualizar resultado de un partido eliminatorio
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tournamentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del torneo
+ *       - in: path
+ *         name: matchId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del partido
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - set1
+ *               - set2
+ *             properties:
+ *               set1:
+ *                 type: object
+ *                 properties:
+ *                   team1:
+ *                     type: number
+ *                   team2:
+ *                     type: number
+ *                   tiebreak:
+ *                     type: object
+ *               set2:
+ *                 type: object
+ *                 properties:
+ *                   team1:
+ *                     type: number
+ *                   team2:
+ *                     type: number
+ *                   tiebreak:
+ *                     type: object
+ *               superTiebreak:
+ *                 type: object
+ *                 properties:
+ *                   team1:
+ *                     type: number
+ *                   team2:
+ *                     type: number
+ *     responses:
+ *       200:
+ *         description: Resultado actualizado exitosamente
+ *       400:
+ *         description: Datos inválidos
+ *       404:
+ *         description: Partido no encontrado
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.put('/:tournamentId/matches/:matchId/result', verifyToken, verifyAdmin, updateMatchResult)
 
 export default router

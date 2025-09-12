@@ -486,8 +486,15 @@ export async function updateMatchResult(req, res) {
 
     if (updateError) throw updateError;
 
-    // Actualizar standings automáticamente después de completar el partido
-    await updateGroupStandingsAfterMatch(tournamentId, updatedMatch.group_number);
+    // Si es un partido de grupo, actualizar standings automáticamente después de completar el partido
+    if (updatedMatch.round === 'group') {
+      await updateGroupStandingsAfterMatch(tournamentId, updatedMatch.group_number);
+    }
+
+    // Si es un partido eliminatorio, manejar la progresión
+    if (updatedMatch.round !== 'group') {
+      await handleEliminationProgression(tournamentId, updatedMatch);
+    }
 
     res.json({
       message: 'Resultado actualizado exitosamente',
@@ -593,5 +600,103 @@ export async function deleteMatch(req, res) {
     res.json({ message: 'Match deleted', match: data })
   } catch (err) {
     res.status(500).json({ message: err.message })
+  }
+}
+
+/**
+ * 🏆 MANEJAR PROGRESIÓN ELIMINATORIA
+ * Cuando se completa un partido eliminatorio, crear automáticamente el siguiente partido
+ */
+async function handleEliminationProgression(tournamentId, completedMatch) {
+  try {
+    console.log(`🏆 Procesando progresión eliminatoria para partido ${completedMatch.id}`);
+    
+    // Determinar la siguiente ronda
+    let nextRound = null;
+    let nextMatchNumber = null;
+    
+    switch (completedMatch.round) {
+      case 'quarter_final':
+      case 'quarterfinals': // Por si acaso está en plural
+        nextRound = 'semi_final';
+        // Determinar número de semifinal basado en el partido de cuartos
+        // Asegurar que empiece desde 1, no desde 0
+        nextMatchNumber = Math.max(1, Math.ceil(completedMatch.match_number / 2));
+        break;
+      case 'semi_final':
+      case 'semifinals': // Por si acaso está en plural
+        nextRound = 'final';
+        nextMatchNumber = 1; // Solo hay una final
+        break;
+      case 'final':
+        // No hay siguiente ronda, el torneo termina
+        console.log('🏆 ¡Torneo completado!');
+        return;
+      default:
+        console.log(`⚠️ Ronda no reconocida: ${completedMatch.round}`);
+        return;
+    }
+    
+    // Verificar si ya existe el partido de la siguiente ronda
+    const { data: existingNextMatch, error: checkError } = await supabase
+      .from('tournament_matches')
+      .select('*')
+      .eq('tournament_id', tournamentId)
+      .eq('round', nextRound)
+      .eq('match_number', nextMatchNumber)
+      .single();
+    
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+      throw checkError;
+    }
+    
+    if (existingNextMatch) {
+      console.log(`✅ Partido ${nextRound} ${nextMatchNumber} ya existe`);
+      
+      // Actualizar el partido existente con el ganador
+      const winnerTeamId = completedMatch.winner_team_id;
+      const isHomeTeam = existingNextMatch.home_team_id === null;
+      
+      const updateData = isHomeTeam 
+        ? { home_team_id: winnerTeamId }
+        : { away_team_id: winnerTeamId };
+      
+      const { error: updateError } = await supabase
+        .from('tournament_matches')
+        .update(updateData)
+        .eq('id', existingNextMatch.id);
+      
+      if (updateError) throw updateError;
+      
+      console.log(`✅ Ganador ${winnerTeamId} agregado al partido ${nextRound} ${nextMatchNumber}`);
+    } else {
+      console.log(`🔮 Creando nuevo partido ${nextRound} ${nextMatchNumber}`);
+      
+      // Crear nuevo partido para la siguiente ronda
+      const newMatchData = {
+        tournament_id: tournamentId,
+        home_team_id: completedMatch.winner_team_id, // El ganador va como local
+        away_team_id: null, // Se llenará cuando se complete el otro partido de la ronda actual
+        round: nextRound,
+        stage: nextRound, // Agregar el campo stage que es obligatorio
+        match_number: nextMatchNumber,
+        status: 'scheduled',
+        court_id: null, // Se asignará después
+        match_day: null, // Se programará después
+        start_time: null
+      };
+      
+      const { error: createError } = await supabase
+        .from('tournament_matches')
+        .insert(newMatchData);
+      
+      if (createError) throw createError;
+      
+      console.log(`✅ Partido ${nextRound} ${nextMatchNumber} creado con ganador ${completedMatch.winner_team_id}`);
+    }
+    
+  } catch (error) {
+    console.error('❌ Error en progresión eliminatoria:', error);
+    // No lanzamos el error para no afectar la respuesta del partido
   }
 }

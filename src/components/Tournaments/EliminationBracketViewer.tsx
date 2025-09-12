@@ -5,6 +5,7 @@ import { SingleEliminationBracket, Match as TournamentMatch, MatchComponentProps
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Trophy, Calendar, Clock, ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
+import { TournamentMatchModal } from './TournamentMatchModal';
 
 interface EliminationBracketViewerProps {
   tournamentId: string;
@@ -57,6 +58,14 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(0.9); // Zoom inicial al 90%
   const svgViewerRef = useRef<any>(null);
+  
+  // Estados para el modal de resultados
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [savingResult, setSavingResult] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [modalSuccess, setModalSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEliminationMatches();
@@ -107,12 +116,18 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
           match.round !== 'group'
         );
         
+        console.log('🔍 Debug - Todos los partidos:', matchesData.matches.length);
+        console.log('🔍 Debug - Partidos eliminatorios:', eliminationMatches.length);
+        console.log('🔍 Debug - Partidos por round:', eliminationMatches.map((m: any) => `${m.round} (${m.match_number})`));
+        
         // Crear mapa de equipos para acceso rápido
         const teamsMap = new Map();
         if (teamsData.teams) {
           teamsData.teams.forEach((team: any) => {
             teamsMap.set(team.team_id, team);
           });
+          // Guardar equipos para el modal
+          setTeams(teamsData.teams);
         }
         
         // Crear mapa de canchas para acceso rápido
@@ -163,8 +178,37 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
               matchState = 'SCHEDULED';
             }
 
-            const formatScore = (sets1: number, sets2: number) => {
-              return `${sets1}-${sets2}`;
+            const formatScore = (match: any) => {
+              let score = '';
+              
+              // Set 1
+              if (match.team1_sets1_won !== null && match.team2_sets1_won !== null) {
+                score += `${match.team1_sets1_won}-${match.team2_sets1_won}`;
+                
+                // Tiebreak del Set 1
+                if (match.team1_tie1_won && match.team2_tie1_won) {
+                  score += ` (${match.team1_tie1_won}-${match.team2_tie1_won})`;
+                }
+              }
+              
+              // Set 2
+              if (match.team1_sets2_won !== null && match.team2_sets2_won !== null) {
+                if (score) score += ', ';
+                score += `${match.team1_sets2_won}-${match.team2_sets2_won}`;
+                
+                // Tiebreak del Set 2
+                if (match.team1_tie2_won && match.team2_tie2_won) {
+                  score += ` (${match.team1_tie2_won}-${match.team2_tie2_won})`;
+                }
+              }
+              
+              // Super Tiebreak
+              if (match.team1_tie3_won && match.team2_tie3_won) {
+                if (score) score += ', ';
+                score += `ST: ${match.team1_tie3_won}-${match.team2_tie3_won}`;
+              }
+              
+              return score || 'Sin resultado';
             };
 
             return {
@@ -178,18 +222,14 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
               participants: [
                 {
                   id: String(match.home_team_id),
-                  resultText: match.status === 'completed' ? 
-                    `${formatScore(match.team1_sets1_won, match.team2_sets1_won)}, ${formatScore(match.team1_sets2_won, match.team2_sets2_won)}` : 
-                    null,
+                  resultText: match.status === 'completed' ? formatScore(match) : null,
                   isWinner: match.winner_team_id === match.home_team_id,
                   status: match.status === 'completed' ? 'PLAYED' as const : null,
                   name: getTeamName(match.home_team_id)
                 },
                 {
                   id: String(match.away_team_id),
-                  resultText: match.status === 'completed' ? 
-                    `${formatScore(match.team1_sets1_won, match.team2_sets1_won)}, ${formatScore(match.team1_sets2_won, match.team2_sets2_won)}` : 
-                    null,
+                  resultText: match.status === 'completed' ? formatScore(match) : null,
                   isWinner: match.winner_team_id === match.away_team_id,
                   status: match.status === 'completed' ? 'PLAYED' as const : null,
                   name: getTeamName(match.away_team_id)
@@ -301,15 +341,19 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         console.log('🧪 Test data has 7 matches, real data has:', formattedMatches.length);
         
         // Verificar si tenemos suficientes partidos para un bracket completo
-        if (formattedMatches.length < 4) {
+        // Para torneos NINE_PLAYERS necesitamos mínimo 3 partidos (2 semifinales + 1 final)
+        if (formattedMatches.length < 3) {
           console.warn('⚠️ No hay suficientes partidos para mostrar un bracket completo');
           setError('No hay suficientes partidos para mostrar el bracket');
           return;
         }
         
         // Verificar si los datos tienen la estructura correcta
+        // Para torneos NINE_PLAYERS puede empezar con semifinales (singular o plural)
         const hasCorrectStructure = formattedMatches.some(match => 
-          match.tournamentRoundText === 'Cuartos de Final' && 
+          (match.tournamentRoundText === 'Cuartos de Final' || 
+           match.tournamentRoundText === 'Semifinal' || 
+           match.tournamentRoundText === 'Semifinales') && 
           match.participants.length === 2 &&
           match.participants[0].name && 
           match.participants[1].name
@@ -348,16 +392,10 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
     return roundTexts[eliminationRound] || eliminationRound;
   };
 
-  const handleMatchClick = (match: Match) => {
-    console.log('Match clicked:', match);
-    // Aquí puedes abrir un modal para editar el resultado
-    // o navegar a una página de edición
-  };
-
   const handleMatchUpdate = async (matchId: string, result: any) => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/matches/${matchId}/result`,
+        `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/matches/${matchId}/result`,
         {
           method: 'PUT',
           headers: {
@@ -435,6 +473,89 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
       console.log('✅ PDF generado exitosamente');
     } catch (error) {
       console.error('❌ Error generando PDF:', error);
+    }
+  };
+
+  // Manejar clic en partido para abrir modal de resultados
+  const handleMatchClick = (match: any) => {
+    console.log('🎯 Partido clickeado:', match);
+    
+    // Convertir el match del bracket al formato esperado por el modal
+    const modalMatch = {
+      id: match.id,
+      tournament_id: tournamentId,
+      home_team_id: match.participants[0]?.id,
+      away_team_id: match.participants[1]?.id,
+      match_day: match.startTime.split(' ')[0], // Extraer fecha
+      start_time: match.startTime.split(' ')[1], // Extraer hora
+      status: match.state === 'DONE' ? 'completed' : 'scheduled',
+      // Agregar datos de resultado si el partido está completado
+      team1_sets1_won: match.participants[0]?.resultText ? 0 : null,
+      team2_sets1_won: match.participants[0]?.resultText ? 0 : null,
+      team1_sets2_won: match.participants[0]?.resultText ? 0 : null,
+      team2_sets2_won: match.participants[0]?.resultText ? 0 : null,
+      winner_team_id: match.participants.find((p: any) => p.isWinner)?.id || null
+    };
+    
+    setSelectedMatch(modalMatch);
+    setIsModalOpen(true);
+    setModalError(null);
+    setModalSuccess(null);
+  };
+
+  // Cerrar modal
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedMatch(null);
+    setModalError(null);
+    setModalSuccess(null);
+  };
+
+  // Guardar resultado desde el modal
+  const handleSaveResult = async (matchId: string, result: any) => {
+    setSavingResult(true);
+    setModalError(null);
+    setModalSuccess(null);
+    
+    try {
+      const token = localStorage.getItem('adminToken');
+      console.log('🔑 Token obtenido:', token ? 'Token presente' : 'Token ausente');
+      
+      if (!token) {
+        setModalError('No hay token de autenticación disponible');
+        return;
+      }
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/matches/${matchId}/result`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(result)
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al guardar el resultado');
+      }
+
+      setModalSuccess('¡Resultado guardado exitosamente!');
+      
+      // Cerrar modal después de 1.5 segundos y recargar datos
+      setTimeout(async () => {
+        await fetchEliminationMatches();
+        handleCloseModal();
+      }, 1500);
+      
+    } catch (error: any) {
+      console.error('Error saving match result:', error);
+      setModalError(error.message || 'Error al guardar el resultado');
+    } finally {
+      setSavingResult(false);
     }
   };
 
@@ -533,7 +654,11 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
               fontSize: '10px',
               textAlign: 'center',
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              marginBottom: participant.resultText ? '4px' : '0'
+              marginBottom: participant.resultText ? '2px' : '2px',
+              minHeight: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}>
               <span style={{
                 display: 'inline-block',
@@ -551,7 +676,27 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
               </span>
             </div>
             {participant.resultText && (
-              <div className="participant-score">
+              <div className="participant-score" style={{
+                fontSize: '7px',
+                fontWeight: '500',
+                color: '#333',
+                textAlign: 'center',
+                background: 'rgba(255,255,255,0.95)',
+                borderRadius: '2px',
+                padding: '1px 2px',
+                margin: '1px',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                wordBreak: 'break-all',
+                border: '1px solid rgba(0,0,0,0.1)',
+                minHeight: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: '1.2'
+              }}>
                 {participant.resultText}
               </div>
             )}
@@ -653,6 +798,79 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
             <p className="text-blue-700">Haz clic en "Generar Fase Eliminatoria" para comenzar.</p>
           </div>
         </div>
+      )}
+
+      {/* Sección de Resultados - Debajo del Bracket */}
+      {matches.length > 0 && (
+        <div className="mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              🏆 Gestión de Resultados
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Haz clic en cualquier partido para ingresar resultados
+            </p>
+          </div>
+          
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {matches.map((match) => (
+              <div 
+                key={match.id}
+                className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:shadow-md transition-shadow cursor-pointer bg-gray-50 dark:bg-gray-700"
+                onClick={() => handleMatchClick(match)}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {match.tournamentRoundText}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {match.startTime}
+                  </span>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {match.participants[0]?.name || 'Equipo Local'}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      🏠
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {match.participants[1]?.name || 'Equipo Visitante'}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      ✈️
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    🏟️ {match.courtName || 'Por asignar'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Modal de Resultados */}
+      {selectedMatch && (
+        <TournamentMatchModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          match={selectedMatch}
+          teams={teams}
+          onSubmit={handleSaveResult}
+          isLoading={savingResult}
+          error={modalError}
+          success={modalSuccess}
+        />
       )}
     </div>
   );

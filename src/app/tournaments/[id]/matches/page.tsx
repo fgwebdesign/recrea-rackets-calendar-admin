@@ -60,6 +60,8 @@ export default function TournamentMatchesPage() {
   const [selectedMatch, setSelectedMatch] = useState<TournamentMatch | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [savingResult, setSavingResult] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [modalSuccess, setModalSuccess] = useState<string | null>(null);
   
   // Estado para la fase eliminatoria
   const [bracketData, setBracketData] = useState<any>(null);
@@ -127,18 +129,37 @@ export default function TournamentMatchesPage() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedMatch(null);
+    setModalError(null);
+    setModalSuccess(null);
   };
 
   // Guardar resultado desde el modal
   const handleSaveResult = async (matchId: string, result: any) => {
     setSavingResult(true);
+    setModalError(null);
+    setModalSuccess(null);
+    
+    
     try {
-      await matchService.updateMatchResult(matchId, result);
-      await refetch(); // Recargar datos
-      handleCloseModal();
-    } catch (error) {
+      const token = localStorage.getItem('adminToken');
+      
+      if (!token) {
+        setModalError('No hay token de autenticación disponible');
+        return;
+      }
+      
+      await matchService.updateMatchResult(matchId, result, tournamentId, token);
+      setModalSuccess('¡Resultado guardado exitosamente!');
+      
+      // Cerrar modal después de 1.5 segundos
+      setTimeout(async () => {
+        await refetch(); // Recargar datos
+        handleCloseModal();
+      }, 1500);
+      
+    } catch (error: any) {
       console.error('Error saving match result:', error);
-      throw error;
+      setModalError(error.message || 'Error al guardar el resultado');
     } finally {
       setSavingResult(false);
     }
@@ -166,7 +187,14 @@ export default function TournamentMatchesPage() {
 
     setIsUpdatingResult(matchId);
     try {
-      await matchService.updateMatchResult(matchId, result);
+      const token = localStorage.getItem('adminToken');
+      console.log('🔑 Token para updateResult:', token ? 'Token presente' : 'Token ausente');
+      
+      if (!token) {
+        throw new Error('No hay token de autenticación disponible');
+      }
+      
+      await matchService.updateMatchResult(matchId, result, tournamentId, token);
       setShowResultForm(null);
       setMatchResults(prev => {
         const newResults = { ...prev };
@@ -725,6 +753,8 @@ export default function TournamentMatchesPage() {
           teams={teams}
           onSubmit={handleSaveResult}
           isLoading={savingResult}
+          error={modalError}
+          success={modalSuccess}
         />
       )}
     </div>
