@@ -18,12 +18,14 @@ import {
     generateGroupsPhase,
     generateGroupsManual,
     getGroups,
+    getTournamentPaymentStats,
+    getTournamentPeriodStats,
+    getTournamentOverviewStats,
     validateGroupScheduleConflicts,
     scheduleMatchesAutomatically,
     scheduleMatchesByGroupAndDayEndpoint,
     getGroupStandings,
     updateTeamPaymentStatus,
-    getTournamentPaymentStats,
     adminRegisterTeam
 } from '../controllers/tournament.controller.js'
 import { setTournamentRequiredInfo, setTournamentThumbnail, setTournamentPrize, setTournamentSponsors } from '../controllers/tournamentInfo.controller.js'
@@ -870,5 +872,169 @@ router.put('/:tournamentId/teams/:teamId/payment', verifyToken, verifyAdmin, upd
  *         description: Error interno del servidor
  */
 router.get('/:id/payment-stats', verifyToken, verifyAdmin, getTournamentPaymentStats)
+
+// ========================================
+// 📊 RUTAS DE ESTADÍSTICAS
+// ========================================
+
+/**
+ * @swagger
+ * /tournaments/stats/payments/{tournamentId}:
+ *   get:
+ *     summary: Obtener estadísticas de pagos de un torneo
+ *     tags: [Tournaments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tournamentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del torneo
+ *       - in: query
+ *         name: categoryId
+ *         schema:
+ *           type: string
+ *         description: ID de la categoría (opcional)
+ *     responses:
+ *       200:
+ *         description: Estadísticas de pagos obtenidas exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 tournament_name:
+ *                   type: string
+ *                 tournament_type:
+ *                   type: string
+ *                 inscription_cost:
+ *                   type: number
+ *                 total_categories:
+ *                   type: number
+ *                 total_teams:
+ *                   type: number
+ *                 total_potential_revenue:
+ *                   type: number
+ *                 paid_teams:
+ *                   type: number
+ *                 pending_teams:
+ *                   type: number
+ *                 failed_teams:
+ *                   type: number
+ *                 actual_revenue:
+ *                   type: number
+ *                 pending_revenue:
+ *                   type: number
+ *                 payment_rate:
+ *                   type: number
+ *                 categories_breakdown:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       404:
+ *         description: Torneo no encontrado
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/stats/payments/:tournamentId', verifyToken, verifyAdmin, getTournamentPaymentStats)
+
+/**
+ * @swagger
+ * /tournaments/stats/period:
+ *   get:
+ *     summary: Obtener estadísticas de torneos por período
+ *     tags: [Tournaments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: start_date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha de inicio (YYYY-MM-DD)
+ *       - in: query
+ *         name: end_date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha de fin (YYYY-MM-DD)
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [monthly, weekly, daily]
+ *         description: Período de agrupación
+ *     responses:
+ *       200:
+ *         description: Estadísticas del período obtenidas exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 period:
+ *                   type: string
+ *                 total_tournaments:
+ *                   type: number
+ *                 total_categories:
+ *                   type: number
+ *                 total_teams:
+ *                   type: number
+ *                 total_revenue:
+ *                   type: number
+ *                 average_payment_rate:
+ *                   type: number
+ *                 monthly_breakdown:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       400:
+ *         description: Parámetros de fecha requeridos
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/stats/period', verifyToken, verifyAdmin, getTournamentPeriodStats)
+
+/**
+ * @swagger
+ * /tournaments/stats/overview:
+ *   get:
+ *     summary: Obtener estadísticas generales de torneos
+ *     tags: [Tournaments]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Estadísticas generales obtenidas exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total_tournaments:
+ *                   type: number
+ *                 active_tournaments:
+ *                   type: number
+ *                 completed_tournaments:
+ *                   type: number
+ *                 upcoming_tournaments:
+ *                   type: number
+ *                 total_teams:
+ *                   type: number
+ *                 paid_teams:
+ *                   type: number
+ *                 payment_rate:
+ *                   type: number
+ *                 tournament_types:
+ *                   type: object
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/stats/overview', verifyToken, verifyAdmin, getTournamentOverviewStats)
 
 export default router

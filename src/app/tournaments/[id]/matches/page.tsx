@@ -29,6 +29,8 @@ import {
 import { TournamentMatch, Team } from '@/types/tournament';
 import { TournamentMatchModal } from '@/components/Tournaments/TournamentMatchModal';
 import { getCategoryName } from '@/utils/category';
+import EliminationBracketGenerator from '@/components/Tournaments/EliminationBracketGenerator';
+import EliminationBracketViewer from '@/components/Tournaments/EliminationBracketViewer';
 
 interface MatchResult {
   matchId: string;
@@ -58,12 +60,26 @@ export default function TournamentMatchesPage() {
   const [selectedMatch, setSelectedMatch] = useState<TournamentMatch | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [savingResult, setSavingResult] = useState(false);
+  
+  // Estado para la fase eliminatoria
+  const [bracketData, setBracketData] = useState<any>(null);
+  const [showBracket, setShowBracket] = useState(false);
 
   // Calcular estadísticas
   const totalMatches = Array.isArray(matches) ? matches.length : 0;
   const completedMatches = Array.isArray(matches) ? matches.filter(m => m.status === 'completed').length : 0;
   const pendingMatches = Array.isArray(matches) ? matches.filter(m => m.status === 'pending').length : 0;
   const inProgressMatches = Array.isArray(matches) ? matches.filter(m => m.status === 'in_progress').length : 0;
+  
+  // Detectar si ya existen partidos eliminatorios
+  const hasEliminationMatches = Array.isArray(matches) ? 
+    matches.some(match => match.round !== 'group') : false;
+
+  // Función para manejar cuando se genera el bracket
+  const handleBracketGenerated = (data: any) => {
+    setBracketData(data);
+    setShowBracket(true);
+  };
 
   // Debug: verificar datos de partidos en la página
   console.log('🔍 Matches in page:', matches);
@@ -641,6 +657,63 @@ export default function TournamentMatchesPage() {
             )}
           </div>
         )}
+
+        {/* Separador Visual */}
+        <div className="my-12">
+          <div className="flex items-center">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+            <div className="px-6 py-2 bg-gradient-to-r from-yellow-100 to-yellow-200 rounded-full border border-yellow-300">
+              <Trophy className="h-6 w-6 text-yellow-600 mx-auto" />
+            </div>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+          </div>
+        </div>
+
+        {/* Sección de Fase Eliminatoria */}
+        <div className="mt-8">
+          <div className="flex items-center gap-3 mb-6">
+            <Trophy className="h-8 w-8 text-yellow-600" />
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">🏆 Fase Eliminatoria</h2>
+          </div>
+          
+          <EliminationBracketGenerator 
+            tournamentId={tournamentId}
+            onBracketGenerated={handleBracketGenerated}
+            hasEliminationMatches={hasEliminationMatches}
+          />
+          
+          {hasEliminationMatches && (
+            <div className="mt-6">
+              <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-800">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-yellow-500 rounded-lg">
+                        <Trophy className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          🏆 Bracket Eliminatorio Disponible
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">
+                          Visualiza el cuadro completo con todas las rondas
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <Button
+                      onClick={() => router.push(`/tournaments/${tournamentId}/bracket`)}
+                      className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white px-6 py-3"
+                    >
+                      <Trophy className="h-5 w-5 mr-2" />
+                      Ver Bracket Completo
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Modal para setear resultados */}

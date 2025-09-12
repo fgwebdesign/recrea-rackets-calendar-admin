@@ -118,6 +118,7 @@ export async function createTournament(req, res) {
     start_date, 
     end_date, 
     courts_available, 
+    selectedCourts = [], // Array de IDs de canchas seleccionadas
     time_slots,                
     group_time_slots,          
     tournament_type = 'NINE_PLAYERS',
@@ -149,6 +150,39 @@ export async function createTournament(req, res) {
     }
     if (!['NINE_PLAYERS', 'TWELVE_PLAYERS', 'SIXTEEN_PLAYERS'].includes(tournament_type)) {
       return res.status(400).json({ message: 'tournament_type inválido' });
+    }
+
+    // 🏟️ Validación de canchas seleccionadas (OPCIONAL)
+    if (selectedCourts !== undefined && selectedCourts !== null) {
+      // Si se proporciona selectedCourts, debe ser un array válido
+      if (!Array.isArray(selectedCourts)) {
+        return res.status(400).json({ 
+          message: 'selectedCourts debe ser un array de IDs de canchas' 
+        });
+      }
+
+      // Si el array no está vacío, validar que todas las canchas existan
+      if (selectedCourts.length > 0) {
+        const { data: existingCourts, error: courtsError } = await supabase
+          .from('courts')
+          .select('id')
+          .in('id', selectedCourts);
+
+        if (courtsError) {
+          return res.status(500).json({ message: 'Error validando canchas', error: courtsError.message });
+        }
+
+        if (existingCourts.length !== selectedCourts.length) {
+          const foundIds = existingCourts.map(c => c.id);
+          const notFoundIds = selectedCourts.filter(id => !foundIds.includes(id));
+          return res.status(400).json({ 
+            message: `Las siguientes canchas no existen: ${notFoundIds.join(', ')}` 
+          });
+        }
+
+        // Actualizar courts_available basado en las canchas seleccionadas
+        courts_available = selectedCourts.length;
+      }
     }
 
     // 🏆 Validación de sponsors (OPCIONAL)
@@ -773,6 +807,247 @@ async function sendEmailToUser(user, tournamentData, tournamentInfo) {
   }
 }
 
+/**
+ * 📧 ENVIAR NOTIFICACIÓN DE CLASIFICACIÓN A ELIMINATORIAS
+ * Envía emails a los equipos clasificados con información de su próximo partido
+ */
+async function sendEliminationBracketEmails(tournamentId, eliminationMatches, qualifiedTeams) {
+  try {
+    console.log(`📧 Enviando notificaciones de clasificación a ${qualifiedTeams.length} equipos`);
+    
+    // 🧪 MODO DESARROLLO: Solo enviar a email de testing
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🧪 MODO DESARROLLO: Enviando solo a fgwebdesign0@gmail.com');
+      
+      // Crear un equipo de prueba para testing
+      const testTeam = {
+        team_id: 'test-team',
+        player1: { first_name: 'Felipe', last_name: 'Gutierrez' },
+        player2: { first_name: 'Test', last_name: 'User' },
+        email: 'fgwebdesign0@gmail.com'
+      };
+      
+      const result = await sendEliminationEmailToTeam(testTeam, eliminationMatches[0], tournamentId);
+      console.log('✅ Email de prueba enviado exitosamente');
+      return {
+        total: 1,
+        successful: result.success ? 1 : 0,
+        failed: result.success ? 0 : 1,
+        results: [result]
+      };
+    }
+
+    // 🚀 MODO PRODUCCIÓN: Enviar a todos los equipos clasificados
+    if (!qualifiedTeams || qualifiedTeams.length === 0) {
+      console.log('⚠️ No hay equipos clasificados para notificar');
+      return;
+    }
+
+    console.log(`📊 Encontrados ${qualifiedTeams.length} equipos clasificados para notificar`);
+
+    // Configurar Resend
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    
+    // Cargar template de email
+    const template = fs.readFileSync('./src/templates/eliminationBracketNotification.html', 'utf8');
+    const compiledTemplate = handlebars.compile(template);
+
+    // Obtener información del torneo
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('*, categories(name)')
+      .eq('id', tournamentId)
+      .single();
+      
+    if (tournamentError) {
+      console.error('❌ Error obteniendo información del torneo:', tournamentError);
+      return;
+    }
+
+    // Obtener información de canchas
+    const { data: courts, error: courtsError } = await supabase
+      .from('courts')
+      .select('id, name');
+      
+    if (courtsError) {
+      console.error('❌ Error obteniendo información de canchas:', courtsError);
+      return;
+    }
+
+    // Crear mapa de canchas para acceso rápido
+    const courtsMap = courts.reduce((acc, court) => {
+      acc[court.id] = court.name;
+      return acc;
+    }, {});
+
+    // Enviar emails con rate limiting
+    const emailPromises = qualifiedTeams.map(async (team, index) => {
+      // Rate limiting: esperar 100ms entre emails para evitar límites de Resend
+      await new Promise(resolve => setTimeout(resolve, index * 100));
+      
+      // Buscar el partido del equipo en las eliminatorias
+      const teamMatch = eliminationMatches.find(match => 
+        match.home_team_id === team.team_id || match.away_team_id === team.team_id
+      );
+
+      if (!teamMatch) {
+        console.log(`⚠️ No se encontró partido para el equipo ${team.team_id}`);
+        return { success: false, team_id: team.team_id, error: 'No match found' };
+      }
+
+      // Determinar si es home o away team
+      const isHomeTeam = teamMatch.home_team_id === team.team_id;
+      const rivalTeamId = isHomeTeam ? teamMatch.away_team_id : teamMatch.home_team_id;
+      
+      // Buscar información del rival
+      const rivalTeam = qualifiedTeams.find(t => t.team_id === rivalTeamId);
+      
+      if (!rivalTeam) {
+        console.log(`⚠️ No se encontró información del rival para el equipo ${team.team_id}`);
+        return { success: false, team_id: team.team_id, error: 'Rival team not found' };
+      }
+
+      // Preparar datos del template
+      const templateData = {
+        player1Name: team.player1 ? `${team.player1.first_name} ${team.player1.last_name}` : 'Jugador 1',
+        player2Name: team.player2 ? `${team.player2.first_name} ${team.player2.last_name}` : 'Jugador 2',
+        categoryName: tournament.categories?.name || 'Categoría',
+        tournamentName: tournament.name,
+        eliminationPhase: getEliminationPhaseName(teamMatch.elimination_round),
+        matchDate: formatDate(teamMatch.match_day),
+        matchTime: teamMatch.start_time,
+        courtName: courtsMap[teamMatch.court_id] || 'Cancha',
+        rivalTeam: rivalTeam.player1 && rivalTeam.player2 ? 
+          `${rivalTeam.player1.first_name} ${rivalTeam.player1.last_name} & ${rivalTeam.player2.first_name} ${rivalTeam.player2.last_name}` : 
+          'Equipo Rival'
+      };
+
+      const htmlContent = compiledTemplate(templateData);
+
+      try {
+        const result = await resend.emails.send({
+          from: 'Recrea Padel Club <noreply@recreapadel.com>',
+          to: team.email,
+          subject: `🏆 ¡Clasificaste a Eliminatorias: ${tournament.name}!`,
+          html: htmlContent
+        });
+
+        console.log(`✅ Email enviado a ${team.email} (${templateData.player1Name} & ${templateData.player2Name})`);
+        return { success: true, email: team.email, result };
+      } catch (error) {
+        console.error(`❌ Error enviando email a ${team.email}:`, error);
+        return { success: false, email: team.email, error };
+      }
+    });
+
+    // Ejecutar todos los envíos
+    const results = await Promise.all(emailPromises);
+    
+    // Estadísticas
+    const successful = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success).length;
+    
+    console.log(`📊 Notificaciones de clasificación enviadas: ${successful} exitosas, ${failed} fallidas`);
+    
+    if (failed > 0) {
+      console.error('❌ Emails fallidos:', results.filter(r => !r.success).map(r => r.email));
+    }
+
+    return {
+      total: qualifiedTeams.length,
+      successful,
+      failed,
+      results
+    };
+
+  } catch (error) {
+    console.error('❌ Error en sendEliminationBracketEmails:', error);
+    return { error: error.message };
+  }
+}
+
+/**
+ * 📧 FUNCIÓN AUXILIAR: Enviar email de clasificación a un equipo específico
+ */
+async function sendEliminationEmailToTeam(team, match, tournamentId) {
+  try {
+    // Configurar Resend
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    
+    // Cargar template de email
+    const template = fs.readFileSync('./src/templates/eliminationBracketNotification.html', 'utf8');
+    const compiledTemplate = handlebars.compile(template);
+
+    // Obtener información del torneo
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('*, categories(name)')
+      .eq('id', tournamentId)
+      .single();
+      
+    if (tournamentError) throw tournamentError;
+
+    // Preparar datos del template
+    const templateData = {
+      player1Name: team.player1 ? `${team.player1.first_name} ${team.player1.last_name}` : 'Jugador 1',
+      player2Name: team.player2 ? `${team.player2.first_name} ${team.player2.last_name}` : 'Jugador 2',
+      categoryName: tournament.categories?.name || 'Categoría',
+      tournamentName: tournament.name,
+      eliminationPhase: getEliminationPhaseName(match.elimination_round),
+      matchDate: formatDate(match.match_day),
+      matchTime: match.start_time,
+      courtName: 'Cancha de Prueba',
+      rivalTeam: 'Equipo Rival de Prueba'
+    };
+
+    const htmlContent = compiledTemplate(templateData);
+
+    // Enviar email
+    const result = await resend.emails.send({
+      from: 'Recrea Padel Club <noreply@recreapadel.com>',
+      to: team.email,
+      subject: `🏆 ¡Clasificaste a Eliminatorias: ${tournament.name}!`,
+      html: htmlContent
+    });
+
+    console.log(`✅ Email enviado a ${team.email} (${templateData.player1Name} & ${templateData.player2Name})`);
+    return { success: true, email: team.email, result };
+
+  } catch (error) {
+    console.error(`❌ Error enviando email a ${team.email}:`, error);
+    return { success: false, email: team.email, error };
+  }
+}
+
+/**
+ * 🔧 FUNCIÓN AUXILIAR: Obtener nombre de la fase eliminatoria
+ */
+function getEliminationPhaseName(eliminationRound) {
+  const phaseNames = {
+    'octavos': 'Octavos de Final',
+    'quarterfinals': 'Cuartos de Final',
+    'semifinals': 'Semifinales',
+    'final': 'Final'
+  };
+  return phaseNames[eliminationRound] || eliminationRound;
+}
+
+/**
+ * 🔧 FUNCIÓN AUXILIAR: Formatear fecha
+ */
+function formatDate(dateString) {
+  // Crear fecha local para evitar problemas de timezone
+  const [year, month, day] = dateString.split('-');
+  const date = new Date(year, month - 1, day); // month es 0-indexed
+  
+  return date.toLocaleDateString('es-ES', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
 export async function joinTournament(req, res) {
   const tournament_id = req.params.id;
   const { userId1, userId2, unavailable_time_slot } = req.body;
@@ -1140,115 +1415,6 @@ export async function updateTeamPaymentStatus(req, res) {
     console.error('❌ Error actualizando estado de pago:', error);
     return res.status(500).json({
       message: 'Error interno al actualizar estado de pago',
-      error: error.message
-    });
-  }
-}
-
-/**
- * Obtener estadísticas de pagos del torneo
- */
-export async function getTournamentPaymentStats(req, res) {
-  const { id } = req.params;
-
-  try {
-    // Obtener todos los equipos del torneo con sus estados de pago
-    const { data: tournamentTeams, error: teamsError } = await supabase
-      .from('tournament_teams')
-      .select(`
-        id,
-        team_id,
-        payment_status,
-        payment_amount,
-        payment_date,
-        teams (
-          id,
-          player1_id,
-          player2_id,
-          users!player1_id (
-            first_name,
-            last_name
-          ),
-          users!player2_id (
-            first_name,
-            last_name
-          )
-        )
-      `)
-      .eq('tournament_id', id);
-
-    if (teamsError) {
-      return res.status(500).json({ 
-        message: 'Error obteniendo equipos del torneo',
-        error: teamsError.message 
-      });
-    }
-
-    // Calcular estadísticas
-    const totalTeams = tournamentTeams.length;
-    const paidTeams = tournamentTeams.filter(team => team.payment_status === 'paid');
-    const pendingTeams = tournamentTeams.filter(team => team.payment_status === 'pending');
-    const failedTeams = tournamentTeams.filter(team => team.payment_status === 'failed');
-
-    // Obtener información del torneo y su costo de inscripción
-    const { data: tournament, error: tournamentError } = await supabase
-      .from('tournaments')
-      .select(`
-        id, 
-        name,
-        tournament_info (
-          inscription_cost
-        )
-      `)
-      .eq('id', id)
-      .single();
-
-    if (tournamentError) {
-      return res.status(500).json({ 
-        message: 'Error obteniendo información del torneo',
-        error: tournamentError.message 
-      });
-    }
-
-    const totalRevenue = paidTeams.reduce((sum, team) => sum + (team.payment_amount || 0), 0);
-    
-    // Calcular ingresos pendientes usando el costo de inscripción del torneo
-    const inscriptionCost = tournament.tournament_info?.inscription_cost || 1500;
-    const pendingRevenue = pendingTeams.length * inscriptionCost;
-
-    return res.json({
-      message: 'Estadísticas de pagos obtenidas exitosamente',
-      tournament: {
-        id: tournament.id,
-        name: tournament.name,
-        inscription_cost: inscriptionCost
-      },
-      stats: {
-        total_teams: totalTeams,
-        paid_teams: paidTeams.length,
-        pending_teams: pendingTeams.length,
-        failed_teams: failedTeams.length,
-        total_revenue: totalRevenue,
-        pending_revenue: pendingRevenue,
-        completion_percentage: totalTeams > 0 ? Math.round((paidTeams.length / totalTeams) * 100) : 0
-      },
-      teams: tournamentTeams.map(team => ({
-        id: team.id,
-        team_id: team.team_id,
-        payment_status: team.payment_status,
-        payment_amount: team.payment_amount,
-        payment_date: team.payment_date,
-        players: {
-          player1: `${team.teams.users.first_name} ${team.teams.users.last_name}`,
-          player2: `${team.teams.users.first_name} ${team.teams.users.last_name}`
-        }
-      }))
-    });
-
-  } catch (error) {
-    console.error('❌ Error obteniendo estadísticas de pagos:', error);
-    return res.status(500).json({
-      message: 'Error interno al obtener estadísticas de pagos',
       error: error.message
     });
   }
@@ -2318,36 +2484,6 @@ async function generateGroupMatches(tournament_id, group_id, groupTeams, group_n
     .insert(matches);
 
   if (error) throw new Error(`Error creando partidos de grupo: ${error.message}`);
-}
-
-// Función para generar fase eliminatoria
-async function generateEliminationPhase(tournament_id, qualified_teams) {
-  const tournament = await getTournamentDetails(tournament_id);
-  const format = TOURNAMENT_FORMATS[tournament.tournament_type];
-  
-  // Ordenar equipos por puntos y diferencia de juegos
-  const sortedTeams = qualified_teams.sort((a, b) => {
-    if (a.points !== b.points) return b.points - a.points;
-    return b.games_diff - a.games_diff;
-  });
-
-  let bracket = [];
-  if (tournament.tournament_type === 'NINE_PLAYERS') {
-    // Los 2 mejores primeros pasan directo a semis
-    const directToSemis = sortedTeams.slice(0, 2);
-    const playQuarters = sortedTeams.slice(2);
-    
-    // Generar cuartos de final (4 equipos)
-    bracket = await generateQuarterFinals(tournament_id, playQuarters);
-    
-    // Agregar los que pasan directo a semis
-    bracket = [...directToSemis, ...bracket];
-  } else {
-    // Todos juegan cuartos (8 equipos)
-    bracket = await generateQuarterFinals(tournament_id, sortedTeams);
-  }
-
-  return bracket;
 }
 
 // First, get available courts for the tournament
@@ -3910,6 +4046,71 @@ export async function generateEliminationBracket(req, res) {
     // Crear partidos eliminatorios en la BD
     const eliminationMatches = await createEliminationMatches(tournamentId, bracket, tournament);
     
+    console.log(`✅ ${eliminationMatches.length} partidos eliminatorios creados`);
+    console.log(`🏆 Torneo ${tournament.name} ahora en fase ELIMINATORIA`);
+    
+    // 📧 ENVIAR EMAILS A CLASIFICADOS CON DELAY DE 30 SEGUNDOS
+    console.log('📧 Programando envío de emails de clasificación en 30 segundos...');
+    setTimeout(async () => {
+      try {
+        console.log('📧 Iniciando envío de emails de clasificación...');
+        
+        // Obtener información completa de los equipos clasificados con emails
+        const { data: qualifiedTeamsData, error: teamsError } = await supabase
+          .from('tournament_teams')
+          .select(`
+            team_id,
+            teams!inner (
+              player1_id,
+              player2_id,
+              player1:users!teams_player1_id_fkey (
+                first_name,
+                last_name,
+                email
+              ),
+              player2:users!teams_player2_id_fkey (
+                first_name,
+                last_name,
+                email
+              )
+            )
+          `)
+          .in('team_id', classification_summary.qualified_teams.map(team => team.team_id));
+          
+        if (teamsError) {
+          console.error('❌ Error obteniendo datos de equipos clasificados:', teamsError);
+          return;
+        }
+        
+        // Preparar datos de equipos con emails
+        const teamsWithEmails = qualifiedTeamsData.map(teamData => ({
+          team_id: teamData.team_id,
+          player1: teamData.teams.player1,
+          player2: teamData.teams.player2,
+          email: teamData.teams.player1?.email || teamData.teams.player2?.email // Usar email del primer jugador disponible
+        })).filter(team => team.email); // Solo equipos con email válido
+        
+        if (teamsWithEmails.length === 0) {
+          console.log('⚠️ No se encontraron equipos clasificados con emails válidos');
+          return;
+        }
+        
+        console.log(`📊 Enviando emails a ${teamsWithEmails.length} equipos clasificados`);
+        
+        // Enviar emails
+        const emailResults = await sendEliminationBracketEmails(
+          tournamentId, 
+          eliminationMatches, 
+          teamsWithEmails
+        );
+        
+        console.log('📧 Resultados del envío de emails:', emailResults);
+        
+      } catch (error) {
+        console.error('❌ Error en envío de emails de clasificación:', error);
+      }
+    }, 30000); // 30 segundos de delay
+    
     res.json({
       message: 'Cuadro eliminatorio generado exitosamente',
       tournament: {
@@ -4244,35 +4445,42 @@ async function createEliminationMatches(tournamentId, bracket, tournament) {
   
   // 3. Encontrar la posición de este torneo en el orden de categorías
   const tournamentIndex = eventTournaments.findIndex(t => t.id === tournamentId);
-  const MATCH_DURATION = 45; // minutos
+  const MATCH_DURATION = 60; // 1 hora para fase eliminatoria
   const START_HOUR = 8; // Empezar a las 8:00 AM
   
-  // 4. Calcular horarios por ronda para todas las categorías
+  // 4. Calcular horarios por ronda - LÓGICA CORREGIDA: MECHAR CATEGORÍAS POR RONDA
+  // Primero TODOS los octavos/cuartos, luego TODAS las semis, finalmente TODAS las finales
+  const totalCategories = eventTournaments.length;
+  
   const roundStartTimes = {
-    quarterfinals: START_HOUR,                    // 7:00 AM
-    semifinals: START_HOUR + 2.5,                 // 9:30 AM
-    final: START_HOUR + 5                         // 12:00 PM
+    octavos: START_HOUR,                                    // 8:00 AM (solo para SIXTEEN_PLAYERS)
+    quarterfinals: START_HOUR,                              // 8:00 AM (para TWELVE_PLAYERS)
+    semifinals: START_HOUR + (totalCategories * 1),         // 8:00 AM + (4 categorías * 1h) = 12:00 PM
+    final: START_HOUR + (totalCategories * 2)               // 8:00 AM + (4 categorías * 2h) = 4:00 PM
   };
 
-  // Tiempo por categoría dentro de cada ronda
-  const timePerCategory = MATCH_DURATION / 60; // 45 minutos en horas
-
-  console.log('🎯 Configuración de horarios:');
+  console.log('🎯 Configuración de horarios ELIMINATORIOS:');
   console.log('   ⏰ Hora inicio:', START_HOUR);
-  console.log('   ⌛ Duración partido:', MATCH_DURATION, 'minutos');
-  console.log('   📊 Tiempo por categoría:', timePerCategory, 'horas');
-  console.log('   📅 Horarios base por ronda:', roundStartTimes);
+  console.log('   ⌛ Duración partido:', MATCH_DURATION, 'minutos (1 hora)');
+  console.log('   📊 Total categorías:', totalCategories);
+  console.log('   📅 Horarios por ronda:', roundStartTimes);
   console.log('   🏆 Categoría actual:', tournament.categories?.name, '(orden:', tournament.categories?.order, ')');
   console.log('   📍 Índice en el evento:', tournamentIndex);
+  console.log('   🔄 LÓGICA: Mechado por categorías dentro de cada ronda');
+  console.log('   📋 EJEMPLO HORARIOS:');
+  console.log(`      Octavos/Cuartos: ${START_HOUR}:00 - ${START_HOUR + totalCategories}:00`);
+  console.log(`      Semifinales: ${START_HOUR + totalCategories}:00 - ${START_HOUR + (totalCategories * 2)}:00`);
+  console.log(`      Finales: ${START_HOUR + (totalCategories * 2)}:00 - ${START_HOUR + (totalCategories * 3)}:00`);
 
-  // 5. Calcular el horario específico para esta categoría en cada ronda
+  // 5. Generar partidos con horarios mechados por categorías
+  let courtIndex = 0; // Contador para distribución de canchas
+  
   Object.keys(bracket.structure).forEach(round => {
     const roundBaseTime = roundStartTimes[round];
-    const categoryStartTime = roundBaseTime + (tournamentIndex * timePerCategory);
+    const categoryStartTime = roundBaseTime + (tournamentIndex * 1); // 1 hora por categoría
     
     console.log(`🕒 Categoría ${tournament.categories?.name} (orden: ${tournament.categories?.order}) - ${round}:`);
     console.log(`   ⏰ Empezará a las ${Math.floor(categoryStartTime)}:${String(Math.round((categoryStartTime % 1) * 60)).padStart(2, '0')}`);
-    console.log(`   📍 Base time: ${roundBaseTime}, Index: ${tournamentIndex}, Offset: ${timePerCategory}h`);
     
     bracket.structure[round].forEach((match, index) => {
       if (match.team1 && match.team2) {
@@ -4281,20 +4489,28 @@ async function createEliminationMatches(tournamentId, bracket, tournament) {
         const hour = Math.floor(matchTime);
         const minutes = Math.round((matchTime % 1) * 60);
         
+        // Distribuir canchas de forma inteligente
+        const assignedCourt = courts[courtIndex % courts.length];
+        courtIndex++; // Avanzar al siguiente partido
+        
         const matchData = {
           tournament_id: tournamentId,
           home_team_id: match.team1.team_id,
           away_team_id: match.team2.team_id,
           match_day: startDate.toISOString().split('T')[0],
           start_time: `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`,
-          court_id: courts[index % courts.length].id, // Distribuir en canchas disponibles
+          court_id: assignedCourt.id,
           status: 'scheduled',
           group_number: null,
-          round: 'group',
+          round: round === 'octavos' ? 'quarter_final' : 
+                 round === 'quarterfinals' ? 'quarter_final' : 
+                 round === 'semifinals' ? 'semi_final' : 'final',
           elimination_round: round,
           bracket_match_id: match.match_id,
           match_order: match.match_number,
-          stage: round === 'quarterfinals' ? 'quarter_final' : round === 'semifinals' ? 'semi_final' : 'final'
+          stage: round === 'octavos' ? 'octavos' : 
+                 round === 'quarterfinals' ? 'quarter_final' : 
+                 round === 'semifinals' ? 'semi_final' : 'final'
         };
         
         matches.push(matchData);
@@ -4312,6 +4528,7 @@ async function createEliminationMatches(tournamentId, bracket, tournament) {
     if (insertError) throw insertError;
     
     console.log(`✅ ${matches.length} partidos eliminatorios creados`);
+    console.log(`🏆 Torneo ${tournament.name} ahora en fase ELIMINATORIA`);
     return insertedMatches;
   }
   
@@ -4617,4 +4834,412 @@ function generateClassificationSummary(standingsByGroup, tournamentType) {
   }
   
   return summary;
+}
+
+// ========================================
+// 📊 ESTADÍSTICAS DE TORNEOS
+// ========================================
+
+export async function getTournamentPaymentStats(req, res) {
+  const { tournamentId } = req.params;
+  const { categoryId } = req.query;
+
+  try {
+    // Validar que el torneo existe
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select(`
+        id,
+        name,
+        tournament_type,
+        max_teams,
+        tournament_info (
+          inscription_cost
+        )
+      `)
+      .eq('id', tournamentId)
+      .single();
+
+    if (tournamentError || !tournament) {
+      return res.status(404).json({ message: 'Torneo no encontrado' });
+    }
+
+    const inscriptionCost = tournament.tournament_info?.[0]?.inscription_cost || 0;
+
+    // Si se especifica una categoría específica
+    if (categoryId) {
+      return await getCategoryPaymentStats(tournament, categoryId, inscriptionCost, res);
+    }
+
+    // Estadísticas generales del torneo
+    const { data: teams, error: teamsError } = await supabase
+      .from('tournament_teams')
+      .select(`
+        payment_status,
+        payment_amount,
+        tournament_id,
+        tournaments (
+          category_id,
+          categories (
+            name
+          )
+        )
+      `)
+      .eq('tournament_id', tournamentId);
+
+    if (teamsError) {
+      return res.status(500).json({ message: 'Error obteniendo equipos', error: teamsError.message });
+    }
+
+    // Calcular estadísticas por categoría
+    const categoriesStats = {};
+    let totalTeams = 0;
+    let paidTeams = 0;
+    let pendingTeams = 0;
+    let failedTeams = 0;
+    let totalRevenue = 0;
+    let pendingRevenue = 0;
+
+    teams.forEach(team => {
+      const categoryName = team.tournaments?.categories?.name || 'Sin categoría';
+      
+      if (!categoriesStats[categoryName]) {
+        categoriesStats[categoryName] = {
+          category_name: categoryName,
+          teams: 0,
+          paid_teams: 0,
+          pending_teams: 0,
+          failed_teams: 0,
+          revenue: 0,
+          pending_revenue: 0
+        };
+      }
+
+      categoriesStats[categoryName].teams++;
+      totalTeams++;
+
+      switch (team.payment_status) {
+        case 'paid':
+          categoriesStats[categoryName].paid_teams++;
+          paidTeams++;
+          totalRevenue += team.payment_amount || (inscriptionCost * 2);
+          break;
+        case 'pending':
+          categoriesStats[categoryName].pending_teams++;
+          pendingTeams++;
+          pendingRevenue += inscriptionCost * 2;
+          break;
+        case 'failed':
+          categoriesStats[categoryName].failed_teams++;
+          failedTeams++;
+          break;
+      }
+    });
+
+    // Calcular revenue pendiente para cada categoría
+    Object.values(categoriesStats).forEach(cat => {
+      cat.pending_revenue = cat.pending_teams * inscriptionCost * 2;
+      cat.revenue = cat.paid_teams * inscriptionCost * 2;
+    });
+
+    const totalPotentialRevenue = totalTeams * inscriptionCost * 2;
+    const paymentRate = totalTeams > 0 ? (paidTeams / totalTeams) * 100 : 0;
+
+    return res.json({
+      tournament_name: tournament.name,
+      tournament_type: tournament.tournament_type,
+      inscription_cost: inscriptionCost,
+      total_categories: Object.keys(categoriesStats).length,
+      total_teams: totalTeams,
+      total_potential_revenue: totalPotentialRevenue,
+      paid_teams: paidTeams,
+      pending_teams: pendingTeams,
+      failed_teams: failedTeams,
+      actual_revenue: totalRevenue,
+      pending_revenue: pendingRevenue,
+      payment_rate: Math.round(paymentRate * 100) / 100,
+      categories_breakdown: Object.values(categoriesStats)
+    });
+
+  } catch (error) {
+    console.error('Error en getTournamentPaymentStats:', error);
+    return res.status(500).json({ message: 'Error interno del servidor', error: error.message });
+  }
+}
+
+async function getCategoryPaymentStats(tournament, categoryId, inscriptionCost, res) {
+  try {
+    // Obtener equipos de la categoría específica
+    const { data: teams, error: teamsError } = await supabase
+      .from('tournament_teams')
+      .select(`
+        id,
+        payment_status,
+        payment_amount,
+        payment_date,
+        team_id,
+        teams (
+          player1_id,
+          player2_id,
+          player1:users!player1_id (
+            first_name,
+            last_name
+          ),
+          player2:users!player2_id (
+            first_name,
+            last_name
+          )
+        ),
+        tournaments (
+          category_id,
+          categories (
+            name
+          )
+        )
+      `)
+      .eq('tournament_id', tournament.id)
+      .eq('tournaments.category_id', categoryId);
+
+    if (teamsError) {
+      return res.status(500).json({ message: 'Error obteniendo equipos de la categoría', error: teamsError.message });
+    }
+
+    // Obtener información de la categoría
+    const { data: category, error: categoryError } = await supabase
+      .from('categories')
+      .select('name, max_teams')
+      .eq('id', categoryId)
+      .single();
+
+    if (categoryError || !category) {
+      return res.status(404).json({ message: 'Categoría no encontrada' });
+    }
+
+    // Calcular estadísticas
+    let paidTeams = 0;
+    let pendingTeams = 0;
+    let failedTeams = 0;
+    let totalRevenue = 0;
+    let pendingRevenue = 0;
+
+    const teamsDetail = teams.map(team => {
+      const player1Name = `${team.teams?.player1?.first_name || ''} ${team.teams?.player1?.last_name || ''}`.trim();
+      const player2Name = `${team.teams?.player2?.first_name || ''} ${team.teams?.player2?.last_name || ''}`.trim();
+      
+      const teamData = {
+        team_id: team.team_id,
+        player1_name: player1Name,
+        player2_name: player2Name,
+        payment_status: team.payment_status,
+        payment_date: team.payment_date,
+        payment_amount: team.payment_amount || inscriptionCost * 2
+      };
+
+      switch (team.payment_status) {
+        case 'paid':
+          paidTeams++;
+          totalRevenue += teamData.payment_amount;
+          break;
+        case 'pending':
+          pendingTeams++;
+          pendingRevenue += inscriptionCost * 2;
+          break;
+        case 'failed':
+          failedTeams++;
+          break;
+      }
+
+      return teamData;
+    });
+
+    const totalTeams = teams.length;
+    const paymentRate = totalTeams > 0 ? (paidTeams / totalTeams) * 100 : 0;
+
+    return res.json({
+      tournament_name: tournament.name,
+      category_name: category.name,
+      inscription_cost: inscriptionCost,
+      max_teams: category.max_teams,
+      registered_teams: totalTeams,
+      paid_teams: paidTeams,
+      pending_teams: pendingTeams,
+      failed_teams: failedTeams,
+      total_revenue: totalRevenue,
+      pending_revenue: pendingRevenue,
+      payment_rate: Math.round(paymentRate * 100) / 100,
+      teams_detail: teamsDetail
+    });
+
+  } catch (error) {
+    console.error('Error en getCategoryPaymentStats:', error);
+    return res.status(500).json({ message: 'Error interno del servidor', error: error.message });
+  }
+}
+
+export async function getTournamentPeriodStats(req, res) {
+  const { start_date, end_date, period = 'monthly' } = req.query;
+
+  try {
+    // Validar fechas
+    if (!start_date || !end_date) {
+      return res.status(400).json({ message: 'start_date y end_date son requeridos' });
+    }
+
+    // Obtener torneos en el período
+    const { data: tournaments, error: tournamentsError } = await supabase
+      .from('tournaments')
+      .select(`
+        id,
+        name,
+        start_date,
+        tournament_type,
+        tournament_info (
+          inscription_cost
+        ),
+        tournament_teams (
+          payment_status,
+          payment_amount
+        )
+      `)
+      .gte('start_date', start_date)
+      .lte('start_date', end_date);
+
+    if (tournamentsError) {
+      return res.status(500).json({ message: 'Error obteniendo torneos', error: tournamentsError.message });
+    }
+
+    // Calcular estadísticas generales
+    let totalTournaments = tournaments.length;
+    let totalCategories = 0;
+    let totalTeams = 0;
+    let totalRevenue = 0;
+    let totalPaidTeams = 0;
+
+    const monthlyBreakdown = {};
+
+    tournaments.forEach(tournament => {
+      const inscriptionCost = tournament.tournament_info?.[0]?.inscription_cost || 0;
+      const month = tournament.start_date.substring(0, 7); // YYYY-MM
+      
+      if (!monthlyBreakdown[month]) {
+        monthlyBreakdown[month] = {
+          month,
+          tournaments: 0,
+          categories: 0,
+          teams: 0,
+          revenue: 0,
+          paid_teams: 0
+        };
+      }
+
+      monthlyBreakdown[month].tournaments++;
+      totalCategories++;
+
+      tournament.tournament_teams.forEach(team => {
+        totalTeams++;
+        monthlyBreakdown[month].teams++;
+
+        if (team.payment_status === 'paid') {
+          totalPaidTeams++;
+          const revenue = team.payment_amount || (inscriptionCost * 2);
+          totalRevenue += revenue;
+          monthlyBreakdown[month].revenue += revenue;
+          monthlyBreakdown[month].paid_teams++;
+        }
+      });
+    });
+
+    const averagePaymentRate = totalTeams > 0 ? (totalPaidTeams / totalTeams) * 100 : 0;
+
+    return res.json({
+      period: `${start_date} to ${end_date}`,
+      total_tournaments: totalTournaments,
+      total_categories: totalCategories,
+      total_teams: totalTeams,
+      total_revenue: totalRevenue,
+      average_payment_rate: Math.round(averagePaymentRate * 100) / 100,
+      monthly_breakdown: Object.values(monthlyBreakdown)
+    });
+
+  } catch (error) {
+    console.error('Error en getTournamentPeriodStats:', error);
+    return res.status(500).json({ message: 'Error interno del servidor', error: error.message });
+  }
+}
+
+export async function getTournamentOverviewStats(req, res) {
+  try {
+    // Obtener estadísticas generales
+    const { data: tournaments, error: tournamentsError } = await supabase
+      .from('tournaments')
+      .select(`
+        id,
+        status,
+        tournament_type,
+        start_date,
+        tournament_teams (
+          payment_status
+        )
+      `);
+
+    if (tournamentsError) {
+      return res.status(500).json({ message: 'Error obteniendo torneos', error: tournamentsError.message });
+    }
+
+    // Calcular estadísticas
+    let totalTournaments = tournaments.length;
+    let activeTournaments = 0;
+    let completedTournaments = 0;
+    let upcomingTournaments = 0;
+    let totalTeams = 0;
+    let paidTeams = 0;
+
+    const tournamentTypes = {};
+
+    tournaments.forEach(tournament => {
+      // Contar por estado
+      switch (tournament.status) {
+        case 'in_progress':
+          activeTournaments++;
+          break;
+        case 'completed':
+          completedTournaments++;
+          break;
+        case 'upcoming':
+          upcomingTournaments++;
+          break;
+      }
+
+      // Contar por tipo
+      if (!tournamentTypes[tournament.tournament_type]) {
+        tournamentTypes[tournament.tournament_type] = 0;
+      }
+      tournamentTypes[tournament.tournament_type]++;
+
+      // Contar equipos y pagos
+      tournament.tournament_teams.forEach(team => {
+        totalTeams++;
+        if (team.payment_status === 'paid') {
+          paidTeams++;
+        }
+      });
+    });
+
+    const paymentRate = totalTeams > 0 ? (paidTeams / totalTeams) * 100 : 0;
+
+    return res.json({
+      total_tournaments: totalTournaments,
+      active_tournaments: activeTournaments,
+      completed_tournaments: completedTournaments,
+      upcoming_tournaments: upcomingTournaments,
+      total_teams: totalTeams,
+      paid_teams: paidTeams,
+      payment_rate: Math.round(paymentRate * 100) / 100,
+      tournament_types: tournamentTypes
+    });
+
+  } catch (error) {
+    console.error('Error en getTournamentOverviewStats:', error);
+    return res.status(500).json({ message: 'Error interno del servidor', error: error.message });
+  }
 } 
