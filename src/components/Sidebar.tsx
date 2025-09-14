@@ -14,6 +14,7 @@ import {
   PhotoIcon as ImageIcon,
   PlusIcon,
   TableCellsIcon,
+  AcademicCapIcon,
 } from '@heroicons/react/24/outline';
 import { ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -98,6 +99,13 @@ const MENU_ITEMS: MenuItem[] = [
     href: '/courts', 
     icon: TrophyIcon,
     iconColor: 'text-purple-500'
+  },
+  { 
+    name: 'Profesores', 
+    href: '/professors', 
+    icon: AcademicCapIcon,
+    iconColor: 'text-indigo-500',
+    hoverColor: 'hover:bg-indigo-50'
   },
   { 
     name: 'Patrocinadores', 
