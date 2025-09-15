@@ -147,8 +147,8 @@ export async function createTournament(req, res) {
       return res.status(400).json({ message: 'El número de canchas disponibles debe ser >= 1' });
     }
     
-    if (!['NINE_PLAYERS', 'TWELVE_PLAYERS', 'SIXTEEN_PLAYERS'].includes(tournament_type)) {
-      return res.status(400).json({ message: 'tournament_type inválido. Debe ser NINE_PLAYERS, TWELVE_PLAYERS o SIXTEEN_PLAYERS' });
+    if (!['SIX_PLAYERS', 'NINE_PLAYERS', 'TWELVE_PLAYERS', 'SIXTEEN_PLAYERS'].includes(tournament_type)) {
+      return res.status(400).json({ message: 'tournament_type inválido. Debe ser SIX_PLAYERS, NINE_PLAYERS, TWELVE_PLAYERS o SIXTEEN_PLAYERS' });
     }
 
     // ===== VALIDACIONES AVANZADAS DE FECHAS =====
@@ -216,6 +216,12 @@ export async function createTournament(req, res) {
     
     // ===== VALIDACIONES ESPECÍFICAS POR FORMATO DE TORNEO =====
     const formatConfig = {
+      'SIX_PLAYERS': {
+        total_teams: 6,
+        groups_count: 2,
+        teams_per_group: 3,
+        description: '6 equipos en 2 grupos de 3 → 4 clasifican → semifinales/final'
+      },
       'NINE_PLAYERS': {
         total_teams: 9,
         groups_count: 3,
@@ -462,7 +468,7 @@ export async function createTournament(req, res) {
       time_slots: finalTimeSlots,
       group_time_slots: finalGroupSlots,
       tournament_type,
-      max_teams: tournament_type === 'NINE_PLAYERS' ? 9 : tournament_type === 'TWELVE_PLAYERS' ? 12 : 16
+      max_teams: tournament_type === 'SIX_PLAYERS' ? 6 : tournament_type === 'NINE_PLAYERS' ? 9 : tournament_type === 'TWELVE_PLAYERS' ? 12 : 16
     }));
 
     // Insertar múltiples torneos
@@ -661,11 +667,13 @@ export async function changeTournamentType(req, res) {
   const { id } = req.params;
   const { new_tournament_type } = req.body;
 
+  console.log(`🔄 Cambiando tipo de torneo: ${id} → ${new_tournament_type}`);
+
   try {
     // 1. Validaciones básicas
-    if (!new_tournament_type || !['NINE_PLAYERS', 'TWELVE_PLAYERS', 'SIXTEEN_PLAYERS'].includes(new_tournament_type)) {
+    if (!new_tournament_type || !['SIX_PLAYERS', 'NINE_PLAYERS', 'TWELVE_PLAYERS', 'SIXTEEN_PLAYERS'].includes(new_tournament_type)) {
       return res.status(400).json({ 
-        message: 'new_tournament_type es requerido y debe ser NINE_PLAYERS, TWELVE_PLAYERS o SIXTEEN_PLAYERS' 
+        message: 'new_tournament_type es requerido y debe ser SIX_PLAYERS, NINE_PLAYERS, TWELVE_PLAYERS o SIXTEEN_PLAYERS' 
       });
     }
 
@@ -699,21 +707,29 @@ export async function changeTournamentType(req, res) {
     const currentTeamsCount = registeredTeams ? registeredTeams.length : 0;
 
     // 5. Verificar que no haya grupos generados
+    console.log(`🔍 Verificando grupos existentes para torneo: ${id}`);
     const { data: existingGroups, error: groupsError } = await supabase
       .from('tournament_groups')
-      .select('id')
+      .select('id, group_number')
       .eq('tournament_id', id);
 
-    if (groupsError) throw groupsError;
+    if (groupsError) {
+      console.error('❌ Error obteniendo grupos:', groupsError);
+      throw groupsError;
+    }
+
+    console.log(`📊 Grupos encontrados: ${existingGroups?.length || 0}`, existingGroups);
 
     if (existingGroups && existingGroups.length > 0) {
+      console.log(`⚠️ No se puede cambiar tipo: hay ${existingGroups.length} grupos generados`);
       return res.status(400).json({ 
         message: 'No se puede cambiar el tipo con grupos ya generados. Primero elimine los grupos.' 
       });
     }
 
     // 6. Calcular nuevo max_teams
-    const newMaxTeams = new_tournament_type === 'NINE_PLAYERS' ? 9 : 
+    const newMaxTeams = new_tournament_type === 'SIX_PLAYERS' ? 6 :
+                       new_tournament_type === 'NINE_PLAYERS' ? 9 : 
                        new_tournament_type === 'TWELVE_PLAYERS' ? 12 : 16;
 
     // 7. Actualizar el torneo
@@ -734,7 +750,7 @@ export async function changeTournamentType(req, res) {
     await recalculateSharedSlotsForEvent(tournament.name);
 
     // Log del cambio exitoso
-    console.log(`🔄 Tipo de torneo cambiado: ${tournament.tournament_type} → ${new_tournament_type}`);
+    console.log(`✅ Tipo de torneo cambiado exitosamente: ${tournament.tournament_type} → ${new_tournament_type}`);
     console.log(`📊 Equipos inscritos mantenidos: ${currentTeamsCount}`);
     console.log(`🎯 Nuevo max_teams: ${newMaxTeams}`);
 
@@ -765,6 +781,12 @@ export async function changeTournamentType(req, res) {
 
   } catch (error) {
     console.error('❌ Error cambiando tipo de torneo:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      tournamentId: id,
+      newType: new_tournament_type
+    });
     res.status(500).json({ 
       message: 'Error interno al cambiar tipo de torneo',
       error: error.message 
@@ -2014,6 +2036,19 @@ export async function getPlayersByTournamentId(req, res) {
 
 // Configuración de formatos de torneo (ACTUALIZADA)
 const TOURNAMENT_FORMATS = {
+  'SIX_PLAYERS': {
+    total_teams: 6,
+    groups_count: 2,
+    teams_per_group: 3,
+    teams_to_qualify: 2,  // 4 equipos clasifican (2 de cada grupo)
+    elimination_stages: {
+      first: 'SEMI_FINALS',
+      matches: ['SEMI_FINALS', 'FINAL'],
+      direct_to_semis: 0,  // Todos juegan semifinales
+      semifinals_teams: 4,  // Los 4 clasificados juegan semifinales
+      description: '4 clasifican: todos juegan semifinales → final'
+    }
+  },
   'NINE_PLAYERS': {
     total_teams: 9,
     groups_count: 3,
@@ -2120,7 +2155,7 @@ function calculateTimeSlotCapacity(tournament, totalCategoriesCount, totalTeamsA
   if (tournament.tournament_type === 'SIXTEEN_PLAYERS') {
     matchesPerTeam = 3; // En grupos de 4: A vs B, A vs C, A vs D, B vs C, B vs D, C vs D
   } else {
-    matchesPerTeam = 2; // En grupos de 3: A vs B, A vs C, B vs C
+    matchesPerTeam = 2; // En grupos de 3: A vs B, A vs C, B vs C (SIX_PLAYERS, NINE_PLAYERS, TWELVE_PLAYERS)
   }
   const totalMatches = (totalTeams * matchesPerTeam) / 2; // /2 porque cada partido involucra 2 equipos
   
@@ -2205,7 +2240,7 @@ function calculateTimeSlotCapacity(tournament, totalCategoriesCount, totalTeamsA
  */
 function calculateMaxCategoriesForOptimalDistribution(tournamentType, courtsAvailable, durationDays) {
   // Configuración de partidos por equipo según formato
-  const matchesPerTeam = tournamentType === 'SIXTEEN_PLAYERS' ? 3 : 2;
+  const matchesPerTeam = tournamentType === 'SIXTEEN_PLAYERS' ? 3 : 2; // SIX_PLAYERS, NINE_PLAYERS, TWELVE_PLAYERS = 2 partidos
   
   // Configuración del sistema: partidos de 45 minutos
   const matchDurationMinutes = 45;
@@ -2223,6 +2258,9 @@ function calculateMaxCategoriesForOptimalDistribution(tournamentType, courtsAvai
   // Calcular capacidad por categoría
   let maxTeamsPerCategory;
   switch (tournamentType) {
+    case 'SIX_PLAYERS':
+      maxTeamsPerCategory = 6;
+      break;
     case 'NINE_PLAYERS':
       maxTeamsPerCategory = 9;
       break;
@@ -2249,6 +2287,14 @@ function calculateMaxCategoriesForOptimalDistribution(tournamentType, courtsAvai
   
   let practicalLimit;
   switch (tournamentType) {
+    case 'SIX_PLAYERS':
+      // 6 equipos × 2 partidos = 6 partidos por categoría
+      practicalLimit = courtsAvailable >= 8 ? 30 : 
+                       courtsAvailable >= 6 ? 25 : 
+                       courtsAvailable >= 4 ? 15 : 
+                       courtsAvailable >= 3 ? 12 : 
+                       courtsAvailable >= 2 ? 8 : 4;
+      break;
     case 'NINE_PLAYERS':
       // 9 equipos × 2 partidos = 9 partidos por categoría
       practicalLimit = courtsAvailable >= 8 ? 22 : 
@@ -4322,7 +4368,9 @@ async function getStandingsData(tournamentId) {
  * Generar estructura del bracket según formato
  */
 function generateBracketStructure(qualifiedTeams, tournamentType) {
-  if (tournamentType === 'NINE_PLAYERS') {
+  if (tournamentType === 'SIX_PLAYERS') {
+    return generateSixPlayersBracket(qualifiedTeams);
+  } else if (tournamentType === 'NINE_PLAYERS') {
     return generateNinePlayersBracket(qualifiedTeams);
   } else if (tournamentType === 'TWELVE_PLAYERS') {
     return generateTwelvePlayersBracket(qualifiedTeams);
@@ -4334,7 +4382,50 @@ function generateBracketStructure(qualifiedTeams, tournamentType) {
 }
 
 /**
- * Bracket para 9 jugadores: 4 clasificados → Semifinales → Final
+ * Bracket para 6 jugadores: 4 clasificados → Semifinales → Final
+ */
+function generateSixPlayersBracket(qualifiedTeams) {
+  // Ordenar equipos: primeros de grupo primero, luego segundos
+  const groupWinners = qualifiedTeams.filter(t => t.qualification_type === 'group_winner')
+    .sort((a, b) => a.group - b.group);
+  const groupRunners = qualifiedTeams.filter(t => t.qualification_type === 'group_runner_up')
+    .sort((a, b) => a.group - b.group);
+    
+  // Emparejamiento para semifinales: 
+  // Semifinal 1: Ganador Grupo A vs Segundo Grupo B
+  // Semifinal 2: Ganador Grupo B vs Segundo Grupo A
+  const semifinalsMatchups = [
+    { team1: groupWinners[0], team2: groupRunners[1] }, // G1 vs 2do G2
+    { team1: groupWinners[1], team2: groupRunners[0] }  // G2 vs 2do G1
+  ];
+
+  return {
+    format: 'SIX_PLAYERS',
+    total_teams: 4,
+    structure: {
+      semifinals: semifinalsMatchups.map((matchup, index) => ({
+        id: `semifinal_${index + 1}`,
+        round: 'SEMI_FINALS',
+        team1: matchup.team1,
+        team2: matchup.team2,
+        winner_advances_to: 'final',
+        match_number: index + 1
+      })),
+      final: {
+        id: 'final',
+        round: 'FINAL',
+        team1: null, // Se llenará con ganador de semifinal 1
+        team2: null, // Se llenará con ganador de semifinal 2
+        winner_advances_to: null, // Es la final
+        match_number: 3
+      }
+    },
+    description: '4 equipos clasificados: semifinales → final'
+  };
+}
+
+/**
+ * Bracket para 9 jugadores: 6 clasificados → Cuartos/Semis → Final
  */
 function generateNinePlayersBracket(qualifiedTeams) {
   // Ordenar equipos: primeros de grupo primero, luego mejor segundo

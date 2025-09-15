@@ -1,6 +1,6 @@
 'use client'
 
-import { use } from 'react'
+import { use, useState, useEffect } from 'react'
 import { useTournament } from '@/hooks/useTournaments'
 import { useCategories } from '@/hooks/useCategories'
 import { useTournamentPaymentStats } from '@/hooks/useTournamentStats'
@@ -28,6 +28,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { getCategoryName } from '@/utils/category'
+import { TournamentTypeEditor } from '@/components/Tournaments/TournamentTypeEditor'
 
 interface PageProps {
   params: Promise<{
@@ -58,6 +59,22 @@ export default function TournamentPage({ params }: PageProps) {
   } = useTournamentPaymentStats(id)
   
   const { categories } = useCategories()
+
+  // Estado para manejar el tipo de torneo
+  const [tournamentType, setTournamentType] = useState(tournament?.tournament_type || '')
+
+  // Actualizar el estado cuando cambie el torneo
+  useEffect(() => {
+    if (tournament?.tournament_type) {
+      setTournamentType(tournament.tournament_type)
+    }
+  }, [tournament?.tournament_type])
+
+  const handleTournamentTypeChange = (newType: string) => {
+    setTournamentType(newType)
+    // Refrescar los datos del torneo para obtener la información actualizada
+    refetch()
+  }
 
   if (loading) {
     return (
@@ -168,6 +185,7 @@ export default function TournamentPage({ params }: PageProps) {
 
   const formatTournamentType = (type: string) => {
     const typeConfig = {
+      SIX_PLAYERS: '6 Jugadores',
       NINE_PLAYERS: '9 Jugadores',
       TWELVE_PLAYERS: '12 Jugadores', 
       SIXTEEN_PLAYERS: '16 Jugadores'
@@ -286,7 +304,12 @@ export default function TournamentPage({ params }: PageProps) {
                   </div>
                   <div className="flex items-center gap-2">
                     <TrophyIcon className="h-5 w-5 text-yellow-500" />
-                    <span className="font-medium">{formatTournamentType(tournament.tournament_type)}</span>
+                    <TournamentTypeEditor
+                      tournamentId={id}
+                      currentType={tournamentType}
+                      onTypeChange={handleTournamentTypeChange}
+                      disabled={tournament.status === 'completed'}
+                    />
                   </div>
                 </div>
 

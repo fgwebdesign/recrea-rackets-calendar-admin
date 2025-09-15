@@ -7,7 +7,7 @@ export interface TournamentCreationData {
   start_date: string;
   end_date: string;
   courts_available: number;
-  tournament_type: 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS';
+  tournament_type: 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS';
   time_slots: number[][];
   group_time_slots: any[]; // El backend genera estos dinámicamente
   
@@ -118,7 +118,7 @@ export class TournamentCreationService {
       errors.push('Debe haber al menos una cancha disponible');
     }
 
-    if (!['NINE_PLAYERS', 'TWELVE_PLAYERS', 'SIXTEEN_PLAYERS'].includes(data.tournament_type)) {
+    if (!['SIX_PLAYERS', 'NINE_PLAYERS', 'TWELVE_PLAYERS', 'SIXTEEN_PLAYERS'].includes(data.tournament_type)) {
       errors.push('Tipo de torneo inválido');
     }
 

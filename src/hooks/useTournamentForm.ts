@@ -18,7 +18,7 @@ export interface TournamentFormData {
   start_date: string;
   end_date: string;
   courts_available: number;
-  tournament_type: 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS';
+  tournament_type: 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS';
   tournament_thumbnail: File | null;
   thumbnail_url?: string | null;
 
