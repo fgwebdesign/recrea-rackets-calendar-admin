@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface SimpleAddCourtModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface SimpleAddCourtModalProps {
 }
 
 export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: SimpleAddCourtModalProps) {
+  const t = useTranslations('courts');
   const [formData, setFormData] = useState({
     name: "",
     photo: null as File | null
@@ -27,7 +29,7 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setError("La imagen no debe superar los 5MB");
+        setError(t('imageTooLarge'));
         return;
       }
       setFormData(prev => ({ ...prev, photo: file }));
@@ -47,16 +49,16 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
 
     try {
       if (!formData.name || !formData.photo) {
-        throw new Error("El nombre y la foto son requeridos");
+        throw new Error(t('nameAndPhotoRequired'));
       }
 
       await onSubmit(formData);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al crear la cancha");
+      setError(err instanceof Error ? err.message : t('errorCreatingCourt'));
       toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Error al crear la cancha",
+        title: t('error'),
+        description: err instanceof Error ? err.message : t('errorCreatingCourt'),
         variant: "destructive",
       });
     } finally {
@@ -75,23 +77,23 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="bg-white dark:bg-gray-800">
         <DialogHeader>
-          <DialogTitle className="text-gray-900 dark:text-white">Añadir nueva cancha</DialogTitle>
+          <DialogTitle className="text-gray-900 dark:text-white">{t('addNewCourt')}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">Nombre de la cancha</Label>
+            <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">{t('courtName')}</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Ingresa el nombre de la cancha"
+              placeholder={t('courtNamePlaceholder')}
               className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
             />
           </div>
 
           <div>
-            <Label className="text-gray-700 dark:text-gray-300">Foto de la cancha</Label>
+            <Label className="text-gray-700 dark:text-gray-300">{t('courtPhoto')}</Label>
             <div className="mt-2 mb-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0">
@@ -99,15 +101,15 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
                 </div>
                 <div className="flex-1">
                   <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                    Recomendación para la imagen:
+                    {t('imageRecommendation')}
                   </h4>
                   <ul className="mt-1 text-sm text-blue-700 dark:text-blue-400 space-y-1">
-                    <li>• Tamaño recomendado: 1920 x 1080 píxeles</li>
-                    <li>• Formato: PNG o JPG</li>
-                    <li>• Máximo 5MB</li>
+                    <li>• {t('recommendedSize')}</li>
+                    <li>• {t('format')}</li>
+                    <li>• {t('maxSize')}</li>
                   </ul>
                   <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">
-                    Usar estas dimensiones asegurará que tu foto se vea perfectamente en el portal del jugador.
+                    {t('imageDescription')}
                   </p>
                 </div>
               </div>
@@ -131,7 +133,7 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
                         }}
                         className="text-white hover:text-red-400"
                       >
-                        Cambiar imagen
+                        {t('changeImage')}
                       </button>
                     </div>
                   </div>
@@ -140,10 +142,10 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
                     <div className="flex flex-col items-center">
                       <ImageIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />
                       <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        Click para subir o arrastrar imagen
+                        {t('clickToUpload')}
                       </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        PNG, JPG (max. 5MB)
+                        {t('fileFormat')}
                       </p>
                     </div>
                     <Input
@@ -170,14 +172,14 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
               disabled={isLoading}
               className="border-gray-300 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             >
-              Cancelar
+              {t('cancel')}
             </Button>
             <Button
               type="submit"
               disabled={isLoading || !formData.name || !formData.photo}
               className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white"
             >
-              {isLoading ? "Guardando..." : "Guardar"}
+              {isLoading ? t('saving') : t('save')}
             </Button>
           </DialogFooter>
         </form>

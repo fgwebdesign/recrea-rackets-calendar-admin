@@ -110,7 +110,7 @@ const LogoCard = ({ t }: { t: (key: string) => string }) => (
       <div className="relative w-20 h-20 bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg ring-4 ring-white/50 dark:ring-gray-700/50 transform transition-transform duration-300 hover:scale-105">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-white dark:from-blue-900 dark:to-gray-800 rounded-full animate-pulse-slow" />
         <Image
-          src="/assets/recrealogo.jpeg"
+          src="/assets/Matchlylogo.png"
           alt="Recrea Padel Club"
           fill
           priority

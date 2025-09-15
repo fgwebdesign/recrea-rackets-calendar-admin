@@ -10,8 +10,10 @@ import { useCourts } from '@/hooks/useCourts';
 import EmptyState from '@/components/EmptyState';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 import EditCourtModal from '@/components/Courts/EditCourtModal';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 export default function CourtsPage() {
+  const t = useTranslations('courts');
   const { courts, isLoading, fetchCourts, createCourt, deleteCourt, updateCourt } = useCourts();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingCourt, setEditingCourt] = useState<{ id: string; name: string; photo_url: string } | null>(null);
@@ -56,16 +58,16 @@ export default function CourtsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
         <Header 
-          title="Canchas"
+          title={t('title')}
           icon={<ImageIcon className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
-          description="Administra las canchas del club."
+          description={t('description')}
           button={
             <Button 
               onClick={() => setIsAddModalOpen(true)}
               className="bg-[#6B8AFF] text-white hover:bg-[#5A75E6] dark:bg-blue-600 dark:hover:bg-blue-700"
             >
               <PlusCircle className="mr-2 h-5 w-5" />
-              Añadir Cancha
+              {t('addCourt')}
             </Button>
           }
         />

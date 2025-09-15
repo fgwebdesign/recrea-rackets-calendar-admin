@@ -117,20 +117,20 @@ export default function Home() {
           <div className="text-center mb-8">
             <div className="relative w-24 h-24 mx-auto mb-4 bg-white dark:bg-gray-800 rounded-full shadow-lg ring-4 ring-blue-50 dark:ring-blue-900">
               <Image
-                src="/assets/recrealogo.jpeg"
-                alt="Recrea Padel Club"
+                src="/assets/Matchlylogo.png"
+                alt={t('appTitle')}
                 fill
                 priority
                 sizes="96px"
                 className="object-contain p-2 rounded-full"
               />
             </div>
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Rackets Calendar</h1>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{t('appTitle')}</h1>
             <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm">
-              Sistema integral para la creacion de ligas, torneos, partidos y usuarios para tu club deportivo.
+              {t('appDescription')}
             </p>
             <div className="mt-4 inline-block px-4 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-full">
-              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Portal Administrativo</p>
+              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">{t('adminPortal')}</p>
             </div>
           </div>
 

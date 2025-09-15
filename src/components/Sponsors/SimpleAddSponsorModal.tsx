@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface SimpleAddSponsorModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface SimpleAddSponsorModalProps {
 }
 
 export default function SimpleAddSponsorModal({ isOpen, onClose, onSubmit }: SimpleAddSponsorModalProps) {
+  const t = useTranslations('sponsors');
   const [formData, setFormData] = useState({
     name: "",
     logo: null as File | null
@@ -27,7 +29,7 @@ export default function SimpleAddSponsorModal({ isOpen, onClose, onSubmit }: Sim
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setError("La imagen no debe superar los 5MB");
+        setError(t('imageTooLarge'));
         return;
       }
       setFormData(prev => ({ ...prev, logo: file }));
@@ -47,16 +49,16 @@ export default function SimpleAddSponsorModal({ isOpen, onClose, onSubmit }: Sim
 
     try {
       if (!formData.name || !formData.logo) {
-        throw new Error("El nombre y el logo son requeridos");
+        throw new Error(t('nameAndLogoRequired'));
       }
 
       await onSubmit(formData);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al crear el patrocinador");
+      setError(err instanceof Error ? err.message : t('errorCreatingSponsor'));
       toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Error al crear el patrocinador",
+        title: t('error'),
+        description: err instanceof Error ? err.message : t('errorCreatingSponsor'),
         variant: "destructive",
       });
     } finally {
@@ -78,7 +80,7 @@ export default function SimpleAddSponsorModal({ isOpen, onClose, onSubmit }: Sim
         aria-describedby="add-sponsor-description"
       >
         <DialogHeader>
-          <DialogTitle className="text-gray-900 dark:text-white">Añadir nuevo patrocinador</DialogTitle>
+          <DialogTitle className="text-gray-900 dark:text-white">{t('addNewSponsor')}</DialogTitle>
           <p id="add-sponsor-description" className="sr-only">
             Formulario para agregar un nuevo patrocinador al club, incluyendo nombre y logo
           </p>
@@ -86,18 +88,18 @@ export default function SimpleAddSponsorModal({ isOpen, onClose, onSubmit }: Sim
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">Nombre del patrocinador</Label>
+            <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">{t('sponsorName')}</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Ingresa el nombre del patrocinador"
+              placeholder={t('sponsorNamePlaceholder')}
               className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
             />
           </div>
 
           <div>
-            <Label className="text-gray-700 dark:text-gray-300">Logo del patrocinador</Label>
+            <Label className="text-gray-700 dark:text-gray-300">{t('sponsorLogo')}</Label>
             <div className="mt-2 mb-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0">
@@ -105,16 +107,16 @@ export default function SimpleAddSponsorModal({ isOpen, onClose, onSubmit }: Sim
                 </div>
                 <div className="flex-1">
                   <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                    Recomendación para el logo:
+                    {t('logoRecommendation')}
                   </h4>
                   <ul className="mt-1 text-sm text-blue-700 dark:text-blue-400 space-y-1">
-                    <li>• Tamaño recomendado: 400 x 200 píxeles</li>
-                    <li>• Formato: PNG o JPG</li>
-                    <li>• Máximo 5MB</li>
-                    <li>• Fondo transparente preferiblemente</li>
+                    <li>• {t('recommendedSize')}</li>
+                    <li>• {t('format')}</li>
+                    <li>• {t('maxSize')}</li>
+                    <li>• {t('transparentBackground')}</li>
                   </ul>
                   <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">
-                    Usar estas dimensiones asegurará que el logo se vea perfectamente en el portal del jugador.
+                    {t('logoDescription')}
                   </p>
                 </div>
               </div>
@@ -139,7 +141,7 @@ export default function SimpleAddSponsorModal({ isOpen, onClose, onSubmit }: Sim
                         }}
                         className="text-white hover:text-red-400"
                       >
-                        Cambiar logo
+                        {t('changeLogo')}
                       </button>
                     </div>
                   </div>
@@ -148,10 +150,10 @@ export default function SimpleAddSponsorModal({ isOpen, onClose, onSubmit }: Sim
                     <div className="flex flex-col items-center">
                       <ImageIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />
                       <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        Click para subir o arrastrar logo
+                        {t('clickToUpload')}
                       </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        PNG, JPG (max. 5MB)
+                        {t('fileFormat')}
                       </p>
                     </div>
                     <Input
@@ -178,14 +180,14 @@ export default function SimpleAddSponsorModal({ isOpen, onClose, onSubmit }: Sim
               disabled={isLoading}
               className="border-gray-300 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             >
-              Cancelar
+              {t('cancel')}
             </Button>
             <Button
               type="submit"
               disabled={isLoading || !formData.name || !formData.logo}
               className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white"
             >
-              {isLoading ? "Guardando..." : "Guardar"}
+              {isLoading ? t('saving') : t('save')}
             </Button>
           </DialogFooter>
         </form>

@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { Edit2, Trash2, Pencil, User, Instagram, Phone, Calendar, Award } from "lucide-react";
 import { Professor } from '@/types/professor';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface ProfessorCardProps {
   professor: Professor;
@@ -22,14 +23,17 @@ function getImageUrl(photoUrl: string | null) {
 }
 
 export default function ProfessorCard({ professor, onDelete, onEdit }: ProfessorCardProps) {
+  const t = useTranslations('professors');
+  const tDateTime = useTranslations('datetime');
+  
   const daysMap = {
-    monday: 'Lun',
-    tuesday: 'Mar', 
-    wednesday: 'Mié',
-    thursday: 'Jue',
-    friday: 'Vie',
-    saturday: 'Sáb',
-    sunday: 'Dom'
+    monday: tDateTime('monday'),
+    tuesday: tDateTime('tuesday'), 
+    wednesday: tDateTime('wednesday'),
+    thursday: tDateTime('thursday'),
+    friday: tDateTime('friday'),
+    saturday: tDateTime('saturday'),
+    sunday: tDateTime('sunday')
   };
 
   // Función para determinar el color de las especialidades basado en el tipo
@@ -75,7 +79,7 @@ export default function ProfessorCard({ professor, onDelete, onEdit }: Professor
               ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-green-200 dark:shadow-green-800' 
               : 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-red-200 dark:shadow-red-800'
           }`}>
-            {professor.is_active ? 'Activo' : 'Inactivo'}
+            {professor.is_active ? t('active') : t('inactive')}
           </span>
         </div>
 
@@ -118,7 +122,7 @@ export default function ProfessorCard({ professor, onDelete, onEdit }: Professor
                 <Award className="h-4 w-4 text-white" />
               </div>
               <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                Especialidades
+                {t('specializations')}
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -141,7 +145,7 @@ export default function ProfessorCard({ professor, onDelete, onEdit }: Professor
               <Award className="h-4 w-4 text-white" />
             </div>
             <span className="text-sm font-semibold text-indigo-800 dark:text-indigo-200">
-              <strong className="text-lg">{professor.experience_years}</strong> años de experiencia
+              <strong className="text-lg">{professor.experience_years}</strong> {t('yearsExperience')}
             </span>
           </div>
         </div>
@@ -153,7 +157,7 @@ export default function ProfessorCard({ professor, onDelete, onEdit }: Professor
               <Calendar className="h-4 w-4 text-white" />
             </div>
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Disponible
+              {t('available')}
             </span>
           </div>
           <div className="flex flex-wrap gap-2 mb-2">

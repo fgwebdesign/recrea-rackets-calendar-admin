@@ -10,8 +10,10 @@ import { useSponsors } from '@/hooks/useSponsors';
 import EmptyState from '@/components/EmptyState';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 import EditSponsorModal from '@/components/Sponsors/EditSponsorModal';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 export default function SponsorsPage() {
+  const t = useTranslations('sponsors');
   const { sponsors, isLoading, fetchSponsors, createSponsor, deleteSponsor, updateSponsor } = useSponsors();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingSponsor, setEditingSponsor] = useState<{ id: string; name: string; logo_url: string } | null>(null);
@@ -56,16 +58,16 @@ export default function SponsorsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
         <Header 
-          title="Patrocinadores"
+          title={t('title')}
           icon={<ImageIcon className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
-          description="Administra los patrocinadores del club."
+          description={t('description')}
           button={
             <Button 
               onClick={() => setIsAddModalOpen(true)}
               className="bg-[#6B8AFF] text-white hover:bg-[#5A75E6] dark:bg-blue-600 dark:hover:bg-blue-700"
             >
               <PlusCircle className="mr-2 h-5 w-5" />
-              Añadir Patrocinador
+              {t('addSponsor')}
             </Button>
           }
         />

@@ -5,6 +5,7 @@ import UsersTable from '../../components/Users/UsersTable';
 import UserFilters from '../../components/Users/UserFilter';
 import Header from '@/components/Header';
 import { UsersIcon } from '@heroicons/react/24/outline';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface User {
   id: string;
@@ -18,6 +19,7 @@ interface User {
 }
 
 export default function UsersPage() {
+  const t = useTranslations('users');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
   const [users, setUsers] = useState<User[]>([]);
@@ -35,14 +37,14 @@ export default function UsersPage() {
           id: user.id,
           email: user.email,
           name: `${user.first_name} ${user.last_name}`,
-          role: user.role === 'user' ? 'Jugador' : user.role,
+          role: user.role === 'user' ? t('player') : user.role,
           status: 'active', 
           lastLogin: new Date().toISOString().split('T')[0], 
           avatar: user.profile_photo || 
                  user.user_metadata?.avatar_url || 
                  (user.raw_user_meta_data && user.raw_user_meta_data.avatar_url) || 
                  '/assets/user.png',
-          phone: user.phone || 'No disponible'
+          phone: user.phone || t('notAvailable')
         }));
         setUsers(transformedUsers);
       } catch (error) {
@@ -79,8 +81,8 @@ export default function UsersPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         <Header 
-          title="Usuarios"
-          description="Administra y visualiza todos los usuarios."
+          title={t('title')}
+          description={t('description')}
           icon={<UsersIcon className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
         />
 

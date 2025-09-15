@@ -11,8 +11,10 @@ import { useProfessors } from '@/hooks/useProfessors';
 import EmptyState from '@/components/EmptyState';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 import { Professor } from '@/types/professor';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 export default function ProfessorsPage() {
+  const t = useTranslations('professors');
   const { professors, isLoading, fetchProfessors, createProfessor, deleteProfessor, updateProfessor } = useProfessors();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProfessor, setEditingProfessor] = useState<Professor | null>(null);
@@ -57,16 +59,16 @@ export default function ProfessorsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
         <Header 
-          title="Profesores"
+          title={t('title')}
           icon={<GraduationCap className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
-          description="Administra los profesores del club."
+          description={t('description')}
           button={
             <Button 
               onClick={() => setIsAddModalOpen(true)}
               className="bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
             >
               <PlusCircle className="mr-2 h-5 w-5" />
-              Añadir Profesor
+              {t('addProfessor')}
             </Button>
           }
         />

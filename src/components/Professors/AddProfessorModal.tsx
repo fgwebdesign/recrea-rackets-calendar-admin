@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/use-toast";
 import { CreateProfessorData } from '@/types/professor';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface AddProfessorModalProps {
   isOpen: boolean;
@@ -35,16 +36,17 @@ const SPECIALIZATIONS = [
 ];
 
 const DAYS_OF_WEEK = [
-  { value: 'monday', label: 'Lunes' },
-  { value: 'tuesday', label: 'Martes' },
-  { value: 'wednesday', label: 'Miércoles' },
-  { value: 'thursday', label: 'Jueves' },
-  { value: 'friday', label: 'Viernes' },
-  { value: 'saturday', label: 'Sábado' },
-  { value: 'sunday', label: 'Domingo' }
+  { value: 'monday', label: 'monday' },
+  { value: 'tuesday', label: 'tuesday' },
+  { value: 'wednesday', label: 'wednesday' },
+  { value: 'thursday', label: 'thursday' },
+  { value: 'friday', label: 'friday' },
+  { value: 'saturday', label: 'saturday' },
+  { value: 'sunday', label: 'sunday' }
 ];
 
 export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProfessorModalProps) {
+  const t = useTranslations('professors');
   const [formData, setFormData] = useState<CreateProfessorData>({
     name: "",
     description: "",
@@ -64,7 +66,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({ ...prev, photo: "La imagen no debe superar los 5MB" }));
+        setErrors(prev => ({ ...prev, photo: t('imageTooLarge') }));
         return;
       }
       setFormData(prev => ({ ...prev, photo: file }));
@@ -99,19 +101,19 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "El nombre es requerido";
+      newErrors.name = t('nameRequired');
     }
     if (!formData.description.trim()) {
-      newErrors.description = "La descripción es requerida";
+      newErrors.description = t('descriptionRequired');
     }
     if (!formData.availability_hours.trim()) {
-      newErrors.availability_hours = "Los horarios de disponibilidad son requeridos";
+      newErrors.availability_hours = t('availabilityHoursRequired');
     }
     if (formData.specializations.length === 0) {
-      newErrors.specializations = "Debe seleccionar al menos una especialidad";
+      newErrors.specializations = t('specializationsRequired');
     }
     if (formData.availability_days.length === 0) {
-      newErrors.availability_days = "Debe seleccionar al menos un día de disponibilidad";
+      newErrors.availability_days = t('availabilityDaysRequired');
     }
 
     setErrors(newErrors);
@@ -132,8 +134,8 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
       handleClose();
     } catch (err) {
       toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Error al crear el profesor",
+        title: t('error'),
+        description: err instanceof Error ? err.message : t('errorCreatingProfessor'),
         variant: "destructive",
       });
     } finally {
@@ -166,7 +168,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
             <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
-            Añadir nuevo profesor
+{t('addNewProfessor')}
           </DialogTitle>
         </DialogHeader>
 
@@ -175,14 +177,14 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border-2 border-blue-100 dark:border-blue-900/30 hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
             <div className="flex items-center gap-2 mb-4">
               <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Información Personal</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('personalInfo')}</h3>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Nombre */}
               <div>
                 <Label htmlFor="name" className="text-gray-700 dark:text-gray-300 font-medium">
-                  Nombre completo *
+                  {t('fullName')} *
                 </Label>
                 <Input
                   id="name"
@@ -191,7 +193,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                     setFormData(prev => ({ ...prev, name: e.target.value }));
                     if (errors.name) setErrors(prev => ({ ...prev, name: "" }));
                   }}
-                  placeholder="Ingresa el nombre completo del profesor"
+                  placeholder={t('fullNamePlaceholder')}
                   className={`mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 ${
                     errors.name ? 'border-red-500 dark:border-red-400' : ''
                   }`}
@@ -204,7 +206,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
               {/* Años de experiencia */}
               <div>
                 <Label htmlFor="experience_years" className="text-gray-700 dark:text-gray-300 font-medium">
-                  Años de experiencia
+                  {t('experienceYears')}
                 </Label>
                 <Input
                   id="experience_years"
@@ -220,7 +222,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
             {/* Descripción */}
             <div className="mt-6">
               <Label htmlFor="description" className="text-gray-700 dark:text-gray-300 font-medium">
-                Descripción *
+                {t('description')} *
               </Label>
               <Textarea
                 id="description"
@@ -229,7 +231,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                   setFormData(prev => ({ ...prev, description: e.target.value }));
                   if (errors.description) setErrors(prev => ({ ...prev, description: "" }));
                 }}
-                placeholder="Describe la experiencia y especialidades del profesor"
+                placeholder={t('descriptionPlaceholder')}
                 className={`mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 ${
                   errors.description ? 'border-red-500 dark:border-red-400' : ''
                 }`}
@@ -245,7 +247,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border-2 border-amber-100 dark:border-amber-900/30 hover:border-amber-200 dark:hover:border-amber-800 transition-colors">
             <div className="flex items-center gap-2 mb-6">
               <Trophy className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Especialidades *</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('specializations')} *</h3>
             </div>
             
             <div className="space-y-6">
@@ -255,7 +257,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                   <div className="p-1.5 bg-blue-500 rounded-lg">
                     <Trophy className="w-4 h-4 text-white" />
                   </div>
-                  <h4 className="text-base font-semibold text-blue-800 dark:text-blue-300">Pádel</h4>
+                  <h4 className="text-base font-semibold text-blue-800 dark:text-blue-300">{t('padel')}</h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {SPECIALIZATIONS.slice(0, 9).map((spec) => (
@@ -280,7 +282,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                   <div className="p-1.5 bg-green-500 rounded-lg">
                     <Trophy className="w-4 h-4 text-white" />
                   </div>
-                  <h4 className="text-base font-semibold text-green-800 dark:text-green-300">Fútbol</h4>
+                  <h4 className="text-base font-semibold text-green-800 dark:text-green-300">{t('football')}</h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {SPECIALIZATIONS.slice(9, 16).map((spec) => (
@@ -305,7 +307,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                   <div className="p-1.5 bg-purple-500 rounded-lg">
                     <Heart className="w-4 h-4 text-white" />
                   </div>
-                  <h4 className="text-base font-semibold text-purple-800 dark:text-purple-300">Salud y Bienestar</h4>
+                  <h4 className="text-base font-semibold text-purple-800 dark:text-purple-300">{t('healthWellness')}</h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {SPECIALIZATIONS.slice(16, 22).map((spec) => (
@@ -330,7 +332,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                   <div className="p-1.5 bg-orange-500 rounded-lg">
                     <Settings className="w-4 h-4 text-white" />
                   </div>
-                  <h4 className="text-base font-semibold text-orange-800 dark:text-orange-300">Otros Servicios</h4>
+                  <h4 className="text-base font-semibold text-orange-800 dark:text-orange-300">{t('otherServices')}</h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {SPECIALIZATIONS.slice(22).map((spec) => (
@@ -358,14 +360,14 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border-2 border-indigo-100 dark:border-indigo-900/30 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
             <div className="flex items-center gap-2 mb-6">
               <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Disponibilidad y Contacto</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('availabilityContact')}</h3>
             </div>
             
             <div className="space-y-6">
               {/* Días de disponibilidad */}
               <div>
                 <Label className="text-gray-700 dark:text-gray-300 font-medium">
-                  Días de disponibilidad *
+                  {t('availabilityDays')} *
                 </Label>
                 <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
                   {DAYS_OF_WEEK.map((day) => (
@@ -377,7 +379,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                         className="border-indigo-500 data-[state=checked]:bg-indigo-500 data-[state=checked]:border-indigo-500"
                       />
                       <Label htmlFor={day.value} className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer flex-1">
-                        {day.label}
+                        {t(day.label)}
                       </Label>
                     </div>
                   ))}
@@ -390,7 +392,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
               {/* Horarios de disponibilidad */}
               <div>
                 <Label htmlFor="availability_hours" className="text-gray-700 dark:text-gray-300 font-medium">
-                  Horarios de disponibilidad *
+                  {t('availabilityHours')} *
                 </Label>
                 <Textarea
                   id="availability_hours"
@@ -399,7 +401,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                     setFormData(prev => ({ ...prev, availability_hours: e.target.value }));
                     if (errors.availability_hours) setErrors(prev => ({ ...prev, availability_hours: "" }));
                   }}
-                  placeholder="Ej: Lunes a Viernes: 9:00 - 18:00, Sábados: 10:00 - 14:00"
+                  placeholder={t('availabilityHoursPlaceholder')}
                   className={`mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 ${
                     errors.availability_hours ? 'border-red-500 dark:border-red-400' : ''
                   }`}
@@ -414,26 +416,26 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="instagram_handle" className="text-gray-700 dark:text-gray-300 font-medium">
-                    Instagram (opcional)
+                    {t('instagramOptional')}
                   </Label>
                   <Input
                     id="instagram_handle"
                     value={formData.instagram_handle}
                     onChange={(e) => setFormData(prev => ({ ...prev, instagram_handle: e.target.value }))}
-                    placeholder="@usuario_instagram"
+                    placeholder={t('instagramPlaceholder')}
                     className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500"
                   />
                 </div>
 
                 <div>
                   <Label htmlFor="whatsapp_number" className="text-gray-700 dark:text-gray-300 font-medium">
-                    WhatsApp (opcional)
+                    {t('whatsappOptional')}
                   </Label>
                   <Input
                     id="whatsapp_number"
                     value={formData.whatsapp_number}
                     onChange={(e) => setFormData(prev => ({ ...prev, whatsapp_number: e.target.value }))}
-                    placeholder="+54 9 11 1234-5678"
+                    placeholder={t('whatsappPlaceholder')}
                     className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500"
                   />
                 </div>
@@ -445,7 +447,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border-2 border-pink-100 dark:border-pink-900/30 hover:border-pink-200 dark:hover:border-pink-800 transition-colors">
             <div className="flex items-center gap-2 mb-4">
               <ImageIcon className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Foto del profesor</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('professorPhoto')}</h3>
             </div>
             
             <div className="bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 border border-pink-200 dark:border-pink-800 rounded-lg p-4 mb-4">
@@ -455,15 +457,15 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                 </div>
                 <div className="flex-1">
                   <h4 className="text-sm font-medium text-pink-800 dark:text-pink-300">
-                    Recomendación para la imagen:
+                    {t('imageRecommendation')}
                   </h4>
                   <ul className="mt-1 text-sm text-pink-700 dark:text-pink-400 space-y-1">
-                    <li>• Tamaño recomendado: 400 x 400 píxeles</li>
-                    <li>• Formato: PNG o JPG</li>
-                    <li>• Máximo 5MB</li>
+                    <li>• {t('recommendedSize')}</li>
+                    <li>• {t('format')}</li>
+                    <li>• {t('maxSize')}</li>
                   </ul>
                   <p className="mt-2 text-sm text-pink-600 dark:text-pink-400">
-                    Usar estas dimensiones asegurará que la foto se vea perfectamente en el portal.
+                    {t('imageDescription')}
                   </p>
                 </div>
               </div>
@@ -487,7 +489,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                         }}
                         className="text-white hover:text-red-400 bg-red-500 hover:bg-red-600 px-3 py-1 rounded-lg transition-colors"
                       >
-                        Cambiar imagen
+                        {t('changeImage')}
                       </button>
                     </div>
                   </div>
@@ -498,10 +500,10 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                         <User className="h-12 w-12 text-pink-500 dark:text-pink-400" />
                       </div>
                       <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        Click para subir o arrastrar imagen
+                        {t('clickToUpload')}
                       </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        PNG, JPG (max. 5MB)
+                        {t('fileFormat')}
                       </p>
                     </div>
                     <Input
@@ -527,14 +529,14 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
               disabled={isLoading}
               className="border-gray-300 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 hover:bg-gray-50"
             >
-              Cancelar
+              {t('cancel')}
             </Button>
             <Button
               type="submit"
               disabled={isLoading}
               className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 dark:from-green-700 dark:to-emerald-700 dark:hover:from-green-800 dark:hover:to-emerald-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
             >
-              {isLoading ? "Guardando..." : "Guardar Profesor"}
+              {isLoading ? t('saving') : t('saveProfessor')}
             </Button>
           </DialogFooter>
         </form>

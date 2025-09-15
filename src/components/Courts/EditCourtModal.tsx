@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ImageIcon } from "lucide-react";
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface EditCourtModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface EditCourtModalProps {
 }
 
 export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: EditCourtModalProps) {
+  const t = useTranslations('courts');
   const [name, setName] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -70,20 +72,20 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
       <DialogContent className="sm:max-w-[425px] bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            Editar cancha
+            {t('editCourt')}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">
-              Nombre de la cancha
+              {t('courtName')}
             </Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ingresa el nombre de la cancha"
+              placeholder={t('courtNamePlaceholder')}
               disabled={isSubmitting}
               required
               className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700"
@@ -92,7 +94,7 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
 
           <div className="space-y-2">
             <Label htmlFor="photo" className="text-gray-700 dark:text-gray-300">
-              Foto de la cancha
+              {t('courtPhoto')}
             </Label>
             <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md bg-gray-50 dark:bg-gray-900">
               <div className="space-y-1 text-center">
@@ -112,7 +114,7 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
                     htmlFor="photo-upload"
                     className="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 dark:focus-within:ring-offset-gray-800"
                   >
-                    <span>Subir una foto</span>
+                    <span>{t('uploadPhoto')}</span>
                     <input
                       id="photo-upload"
                       name="photo-upload"
@@ -123,9 +125,9 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
                       disabled={isSubmitting}
                     />
                   </label>
-                  <p className="pl-1">o arrastra y suelta</p>
+                  <p className="pl-1">{t('dragAndDrop')}</p>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF hasta 10MB</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('fileFormatEdit')}</p>
               </div>
             </div>
           </div>
@@ -138,14 +140,14 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
               disabled={isSubmitting}
               className="bg-transparent dark:bg-transparent dark:text-gray-300 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600"
             >
-              Cancelar
+              {t('cancel')}
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
               className="bg-[#6B8AFF] text-white hover:bg-[#5A75E6] dark:bg-blue-600 dark:hover:bg-blue-700"
             >
-              Guardar cambios
+              {t('saveChanges')}
             </Button>
           </div>
         </form>

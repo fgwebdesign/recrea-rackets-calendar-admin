@@ -15,7 +15,11 @@ const translations: Record<Locale, Record<string, any>> = {
       passwordPlaceholder: '••••••••',
       loginButton: 'Iniciar sesión',
       needHelp: '¿Necesitas ayuda?',
-      contactSupport: 'Contacta a soporte'
+      contactSupport: 'Contacta a soporte',
+      // Login page content
+      appTitle: 'Matchly',
+      appDescription: 'Sistema integral para la creación de ligas, torneos, partidos y usuarios para tu club de pádel.',
+      adminPortal: 'Portal Administrativo de Matchly'
     },
     common: {
       loading: 'Cargando...',
@@ -108,23 +112,182 @@ const translations: Record<Locale, Record<string, any>> = {
       logout: 'Cerrar sesión',
       loggingOut: 'Cerrando sesión...'
     },
-    weather: {
-      morning: 'Mañana',
-      day: 'Mediodía',
-      evening: 'Tarde',
-      night: 'Noche',
-      humidity: 'Humedad',
-      wind: 'Viento',
-      weatherInfo: 'Información no disponible',
-      loadingWeather: 'Error al cargar el clima',
-      location: 'Montevideo, Uruguay.',
-      // Condiciones climáticas
-      clouds: 'Nubes',
-      sunny: 'Soleado',
-      rainy: 'Lluvioso',
-      thunderstorm: 'Tormenta',
-      partlyCloudy: 'Parcialmente nublado'
-    }
+    users: {
+      title: 'Usuarios',
+      description: 'Administra y visualiza todos los usuarios.',
+      searchPlaceholder: 'Buscar usuario...',
+      allRoles: 'Todos los roles',
+      player: 'Jugador',
+      admin: 'Administrador',
+      noUsersFound: 'No se encontraron usuarios con esta búsqueda',
+      // Tabla
+      user: 'USUARIO',
+      email: 'EMAIL',
+      phone: 'TELÉFONO',
+      role: 'ROL',
+      status: 'ESTADO',
+      lastAccess: 'ÚLTIMO ACCESO',
+      active: 'Activo',
+      inactive: 'Inactivo',
+      // Paginación
+      showing: 'Mostrando',
+      to: 'a',
+      of: 'de',
+      users: 'usuarios',
+      // Estados y roles
+      notAvailable: 'No disponible'
+    },
+    sponsors: {
+      title: 'Patrocinadores',
+      description: 'Administra los patrocinadores del club.',
+      addSponsor: 'Añadir Patrocinador',
+      // Modal de agregar
+      addNewSponsor: 'Añadir nuevo patrocinador',
+      sponsorName: 'Nombre del patrocinador',
+      sponsorNamePlaceholder: 'Ingresa el nombre del patrocinador',
+      sponsorLogo: 'Logo del patrocinador',
+      logoRecommendation: 'Recomendación para el logo:',
+      recommendedSize: 'Tamaño recomendado: 400 x 200 píxeles',
+      format: 'Formato: PNG o JPG',
+      maxSize: 'Máximo 5MB',
+      transparentBackground: 'Fondo transparente preferiblemente',
+      logoDescription: 'Usar estas dimensiones asegurará que el logo se vea perfectamente en el portal del jugador.',
+      clickToUpload: 'Click para subir o arrastrar logo',
+      fileFormat: 'PNG, JPG (max. 5MB)',
+      changeLogo: 'Cambiar logo',
+      cancel: 'Cancelar',
+      save: 'Guardar',
+      saving: 'Guardando...',
+      // Modal de editar
+      editSponsor: 'Editar patrocinador',
+      uploadLogo: 'Subir un logo',
+      dragAndDrop: 'o arrastra y suelta',
+      fileFormatEdit: 'PNG, JPG, GIF hasta 5MB',
+      saveChanges: 'Guardar cambios',
+      // Modal de confirmación
+      confirmDeletion: 'Confirmar Eliminación',
+      deleteConfirmation: '¿Estás seguro que deseas eliminar',
+      cannotUndo: 'Esta acción no se puede deshacer.',
+      delete: 'Eliminar',
+      // Errores
+      nameAndLogoRequired: 'El nombre y el logo son requeridos',
+      imageTooLarge: 'La imagen no debe superar los 5MB',
+      errorCreatingSponsor: 'Error al crear el patrocinador',
+      error: 'Error'
+    },
+    professors: {
+      title: 'Profesores',
+      description: 'Administra los profesores del club.',
+      addProfessor: 'Añadir Profesor',
+      // Modal de agregar
+      addNewProfessor: 'Añadir nuevo profesor',
+      editProfessor: 'Editar profesor',
+      // Información personal
+      personalInfo: 'Información Personal',
+      fullName: 'Nombre completo',
+      fullNamePlaceholder: 'Ingresa el nombre completo del profesor',
+      experienceYears: 'Años de experiencia',
+      descriptionPlaceholder: 'Describe la experiencia y especialidades del profesor',
+      // Especialidades
+      specializations: 'Especialidades',
+      padel: 'Pádel',
+      football: 'Fútbol',
+      healthWellness: 'Salud y Bienestar',
+      otherServices: 'Otros Servicios',
+      // Disponibilidad y contacto
+      availabilityContact: 'Disponibilidad y Contacto',
+      availabilityDays: 'Días de disponibilidad',
+      availabilityHours: 'Horarios de disponibilidad',
+      availabilityHoursPlaceholder: 'Ej: Lunes a Viernes: 9:00 - 18:00, Sábados: 10:00 - 14:00',
+      instagramOptional: 'Instagram (opcional)',
+      instagramPlaceholder: '@usuario_instagram',
+      whatsappOptional: 'WhatsApp (opcional)',
+      whatsappPlaceholder: '+54 9 11 1234-5678',
+      professorActive: 'Profesor activo',
+      // Foto
+      professorPhoto: 'Foto del profesor',
+      imageRecommendation: 'Recomendación para la imagen:',
+      recommendedSize: 'Tamaño recomendado: 400 x 400 píxeles',
+      format: 'Formato: PNG o JPG',
+      maxSize: 'Máximo 5MB',
+      imageDescription: 'Usar estas dimensiones asegurará que la foto se vea perfectamente en el portal.',
+      clickToUpload: 'Click para subir o arrastrar imagen',
+      fileFormat: 'PNG, JPG (max. 5MB)',
+      changeImage: 'Cambiar imagen',
+      // Estados
+      active: 'Activo',
+      inactive: 'Inactivo',
+      available: 'Disponible',
+      yearsExperience: 'años de experiencia',
+      // Días de la semana
+      monday: 'Lunes',
+      tuesday: 'Martes',
+      wednesday: 'Miércoles',
+      thursday: 'Jueves',
+      friday: 'Viernes',
+      saturday: 'Sábado',
+      sunday: 'Domingo',
+      // Botones
+      cancel: 'Cancelar',
+      save: 'Guardar',
+      saving: 'Guardando...',
+      saveProfessor: 'Guardar Profesor',
+      saveChanges: 'Guardar Cambios',
+    // Errores
+    nameRequired: 'El nombre es requerido',
+    descriptionRequired: 'La descripción es requerida',
+    availabilityHoursRequired: 'Los horarios de disponibilidad son requeridos',
+    specializationsRequired: 'Debe seleccionar al menos una especialidad',
+    availabilityDaysRequired: 'Debe seleccionar al menos un día de disponibilidad',
+    imageTooLarge: 'La imagen no debe superar los 5MB',
+    errorCreatingProfessor: 'Error al crear el profesor',
+    errorUpdatingProfessor: 'Error al actualizar el profesor',
+    error: 'Error'
+  },
+  // Loading Screen
+  loading: {
+    defaultMessage: 'Cargando...',
+    verifyingSession: 'Verificando sesión...',
+    loadingData: 'Cargando datos...',
+    pleaseWait: 'Por favor espera...'
+  },
+  // Courts
+  courts: {
+    title: 'Canchas',
+    description: 'Administra las canchas del club.',
+    addCourt: 'Añadir Cancha',
+    // Modal de agregar
+    addNewCourt: 'Añadir nueva cancha',
+    editCourt: 'Editar cancha',
+    // Campos del formulario
+    courtName: 'Nombre de la cancha',
+    courtNamePlaceholder: 'Ingresa el nombre de la cancha',
+    courtPhoto: 'Foto de la cancha',
+    // Recomendaciones de imagen
+    imageRecommendation: 'Recomendación para la imagen:',
+    recommendedSize: 'Tamaño recomendado: 1920 x 1080 píxeles',
+    format: 'Formato: PNG o JPG',
+    maxSize: 'Máximo 5MB',
+    imageDescription: 'Usar estas dimensiones asegurará que tu foto se vea perfectamente en el portal del jugador.',
+    clickToUpload: 'Click para subir o arrastrar imagen',
+    fileFormat: 'PNG, JPG (max. 5MB)',
+    changeImage: 'Cambiar imagen',
+    uploadPhoto: 'Subir una foto',
+    dragAndDrop: 'o arrastra y suelta',
+    fileFormatEdit: 'PNG, JPG, GIF hasta 10MB',
+    // Botones
+    cancel: 'Cancelar',
+    save: 'Guardar',
+    saving: 'Guardando...',
+    saveChanges: 'Guardar cambios',
+    // Errores
+    nameRequired: 'El nombre es requerido',
+    photoRequired: 'La foto es requerida',
+    nameAndPhotoRequired: 'El nombre y la foto son requeridos',
+    imageTooLarge: 'La imagen no debe superar los 5MB',
+    errorCreatingCourt: 'Error al crear la cancha',
+    error: 'Error'
+  }
   },
   en: {
     auth: {
@@ -134,7 +297,11 @@ const translations: Record<Locale, Record<string, any>> = {
       passwordPlaceholder: '••••••••',
       loginButton: 'Log in',
       needHelp: 'Need help?',
-      contactSupport: 'Contact support'
+      contactSupport: 'Contact support',
+      // Login page content
+      appTitle: 'Matchly',
+      appDescription: 'Comprehensive system for creating leagues, tournaments, matches and users for your padel club.',
+      adminPortal: 'Matchly Administrative Portal'
     },
     common: {
       loading: 'Loading...',
@@ -227,23 +394,182 @@ const translations: Record<Locale, Record<string, any>> = {
       logout: 'Log out',
       loggingOut: 'Logging out...'
     },
-    weather: {
-      morning: 'Morning',
-      day: 'Noon',
-      evening: 'Evening',
-      night: 'Night',
-      humidity: 'Humidity',
-      wind: 'Wind',
-      weatherInfo: 'Information not available',
-      loadingWeather: 'Error loading weather',
-      location: 'Montevideo, Uruguay.',
-      // Condiciones climáticas
-      clouds: 'Clouds',
-      sunny: 'Sunny',
-      rainy: 'Rainy',
-      thunderstorm: 'Thunderstorm',
-      partlyCloudy: 'Partly cloudy'
-    }
+    users: {
+      title: 'Users',
+      description: 'Manage and view all users.',
+      searchPlaceholder: 'Search user...',
+      allRoles: 'All roles',
+      player: 'Player',
+      admin: 'Administrator',
+      noUsersFound: 'No users found with this search',
+      // Tabla
+      user: 'USER',
+      email: 'EMAIL',
+      phone: 'PHONE',
+      role: 'ROLE',
+      status: 'STATUS',
+      lastAccess: 'LAST ACCESS',
+      active: 'Active',
+      inactive: 'Inactive',
+      // Paginación
+      showing: 'Showing',
+      to: 'to',
+      of: 'of',
+      users: 'users',
+      // Estados y roles
+      notAvailable: 'Not available'
+    },
+    sponsors: {
+      title: 'Sponsors',
+      description: 'Manage the club sponsors.',
+      addSponsor: 'Add Sponsor',
+      // Modal de agregar
+      addNewSponsor: 'Add new sponsor',
+      sponsorName: 'Sponsor name',
+      sponsorNamePlaceholder: 'Enter sponsor name',
+      sponsorLogo: 'Sponsor logo',
+      logoRecommendation: 'Logo recommendation:',
+      recommendedSize: 'Recommended size: 400 x 200 pixels',
+      format: 'Format: PNG or JPG',
+      maxSize: 'Maximum 5MB',
+      transparentBackground: 'Transparent background preferably',
+      logoDescription: 'Using these dimensions will ensure the logo looks perfect on the player portal.',
+      clickToUpload: 'Click to upload or drag logo',
+      fileFormat: 'PNG, JPG (max. 5MB)',
+      changeLogo: 'Change logo',
+      cancel: 'Cancel',
+      save: 'Save',
+      saving: 'Saving...',
+      // Modal de editar
+      editSponsor: 'Edit sponsor',
+      uploadLogo: 'Upload a logo',
+      dragAndDrop: 'or drag and drop',
+      fileFormatEdit: 'PNG, JPG, GIF up to 5MB',
+      saveChanges: 'Save changes',
+      // Modal de confirmación
+      confirmDeletion: 'Confirm Deletion',
+      deleteConfirmation: 'Are you sure you want to delete',
+      cannotUndo: 'This action cannot be undone.',
+      delete: 'Delete',
+      // Errores
+      nameAndLogoRequired: 'Name and logo are required',
+      imageTooLarge: 'Image must not exceed 5MB',
+      errorCreatingSponsor: 'Error creating sponsor',
+      error: 'Error'
+    },
+    professors: {
+      title: 'Professors',
+      description: 'Manage the club professors.',
+      addProfessor: 'Add Professor',
+      // Modal de agregar
+      addNewProfessor: 'Add new professor',
+      editProfessor: 'Edit professor',
+      // Información personal
+      personalInfo: 'Personal Information',
+      fullName: 'Full name',
+      fullNamePlaceholder: 'Enter professor full name',
+      experienceYears: 'Years of experience',
+      descriptionPlaceholder: 'Describe the professor experience and specializations',
+      // Especialidades
+      specializations: 'Specializations',
+      padel: 'Padel',
+      football: 'Football',
+      healthWellness: 'Health and Wellness',
+      otherServices: 'Other Services',
+      // Disponibilidad y contacto
+      availabilityContact: 'Availability and Contact',
+      availabilityDays: 'Availability days',
+      availabilityHours: 'Availability hours',
+      availabilityHoursPlaceholder: 'Ex: Monday to Friday: 9:00 - 18:00, Saturdays: 10:00 - 14:00',
+      instagramOptional: 'Instagram (optional)',
+      instagramPlaceholder: '@instagram_user',
+      whatsappOptional: 'WhatsApp (optional)',
+      whatsappPlaceholder: '+54 9 11 1234-5678',
+      professorActive: 'Active professor',
+      // Foto
+      professorPhoto: 'Professor photo',
+      imageRecommendation: 'Image recommendation:',
+      recommendedSize: 'Recommended size: 400 x 400 pixels',
+      format: 'Format: PNG or JPG',
+      maxSize: 'Maximum 5MB',
+      imageDescription: 'Using these dimensions will ensure the photo looks perfect on the portal.',
+      clickToUpload: 'Click to upload or drag image',
+      fileFormat: 'PNG, JPG (max. 5MB)',
+      changeImage: 'Change image',
+      // Estados
+      active: 'Active',
+      inactive: 'Inactive',
+      available: 'Available',
+      yearsExperience: 'years of experience',
+      // Días de la semana
+      monday: 'Monday',
+      tuesday: 'Tuesday',
+      wednesday: 'Wednesday',
+      thursday: 'Thursday',
+      friday: 'Friday',
+      saturday: 'Saturday',
+      sunday: 'Sunday',
+      // Botones
+      cancel: 'Cancel',
+      save: 'Save',
+      saving: 'Saving...',
+      saveProfessor: 'Save Professor',
+      saveChanges: 'Save Changes',
+    // Errores
+    nameRequired: 'Name is required',
+    descriptionRequired: 'Description is required',
+    availabilityHoursRequired: 'Availability hours are required',
+    specializationsRequired: 'Must select at least one specialization',
+    availabilityDaysRequired: 'Must select at least one availability day',
+    imageTooLarge: 'Image must not exceed 5MB',
+    errorCreatingProfessor: 'Error creating professor',
+    errorUpdatingProfessor: 'Error updating professor',
+    error: 'Error'
+  },
+  // Loading Screen
+  loading: {
+    defaultMessage: 'Loading...',
+    verifyingSession: 'Verifying session...',
+    loadingData: 'Loading data...',
+    pleaseWait: 'Please wait...'
+  },
+  // Courts
+  courts: {
+    title: 'Courts',
+    description: 'Manage the club courts.',
+    addCourt: 'Add Court',
+    // Modal de agregar
+    addNewCourt: 'Add new court',
+    editCourt: 'Edit court',
+    // Campos del formulario
+    courtName: 'Court name',
+    courtNamePlaceholder: 'Enter court name',
+    courtPhoto: 'Court photo',
+    // Recomendaciones de imagen
+    imageRecommendation: 'Image recommendation:',
+    recommendedSize: 'Recommended size: 1920 x 1080 pixels',
+    format: 'Format: PNG or JPG',
+    maxSize: 'Maximum 5MB',
+    imageDescription: 'Using these dimensions will ensure your photo looks perfect on the player portal.',
+    clickToUpload: 'Click to upload or drag image',
+    fileFormat: 'PNG, JPG (max. 5MB)',
+    changeImage: 'Change image',
+    uploadPhoto: 'Upload a photo',
+    dragAndDrop: 'or drag and drop',
+    fileFormatEdit: 'PNG, JPG, GIF up to 10MB',
+    // Botones
+    cancel: 'Cancel',
+    save: 'Save',
+    saving: 'Saving...',
+    saveChanges: 'Save changes',
+    // Errores
+    nameRequired: 'Name is required',
+    photoRequired: 'Photo is required',
+    nameAndPhotoRequired: 'Name and photo are required',
+    imageTooLarge: 'Image must not exceed 5MB',
+    errorCreatingCourt: 'Error creating court',
+    error: 'Error'
+  }
   }
 };
 
