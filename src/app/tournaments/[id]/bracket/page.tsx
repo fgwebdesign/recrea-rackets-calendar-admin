@@ -80,7 +80,7 @@ export default function TournamentBracketPage() {
                 <Trophy className="h-8 w-8 text-yellow-600" />
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    🏆 Bracket Eliminatorio
+                    Fase eliminatoria
                   </h1>
                   <p className="text-gray-600 dark:text-gray-400 mt-1">
                     {tournament?.name} - Visualización Completa

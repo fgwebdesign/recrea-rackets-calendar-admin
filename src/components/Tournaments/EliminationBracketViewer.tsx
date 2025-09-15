@@ -153,7 +153,12 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         }
         
         // Función para obtener el nombre del equipo
-        const getTeamName = (teamId: string): string => {
+        const getTeamName = (teamId: string | null): string => {
+          if (!teamId) {
+            console.log(`❌ teamId es null o undefined`);
+            return 'Por asignar';
+          }
+          
           const team = teamsMap.get(teamId);
           console.log(`🔍 Buscando equipo ${teamId}:`, team);
           
@@ -211,6 +216,9 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
           // Usar la lógica que funcione
           const finalSemiFinals = semiFinals.length > 0 ? semiFinals : semiFinalsByRound;
           const finalFinals = finals.length > 0 ? finals : finalsByRound;
+          
+          console.log(`🔍 FinalSemiFinals: ${finalSemiFinals.length} semifinales encontradas`);
+          console.log(`🔍 FinalFinals: ${finalFinals.length} finales encontradas`);
           
           const formattedMatches: any[] = [];
           
@@ -273,7 +281,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
                   name: getTeamName(match.home_team_id)
                 },
                 {
-                  id: String(match.away_team_id),
+                  id: match.away_team_id ? String(match.away_team_id) : 'pending',
                   resultText: match.status === 'completed' ? formatScore(match) : null,
                   isWinner: match.winner_team_id === match.away_team_id,
                   status: match.status === 'completed' ? 'PLAYED' as const : null,
@@ -314,40 +322,54 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
           
           // Agregar cuartos de final
           quarterFinals.forEach((match, index) => {
-            // Si no hay semifinales reales, crear IDs fantasma
-            const nextMatchId = finalSemiFinals.length > 0 
-              ? finalSemiFinals[Math.floor(index / 2)]?.id 
-              : `ghost-semi-${Math.floor(index / 2) + 1}`;
+            // CORRECCIÓN: Lógica de cruces correcta
+            // QF1,QF2 → SF1 | QF3,QF4 → SF2
+            const semiIndex = index < 2 ? 0 : 1; // QF1,QF2 → SF1 (index 0) | QF3,QF4 → SF2 (index 1)
+            
+            // CORRECCIÓN: Asignar nextMatchId basado en el orden de creación de semifinales
+            let nextMatchId: string;
+            if (finalSemiFinals.length >= 2) {
+              // Si hay 2 semifinales reales, usar la correspondiente
+              nextMatchId = finalSemiFinals[semiIndex]?.id || `ghost-semi-${semiIndex + 1}`;
+            } else if (finalSemiFinals.length === 1) {
+              // Si hay 1 semifinal real, QF1 va a SF1 real, QF2 va a SF2 fantasma
+              nextMatchId = semiIndex === 0 ? finalSemiFinals[0]?.id : `ghost-semi-2`;
+            } else {
+              // Si no hay semifinales reales, usar fantasma
+              nextMatchId = `ghost-semi-${semiIndex + 1}`;
+            }
+            
             formattedMatches.push(formatMatch(match, nextMatchId));
           });
           
-          // Si no hay semifinales reales, crearlas como fantasma
+          // CORRECCIÓN: Siempre crear 2 semifinales para bracket completo
           console.log(`🔍 Debug semifinales: finalSemiFinals.length = ${finalSemiFinals.length}, quarterFinals.length = ${quarterFinals.length}`);
-          if (finalSemiFinals.length === 0 && quarterFinals.length >= 4) {
-            console.log('🔮 Creando semifinales fantasma...');
-            const semi1 = createGhostMatch(
-              'ghost-semi-1', 
-              'Match SF1', 
-              'Semifinales', 
-              finals.length > 0 ? finals[0]?.id : 'ghost-final-1',
-              '2025-10-12 15:00:00'
-            );
-            const semi2 = createGhostMatch(
-              'ghost-semi-2', 
-              'Match SF2', 
-              'Semifinales', 
-              finals.length > 0 ? finals[0]?.id : 'ghost-final-1',
-              '2025-10-12 16:00:00'
-            );
-            formattedMatches.push(semi1, semi2);
-          } else {
-            // Agregar semifinales reales
-            console.log('✅ Procesando semifinales reales...');
-            finalSemiFinals.forEach((match, index) => {
-              console.log(`🔍 Semifinal ${index + 1}:`, match);
-              const nextMatchId = finalFinals.length > 0 ? finalFinals[0]?.id : 'ghost-final-1';
-              formattedMatches.push(formatMatch(match, nextMatchId));
-            });
+          
+          // Procesar semifinales reales existentes
+          console.log('✅ Procesando semifinales reales...');
+          finalSemiFinals.forEach((match, index) => {
+            console.log(`🔍 Semifinal ${index + 1}:`, match);
+            const nextMatchId = finalFinals.length > 0 ? finalFinals[0]?.id : 'ghost-final-1';
+            formattedMatches.push(formatMatch(match, nextMatchId));
+          });
+          
+          // Si faltan semifinales, crear las que faltan como fantasma
+          const semifinalsNeeded = 2;
+          const semifinalsToCreate = semifinalsNeeded - finalSemiFinals.length;
+          
+          if (semifinalsToCreate > 0) {
+            console.log(`🔮 Creando ${semifinalsToCreate} semifinales fantasma...`);
+            for (let i = finalSemiFinals.length; i < semifinalsNeeded; i++) {
+              const semiNumber = i + 1;
+              const semi = createGhostMatch(
+                `ghost-semi-${semiNumber}`, 
+                `Match SF${semiNumber}`, 
+                'Semifinales', 
+                finalFinals.length > 0 ? finalFinals[0]?.id : 'ghost-final-1',
+                `2025-10-12 ${15 + i}:00:00`
+              );
+              formattedMatches.push(semi);
+            }
           }
           
           // Si no hay final real, crearla como fantasma
@@ -388,10 +410,30 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         console.log('🧪 Comparing with test data structure...');
         console.log('🧪 Test data has 7 matches, real data has:', formattedMatches.length);
         
+        // DEBUG: Verificar qué está pasando con el conteo
+        console.log('🔍 DEBUG - Conteo de partidos:');
+        console.log('  - Total formattedMatches:', formattedMatches.length);
+        console.log('  - Cuartos:', formattedMatches.filter(m => m.tournamentRoundText === 'Cuartos de Final').length);
+        console.log('  - Semifinales:', formattedMatches.filter(m => m.tournamentRoundText === 'Semifinales').length);
+        console.log('  - Final:', formattedMatches.filter(m => m.tournamentRoundText === 'Final').length);
+        console.log('  - Todos los tournamentRoundText:', formattedMatches.map(m => m.tournamentRoundText));
+        
+        // DEBUG: Verificar cada partido individualmente
+        console.log('🔍 DEBUG - Partidos individuales:');
+        formattedMatches.forEach((match, index) => {
+          console.log(`  ${index + 1}. ${match.tournamentRoundText}:`, {
+            id: match.id,
+            name: match.name,
+            participants: match.participants?.length,
+            participantNames: match.participants?.map((p: { id: string; resultText: string | null; isWinner: boolean; status: 'PLAYED' | 'NO_SHOW' | 'WALK_OVER' | 'NO_PARTY' | null; name: string; }) => p.name)
+          });
+        });
+        
         // Verificar si tenemos suficientes partidos para un bracket completo
         // Para torneos NINE_PLAYERS necesitamos mínimo 3 partidos (2 semifinales + 1 final)
         if (formattedMatches.length < 3) {
           console.warn('⚠️ No hay suficientes partidos para mostrar un bracket completo');
+          console.warn('⚠️ formattedMatches.length:', formattedMatches.length);
           setError('No hay suficientes partidos para mostrar el bracket');
           return;
         }
@@ -400,12 +442,17 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         // Para torneos NINE_PLAYERS puede empezar con semifinales (singular o plural)
         const hasCorrectStructure = formattedMatches.some(match => 
           (match.tournamentRoundText === 'Cuartos de Final' || 
-           match.tournamentRoundText === 'Semifinal' || 
            match.tournamentRoundText === 'Semifinales') && 
-          match.participants.length === 2 &&
-          match.participants[0].name && 
-          match.participants[1].name
+          match.participants.length === 2
         );
+        
+        console.log('🔍 DEBUG - Validación de estructura:');
+        console.log('  - hasCorrectStructure:', hasCorrectStructure);
+        console.log('  - Partidos que pasan la validación:', formattedMatches.filter(match => 
+          (match.tournamentRoundText === 'Cuartos de Final' || 
+           match.tournamentRoundText === 'Semifinales') && 
+          match.participants.length === 2
+        ).length);
         
         if (!hasCorrectStructure) {
           console.warn('⚠️ Los datos reales no tienen la estructura correcta');
@@ -417,6 +464,27 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         console.log('✅ Cuartos:', formattedMatches.filter(m => m.tournamentRoundText === 'Cuartos de Final').length);
         console.log('✅ Semifinales:', formattedMatches.filter(m => m.tournamentRoundText === 'Semifinales').length);
         console.log('✅ Final:', formattedMatches.filter(m => m.tournamentRoundText === 'Final').length);
+        
+        // DEBUG: Verificar estructura de datos para la librería
+        console.log('🔍 DEBUG - Estructura para SingleEliminationBracket:');
+        formattedMatches.forEach((match, index) => {
+          console.log(`  ${index + 1}. ${match.tournamentRoundText}:`, {
+            id: match.id,
+            name: match.name,
+            nextMatchId: match.nextMatchId,
+            participants: match.participants?.length,
+            participantIds: match.participants?.map((p: { id: string; resultText: string | null; isWinner: boolean; status: 'PLAYED' | 'NO_SHOW' | 'WALK_OVER' | 'NO_PARTY' | null; name: string; }) => p.id)
+          });
+        });
+        
+        // DEBUG: Verificar conexiones entre partidos
+        console.log('🔍 DEBUG - Conexiones entre partidos:');
+        formattedMatches.forEach((match) => {
+          if (match.nextMatchId) {
+            const nextMatch = formattedMatches.find(m => m.id === match.nextMatchId);
+            console.log(`  ${match.name} -> ${nextMatch?.name || 'NO ENCONTRADO'}`);
+          }
+        });
         
         setMatches(formattedMatches);
       } else {
@@ -555,12 +623,12 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         const set2 = sets[1].split('-');
         
         if (set1.length === 2) {
-          team1_sets1_won = parseInt(set1[0]) || 0;
-          team2_sets1_won = parseInt(set1[1]) || 0;
+          team1_sets1_won = parseInt(set1[1]) || 0;  // CORRECCIÓN: El segundo valor es del equipo local
+          team2_sets1_won = parseInt(set1[0]) || 0;  // CORRECCIÓN: El primer valor es del equipo visitante
         }
         if (set2.length === 2) {
-          team1_sets2_won = parseInt(set2[0]) || 0;
-          team2_sets2_won = parseInt(set2[1]) || 0;
+          team1_sets2_won = parseInt(set2[1]) || 0;  // CORRECCIÓN: El segundo valor es del equipo local
+          team2_sets2_won = parseInt(set2[0]) || 0;  // CORRECCIÓN: El primer valor es del equipo visitante
         }
       }
     }
@@ -868,12 +936,12 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         </Button>
       </div>
       
-      {/* Layout Horizontal: Bracket (80%) + Gestión de Resultados (20%) */}
+      {/* Layout Horizontal: Bracket (70%) + Gestión de Resultados (30%) */}
       {matches.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
           
-          {/* Columna Izquierda: Bracket (80%) */}
-          <div className="lg:col-span-4 bracket-container bg-white rounded-xl shadow-lg w-full min-h-[800px]">
+          {/* Columna Izquierda: Bracket (70%) */}
+          <div className="lg:col-span-7 bracket-container bg-white rounded-xl shadow-lg w-full min-h-[800px]">
             <div 
               className="bracket-wrapper w-full h-full"
               style={{
@@ -911,8 +979,8 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
             </div>
           </div>
 
-          {/* Columna Derecha: Gestión de Resultados (20%) */}
-          <div className="lg:col-span-1 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+          {/* Columna Derecha: Gestión de Resultados (30%) */}
+          <div className="lg:col-span-3 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 🏆 Partidos
@@ -920,8 +988,15 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
             </div>
             
             {/* Scroll vertical para las cards */}
-            <div className="max-h-[800px] overflow-y-auto space-y-3 pr-2">
-              {matches.map((match, index) => {
+            <div className="max-h-[800px] overflow-y-auto space-y-3 pr-2 scrollbar-hide">
+              {matches
+                .sort((a, b) => {
+                  // Ordenar por fecha y hora
+                  const dateA = new Date(a.startTime);
+                  const dateB = new Date(b.startTime);
+                  return dateA.getTime() - dateB.getTime();
+                })
+                .map((match, index) => {
                 const isCompleted = match.state === 'DONE';
                 const isScheduled = match.state === 'SCHEDULED';
                 

@@ -707,7 +707,8 @@ async function handleEliminationProgression(tournamentId, completedMatch) {
         // Determinar número de semifinal basado en el partido de cuartos
         // Usar match_order en lugar de match_number (que puede ser null)
         const matchOrder = completedMatch.match_order || completedMatch.match_number || 1;
-        nextMatchNumber = Math.max(1, Math.ceil(matchOrder / 2));
+        // CORRECCIÓN: QF1,QF2 → SF1 | QF3,QF4 → SF2
+        nextMatchNumber = matchOrder <= 2 ? 1 : 2;
         break;
       case 'semi_final':
       case 'semifinals': // Por si acaso está en plural
@@ -839,7 +840,11 @@ async function handleEliminationProgression(tournamentId, completedMatch) {
         // ===== NUEVA LÓGICA: Asignar cancha, fecha y horario =====
         court_id: assignedCourt.id,
         match_day: startDate.toISOString().split('T')[0],
-        start_time: `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`
+        start_time: `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`,
+        // ===== CORRECCIÓN: Agregar campos faltantes =====
+        elimination_round: nextRound === 'semi_final' ? 'semifinals' : 'final',
+        bracket_match_id: nextRound === 'semi_final' ? `SF${nextMatchNumber}` : 'F1',
+        match_order: nextMatchNumber
       };
       
       const { error: createError } = await supabase
