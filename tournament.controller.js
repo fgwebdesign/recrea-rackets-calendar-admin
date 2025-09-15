@@ -755,13 +755,23 @@ export async function changeTournamentType(req, res) {
     console.log(`🎯 Nuevo max_teams: ${newMaxTeams}`);
 
     // 9. Respuesta exitosa
+    const formatTournamentType = (type) => {
+      const typeConfig = {
+        SIX_PLAYERS: '6 Jugadores',
+        NINE_PLAYERS: '9 Jugadores',
+        TWELVE_PLAYERS: '12 Jugadores', 
+        SIXTEEN_PLAYERS: '16 Jugadores'
+      }
+      return typeConfig[type] || type
+    }
+
     res.json({
-      message: `Tipo de torneo cambiado exitosamente de ${tournament.tournament_type} a ${new_tournament_type}`,
+      message: `Tipo de torneo cambiado exitosamente de ${formatTournamentType(tournament.tournament_type)} a ${formatTournamentType(new_tournament_type)}`,
       tournament: {
         id: updatedTournament.id,
         name: updatedTournament.name,
-        old_type: tournament.tournament_type,
-        new_type: updatedTournament.tournament_type,
+        old_type: formatTournamentType(tournament.tournament_type),
+        new_type: formatTournamentType(updatedTournament.tournament_type),
         old_max_teams: tournament.max_teams,
         new_max_teams: updatedTournament.max_teams,
         status: updatedTournament.status
