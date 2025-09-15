@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FaEye, FaEyeSlash, FaLock } from "react-icons/fa";
 import LoadingScreen from "@/components/LoadingScreen";
+import { useTranslations } from '@/contexts/TranslationContext';
 
 export default function Home() {
   const router = useRouter();
+  const t = useTranslations('auth');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -134,30 +136,30 @@ export default function Home() {
 
           <form onSubmit={handleLoginSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                Correo electrónico
-              </label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+              {t('email')}
+            </label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full px-4 py-3 rounded-lg text-gray-600 dark:text-gray-200 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="admin@ejemplo.com"
+                placeholder={t('emailPlaceholder')}
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                Contraseña
-              </label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+              {t('password')}
+            </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg text-gray-600 dark:text-gray-200 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="••••••••"
+                  placeholder={t('passwordPlaceholder')}
                   required
                 />
                 <button
@@ -175,15 +177,15 @@ export default function Home() {
               className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors flex items-center justify-center space-x-2 font-semibold"
             >
               <FaLock size={16} />
-              <span>Iniciar sesión</span>
+                <span>{t('loginButton')}</span>
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              ¿Necesitas ayuda?{' '}
+              {t('needHelp')}{' '}
               <a href="#" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
-                Contacta a soporte
+                {t('contactSupport')}
               </a>
             </p>
           </div>

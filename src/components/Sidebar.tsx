@@ -20,6 +20,7 @@ import { ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import Image from 'next/image';
 import LoadingScreen from './LoadingScreen';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface MenuItem {
   name: string;
@@ -36,100 +37,6 @@ interface MenuItem {
   }[];
 }
 
-const MENU_ITEMS: MenuItem[] = [
-  { 
-    name: 'Inicio', 
-    href: '/dashboard', 
-    icon: HomeIcon,
-    iconColor: 'text-blue-500',
-    hoverColor: 'hover:bg-blue-50'
-  },
-  { 
-    name: 'Torneos', 
-    href: '/tournaments', 
-    icon: TrophyIcon,
-    iconColor: 'text-orange-500',
-    hoverColor: 'hover:bg-orange-50',
-    submenu: [
-      { 
-        name: 'Ver torneos', 
-        href: '/tournaments', 
-        icon: TrophyIcon,
-        iconColor: 'text-orange-500' 
-      },
-      { 
-        name: 'Crear torneo', 
-        href: '/tournaments/create', 
-        icon: PlusIcon,
-        iconColor: 'text-orange-600',
-        textColor: 'text-orange-600 font-medium'
-      },
-    ]
-  },
-  { 
-    name: 'Ligas', 
-    href: '/leagues', 
-    icon: TableCellsIcon,
-    iconColor: 'text-green-500',
-    hoverColor: 'hover:bg-green-50',
-    submenu: [
-      { 
-        name: 'Ver ligas', 
-        href: '/leagues', 
-        icon: TableCellsIcon,
-        iconColor: 'text-green-500' 
-      },
-      { 
-        name: 'Crear liga', 
-        href: '/leagues/create', 
-        icon: PlusIcon,
-        iconColor: 'text-emerald-500',
-        textColor: 'text-emerald-600 font-medium'
-      },
-    ]
-  },
-  { 
-    name: 'Categorías', 
-    href: '/categories', 
-    icon: TrophyIcon,
-    iconColor: 'text-blue-500'
-  },
-  { 
-    name: 'Canchas', 
-    href: '/courts', 
-    icon: TrophyIcon,
-    iconColor: 'text-purple-500'
-  },
-  { 
-    name: 'Profesores', 
-    href: '/professors', 
-    icon: AcademicCapIcon,
-    iconColor: 'text-indigo-500',
-    hoverColor: 'hover:bg-indigo-50'
-  },
-  { 
-    name: 'Patrocinadores', 
-    href: '/sponsors', 
-    icon: ImageIcon,
-    iconColor: 'text-pink-500',
-    hoverColor: 'hover:bg-pink-50'
-  },
-  { 
-    name: 'Usuarios', 
-    href: '/users', 
-    icon: UsersIcon,
-    iconColor: 'text-cyan-500',
-    hoverColor: 'hover:bg-cyan-50'
-  },
-  { 
-    name: 'Configuraciones', 
-    href: '/settings', 
-    icon: CogIcon,
-    iconColor: 'text-gray-500',
-    hoverColor: 'hover:bg-gray-50'
-  },
-
-];
 
 const MenuItem = ({ 
   item, 
@@ -197,7 +104,7 @@ const MenuItem = ({
   );
 };
 
-const LogoCard = () => (
+const LogoCard = ({ t }: { t: (key: string) => string }) => (
   <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-100 dark:border-gray-700 transform transition-all duration-300 hover:shadow-xl">
     <div className="relative w-full h-28 bg-gradient-to-br from-blue-600 via-blue-500 to-blue-400 dark:from-blue-700 dark:via-blue-600 dark:to-blue-500 flex items-center justify-center p-3">
       <div className="relative w-20 h-20 bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg ring-4 ring-white/50 dark:ring-gray-700/50 transform transition-transform duration-300 hover:scale-105">
@@ -217,9 +124,9 @@ const LogoCard = () => (
       </div>
     </div>
     <div className="p-3 bg-white dark:bg-gray-800">
-      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-0.5">Club:</h3>
+      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-0.5">{t('club')}</h3>
       <p className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-blue-400 dark:from-blue-500 dark:to-blue-300 bg-clip-text text-transparent">
-        Recrea Padel Club
+        {t('clubName')}
       </p>
     </div>
   </div>
@@ -230,12 +137,108 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ username }: SidebarProps) => {
+  const t = useTranslations('sidebar');
   const router = useRouter();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+
+  // Generar menú dinámicamente con traducciones
+  const getMenuItems = (): MenuItem[] => [
+    { 
+      name: t('home'), 
+      href: '/dashboard', 
+      icon: HomeIcon,
+      iconColor: 'text-blue-500',
+      hoverColor: 'hover:bg-blue-50'
+    },
+    { 
+      name: t('tournaments'), 
+      href: '/tournaments', 
+      icon: TrophyIcon,
+      iconColor: 'text-orange-500',
+      hoverColor: 'hover:bg-orange-50',
+      submenu: [
+        { 
+          name: t('viewTournaments'), 
+          href: '/tournaments', 
+          icon: TrophyIcon,
+          iconColor: 'text-orange-500' 
+        },
+        { 
+          name: t('createTournament'), 
+          href: '/tournaments/create', 
+          icon: PlusIcon,
+          iconColor: 'text-orange-600',
+          textColor: 'text-orange-600 font-medium'
+        },
+      ]
+    },
+    { 
+      name: t('leagues'), 
+      href: '/leagues', 
+      icon: TableCellsIcon,
+      iconColor: 'text-green-500',
+      hoverColor: 'hover:bg-green-50',
+      submenu: [
+        { 
+          name: t('viewLeagues'), 
+          href: '/leagues', 
+          icon: TableCellsIcon,
+          iconColor: 'text-green-500' 
+        },
+        { 
+          name: t('createLeague'), 
+          href: '/leagues/create', 
+          icon: PlusIcon,
+          iconColor: 'text-emerald-500',
+          textColor: 'text-emerald-600 font-medium'
+        },
+      ]
+    },
+    { 
+      name: t('categories'), 
+      href: '/categories', 
+      icon: TrophyIcon,
+      iconColor: 'text-blue-500'
+    },
+    { 
+      name: t('courts'), 
+      href: '/courts', 
+      icon: TrophyIcon,
+      iconColor: 'text-purple-500'
+    },
+    { 
+      name: t('professors'), 
+      href: '/professors', 
+      icon: AcademicCapIcon,
+      iconColor: 'text-indigo-500',
+      hoverColor: 'hover:bg-indigo-50'
+    },
+    { 
+      name: t('sponsors'), 
+      href: '/sponsors', 
+      icon: ImageIcon,
+      iconColor: 'text-pink-500',
+      hoverColor: 'hover:bg-pink-50'
+    },
+    { 
+      name: t('users'), 
+      href: '/users', 
+      icon: UsersIcon,
+      iconColor: 'text-cyan-500',
+      hoverColor: 'hover:bg-cyan-50'
+    },
+    { 
+      name: t('settings'), 
+      href: '/settings', 
+      icon: CogIcon,
+      iconColor: 'text-gray-500',
+      hoverColor: 'hover:bg-gray-50'
+    },
+  ];
 
   useEffect(() => {
     const handleResize = () => {
@@ -287,7 +290,7 @@ const Sidebar = ({ username }: SidebarProps) => {
 
   return (
     <>
-      {isLoggingOut && <LoadingScreen message="Cerrando sesión..." />}
+      {isLoggingOut && <LoadingScreen message={t('loggingOut')} />}
       
       {/* Hamburger Menu Button */}
       <button
@@ -316,11 +319,11 @@ const Sidebar = ({ username }: SidebarProps) => {
       >
         <div className="flex flex-col h-full">
           <div className="p-3 bg-gradient-to-br from-blue-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-b-2xl shadow-sm">
-            <LogoCard />
+            <LogoCard t={t} />
           </div>
 
           <div className="flex-1 overflow-y-auto p-3 space-y-1.5 scrollbar-none">
-            {MENU_ITEMS.map((item) => (
+            {getMenuItems().map((item) => (
               <MenuItem
                 key={item.href}
                 item={item}
@@ -338,7 +341,7 @@ const Sidebar = ({ username }: SidebarProps) => {
               className="flex items-center w-full p-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors group"
             >
               <LogoutIcon className="w-4 h-4 mr-2.5 text-red-500 dark:text-red-400 group-hover:text-red-600 dark:group-hover:text-red-300" />
-              <span className="font-medium text-sm">Cerrar sesión</span>
+              <span className="font-medium text-sm">{t('logout')}</span>
             </button>
           </div>
         </div>

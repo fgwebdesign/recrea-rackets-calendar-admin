@@ -4,6 +4,7 @@ import { es } from 'date-fns/locale';
 import { WeatherWidget } from './WeatherWidget';
 import { motion } from 'framer-motion';
 import { Calendar, Clock } from 'lucide-react';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 function getTimeOfDay(): 'morning' | 'day' | 'evening' | 'night' {
   const hour = new Date().getHours();
@@ -24,8 +25,25 @@ function getGradientByTime(timeOfDay: ReturnType<typeof getTimeOfDay>) {
 }
 
 export function DateTime() {
+  const t = useTranslations('dashboard');
+  const tDateTime = useTranslations('datetime');
   const [date, setDate] = useState(new Date());
   const [timeOfDay, setTimeOfDay] = useState(getTimeOfDay());
+
+  // Función para obtener el día de la semana traducido
+  const getTranslatedDay = (date: Date) => {
+    const dayIndex = date.getDay();
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    return tDateTime(days[dayIndex]);
+  };
+
+  // Función para obtener el mes traducido
+  const getTranslatedMonth = (date: Date) => {
+    const monthIndex = date.getMonth();
+    const months = ['january', 'february', 'march', 'april', 'may', 'june', 
+                   'july', 'august', 'september', 'october', 'november', 'december'];
+    return tDateTime(months[monthIndex]);
+  };
 
   useEffect(() => {
     // Actualizar cada minuto
@@ -60,13 +78,13 @@ export function DateTime() {
               <div className="flex items-center gap-2">
                 <Calendar className={`w-4 h-4 ${subTextColor}`} />
                 <span className={`text-xs font-medium uppercase tracking-wider ${subTextColor}`}>
-                  Fecha
+                  {t('date')}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className={`w-4 h-4 ${subTextColor}`} />
                 <span className={`text-xs font-medium uppercase tracking-wider ${subTextColor}`}>
-                  Hora
+                  {t('time')}
                 </span>
                 <span className={`text-lg font-medium ${textColor}`}>
                   {format(date, 'HH:mm')}
@@ -76,17 +94,17 @@ export function DateTime() {
 
             <div>
               <div className={`text-sm font-medium capitalize ${textColor} mb-2`}>
-                {format(date, 'EEEE', { locale: es })}
+                {getTranslatedDay(date)}
               </div>
               <div className="flex items-center gap-2">
                 <span className={`text-5xl font-bold tracking-tight ${textColor}`}>
                   {format(date, 'd')}
                 </span>
                 <span className={`text-2xl font-medium ${textColor}`}>
-                  {format(date, 'MMMM', { locale: es })}
+                  {getTranslatedMonth(date)}
                 </span>
                 <span className={`text-xl ${subTextColor}`}>
-                  {format(date, "yyyy", { locale: es })}
+                  {format(date, "yyyy")}
                 </span>
               </div>
             </div>

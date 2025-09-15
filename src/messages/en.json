@@ -1,0 +1,127 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "clear": "Clear",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "open": "Open",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "tournaments": "Tournaments",
+    "leagues": "Leagues",
+    "categories": "Categories",
+    "courts": "Courts",
+    "professors": "Professors",
+    "sponsors": "Sponsors",
+    "users": "Users",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "dashboard": {
+    "title": "Control Panel",
+    "description": "Management and visualization of padel leagues and tournaments.",
+    "leagueStats": "League Statistics",
+    "tournamentStats": "Tournament Statistics",
+    "activeCategories": "Active categories",
+    "totalPlayers": "Total Players",
+    "totalMatches": "Total Matches",
+    "completedMatches": "Completed Matches",
+    "upcomingMatches": "Upcoming Matches",
+    "registrationProgress": "Registration Progress",
+    "standings": "Standings",
+    "totalTournaments": "Total Tournaments",
+    "inProgress": "In Progress",
+    "totalTeams": "Total Teams",
+    "revenue": "Revenue"
+  },
+  "tournaments": {
+    "title": "Tournaments",
+    "description": "Manage and view all tournaments in the system.",
+    "createTournament": "Create Tournament",
+    "createFirstTournament": "Create First Tournament",
+    "noTournaments": "Start your first tournament!",
+    "noTournamentsDescription": "Create your first tournament and start organizing amazing padel competitions.",
+    "noResults": "No tournaments found",
+    "noResultsDescription": "No tournaments match the selected filters. Try adjusting your search.",
+    "searchPlaceholder": "Search by name or category...",
+    "allCategories": "All categories",
+    "allStatus": "All",
+    "upcoming": "Open Registration",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "dateFilter": "Date Filter",
+    "clearFilters": "Clear Filters",
+    "seeAllTournaments": "See All Tournaments",
+    "status": {
+      "upcoming": "Open Registration",
+      "in_progress": "In Progress",
+      "completed": "Completed"
+    },
+    "types": {
+      "NINE_PLAYERS": "9 Teams",
+      "TWELVE_PLAYERS": "12 Teams",
+      "SIXTEEN_PLAYERS": "16 Teams"
+    },
+    "details": {
+      "startDate": "Start",
+      "endDate": "End",
+      "sponsors": "Sponsors",
+      "teams": "Teams",
+      "noSponsors": "No sponsors",
+      "registrations": "Registrations",
+      "full": "Full!"
+    }
+  },
+  "leagues": {
+    "title": "Leagues",
+    "description": "Manage and view all leagues.",
+    "createLeague": "Create League",
+    "noLeagues": "No leagues created",
+    "noLeaguesDescription": "Start by creating your first league",
+    "noResults": "No leagues found",
+    "searchPlaceholder": "Search by category...",
+    "allCategories": "All categories",
+    "allStatus": "All",
+    "status": {
+      "Inscribiendo": "Open registration",
+      "Activa": "In Progress",
+      "Finalizada": "Finished"
+    }
+  },
+  "auth": {
+    "login": "Sign In",
+    "email": "Email",
+    "password": "Password",
+    "emailPlaceholder": "admin@example.com",
+    "passwordPlaceholder": "••••••••",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "loginButton": "Sign In",
+    "needHelp": "Need help?",
+    "contactSupport": "Contact support",
+    "verifyingSession": "Verifying session...",
+    "loggingOut": "Logging out...",
+    "invalidCredentials": "Invalid credentials",
+    "adminRequired": "Administrator permissions required"
+  },
+  "language": {
+    "spanish": "Español",
+    "english": "English",
+    "changeLanguage": "Change language"
+  }
+}

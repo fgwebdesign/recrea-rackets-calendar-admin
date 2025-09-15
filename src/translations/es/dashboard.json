@@ -1,0 +1,20 @@
+{
+  "dashboard": {
+    "title": "Panel de Control",
+    "welcome": "Bienvenido",
+    "overview": "Resumen General",
+    "quickStats": "Estadísticas Rápidas",
+    "recentActivity": "Actividad Reciente",
+    "upcomingEvents": "Próximos Eventos",
+    "totalUsers": "Total de Usuarios",
+    "activeTournaments": "Torneos Activos",
+    "totalRevenue": "Ingresos Totales",
+    "totalCourts": "Total de Canchas",
+    "viewAll": "Ver Todo",
+    "noData": "No hay datos disponibles",
+    "lastUpdated": "Última actualización",
+    "refreshData": "Actualizar Datos",
+    "exportReport": "Exportar Reporte",
+    "customizeDashboard": "Personalizar Panel"
+  }
+}

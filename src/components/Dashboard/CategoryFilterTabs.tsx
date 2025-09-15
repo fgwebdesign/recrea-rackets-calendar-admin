@@ -1,5 +1,6 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Category } from "@/types/category";
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface CategoryFilterTabsProps {
   categories: Category[];
@@ -16,13 +17,14 @@ export function CategoryFilterTabs({
   showAllOption = true,
   className = ""
 }: CategoryFilterTabsProps) {
+  const t = useTranslations('dashboard');
   return (
     <div className={`px-6 pt-4 ${className}`}>
       <Tabs defaultValue={selectedCategory} value={selectedCategory} onValueChange={onCategoryChange}>
         <TabsList className="mb-4">
           {showAllOption && (
             <TabsTrigger value="all" className="text-sm">
-              Todas las categorías
+              {t('allCategories')}
             </TabsTrigger>
           )}
           {categories.map((category) => (

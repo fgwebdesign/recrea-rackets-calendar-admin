@@ -4,7 +4,9 @@ import './globals.css';
 import { UserProvider } from '@/components/UserProvider';
 import Providers from './providers';
 import { ThemeToggle } from "@/components/theme-toggle"
+import { LanguageToggle } from "@/components/LanguageToggle"
 import { Toaster } from "@/components/ui/toaster"
+import { TranslationProvider } from '@/contexts/TranslationContext';
 
 const plusJakarta = Plus_Jakarta_Sans({ 
   subsets: ['latin'],
@@ -33,16 +35,19 @@ export default function RootLayout({
         <link href="https://fonts.cdnfonts.com/css/ds-digital" rel="stylesheet" />
       </head>
       <body className={`${plusJakarta.variable} ${orbitron.variable} font-sans antialiased`}>
-        <Providers>
-          <div className="fixed top-4 right-4 z-50">
-            <ThemeToggle />
-          </div>
-          
-          <UserProvider>
-            {children}
-          </UserProvider>
-          <Toaster />
-        </Providers>
+        <TranslationProvider>
+          <Providers>
+            <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
+              <LanguageToggle />
+              <ThemeToggle />
+            </div>
+            
+            <UserProvider>
+              {children}
+            </UserProvider>
+            <Toaster />
+          </Providers>
+        </TranslationProvider>
       </body>
     </html>
   );

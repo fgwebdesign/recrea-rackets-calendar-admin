@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { EmptyLeagues } from './EmptyLeagues';
 import { CategoryFilterTabs } from './CategoryFilterTabs';
 import Image from 'next/image';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface LeagueRegistrationProgressProps {
   leagues: League[];
@@ -187,6 +188,7 @@ export function LeagueRegistrationProgress({ leagues, categories }: LeagueRegist
 
 // Componente de tarjeta extraído para mejor organización
 function LeagueCard({ category, league }: { category: Category; league: League }) {
+  const t = useTranslations('dashboard');
   const registeredTeams = league.registeredTeams || 0;
   const availableSpots = league.team_size - registeredTeams;
   const registrationProgress = (registeredTeams / league.team_size) * 100;
@@ -207,11 +209,11 @@ function LeagueCard({ category, league }: { category: Category; league: League }
   const getStatusText = (status: string) => {
     switch (status) {
       case 'Inscribiendo':
-        return 'Inscripciones abiertas';
+        return t('registrationsOpen');
       case 'Activa':
-        return 'En Curso';
+        return t('inProgressStatus');
       case 'Finalizada':
-        return 'Finalizada';
+        return t('finished');
       default:
         return status;
     }
@@ -233,7 +235,7 @@ function LeagueCard({ category, league }: { category: Category; league: League }
         {/* Estado de la liga y categoría */}
         <div className="flex items-center justify-between mb-4">
           <span className="px-2.5 py-0.5 rounded-full text-sm font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
-            {category?.name || 'Categoría no encontrada'}
+            {category?.name || t('categoryNotFound')}
           </span>
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusStyle(league.status)}`}>
             {getStatusText(league.status)}
@@ -265,13 +267,13 @@ function LeagueCard({ category, league }: { category: Category; league: League }
           {/* Fecha de inicio y fin */}
           <div className="flex flex-col gap-2">
             <div className="p-3 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-              <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">Fecha de inicio</p>
+              <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">{t('startDate')}</p>
               <p className="text-sm text-emerald-800 dark:text-emerald-200">
                 {formatDate(league.start_date)}
               </p>
             </div>
             <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30">
-              <p className="text-sm font-medium text-red-900 dark:text-red-300">Fecha de fin</p>
+              <p className="text-sm font-medium text-red-900 dark:text-red-300">{t('endDate')}</p>
               <p className="text-sm text-red-800 dark:text-red-200">
                 {formatDate(league.end_date)}
               </p>
@@ -284,7 +286,7 @@ function LeagueCard({ category, league }: { category: Category; league: League }
               <div className="flex items-center gap-2">
                 <Users2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Equipos registrados
+                  {t('registeredTeams')}
                 </span>
               </div>
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -304,15 +306,15 @@ function LeagueCard({ category, league }: { category: Category; league: League }
               />
               <div className="flex justify-between">
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {registrationProgress}% completado
+                  {registrationProgress}% {t('completed')}
                 </span>
                 {league.status === 'Inscribiendo' && availableSpots > 0 ? (
                   <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                    {availableSpots} cupos disponibles
+                    {availableSpots} {t('spotsAvailable')}
                   </span>
                 ) : registeredTeams === league.team_size && (
                   <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                    Cupos completos
+                    {t('spotsFull')}
                   </span>
                 )}
               </div>
@@ -323,7 +325,7 @@ function LeagueCard({ category, league }: { category: Category; league: League }
           {league.inscription_cost > 0 && (
             <div className="mt-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
               <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300 mb-1">
-                Costo de inscripción
+                {t('inscriptionCost')}
               </p>
               <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
                 ${league.inscription_cost}

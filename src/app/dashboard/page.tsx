@@ -21,8 +21,10 @@ import { useLeagues } from '@/hooks/useLeagues';
 import { useCategories } from '@/hooks/useCategories';
 import { useStandings } from '@/hooks/useStandings';
 import { useTournaments } from '@/hooks/useTournaments';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 export default function Dashboard() {
+  const t = useTranslations('dashboard');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [isStatsOpen, setIsStatsOpen] = useState(true);
   const [isScheduleOpen, setIsScheduleOpen] = useState(true);
@@ -84,8 +86,8 @@ export default function Dashboard() {
           {/* Header y Fecha */}
           <div className="flex flex-col space-y-6">
             <Header 
-              title="Panel de Control"
-              description="Gestión y visualización de ligas y torneos de pádel."
+              title={t('title')}
+              description={t('description')}
               icon={<HomeIcon className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
             />
             <DateTime />
@@ -96,11 +98,11 @@ export default function Dashboard() {
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="leagues" className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                Ligas
+                {t('leagues')}
               </TabsTrigger>
               <TabsTrigger value="tournaments" className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                Torneos
+                {t('tournaments')}
               </TabsTrigger>
             </TabsList>
 
@@ -117,7 +119,7 @@ export default function Dashboard() {
                     <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isStatsOpen ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                          Estadísticas de Ligas
+                          {t('leagueStats')}
                         </CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isStatsOpen ? 'transform rotate-180' : ''}`} />
                       </div>
@@ -127,22 +129,22 @@ export default function Dashboard() {
                     <CardContent className="p-6">
                       <div className="grid grid-cols-4 gap-6">
                         <LeagueStatsCard 
-                          title="Categorías activas"
+                          title={t('activeCategories')}
                           value={isLoadingLeagues ? 0 : leagues.length}
                           type="active"
                         />
                         <LeagueStatsCard 
-                          title="Total Jugadores"
+                          title={t('totalPlayers')}
                           value={isLoadingUsers ? 0 : totalUsers}
                           type="teams"
                         />
                         <LeagueStatsCard 
-                          title="Partidos Totales"
+                          title={t('totalMatches')}
                           value={0}
                           type="matches"
                         />
                         <LeagueStatsCard 
-                          title="Partidos Completados"
+                          title={t('completedMatches')}
                           value={0}
                           type="completed"
                         />
@@ -163,7 +165,7 @@ export default function Dashboard() {
                     <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isScheduleOpen ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                          Próximos Partidos - Ligas
+                          {t('upcomingMatchesLeagues')}
                         </CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isScheduleOpen ? 'transform rotate-180' : ''}`} />
                       </div>
@@ -188,7 +190,7 @@ export default function Dashboard() {
                     <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isRegistrationOpen ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                          Progreso de Inscripciones - Ligas
+                          {t('registrationProgressLeagues')}
                         </CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isRegistrationOpen ? 'transform rotate-180' : ''}`} />
                       </div>
@@ -216,7 +218,7 @@ export default function Dashboard() {
                     <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isStandingsOpen ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                          Tabla de Posiciones - Ligas
+                          {t('standingsLeagues')}
                         </CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isStandingsOpen ? 'transform rotate-180' : ''}`} />
                       </div>
@@ -250,7 +252,7 @@ export default function Dashboard() {
                     <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isStatsOpen ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                          Estadísticas de Torneos
+                          {t('tournamentStats')}
                         </CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isStatsOpen ? 'transform rotate-180' : ''}`} />
                       </div>
@@ -260,22 +262,22 @@ export default function Dashboard() {
                     <CardContent className="p-6">
                       <div className="grid grid-cols-4 gap-6">
                         <TournamentStatsCard 
-                          title="Total Torneos"
+                          title={t('totalTournaments')}
                           value={isLoadingTournaments ? 0 : totalTournaments}
                           type="total"
                         />
                         <TournamentStatsCard 
-                          title="En Curso"
+                          title={t('inProgress')}
                           value={isLoadingTournaments ? 0 : activeTournaments}
                           type="active"
                         />
                         <TournamentStatsCard 
-                          title="Total Equipos"
+                          title={t('totalTeams')}
                           value={isLoadingTournaments ? 0 : totalTournamentTeams}
                           type="teams"
                         />
                         <TournamentStatsCard 
-                          title="Ingresos"
+                          title={t('revenue')}
                           value={isLoadingTournaments ? 0 : tournamentRevenue}
                           type="revenue"
                         />
@@ -296,7 +298,7 @@ export default function Dashboard() {
                     <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isScheduleOpen ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                          Próximos Partidos - Torneos
+                          {t('upcomingMatchesTournaments')}
                         </CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isScheduleOpen ? 'transform rotate-180' : ''}`} />
                       </div>
@@ -321,7 +323,7 @@ export default function Dashboard() {
                     <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isRegistrationOpen ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                          Progreso de Inscripciones - Torneos
+                          {t('registrationProgressTournaments')}
                         </CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isRegistrationOpen ? 'transform rotate-180' : ''}`} />
                       </div>
@@ -349,7 +351,7 @@ export default function Dashboard() {
                     <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isStandingsOpen ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                          Tabla de Posiciones - Torneos
+                          {t('standingsTournaments')}
                         </CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isStandingsOpen ? 'transform rotate-180' : ''}`} />
                       </div>

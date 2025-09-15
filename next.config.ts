@@ -1,6 +1,10 @@
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin('./src/i18n.ts');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  output: 'standalone' as const,
   reactStrictMode: true,
   compress: true,
   experimental: {
@@ -11,7 +15,7 @@ const nextConfig = {
     domains: ['goipmracccjxjmhpizib.supabase.co'],
     remotePatterns: [
       {
-        protocol: 'https',
+        protocol: 'https' as const,
         hostname: 'goipmracccjxjmhpizib.supabase.co',
         port: '',
         pathname: '/storage/v1/object/public/**',
@@ -33,4 +37,4 @@ const nextConfig = {
   }
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

@@ -3,6 +3,7 @@ import { Trophy, Medal, Award, Users, Calendar } from 'lucide-react';
 import { useTournaments } from '@/hooks/useTournaments';
 import { useCategories } from '@/hooks/useCategories';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface TournamentStanding {
   id: string;
@@ -26,6 +27,7 @@ interface TournamentStandingsProps {
 }
 
 export function TournamentStandings({ selectedTournament, onTournamentChange }: TournamentStandingsProps) {
+  const t = useTranslations('dashboard');
   const [standings, setStandings] = useState<TournamentStanding[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,7 +141,7 @@ export function TournamentStandings({ selectedTournament, onTournamentChange }: 
           <Trophy className="w-8 h-8 text-red-500 dark:text-red-400" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          Error al cargar posiciones
+          {t('errorLoadingPositions')}
         </h3>
         <p className="text-red-600 dark:text-red-400">
           {error}
@@ -155,10 +157,10 @@ export function TournamentStandings({ selectedTournament, onTournamentChange }: 
           <Trophy className="w-8 h-8 text-purple-500 dark:text-purple-400" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          ¡Selecciona un torneo!
+          {t('selectTournament')}
         </h3>
         <p className="text-gray-600 dark:text-gray-400">
-          Elige un torneo del menú desplegable para ver su tabla de posiciones y estadísticas.
+          {t('selectTournamentDescription')}
         </p>
       </div>
     );
@@ -171,11 +173,10 @@ export function TournamentStandings({ selectedTournament, onTournamentChange }: 
           <Trophy className="w-8 h-8 text-purple-500 dark:text-purple-400" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          ¡Posiciones próximamente!
+          {t('positionsComingSoon')}
         </h3>
         <p className="text-gray-600 dark:text-gray-400">
-          Las posiciones aparecerán aquí cuando los equipos comiencen a jugar partidos. 
-          ¡Mantente atento para ver quién lidera la competencia!
+          {t('positionsComingSoonDescription')}
         </p>
       </div>
     );

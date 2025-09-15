@@ -1,0 +1,63 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "import": "Importar",
+    "yes": "Sí",
+    "no": "No",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "submit": "Enviar",
+    "reset": "Restablecer",
+    "refresh": "Actualizar",
+    "settings": "Configuración",
+    "profile": "Perfil",
+    "logout": "Cerrar sesión",
+    "help": "Ayuda",
+    "support": "Soporte",
+    "contact": "Contacto"
+  },
+  "navigation": {
+    "dashboard": "Panel de Control",
+    "tournaments": "Torneos",
+    "leagues": "Ligas",
+    "users": "Usuarios",
+    "courts": "Canchas",
+    "professors": "Profesores",
+    "categories": "Categorías",
+    "sponsors": "Patrocinadores",
+    "payments": "Pagos",
+    "incomes": "Ingresos",
+    "settings": "Configuración"
+  },
+  "status": {
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "pending": "Pendiente",
+    "completed": "Completado",
+    "cancelled": "Cancelado",
+    "draft": "Borrador",
+    "published": "Publicado"
+  },
+  "time": {
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "tomorrow": "Mañana",
+    "thisWeek": "Esta semana",
+    "lastWeek": "Semana pasada",
+    "thisMonth": "Este mes",
+    "lastMonth": "Mes pasado",
+    "thisYear": "Este año",
+    "lastYear": "Año pasado"
+  }
+}

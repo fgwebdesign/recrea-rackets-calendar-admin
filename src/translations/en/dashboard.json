@@ -1,0 +1,20 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome",
+    "overview": "Overview",
+    "quickStats": "Quick Stats",
+    "recentActivity": "Recent Activity",
+    "upcomingEvents": "Upcoming Events",
+    "totalUsers": "Total Users",
+    "activeTournaments": "Active Tournaments",
+    "totalRevenue": "Total Revenue",
+    "totalCourts": "Total Courts",
+    "viewAll": "View All",
+    "noData": "No data available",
+    "lastUpdated": "Last updated",
+    "refreshData": "Refresh Data",
+    "exportReport": "Export Report",
+    "customizeDashboard": "Customize Dashboard"
+  }
+}

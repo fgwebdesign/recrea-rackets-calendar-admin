@@ -1,0 +1,127 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "create": "Crear",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "clear": "Limpiar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "close": "Cerrar",
+    "open": "Abrir",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "navigation": {
+    "dashboard": "Panel de Control",
+    "tournaments": "Torneos",
+    "leagues": "Ligas",
+    "categories": "Categorías",
+    "courts": "Canchas",
+    "professors": "Profesores",
+    "sponsors": "Patrocinadores",
+    "users": "Usuarios",
+    "settings": "Configuraciones",
+    "logout": "Cerrar sesión"
+  },
+  "dashboard": {
+    "title": "Panel de Control",
+    "description": "Gestión y visualización de ligas y torneos de pádel.",
+    "leagueStats": "Estadísticas de Ligas",
+    "tournamentStats": "Estadísticas de Torneos",
+    "activeCategories": "Categorías activas",
+    "totalPlayers": "Total Jugadores",
+    "totalMatches": "Partidos Totales",
+    "completedMatches": "Partidos Completados",
+    "upcomingMatches": "Próximos Partidos",
+    "registrationProgress": "Progreso de Inscripciones",
+    "standings": "Tabla de Posiciones",
+    "totalTournaments": "Total Torneos",
+    "inProgress": "En Curso",
+    "totalTeams": "Total Equipos",
+    "revenue": "Ingresos"
+  },
+  "tournaments": {
+    "title": "Torneos",
+    "description": "Administra y visualiza todos los torneos del sistema.",
+    "createTournament": "Crear Torneo",
+    "createFirstTournament": "Crear Primer Torneo",
+    "noTournaments": "¡Comienza tu primer torneo!",
+    "noTournamentsDescription": "Crea tu primer torneo y comienza a organizar competencias increíbles de pádel.",
+    "noResults": "No se encontraron torneos",
+    "noResultsDescription": "No hay torneos que coincidan con los filtros seleccionados. Intenta ajustar tu búsqueda.",
+    "searchPlaceholder": "Buscar por nombre o categoría...",
+    "allCategories": "Todas las categorías",
+    "allStatus": "Todos",
+    "upcoming": "Inscripciones Abiertas",
+    "inProgress": "En Curso",
+    "completed": "Finalizados",
+    "dateFilter": "Filtro Fechas",
+    "clearFilters": "Limpiar Filtros",
+    "seeAllTournaments": "Ver Todos los Torneos",
+    "status": {
+      "upcoming": "Inscripciones Abiertas",
+      "in_progress": "En Curso",
+      "completed": "Finalizado"
+    },
+    "types": {
+      "NINE_PLAYERS": "9 Equipos",
+      "TWELVE_PLAYERS": "12 Equipos",
+      "SIXTEEN_PLAYERS": "16 Equipos"
+    },
+    "details": {
+      "startDate": "Inicio",
+      "endDate": "Fin",
+      "sponsors": "Patrocinadores",
+      "teams": "Equipos",
+      "noSponsors": "Sin patrocinadores",
+      "registrations": "Inscripciones",
+      "full": "¡Completo!"
+    }
+  },
+  "leagues": {
+    "title": "Ligas",
+    "description": "Administra y visualiza todas las ligas.",
+    "createLeague": "Crear Liga",
+    "noLeagues": "No hay ligas creadas",
+    "noLeaguesDescription": "Comienza creando tu primera liga",
+    "noResults": "No se encontraron ligas",
+    "searchPlaceholder": "Buscar por categoría...",
+    "allCategories": "Todas las categorías",
+    "allStatus": "Todos",
+    "status": {
+      "Inscribiendo": "Inscripciones abiertas",
+      "Activa": "En Curso",
+      "Finalizada": "Finalizada"
+    }
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "emailPlaceholder": "admin@ejemplo.com",
+    "passwordPlaceholder": "••••••••",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "loginButton": "Iniciar sesión",
+    "needHelp": "¿Necesitas ayuda?",
+    "contactSupport": "Contacta a soporte",
+    "verifyingSession": "Verificando sesión...",
+    "loggingOut": "Cerrando sesión...",
+    "invalidCredentials": "Credenciales inválidas",
+    "adminRequired": "Se requieren permisos de administrador"
+  },
+  "language": {
+    "spanish": "Español",
+    "english": "English",
+    "changeLanguage": "Cambiar idioma"
+  }
+}

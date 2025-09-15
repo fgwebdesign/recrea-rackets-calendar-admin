@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Wind, Droplets, MapPin } from 'lucide-react';
 import { getWeather, WeatherData } from '@/services/weather';
 import { motion } from 'framer-motion';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 // Definimos un enum o tipo para los diferentes climas
 type WeatherType = 'sunny' | 'partlyCloudy' | 'rainy' | 'thunderstorm';
@@ -60,17 +61,18 @@ function getTextColor(timeOfDay: TimeOfDay): string {
   return timeOfDay === 'night' ? 'text-gray-100' : 'text-gray-700';
 }
 
-function getTimeDescription(timeOfDay: TimeOfDay): string {
+function getTimeDescription(timeOfDay: TimeOfDay, t: (key: string) => string): string {
   const descriptions = {
-    morning: 'Mañana',
-    day: 'Mediodía',
-    evening: 'Tarde',
-    night: 'Noche',
+    morning: t('morning'),
+    day: t('day'),
+    evening: t('evening'),
+    night: t('night'),
   };
   return descriptions[timeOfDay];
 }
 
 export function WeatherWidget() {
+  const t = useTranslations('weather');
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +86,7 @@ export function WeatherWidget() {
         setWeather(data);
         setError(null);
       } catch (err) {
-        setError('Error al cargar el clima');
+        setError(t('loadingWeather'));
       } finally {
         setLoading(false);
       }
@@ -120,7 +122,7 @@ export function WeatherWidget() {
     return (
       <div className="h-full flex items-center justify-center">
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Información no disponible
+          {t('weatherInfo')}
         </p>
       </div>
     );
@@ -131,6 +133,26 @@ export function WeatherWidget() {
   const isNight = timeOfDay === 'night';
   const textColor = getTextColor(timeOfDay);
   const subTextColor = isNight ? 'text-gray-300' : 'text-gray-600';
+
+  // Función para traducir la descripción del clima
+  const getTranslatedWeatherDescription = (description: string) => {
+    const descriptionLower = description.toLowerCase();
+    
+    if (descriptionLower.includes('nube') || descriptionLower.includes('cloud')) {
+      return t('clouds');
+    }
+    if (descriptionLower.includes('sol') || descriptionLower.includes('sun')) {
+      return t('sunny');
+    }
+    if (descriptionLower.includes('lluvia') || descriptionLower.includes('rain')) {
+      return t('rainy');
+    }
+    if (descriptionLower.includes('tormenta') || descriptionLower.includes('thunder')) {
+      return t('thunderstorm');
+    }
+    
+    return description; // Fallback a la descripción original
+  };
 
   return (
     <motion.div 
@@ -147,10 +169,10 @@ export function WeatherWidget() {
           <div className="flex items-start justify-between">
             <span className={`text-sm font-medium ${textColor} flex items-center`}>
               <MapPin className="w-3.5 h-3.5 mr-1" />
-              Montevideo, Uruguay.
+              {t('location')}
             </span>
             <span className={`text-sm font-medium ${textColor}`}>
-              {getTimeDescription(timeOfDay)}
+              {getTimeDescription(timeOfDay, t)}
             </span>
           </div>
 
@@ -170,7 +192,7 @@ export function WeatherWidget() {
                 {weather.temp}°C
               </div>
               <p className={`text-sm font-medium ${subTextColor} capitalize`}>
-                {weather.description}
+                {getTranslatedWeatherDescription(weather.description)}
               </p>
             </div>
           </div>
@@ -178,12 +200,12 @@ export function WeatherWidget() {
 
         <div className="flex justify-end gap-4">
           <div className={`flex items-center text-sm ${textColor}`}>
-            <span className="text-xs mr-2">Humedad</span>
+            <span className="text-xs mr-2">{t('humidity')}</span>
             <Droplets className="h-3.5 w-3.5 text-blue-600 mr-1" />
             {weather.humidity}%
           </div>
           <div className={`flex items-center text-sm ${textColor}`}>
-            <span className="text-xs mr-2">Viento</span>
+            <span className="text-xs mr-2">{t('wind')}</span>
             <Wind className="h-3.5 w-3.5 text-blue-600 mr-1" />
             {weather.windSpeed} km/h
           </div>
