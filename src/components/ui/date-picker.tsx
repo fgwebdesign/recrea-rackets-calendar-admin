@@ -17,6 +17,9 @@ interface DatePickerProps {
   disabled?: boolean
   className?: string
   error?: boolean
+  suggestedDates?: Date[] // Fechas sugeridas con color especial
+  restrictedDates?: Date[] // Fechas restringidas
+  startDate?: Date // Fecha de inicio para calcular fechas sugeridas
 }
 
 // Función helper para convertir Date a string YYYY-MM-DD sin problemas de zona horaria
@@ -39,9 +42,26 @@ export function DatePicker({
   placeholder = "Selecciona una fecha",
   disabled = false,
   className,
-  error = false
+  error = false,
+  suggestedDates = [],
+  restrictedDates = [],
+  startDate
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
+
+  // Función para determinar si una fecha es sugerida
+  const isSuggestedDate = (date: Date) => {
+    return suggestedDates.some(suggestedDate => 
+      suggestedDate.getTime() === date.getTime()
+    );
+  };
+
+  // Función para determinar si una fecha está restringida
+  const isRestrictedDate = (date: Date) => {
+    return restrictedDates.some(restrictedDate => 
+      restrictedDate.getTime() === date.getTime()
+    );
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -72,6 +92,14 @@ export function DatePicker({
           initialFocus
           locale={es}
           className="rounded-md border"
+          modifiers={{
+            suggested: suggestedDates,
+            restricted: restrictedDates
+          }}
+          modifiersClassNames={{
+            suggested: "bg-green-100 text-green-800 hover:bg-green-200 border border-green-300 font-semibold",
+            restricted: "bg-red-100 text-red-800 hover:bg-red-200 border border-red-300 opacity-50"
+          }}
         />
       </PopoverContent>
     </Popover>
@@ -125,7 +153,7 @@ export function DateRangePicker({
           mode="range"
           selected={value}
           onSelect={(range) => {
-            onChange?.(range || { from: undefined, to: undefined })
+            onChange?.({ from: range?.from, to: range?.to })
             if (range?.from && range?.to) {
               setOpen(false)
             }

@@ -67,6 +67,43 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
     setFormData({ ...formData, tournament_thumbnail: file });
   };
 
+  // Función para calcular fechas sugeridas para la fecha de fin
+  const getSuggestedEndDates = () => {
+    if (!formData.start_date) return [];
+    
+    const startDate = parseDateFromInput(formData.start_date);
+    const suggestedDates = [];
+    
+    // Sugerir EXACTAMENTE 2 días después (3 días INCLUSIVO: inicio, día 2, día 3)
+    const suggestedDate = new Date(startDate);
+    suggestedDate.setDate(startDate.getDate() + 2);
+    suggestedDates.push(suggestedDate);
+    
+    return suggestedDates;
+  };
+
+  // Función para calcular fechas restringidas para la fecha de fin
+  const getRestrictedEndDates = () => {
+    if (!formData.start_date) return [];
+    
+    const startDate = parseDateFromInput(formData.start_date);
+    const restrictedDates = [];
+    
+    // Restringir fecha de 1 día después (muy corta - solo 2 días)
+    const restrictedDate1 = new Date(startDate);
+    restrictedDate1.setDate(startDate.getDate() + 1);
+    restrictedDates.push(restrictedDate1);
+    
+    // Restringir fechas de más de 2 días después (muy largas - más de 3 días)
+    for (let i = 3; i <= 10; i++) {
+      const restrictedDate = new Date(startDate);
+      restrictedDate.setDate(startDate.getDate() + i);
+      restrictedDates.push(restrictedDate);
+    }
+    
+    return restrictedDates;
+  };
+
   return (
     <TooltipProvider>
       <div className="p-8 space-y-6 bg-background/50 rounded-lg border border-border/50">
@@ -142,7 +179,7 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
             <SponsorSelector
               selectedSponsors={formData.sponsors || []}
               onSponsorsChange={(sponsorIds) => setFormData({ ...formData, sponsors: sponsorIds })}
-              error={errors.sponsors}
+              error={errors.sponsors || undefined}
             />
           </div>
 
@@ -173,7 +210,7 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
               <LabelWithTooltip
                 htmlFor="end_date"
                 label="Fecha de Fin"
-                tooltip="Fecha de finalización del torneo"
+                tooltip="Fecha de finalización del torneo. La fecha verde es la recomendada (exactamente 3 días: inicio, día 2, día 3), las rojas están restringidas (muy cortas o muy largas)."
               />
               <div className="space-y-2">
                 <DatePicker
@@ -184,6 +221,9 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
                   })}
                   placeholder="Selecciona fecha de fin"
                   error={!!errors.end_date}
+                  suggestedDates={getSuggestedEndDates()}
+                  restrictedDates={getRestrictedEndDates()}
+                  startDate={formData.start_date ? parseDateFromInput(formData.start_date) : undefined}
                 />
                 {errors.end_date && (
                   <p className="text-sm text-red-500">{errors.end_date}</p>
