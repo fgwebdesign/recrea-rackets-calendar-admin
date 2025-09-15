@@ -24,7 +24,8 @@ import {
   MapPin,
   Target,
   AlertCircle,
-  ArrowLeft
+  ArrowLeft,
+  CalendarDays
 } from 'lucide-react';
 import { TournamentMatch, Team } from '@/types/tournament';
 import { TournamentMatchModal } from '@/components/Tournaments/TournamentMatchModal';
@@ -54,6 +55,7 @@ export default function TournamentMatchesPage() {
   const { tournament, matches, teams, loading, error, refetch } = useTournament(tournamentId);
   const { categories } = useCategories();
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
+  const [isSchedulingMatches, setIsSchedulingMatches] = useState(false);
   const [isUpdatingResult, setIsUpdatingResult] = useState<string | null>(null);
   const [matchResults, setMatchResults] = useState<Record<string, MatchResult>>({});
   const [showResultForm, setShowResultForm] = useState<string | null>(null);
@@ -177,6 +179,45 @@ export default function TournamentMatchesPage() {
       console.error('Error generando partidos:', error);
     } finally {
       setIsGeneratingMatches(false);
+    }
+  };
+
+  // Programar partidos (asignar horarios y canchas)
+  const handleScheduleMatches = async () => {
+    if (!tournament) return;
+    
+    setIsSchedulingMatches(true);
+    try {
+      const token = localStorage.getItem('adminToken');
+      
+      if (!token) {
+        throw new Error('No hay token de autenticación disponible');
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/schedule-matches-by-group`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al programar partidos');
+      }
+
+      const result = await response.json();
+      console.log('✅ Partidos programados exitosamente:', result);
+      
+      // Recargar datos para mostrar los horarios y canchas asignados
+      await refetch();
+      
+    } catch (error: any) {
+      console.error('Error programando partidos:', error);
+      alert(`Error al programar partidos: ${error.message}`);
+    } finally {
+      setIsSchedulingMatches(false);
     }
   };
 
@@ -349,6 +390,21 @@ export default function TournamentMatchesPage() {
                   {isGeneratingMatches ? 'Generando...' : 'Generar Partidos'}
                 </Button>
               )}
+
+              {totalMatches > 0 && pendingMatches > 0 && (
+                <Button
+                  onClick={handleScheduleMatches}
+                  disabled={isSchedulingMatches}
+                  className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                >
+                  {isSchedulingMatches ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CalendarDays className="h-4 w-4" />
+                  )}
+                  {isSchedulingMatches ? 'Programando...' : 'Programar Partidos'}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -430,23 +486,25 @@ export default function TournamentMatchesPage() {
                     Este torneo aún no tiene partidos generados. Genera los partidos para comenzar la competencia.
                   </p>
                   
-                  <Button
-                    onClick={handleGenerateMatches}
-                    disabled={isGeneratingMatches}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
-                  >
-                    {isGeneratingMatches ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Generando...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Generar Partidos
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={handleGenerateMatches}
+                      disabled={isGeneratingMatches}
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+                    >
+                      {isGeneratingMatches ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          Generando...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Generar Partidos
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -489,14 +547,21 @@ export default function TournamentMatchesPage() {
                               {match.match_day && (
                                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                   <Calendar className="h-4 w-4" />
-                                  {new Date(match.match_day).toLocaleDateString('es-ES')}
+                                  {match.match_day}
                                 </div>
                               )}
                               
                               {match.start_time && (
                                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                   <Clock className="h-4 w-4" />
-                                  {match.start_time}
+                                  {match.start_time.substring(0, 5)}
+                                </div>
+                              )}
+                              
+                              {match.court_name && (
+                                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                  <MapPin className="h-4 w-4" />
+                                  {match.court_name}
                                 </div>
                               )}
                             </CardHeader>

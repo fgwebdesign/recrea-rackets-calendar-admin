@@ -9,6 +9,8 @@ interface Player {
   first_name: string;
   last_name: string;
   email: string;
+  is_registered: boolean;
+  status: 'Ya inscrito' | 'Disponible';
 }
 
 interface PlayerSelectorProps {
@@ -132,29 +134,54 @@ export function PlayerSelector({
                   key={player.id}
                   type="button"
                   onClick={() => {
-                    onPlayerSelect(player.id);
-                    setIsOpen(false);
-                    setSearchTerm('');
+                    if (!player.is_registered) {
+                      onPlayerSelect(player.id);
+                      setIsOpen(false);
+                      setSearchTerm('');
+                    }
                   }}
-                  className="w-full p-5 text-left hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                  disabled={player.is_registered}
+                  className={`w-full p-5 text-left transition-colors duration-200 border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${
+                    player.is_registered
+                      ? 'bg-red-50 dark:bg-red-900/20 cursor-not-allowed opacity-60'
+                      : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
+                      player.is_registered
+                        ? 'bg-gradient-to-br from-red-500 to-red-600'
+                        : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                    }`}>
                       {getPlayerInitials(player)}
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900 dark:text-gray-100">
+                      <div className={`font-medium ${
+                        player.is_registered
+                          ? 'text-red-700 dark:text-red-300'
+                          : 'text-gray-900 dark:text-gray-100'
+                      }`}>
                         {player.first_name} {player.last_name}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         {player.email}
                       </div>
                     </div>
-                    {player.id === selectedPlayer && (
-                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                        <CheckIcon className="h-4 w-4 text-white" />
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <Badge className={
+                        player.is_registered
+                          ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                          : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                      }>
+                        <XMarkIcon className="h-3 w-3 mr-1" />
+                        {player.status}
+                      </Badge>
+                      {player.id === selectedPlayer && !player.is_registered && (
+                        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                          <CheckIcon className="h-4 w-4 text-white" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </button>
               ))

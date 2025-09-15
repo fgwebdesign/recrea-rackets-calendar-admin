@@ -8,14 +8,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, RefreshCw, Plus, Settings } from 'lucide-react';
+import { AlertCircle, RefreshCw, Plus, Settings, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getCategoryName } from '@/utils/category';
+import { toast } from '@/components/ui/use-toast';
+import { useState } from 'react';
 
 export default function TournamentGroupsPage() {
   const params = useParams();
   const router = useRouter();
   const tournamentId = params.id as string;
+  const [isGeneratingGroups, setIsGeneratingGroups] = useState(false);
 
   const { 
     tournament, 
@@ -64,6 +67,54 @@ export default function TournamentGroupsPage() {
       return team.teams.player2.first_name[0].toUpperCase();
     }
     return '?';
+  };
+
+  // Función para generar grupos automáticamente
+  const handleGenerateGroups = async () => {
+    if (!canGenerateGroups) return;
+
+    setIsGeneratingGroups(true);
+    
+    try {
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        throw new Error('No estás autenticado');
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/generate-groups`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al generar grupos');
+      }
+
+      // Mostrar mensaje de éxito
+      toast({
+        title: "¡Grupos generados exitosamente!",
+        description: `Se crearon ${data.groups_created?.length || 0} grupos para el torneo`,
+        variant: "default",
+      });
+
+      // Refrescar los datos para mostrar los grupos creados
+      await refetch();
+
+    } catch (error) {
+      console.error('Error generando grupos:', error);
+      toast({
+        title: "Error al generar grupos",
+        description: error instanceof Error ? error.message : 'Error inesperado',
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingGroups(false);
+    }
   };
 
   if (loading) {
@@ -187,12 +238,13 @@ export default function TournamentGroupsPage() {
                 Actualizar
               </Button>
               <Button 
+                onClick={handleGenerateGroups}
                 className={`flex items-center gap-2 ${
-                  !canGenerateGroups
+                  !canGenerateGroups || isGeneratingGroups
                     ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed opacity-60' 
                     : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
                 }`}
-                disabled={!canGenerateGroups}
+                disabled={!canGenerateGroups || isGeneratingGroups}
                 title={
                   totalGroups > 0 
                     ? 'Los grupos ya han sido generados' 
@@ -201,8 +253,14 @@ export default function TournamentGroupsPage() {
                     : 'Generar grupos para el torneo'
                 }
               >
-                <Plus className="h-4 w-4" />
-                {totalGroups > 0 
+                {isGeneratingGroups ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                {isGeneratingGroups
+                  ? 'Generando...'
+                  : totalGroups > 0 
                   ? 'Grupos Generados' 
                   : !isTournamentFull 
                   ? `Esperando ${tournamentCapacity - totalTeams} equipos`
@@ -392,20 +450,27 @@ export default function TournamentGroupsPage() {
                   Volver al torneo
                 </Button>
                 <Button 
+                  onClick={handleGenerateGroups}
                   className={`${
-                    !canGenerateGroups
+                    !canGenerateGroups || isGeneratingGroups
                       ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed opacity-60'
                       : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
                   } text-white`}
-                  disabled={!canGenerateGroups}
+                  disabled={!canGenerateGroups || isGeneratingGroups}
                   title={
                     !isTournamentFull 
                       ? `Faltan ${tournamentCapacity - totalTeams} equipos para completar el cupo`
                       : 'Generar grupos para organizar los equipos del torneo'
                   }
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {!isTournamentFull 
+                  {isGeneratingGroups ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
+                  {isGeneratingGroups
+                    ? 'Generando...'
+                    : !isTournamentFull 
                     ? `Esperando ${tournamentCapacity - totalTeams} equipos`
                     : 'Generar Grupos'
                   }

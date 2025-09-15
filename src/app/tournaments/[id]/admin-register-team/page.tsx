@@ -23,6 +23,8 @@ interface Player {
   first_name: string;
   last_name: string;
   email: string;
+  is_registered: boolean;
+  status: 'Ya inscrito' | 'Disponible';
 }
 
 interface TimeSlot {
@@ -108,14 +110,15 @@ export default function AdminRegisterTeamPage() {
 
   const loadPlayers = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/players`, {
+      // Usar el nuevo endpoint que filtra jugadores ya registrados en el torneo
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/available-players`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         }
       });
       
       if (!response.ok) {
-        throw new Error('Error al cargar usuarios');
+        throw new Error('Error al cargar jugadores disponibles');
       }
       
       const data = await response.json();
@@ -124,7 +127,7 @@ export default function AdminRegisterTeamPage() {
       console.error('Error cargando jugadores:', err);
       toast({
         title: "Error",
-        description: "Error al cargar la lista de jugadores",
+        description: "Error al cargar la lista de jugadores disponibles",
         variant: "destructive",
       });
     }

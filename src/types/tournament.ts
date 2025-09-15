@@ -202,6 +202,7 @@ export interface TournamentMatch {
   match_day?: string
   start_time?: string
   court_id?: string
+  court_name?: string // Nombre de la cancha
   team1_sets1_won: number
   team2_sets1_won: number
   team1_sets2_won: number
