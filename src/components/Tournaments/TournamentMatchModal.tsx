@@ -379,10 +379,10 @@ export function TournamentMatchModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={() => !isLoading && onClose()}>
-      <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 max-w-5xl p-0 gap-0">
-        <div className="flex flex-col h-full">
+      <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 max-w-5xl max-h-[90vh] p-0 gap-0 overflow-hidden">
+        <div className="flex flex-col h-full max-h-[90vh]">
           {/* Header */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <DialogHeader>
               <div className="flex items-center">
                 <div className="flex items-center gap-3">
@@ -401,7 +401,7 @@ export function TournamentMatchModal({
           </div>
 
           {/* Content */}
-          <div className="flex-1">
+          <div className="flex-1 overflow-y-auto">
           
             {match.status === 'completed' ? (
               renderCompletedMatchView()
@@ -752,7 +752,7 @@ export function TournamentMatchModal({
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
             <div className="flex justify-end gap-3">
               <Button
                 variant="outline"

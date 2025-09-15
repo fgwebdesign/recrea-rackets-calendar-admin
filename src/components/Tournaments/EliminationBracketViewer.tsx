@@ -186,6 +186,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         // Función para obtener el nombre de la cancha
         const getCourtName = (courtId: string): string => {
           const court = courtsMap.get(courtId);
+          console.log(`🔍 Buscando cancha ${courtId}:`, court);
           return court ? court.name : `Cancha ${courtId.slice(-4)}`;
         };
         
@@ -270,7 +271,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
               nextMatchId: nextMatchId,
               tournamentRoundText: getRoundText(match.elimination_round),
               startTime: `${match.match_day} ${match.start_time}`,
-              courtName: getCourtName(match.court_id),
+              courtName: match.court_name || getCourtName(match.court_id),
               state: matchState,
               participants: [
                 {
@@ -307,14 +308,14 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
                   resultText: null,
                   isWinner: false,
                   status: null,
-                  name: `Ganador ${roundText === 'Semifinales' ? 'Cuartos' : 'Semifinal'} ${roundText === 'Semifinales' ? '1' : '1'}`
+                  name: `⏰ Esperando ${roundText === 'Semifinales' ? 'QF1 vs QF2' : 'SF1 vs SF2'}`
                 },
                 {
                   id: `ghost-${id}-2`,
                   resultText: null,
                   isWinner: false,
                   status: null,
-                  name: `Ganador ${roundText === 'Semifinales' ? 'Cuartos' : 'Semifinal'} ${roundText === 'Semifinales' ? '2' : '2'}`
+                  name: `⏰ Esperando ${roundText === 'Semifinales' ? 'QF3 vs QF4' : 'SF2 vs SF3'}`
                 }
               ]
             };
@@ -813,11 +814,13 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
             }}
           >
             <div className="participant-name" style={{
-              background: index === 0 
+              background: participant.name.includes('⏰ Esperando') 
+                ? 'linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)' // Gris para partidos pendientes
+                : index === 0 
                 ? 'linear-gradient(135deg, #ffb3ba 0%, #ff9a9e 100%)' // Rosa pastel para LOCAL
                 : 'linear-gradient(135deg, #a8d8ea 0%, #87ceeb 100%)', // Azul cielo pastel para VISITANTE
               borderRadius: '6px',
-              color: '#333',
+              color: participant.name.includes('⏰ Esperando') ? '#6b7280' : '#333', // Color gris para pendientes
               fontWeight: '600',
               fontSize: '10px',
               textAlign: 'center',
@@ -826,21 +829,22 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
               minHeight: '24px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              opacity: participant.name.includes('⏰ Esperando') ? 0.8 : 1 // Ligera transparencia para pendientes
             }}>
               <span style={{
                 display: 'inline-block',
-                background: 'rgba(255,255,255,0.3)',
+                background: participant.name.includes('⏰ Esperando') ? 'rgba(107,114,128,0.2)' : 'rgba(255,255,255,0.3)',
                 borderRadius: '4px',
                 padding: '2px 6px',
                 margin: '2px',
                 fontSize: '10px',
                 fontWeight: '700',
                 letterSpacing: '0.5px',
-                textTransform: 'uppercase',
+                textTransform: participant.name.includes('⏰ Esperando') ? 'none' : 'uppercase',
                 wordBreak: 'break-word'
               }}>
-                {index === 0 ? '🏠 ' : '✈️ '}{participant.name}
+                {participant.name.includes('⏰ Esperando') ? '' : (index === 0 ? '🏠 ' : '✈️ ')}{participant.name}
               </span>
             </div>
             {participant.resultText && (
@@ -991,10 +995,24 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
             <div className="max-h-[800px] overflow-y-auto space-y-3 pr-2 scrollbar-hide">
               {matches
                 .sort((a, b) => {
-                  // Ordenar por fecha y hora
-                  const dateA = new Date(a.startTime);
-                  const dateB = new Date(b.startTime);
-                  return dateA.getTime() - dateB.getTime();
+                  // Ordenar por ronda: Cuartos → Semifinales → Final
+                  const roundOrder = {
+                    'Cuartos de Final': 1,
+                    'Semifinales': 2,
+                    'Final': 3
+                  };
+                  
+                  const orderA = roundOrder[a.tournamentRoundText as keyof typeof roundOrder] || 999;
+                  const orderB = roundOrder[b.tournamentRoundText as keyof typeof roundOrder] || 999;
+                  
+                  // Si están en la misma ronda, ordenar por fecha
+                  if (orderA === orderB) {
+                    const dateA = new Date(a.startTime);
+                    const dateB = new Date(b.startTime);
+                    return dateA.getTime() - dateB.getTime();
+                  }
+                  
+                  return orderA - orderB;
                 })
                 .map((match, index) => {
                 const isCompleted = match.state === 'DONE';
