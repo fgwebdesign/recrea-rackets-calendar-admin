@@ -249,12 +249,12 @@ export async function createTournament(req, res) {
       });
     }
 
-    // Validar que el número de canchas no sea excesivo (máximo 4 canchas)
-    if (courts_available > 4) {
+    // Validar que el número de canchas no sea excesivo (máximo 8 canchas)
+    if (courts_available > 8) {
       return res.status(400).json({ 
-        message: 'El número máximo de canchas permitido es 4',
+        message: 'El número máximo de canchas permitido es 8',
         canchas_solicitadas: courts_available,
-        canchas_maximas: 4
+        canchas_maximas: 8
       });
     }
 
@@ -2251,15 +2251,27 @@ function calculateMaxCategoriesForOptimalDistribution(tournamentType, courtsAvai
   switch (tournamentType) {
     case 'NINE_PLAYERS':
       // 9 equipos × 2 partidos = 9 partidos por categoría
-      practicalLimit = courtsAvailable >= 3 ? 5 : courtsAvailable >= 2 ? 4 : 2;
+      practicalLimit = courtsAvailable >= 8 ? 22 : 
+                       courtsAvailable >= 6 ? 15 : 
+                       courtsAvailable >= 4 ? 8 : 
+                       courtsAvailable >= 3 ? 5 : 
+                       courtsAvailable >= 2 ? 4 : 2;
       break;
     case 'TWELVE_PLAYERS':
       // 12 equipos × 2 partidos = 12 partidos por categoría  
-      practicalLimit = courtsAvailable >= 4 ? 4 : courtsAvailable >= 2 ? 4 : 1;
+      practicalLimit = courtsAvailable >= 8 ? 16 : 
+                       courtsAvailable >= 6 ? 12 : 
+                       courtsAvailable >= 4 ? 8 : 
+                       courtsAvailable >= 3 ? 6 : 
+                       courtsAvailable >= 2 ? 4 : 1;
       break;
     case 'SIXTEEN_PLAYERS':
       // 16 equipos × 3 partidos = 24 partidos por categoría
-      practicalLimit = courtsAvailable >= 4 ? 2 : courtsAvailable >= 2 ? 1 : 1;
+      practicalLimit = courtsAvailable >= 8 ? 8 : 
+                       courtsAvailable >= 6 ? 6 : 
+                       courtsAvailable >= 4 ? 4 : 
+                       courtsAvailable >= 3 ? 3 : 
+                       courtsAvailable >= 2 ? 2 : 1;
       break;
     default:
       practicalLimit = 2; // Conservador
@@ -4594,50 +4606,71 @@ async function createEliminationMatches(tournamentId, bracket, tournament) {
   const MATCH_DURATION = 60; // 1 hora para fase eliminatoria
   const START_HOUR = 8; // Empezar a las 8:00 AM
   
-  // 4. Calcular horarios por ronda - LÓGICA CORREGIDA: MECHAR CATEGORÍAS POR RONDA
-  // Primero TODOS los octavos/cuartos, luego TODAS las semis, finalmente TODAS las finales
+  // 4. NUEVA LÓGICA: Programación escalonada por categorías (como el Excel)
+  // Cada categoría tiene sus horarios escalonados según su orden
   const totalCategories = eventTournaments.length;
+  const quarterfinalsOffset = tournamentIndex * 2; // 2 horas por categoría para cuartos
+  const semifinalsOffset = tournamentIndex * 1; // 1 hora por categoría para semis
+  const finalsOffset = tournamentIndex * 1; // 1 hora por categoría para finales
   
   const roundStartTimes = {
-    octavos: START_HOUR,                                    // 8:00 AM (solo para SIXTEEN_PLAYERS)
-    quarterfinals: START_HOUR,                              // 8:00 AM (para TWELVE_PLAYERS)
-    semifinals: START_HOUR + (totalCategories * 1),         // 8:00 AM + (4 categorías * 1h) = 12:00 PM
-    final: START_HOUR + (totalCategories * 2)               // 8:00 AM + (4 categorías * 2h) = 4:00 PM
+    octavos: START_HOUR + quarterfinalsOffset,           // 8:00 + (categoría * 2)
+    quarterfinals: START_HOUR + quarterfinalsOffset,     // 8:00 + (categoría * 2)
+    semifinals: START_HOUR + 8 + semifinalsOffset,       // 16:00 + (categoría * 1)
+    final: START_HOUR + 9 + finalsOffset                 // 17:00 + (categoría * 1)
   };
 
-  console.log('🎯 Configuración de horarios ELIMINATORIOS:');
+  console.log('🎯 NUEVA Configuración de horarios ELIMINATORIOS (como Excel):');
   console.log('   ⏰ Hora inicio:', START_HOUR);
   console.log('   ⌛ Duración partido:', MATCH_DURATION, 'minutos (1 hora)');
   console.log('   📊 Total categorías:', totalCategories);
   console.log('   📅 Horarios por ronda:', roundStartTimes);
   console.log('   🏆 Categoría actual:', tournament.categories?.name, '(orden:', tournament.categories?.order, ')');
   console.log('   📍 Índice en el evento:', tournamentIndex);
-  console.log('   🔄 LÓGICA: Mechado por categorías dentro de cada ronda');
+  console.log('   ⏰ Offset cuartos:', quarterfinalsOffset, 'horas (2h por categoría)');
+  console.log('   ⏰ Offset semis:', semifinalsOffset, 'horas (1h por categoría)');
+  console.log('   ⏰ Offset finales:', finalsOffset, 'horas (1h por categoría)');
+  console.log('   🔄 LÓGICA: Escalonado diferenciado por rondas');
   console.log('   📋 EJEMPLO HORARIOS:');
-  console.log(`      Octavos/Cuartos: ${START_HOUR}:00 - ${START_HOUR + totalCategories}:00`);
-  console.log(`      Semifinales: ${START_HOUR + totalCategories}:00 - ${START_HOUR + (totalCategories * 2)}:00`);
-  console.log(`      Finales: ${START_HOUR + (totalCategories * 2)}:00 - ${START_HOUR + (totalCategories * 3)}:00`);
+  console.log(`      Cuartos: ${START_HOUR + quarterfinalsOffset}:00 y ${START_HOUR + quarterfinalsOffset + 1}:00 (concurrente en 2 canchas)`);
+  console.log(`      Semifinales: ${START_HOUR + 8 + semifinalsOffset}:00 (concurrente en 2 canchas)`);
+  console.log(`      Final: ${START_HOUR + 9 + finalsOffset}:00 (1 cancha)`);
 
-  // 5. Generar partidos con horarios mechados por categorías
-  let courtIndex = 0; // Contador para distribución de canchas
+  // 5. Generar partidos con lógica concurrente por rondas
+  let globalMatchCounter = 0; // Contador global para distribución de canchas
   
   Object.keys(bracket.structure).forEach(round => {
-    const roundBaseTime = roundStartTimes[round];
-    const categoryStartTime = roundBaseTime + (tournamentIndex * 1); // 1 hora por categoría
+    const roundStartTime = roundStartTimes[round];
+    const matchesInRound = bracket.structure[round].length;
     
-    console.log(`🕒 Categoría ${tournament.categories?.name} (orden: ${tournament.categories?.order}) - ${round}:`);
-    console.log(`   ⏰ Empezará a las ${Math.floor(categoryStartTime)}:${String(Math.round((categoryStartTime % 1) * 60)).padStart(2, '0')}`);
+    console.log(`🕒 RONDA ${round.toUpperCase()}:`);
+    console.log(`   ⏰ Hora inicio: ${roundStartTime}:00`);
+    console.log(`   🎾 Total partidos: ${matchesInRound}`);
     
     bracket.structure[round].forEach((match, index) => {
       if (match.team1 && match.team2) {
-        // Calcular hora y minutos exactos
-        const matchTime = categoryStartTime;
+        // Calcular horario según la lógica del Excel
+        let matchTime;
+        let assignedCourt;
+        
+        if (round === 'octavos' || round === 'quarterfinals') {
+          // Para cuartos: 2 partidos a las 8:00, 2 partidos a las 9:00
+          matchTime = roundStartTime + Math.floor(index / 2); // 8:00 para índices 0,1 | 9:00 para índices 2,3
+          assignedCourt = courts[index % courts.length]; // Alternar canchas
+        } else if (round === 'semifinals') {
+          // Para semifinales: 2 partidos a las 16:00
+          matchTime = roundStartTime; // Todos a las 16:00
+          assignedCourt = courts[index % courts.length]; // Alternar canchas
+        } else if (round === 'final') {
+          // Para final: 1 partido a las 17:00
+          matchTime = roundStartTime; // A las 17:00
+          assignedCourt = courts[0]; // Primera cancha
+        }
+        
         const hour = Math.floor(matchTime);
         const minutes = Math.round((matchTime % 1) * 60);
         
-        // Distribuir canchas de forma inteligente
-        const assignedCourt = courts[courtIndex % courts.length];
-        courtIndex++; // Avanzar al siguiente partido
+        console.log(`   🎾 Partido ${index + 1}: ${hour}:${minutes.toString().padStart(2, '0')} - Cancha ${assignedCourt.id}`);
         
         const matchData = {
           tournament_id: tournamentId,
@@ -4648,7 +4681,7 @@ async function createEliminationMatches(tournamentId, bracket, tournament) {
           court_id: assignedCourt.id,
           status: 'scheduled',
           group_number: null,
-          round: round === 'octavos' ? 'quarter_final' : 
+          round: round === 'octavos' ? 'octavos' : 
                  round === 'quarterfinals' ? 'quarter_final' : 
                  round === 'semifinals' ? 'semi_final' : 'final',
           elimination_round: round,

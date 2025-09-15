@@ -53,7 +53,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
   bracketData 
 }) => {
   // Estados del componente
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(0.9); // Zoom inicial al 90%
@@ -71,7 +71,17 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
     fetchEliminationMatches();
   }, [tournamentId]);
 
-  // Zoom implementado directamente en el JSX con CSS transforms
+  // ===== OPTIMIZADO: Solo refrescar cuando sea necesario =====
+  // Removido el intervalo de 5 segundos para mejor rendimiento
+
+  // ===== NUEVA FUNCIÓN: Forzar actualización completa =====
+  const forceRefresh = async () => {
+    console.log('🔄 FORZANDO ACTUALIZACIÓN COMPLETA...');
+    setLoading(true);
+    setMatches([]); // Limpiar estado
+    await fetchEliminationMatches();
+    setLoading(false);
+  };
 
   const fetchEliminationMatches = async () => {
     try {
@@ -123,11 +133,15 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         // Crear mapa de equipos para acceso rápido
         const teamsMap = new Map();
         if (teamsData.teams) {
+          console.log('🔍 Equipos cargados:', teamsData.teams.length);
           teamsData.teams.forEach((team: any) => {
+            console.log(`   - Equipo ${team.team_id}:`, team);
             teamsMap.set(team.team_id, team);
           });
           // Guardar equipos para el modal
           setTeams(teamsData.teams);
+        } else {
+          console.log('❌ No se cargaron equipos');
         }
         
         // Crear mapa de canchas para acceso rápido
@@ -141,17 +155,27 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         // Función para obtener el nombre del equipo
         const getTeamName = (teamId: string): string => {
           const team = teamsMap.get(teamId);
-          if (!team) return `Equipo ${teamId.slice(-4)}`;
+          console.log(`🔍 Buscando equipo ${teamId}:`, team);
+          
+          if (!team) {
+            console.log(`❌ Equipo ${teamId} no encontrado en teamsMap`);
+            return `Equipo ${teamId.slice(-4)}`;
+          }
           
           const player1 = team.teams?.player1;
           const player2 = team.teams?.player2;
           
-          if (!player1 || !player2) return `Equipo ${teamId.slice(-4)}`;
+          if (!player1 || !player2) {
+            console.log(`❌ Jugadores faltantes para equipo ${teamId}:`, { player1, player2 });
+            return `Equipo ${teamId.slice(-4)}`;
+          }
           
           const name1 = `${player1.first_name || ''} ${player1.last_name || ''}`.trim();
           const name2 = `${player2.first_name || ''} ${player2.last_name || ''}`.trim();
           
-          return `${name1} / ${name2}`;
+          const teamName = `${name1} / ${name2}`;
+          console.log(`✅ Nombre del equipo ${teamId}: ${teamName}`);
+          return teamName;
         };
         
         // Función para obtener el nombre de la cancha
@@ -162,12 +186,33 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         
         // Crear estructura de bracket basada en los datos reales
         const createBracketStructure = (matches: any[]) => {
+          // ===== DEBUG: Ver todos los valores de elimination_round =====
+          console.log('🔍 Debug elimination_round values:');
+          matches.forEach((match, index) => {
+            console.log(`  Match ${index}: round="${match.round}", elimination_round="${match.elimination_round}", stage="${match.stage}"`);
+          });
+          
           // Agrupar partidos por ronda
           const quarterFinals = matches.filter(m => m.elimination_round === 'quarterfinals');
           const semiFinals = matches.filter(m => m.elimination_round === 'semifinals');
           const finals = matches.filter(m => m.elimination_round === 'final');
           
-          const formattedMatches: Match[] = [];
+          // ===== NUEVA LÓGICA: También filtrar por round y stage =====
+          const semiFinalsByRound = matches.filter(m => m.round === 'semi_final');
+          const finalsByRound = matches.filter(m => m.round === 'final');
+          
+          console.log(`🔍 Filtros aplicados:`);
+          console.log(`  - quarterFinals (elimination_round='quarterfinals'): ${quarterFinals.length}`);
+          console.log(`  - semiFinals (elimination_round='semifinals'): ${semiFinals.length}`);
+          console.log(`  - finals (elimination_round='final'): ${finals.length}`);
+          console.log(`  - semiFinalsByRound (round='semi_final'): ${semiFinalsByRound.length}`);
+          console.log(`  - finalsByRound (round='final'): ${finalsByRound.length}`);
+          
+          // Usar la lógica que funcione
+          const finalSemiFinals = semiFinals.length > 0 ? semiFinals : semiFinalsByRound;
+          const finalFinals = finals.length > 0 ? finals : finalsByRound;
+          
+          const formattedMatches: any[] = [];
           
           // Función para formatear un partido
           const formatMatch = (match: any, nextMatchId: string | null = null) => {
@@ -270,14 +315,15 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
           // Agregar cuartos de final
           quarterFinals.forEach((match, index) => {
             // Si no hay semifinales reales, crear IDs fantasma
-            const nextMatchId = semiFinals.length > 0 
-              ? semiFinals[Math.floor(index / 2)]?.id 
+            const nextMatchId = finalSemiFinals.length > 0 
+              ? finalSemiFinals[Math.floor(index / 2)]?.id 
               : `ghost-semi-${Math.floor(index / 2) + 1}`;
             formattedMatches.push(formatMatch(match, nextMatchId));
           });
           
           // Si no hay semifinales reales, crearlas como fantasma
-          if (semiFinals.length === 0 && quarterFinals.length >= 4) {
+          console.log(`🔍 Debug semifinales: finalSemiFinals.length = ${finalSemiFinals.length}, quarterFinals.length = ${quarterFinals.length}`);
+          if (finalSemiFinals.length === 0 && quarterFinals.length >= 4) {
             console.log('🔮 Creando semifinales fantasma...');
             const semi1 = createGhostMatch(
               'ghost-semi-1', 
@@ -296,14 +342,16 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
             formattedMatches.push(semi1, semi2);
           } else {
             // Agregar semifinales reales
-            semiFinals.forEach((match, index) => {
-              const nextMatchId = finals.length > 0 ? finals[0]?.id : 'ghost-final-1';
+            console.log('✅ Procesando semifinales reales...');
+            finalSemiFinals.forEach((match, index) => {
+              console.log(`🔍 Semifinal ${index + 1}:`, match);
+              const nextMatchId = finalFinals.length > 0 ? finalFinals[0]?.id : 'ghost-final-1';
               formattedMatches.push(formatMatch(match, nextMatchId));
             });
           }
           
           // Si no hay final real, crearla como fantasma
-          if (finals.length === 0 && (semiFinals.length > 0 || quarterFinals.length >= 4)) {
+          if (finalFinals.length === 0 && (finalSemiFinals.length > 0 || quarterFinals.length >= 4)) {
             console.log('🔮 Creando final fantasma...');
             const final = createGhostMatch(
               'ghost-final-1', 
@@ -315,7 +363,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
             formattedMatches.push(final);
           } else {
             // Agregar final real
-            finals.forEach(match => {
+            finalFinals.forEach(match => {
               formattedMatches.push(formatMatch(match, null));
             });
           }
@@ -408,14 +456,26 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
 
       if (response.ok) {
         // Actualizar estado local
-        setMatches((prevMatches: Match[]) => 
-          prevMatches.map((match: Match) => 
+        setMatches((prevMatches: any[]) => 
+          prevMatches.map((match: any) => 
             match.id === matchId ? { ...match, ...result } : match
           )
         );
         
-        // Refrescar datos
-        fetchEliminationMatches();
+        // ===== NUEVO: Refrescar datos inmediatamente después de actualizar =====
+        console.log('🔄 Refrescando bracket después de actualizar resultado...');
+        await fetchEliminationMatches();
+        
+        // ===== NUEVO: Refrescar múltiples veces para asegurar actualización =====
+        setTimeout(async () => {
+          console.log('🔄 Refrescando bracket para capturar progresión automática...');
+          await fetchEliminationMatches();
+        }, 1000);
+        
+        setTimeout(async () => {
+          console.log('🔄 Refrescando bracket final...');
+          await fetchEliminationMatches();
+        }, 3000);
       }
     } catch (error) {
       console.error('Error updating match result:', error);
@@ -480,22 +540,62 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
   const handleMatchClick = (match: any) => {
     console.log('🎯 Partido clickeado:', match);
     
-    // Convertir el match del bracket al formato esperado por el modal
+    // ===== NUEVA LÓGICA: Extraer resultados del resultText del bracket =====
+    const resultText = match.participants[0]?.resultText || '';
+    console.log('🔍 ResultText del bracket:', resultText);
+    
+    // Parsear el resultado "2-6, 2-6" -> team1_sets1_won: 2, team2_sets1_won: 6, etc.
+    let team1_sets1_won = 0, team2_sets1_won = 0;
+    let team1_sets2_won = 0, team2_sets2_won = 0;
+    
+    if (resultText) {
+      const sets = resultText.split(', ');
+      if (sets.length >= 2) {
+        const set1 = sets[0].split('-');
+        const set2 = sets[1].split('-');
+        
+        if (set1.length === 2) {
+          team1_sets1_won = parseInt(set1[0]) || 0;
+          team2_sets1_won = parseInt(set1[1]) || 0;
+        }
+        if (set2.length === 2) {
+          team1_sets2_won = parseInt(set2[0]) || 0;
+          team2_sets2_won = parseInt(set2[1]) || 0;
+        }
+      }
+    }
+    
+    console.log('🔍 Resultados parseados:', {
+      team1_sets1_won,
+      team2_sets1_won,
+      team1_sets2_won,
+      team2_sets2_won
+    });
+    
+    // Crear objeto match para el modal con los datos reales del partido original
     const modalMatch = {
       id: match.id,
       tournament_id: tournamentId,
       home_team_id: match.participants[0]?.id,
       away_team_id: match.participants[1]?.id,
-      match_day: match.startTime.split(' ')[0], // Extraer fecha
-      start_time: match.startTime.split(' ')[1], // Extraer hora
+      match_day: match.startTime.split(' ')[0],
+      start_time: match.startTime.split(' ')[1],
       status: match.state === 'DONE' ? 'completed' : 'scheduled',
-      // Agregar datos de resultado si el partido está completado
-      team1_sets1_won: match.participants[0]?.resultText ? 0 : null,
-      team2_sets1_won: match.participants[0]?.resultText ? 0 : null,
-      team1_sets2_won: match.participants[0]?.resultText ? 0 : null,
-      team2_sets2_won: match.participants[0]?.resultText ? 0 : null,
+      // ===== USAR RESULTADOS PARSEADOS DEL BRACKET =====
+      team1_sets1_won: team1_sets1_won,
+      team2_sets1_won: team2_sets1_won,
+      team1_sets2_won: team1_sets2_won,
+      team2_sets2_won: team2_sets2_won,
+      team1_tie1_won: null,
+      team2_tie1_won: null,
+      team1_tie2_won: null,
+      team2_tie2_won: null,
+      team1_tie3_won: null,
+      team2_tie3_won: null,
       winner_team_id: match.participants.find((p: any) => p.isWinner)?.id || null
     };
+    
+    console.log('✅ Modal match creado con datos reales:', modalMatch);
     
     setSelectedMatch(modalMatch);
     setIsModalOpen(true);
@@ -741,8 +841,8 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         </Button>
       </div>
 
-      {/* Botón de descarga PDF */}
-      <div className="mb-4 flex justify-center">
+      {/* Botones de acción */}
+      <div className="mb-4 flex justify-center gap-4">
         <Button 
           onClick={handleDownloadPDF}
           className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg shadow-md transition-colors duration-200 flex items-center gap-2"
@@ -750,44 +850,149 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
           <Download className="h-4 w-4" />
           Descargar PDF del Bracket
         </Button>
+        
+        <Button 
+          onClick={fetchEliminationMatches}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md transition-colors duration-200 flex items-center gap-2"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Refrescar Bracket
+        </Button>
+        
+        <Button 
+          onClick={forceRefresh}
+          className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-md transition-colors duration-200 flex items-center gap-2"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Forzar Actualización
+        </Button>
       </div>
       
+      {/* Layout Horizontal: Bracket (80%) + Gestión de Resultados (20%) */}
       {matches.length > 0 ? (
-        <div className="bracket-container bg-white rounded-xl shadow-lg w-full min-h-[800px]">
-          <div 
-            className="bracket-wrapper w-full h-full"
-            style={{
-              transform: `scale(${zoomLevel})`,
-              transformOrigin: 'center center',
-              transition: 'transform 0.3s ease'
-            }}
-          >
-            <SingleEliminationBracket
-              matches={matches}
-              matchComponent={CustomMatchComponent}
-              theme={customTheme}
-              options={{
-                style: {
-                  roundHeader: {
-                    backgroundColor: customTheme.roundHeader.backgroundColor,
-                    fontColor: customTheme.roundHeader.fontColor,
-                  },
-                  connectorColor: customTheme.connectorColor,
-                  connectorColorHighlight: customTheme.connectorColorHighlight,
-                },
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          
+          {/* Columna Izquierda: Bracket (80%) */}
+          <div className="lg:col-span-4 bracket-container bg-white rounded-xl shadow-lg w-full min-h-[800px]">
+            <div 
+              className="bracket-wrapper w-full h-full"
+              style={{
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: 'center center',
+                transition: 'transform 0.3s ease'
               }}
-              svgWrapper={({ children, ...props }) => (
-                <SVGViewer
-                  background={customTheme.svgBackground}
-                  SVGBackground={customTheme.svgBackground}
-                  width={2560}
-                  height={1440}
-                  {...props}
-                >
-                  {children}
-                </SVGViewer>
-              )}
-            />
+            >
+              <SingleEliminationBracket
+                matches={matches}
+                matchComponent={CustomMatchComponent}
+                theme={customTheme}
+                options={{
+                  style: {
+                    roundHeader: {
+                      backgroundColor: customTheme.roundHeader.backgroundColor,
+                      fontColor: customTheme.roundHeader.fontColor,
+                    },
+                    connectorColor: customTheme.connectorColor,
+                    connectorColorHighlight: customTheme.connectorColorHighlight,
+                  },
+                }}
+                svgWrapper={({ children, ...props }) => (
+                  <SVGViewer
+                    background={customTheme.svgBackground}
+                    SVGBackground={customTheme.svgBackground}
+                    width={2560}
+                    height={1440}
+                    {...props}
+                  >
+                    {children}
+                  </SVGViewer>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Columna Derecha: Gestión de Resultados (20%) */}
+          <div className="lg:col-span-1 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                🏆 Partidos
+              </h3>
+            </div>
+            
+            {/* Scroll vertical para las cards */}
+            <div className="max-h-[800px] overflow-y-auto space-y-3 pr-2">
+              {matches.map((match, index) => {
+                const isCompleted = match.state === 'DONE';
+                const isScheduled = match.state === 'SCHEDULED';
+                
+                return (
+                  <div
+                    key={match.id}
+                    onClick={() => handleMatchClick(match)}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md ${
+                      isCompleted 
+                        ? 'bg-green-50 border-green-200 hover:bg-green-100' 
+                        : isScheduled 
+                        ? 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    {/* Header con estado */}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                        isCompleted 
+                          ? 'bg-green-200 text-green-800' 
+                          : isScheduled 
+                          ? 'bg-blue-200 text-blue-800'
+                          : 'bg-gray-200 text-gray-800'
+                      }`}>
+                        {isCompleted ? '✅ Completado' : isScheduled ? '⏰ Programado' : '📅 Pendiente'}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {match.tournamentRoundText}
+                      </span>
+                    </div>
+                    
+                    {/* Participantes */}
+                    <div className="space-y-1">
+                      {match.participants.map((participant: any, pIndex: number) => (
+                        <div key={pIndex} className="flex items-center justify-between">
+                          <span className={`text-sm font-medium truncate ${
+                            participant.isWinner ? 'text-green-700 font-bold' : 'text-gray-700'
+                          }`}>
+                            {participant.name}
+                          </span>
+                          {participant.isWinner && (
+                            <span className="text-xs bg-green-200 text-green-800 px-1 py-0.5 rounded">
+                              🏆
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Resultado si está completado */}
+                    {isCompleted && match.participants[0]?.resultText && (
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <span className="text-sm font-bold text-green-700">
+                          {match.participants[0].resultText}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Fecha y hora */}
+                    <div className="mt-2 pt-2 border-t border-gray-200">
+                      <div className="text-xs text-gray-500">
+                        📅 {match.startTime}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        🏟️ {match.courtName || 'Por asignar'}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       ) : (
@@ -796,65 +1001,6 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
             <Trophy className="h-12 w-12 text-blue-600 mx-auto mb-4" />
             <h5 className="text-lg font-semibold text-blue-900 mb-2">No hay partidos eliminatorios generados aún</h5>
             <p className="text-blue-700">Haz clic en "Generar Fase Eliminatoria" para comenzar.</p>
-          </div>
-        </div>
-      )}
-
-      {/* Sección de Resultados - Debajo del Bracket */}
-      {matches.length > 0 && (
-        <div className="mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              🏆 Gestión de Resultados
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Haz clic en cualquier partido para ingresar resultados
-            </p>
-          </div>
-          
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {matches.map((match) => (
-              <div 
-                key={match.id}
-                className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:shadow-md transition-shadow cursor-pointer bg-gray-50 dark:bg-gray-700"
-                onClick={() => handleMatchClick(match)}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {match.tournamentRoundText}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {match.startTime}
-                  </span>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      {match.participants[0]?.name || 'Equipo Local'}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      🏠
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      {match.participants[1]?.name || 'Equipo Visitante'}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      ✈️
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    🏟️ {match.courtName || 'Por asignar'}
-                  </span>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}

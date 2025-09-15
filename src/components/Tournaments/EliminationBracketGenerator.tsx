@@ -9,18 +9,59 @@ interface EliminationBracketGeneratorProps {
   tournamentId: string;
   onBracketGenerated: (data: any) => void;
   hasEliminationMatches?: boolean;
+  matches?: any[]; // Agregar matches para validación
 }
 
 const EliminationBracketGenerator: React.FC<EliminationBracketGeneratorProps> = ({ 
   tournamentId, 
   onBracketGenerated,
-  hasEliminationMatches = false
+  hasEliminationMatches = false,
+  matches = []
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Validar si se puede generar la fase eliminatoria
+  const canGenerateElimination = () => {
+    if (hasEliminationMatches) return false; // Ya existe
+    
+    if (!Array.isArray(matches) || matches.length === 0) return false; // No hay partidos
+    
+    // Filtrar solo partidos de grupos
+    const groupMatches = matches.filter(match => match.round === 'group' || match.group_number);
+    
+    if (groupMatches.length === 0) return false; // No hay partidos de grupos
+    
+    // Verificar que todos los partidos de grupos estén completados
+    const allGroupMatchesCompleted = groupMatches.every(match => match.status === 'completed');
+    
+    return allGroupMatchesCompleted;
+  };
+
+  // Obtener estadísticas de partidos de grupos
+  const getGroupMatchesStats = () => {
+    if (!Array.isArray(matches)) return { total: 0, completed: 0, pending: 0 };
+    
+    const groupMatches = matches.filter(match => match.round === 'group' || match.group_number);
+    const completed = groupMatches.filter(match => match.status === 'completed').length;
+    const pending = groupMatches.filter(match => match.status === 'pending' || match.status === 'scheduled').length;
+    
+    return {
+      total: groupMatches.length,
+      completed,
+      pending
+    };
+  };
+
   const handleGenerateBracket = async () => {
+    // Validación previa antes de hacer la llamada
+    if (!canGenerateElimination()) {
+      const stats = getGroupMatchesStats();
+      setError(`No se puede generar la fase eliminatoria. Complete todos los partidos de grupos primero. (${stats.completed}/${stats.total} completados)`);
+      return;
+    }
+
     setIsGenerating(true);
     setError(null);
     setSuccess(null);
@@ -119,6 +160,26 @@ const EliminationBracketGenerator: React.FC<EliminationBracketGeneratorProps> = 
           >
             <Trophy className="mr-2 h-5 w-5" />
             🎾 Bracket Ya Generado
+          </Button>
+        </div>
+      ) : !canGenerateElimination() ? (
+        <div className="space-y-4">
+          <Alert className="border-yellow-200 bg-yellow-50">
+            <AlertDescription className="text-yellow-800">
+              <strong>⚠️ Fase de Grupos Incompleta:</strong> Debe completar todos los partidos de grupos antes de generar la fase eliminatoria.
+              {(() => {
+                const stats = getGroupMatchesStats();
+                return stats.total > 0 ? ` (${stats.completed}/${stats.total} partidos completados)` : '';
+              })()}
+            </AlertDescription>
+          </Alert>
+          <Button 
+            disabled
+            size="lg"
+            className="bg-gray-400 text-white px-8 py-3 text-lg font-semibold cursor-not-allowed"
+          >
+            <Trophy className="mr-2 h-5 w-5" />
+            🎾 Completar Grupos Primero
           </Button>
         </div>
       ) : (

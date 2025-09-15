@@ -323,9 +323,9 @@ export class MatchService {
 
   // 🏆 Actualizar resultado de partido
   async updateMatchResult(matchId: string, result: any, tournamentId?: string, token?: string): Promise<TournamentMatch> {
-    // Si no se proporciona tournamentId, intentar extraerlo del contexto o usar un valor por defecto
+    // URL correcta según tournament.routes.js: /tournaments/{tournamentId}/matches/{matchId}/result
     const url = tournamentId 
-      ? `${this.baseUrl}/matches/tournaments/${tournamentId}/matches/${matchId}/result`
+      ? `${this.baseUrl}/tournaments/${tournamentId}/matches/${matchId}/result`
       : `${this.baseUrl}/matches/${matchId}/result`;
     
     const response = await fetch(url, {

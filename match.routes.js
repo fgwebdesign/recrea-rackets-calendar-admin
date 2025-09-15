@@ -1,17 +1,32 @@
 import { Router } from 'express'
 import { 
+  getMatches, 
   getMatch, 
-  updateMatchResult
+  createMatch, 
+  updateMatch, 
+  updateMatchResult,
+  deleteMatch 
 } from '../controllers/match.controller.js'
 import { verifyToken } from '../middlewares/auth.middleware.js'
 import { verifyAdmin } from '../middlewares/admin.middleware.js'
 
 const router = Router()
 
-// Obtener un partido específico con información completa
+// Listar todos los partidos (opcional query ?tournament_id=...)
+router.get('/', getMatches)
+
+// Obtener un partido específico
 router.get('/:id', getMatch)
 
-// Actualizar resultado de partido (Sistema Pádel Uruguayo)
-router.put('/:tournamentId/:matchId', verifyToken, verifyAdmin, updateMatchResult)
+// Crear partido
+router.post('/', verifyToken, verifyAdmin, createMatch)
+
+// Actualizar partido
+router.put('/:id', verifyToken, verifyAdmin, updateMatch)
+
+// Actualizar resultado de partido (Sistema Pádel Uruguayo) - MOVIDO A tournament.routes.js
+
+// Eliminar partido
+router.delete('/:id', verifyToken, verifyAdmin, deleteMatch)
 
 export default router

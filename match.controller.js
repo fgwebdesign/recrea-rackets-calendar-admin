@@ -169,20 +169,37 @@ function calculateMatchStatsForStandings(match) {
   return { home: homeStats, away: awayStats };
 }
 
-// Obtener un partido por ID con información completa
+// Obtener todos los partidos de un torneo (puedes filtrar por ?tournament_id)
+export async function getMatches(req, res) {
+  try {
+    const { tournament_id } = req.query
+
+    let query = supabase.from('tournament_matches').select('*')
+
+    if (tournament_id) {
+      query = query.eq('tournament_id', tournament_id)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+
+    res.json({
+      message: 'Matches fetched successfully',
+      matches: data
+    })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}
+
+// Obtener un partido por ID
 export async function getMatch(req, res) {
   const matchId = req.params.id
 
   try {
     const { data, error } = await supabase
       .from('tournament_matches')
-      .select(`
-        *,
-        courts:court_id (
-          id,
-          name
-        )
-      `)
+      .select('*')
       .eq('id', matchId)
       .single()
 
@@ -191,13 +208,103 @@ export async function getMatch(req, res) {
       return res.status(404).json({ message: 'Match not found' })
     }
 
-    // Formatear datos para incluir nombre de cancha
-    const formattedMatch = {
-      ...data,
-      court_name: data.courts?.name || null
-    };
+    res.json(data)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}
 
-    res.json(formattedMatch)
+// Crear partido
+export async function createMatch(req, res) {
+  const { 
+    tournament_id,
+    home_team_id,
+    away_team_id,
+    court_id,
+    match_day,    // 'YYYY-MM-DD'
+    start_time,   // 'HH:mm:ss'
+    round = 'group',
+    stage = 'group',
+    status = 'scheduled'
+  } = req.body
+
+  try {
+    const { data, error } = await supabase
+      .from('tournament_matches')
+      .insert({
+        tournament_id,
+        home_team_id,
+        away_team_id,
+        court_id,
+        match_day,
+        start_time,
+        round,
+        stage,
+        status
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    res.status(201).json(data)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}
+
+// Actualizar partido
+export async function updateMatch(req, res) {
+  const matchId = req.params.id
+  const {
+    tournament_id,
+    home_team_id,
+    away_team_id,
+    court_id,
+    match_day,
+    start_time,
+    status,
+    score,
+    winner_team_id
+  } = req.body
+
+  try {
+    // Verificar que exista
+    const { data: existingMatch, error: fetchError } = await supabase
+      .from('tournament_matches')
+      .select('*')
+      .eq('id', matchId)
+      .single()
+
+    if (fetchError) throw fetchError
+    if (!existingMatch) {
+      return res.status(404).json({ message: 'Match not found' })
+    }
+
+    // Armar update dinámico
+    const updateData = {}
+    if (tournament_id) updateData.tournament_id = tournament_id
+    if (home_team_id) updateData.home_team_id = home_team_id
+    if (away_team_id) updateData.away_team_id = away_team_id
+    if (court_id) updateData.court_id = court_id
+    if (match_day) updateData.match_day = match_day
+    if (start_time) updateData.start_time = start_time
+    if (status) updateData.status = status
+    if (score) updateData.score = score
+    if (winner_team_id) updateData.winner_team_id = winner_team_id
+
+    const { data: updatedMatch, error: updateError } = await supabase
+      .from('tournament_matches')
+      .update(updateData)
+      .eq('id', matchId)
+      .select()
+      .single()
+
+    if (updateError) throw updateError
+
+    res.json({
+      message: 'Match updated successfully',
+      match: updatedMatch
+    })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
@@ -552,14 +659,42 @@ function calculateMatchResult(set1, set2, superTiebreak) {
   };
 }
 
+// Eliminar partido
+export async function deleteMatch(req, res) {
+  const matchId = req.params.id
+
+  try {
+    const { data, error } = await supabase
+      .from('tournament_matches')
+      .delete()
+      .eq('id', matchId)
+      .select()
+      .single()
+
+    if (error) throw error
+    if (!data) {
+      return res.status(404).json({ message: 'Match not found' })
+    }
+
+    res.json({ message: 'Match deleted', match: data })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}
 
 /**
- * 🏆 MANEJAR PROGRESIÓN ELIMINATORIA
+ * 🏆 MANEJAR PROGRESIÓN ELIMINATORIA CON NUEVA LÓGICA DE HORARIOS
  * Cuando se completa un partido eliminatorio, crear automáticamente el siguiente partido
+ * con horarios escalonados por categorías (como el Excel)
  */
 async function handleEliminationProgression(tournamentId, completedMatch) {
   try {
     console.log(`🏆 Procesando progresión eliminatoria para partido ${completedMatch.id}`);
+    console.log(`   📊 Datos del partido completado:`);
+    console.log(`      - Round: ${completedMatch.round}`);
+    console.log(`      - Match Number: ${completedMatch.match_number}`);
+    console.log(`      - Match Order: ${completedMatch.match_order}`);
+    console.log(`      - Winner: ${completedMatch.winner_team_id}`);
     
     // Determinar la siguiente ronda
     let nextRound = null;
@@ -570,8 +705,9 @@ async function handleEliminationProgression(tournamentId, completedMatch) {
       case 'quarterfinals': // Por si acaso está en plural
         nextRound = 'semi_final';
         // Determinar número de semifinal basado en el partido de cuartos
-        // Asegurar que empiece desde 1, no desde 0
-        nextMatchNumber = Math.max(1, Math.ceil(completedMatch.match_number / 2));
+        // Usar match_order en lugar de match_number (que puede ser null)
+        const matchOrder = completedMatch.match_order || completedMatch.match_number || 1;
+        nextMatchNumber = Math.max(1, Math.ceil(matchOrder / 2));
         break;
       case 'semi_final':
       case 'semifinals': // Por si acaso está en plural
@@ -586,6 +722,71 @@ async function handleEliminationProgression(tournamentId, completedMatch) {
         console.log(`⚠️ Ronda no reconocida: ${completedMatch.round}`);
         return;
     }
+    
+    // ===== NUEVA LÓGICA: Obtener información del torneo y categorías =====
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('*, categories(name, order)')
+      .eq('id', tournamentId)
+      .single();
+      
+    if (tournamentError) throw tournamentError;
+    
+    // Obtener todos los torneos del mismo evento (mismo nombre)
+    const { data: eventTournaments, error: eventError } = await supabase
+      .from('tournaments')
+      .select('id, categories(order)')
+      .eq('name', tournament.name);
+      
+    if (eventError) throw eventError;
+    
+    // Ordenar torneos por el orden de sus categorías (7ma → 6ta → 5ta → 4ta)
+    eventTournaments.sort((a, b) => {
+      const orderA = a.categories?.order || 99;
+      const orderB = b.categories?.order || 99;
+      return orderB - orderA; // Orden descendente (7ma primero)
+    });
+    
+    // Encontrar la posición de este torneo en el orden de categorías
+    const tournamentIndex = eventTournaments.findIndex(t => t.id === tournamentId);
+    
+    // ===== NUEVA LÓGICA: Calcular horarios escalonados =====
+    const START_HOUR = 8; // Empezar a las 8:00 AM
+    const semifinalsOffset = tournamentIndex * 1; // 1 hora por categoría para semis
+    const finalsOffset = tournamentIndex * 1; // 1 hora por categoría para finales
+    
+    const semifinalsTime = START_HOUR + 8 + semifinalsOffset; // 16:00 + offset
+    const finalsTime = START_HOUR + 9 + finalsOffset;        // 17:00 + offset
+    
+    console.log(`🎯 NUEVA LÓGICA DE PROGRESIÓN:`);
+    console.log(`   🏆 Categoría: ${tournament.categories?.name} (orden: ${tournament.categories?.order})`);
+    console.log(`   📍 Índice: ${tournamentIndex}`);
+    console.log(`   ⏰ Semifinales: ${semifinalsTime}:00`);
+    console.log(`   ⏰ Finales: ${finalsTime}:00`);
+    
+    // ===== NUEVA LÓGICA: Obtener canchas disponibles =====
+    const { data: courts, error: courtsError } = await supabase
+      .from('courts')
+      .select('id')
+      .limit(tournament.courts_available);
+      
+    if (courtsError) throw courtsError;
+    
+    // ===== NUEVA LÓGICA: Calcular fecha y horario =====
+    const startDate = new Date(tournament.end_date + 'T00:00:00'); // Último día del torneo
+    const matchTime = nextRound === 'semi_final' ? semifinalsTime : finalsTime;
+    const hour = Math.floor(matchTime);
+    const minutes = Math.round((matchTime % 1) * 60);
+    
+    // ===== NUEVA LÓGICA: Asignar cancha según la ronda =====
+    let assignedCourt;
+    if (nextRound === 'semi_final') {
+      assignedCourt = courts[nextMatchNumber % courts.length]; // Alternar canchas para semis
+    } else if (nextRound === 'final') {
+      assignedCourt = courts[0]; // Primera cancha para final
+    }
+    
+    console.log(`   🎾 ${nextRound.toUpperCase()} ${nextMatchNumber}: ${hour}:${minutes.toString().padStart(2, '0')} - Cancha ${assignedCourt.id}`);
     
     // Verificar si ya existe el partido de la siguiente ronda
     const { data: existingNextMatch, error: checkError } = await supabase
@@ -603,13 +804,17 @@ async function handleEliminationProgression(tournamentId, completedMatch) {
     if (existingNextMatch) {
       console.log(`✅ Partido ${nextRound} ${nextMatchNumber} ya existe`);
       
-      // Actualizar el partido existente con el ganador
+      // Actualizar el partido existente con el ganador Y los nuevos horarios
       const winnerTeamId = completedMatch.winner_team_id;
       const isHomeTeam = existingNextMatch.home_team_id === null;
       
-      const updateData = isHomeTeam 
-        ? { home_team_id: winnerTeamId }
-        : { away_team_id: winnerTeamId };
+      const updateData = {
+        ...(isHomeTeam ? { home_team_id: winnerTeamId } : { away_team_id: winnerTeamId }),
+        // ===== NUEVA LÓGICA: Actualizar también horarios =====
+        match_day: startDate.toISOString().split('T')[0],
+        start_time: `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`,
+        court_id: assignedCourt.id
+      };
       
       const { error: updateError } = await supabase
         .from('tournament_matches')
@@ -618,22 +823,23 @@ async function handleEliminationProgression(tournamentId, completedMatch) {
       
       if (updateError) throw updateError;
       
-      console.log(`✅ Ganador ${winnerTeamId} agregado al partido ${nextRound} ${nextMatchNumber}`);
+      console.log(`✅ Ganador ${winnerTeamId} agregado al partido ${nextRound} ${nextMatchNumber} con nuevos horarios`);
     } else {
       console.log(`🔮 Creando nuevo partido ${nextRound} ${nextMatchNumber}`);
       
-      // Crear nuevo partido para la siguiente ronda
+      // Crear nuevo partido para la siguiente ronda con NUEVA LÓGICA
       const newMatchData = {
         tournament_id: tournamentId,
         home_team_id: completedMatch.winner_team_id, // El ganador va como local
         away_team_id: null, // Se llenará cuando se complete el otro partido de la ronda actual
         round: nextRound,
-        stage: nextRound, // Agregar el campo stage que es obligatorio
+        stage: nextRound,
         match_number: nextMatchNumber,
         status: 'scheduled',
-        court_id: null, // Se asignará después
-        match_day: null, // Se programará después
-        start_time: null
+        // ===== NUEVA LÓGICA: Asignar cancha, fecha y horario =====
+        court_id: assignedCourt.id,
+        match_day: startDate.toISOString().split('T')[0],
+        start_time: `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`
       };
       
       const { error: createError } = await supabase
@@ -642,7 +848,7 @@ async function handleEliminationProgression(tournamentId, completedMatch) {
       
       if (createError) throw createError;
       
-      console.log(`✅ Partido ${nextRound} ${nextMatchNumber} creado con ganador ${completedMatch.winner_team_id}`);
+      console.log(`✅ Partido ${nextRound} ${nextMatchNumber} creado con ganador ${completedMatch.winner_team_id} y nuevos horarios`);
     }
     
   } catch (error) {

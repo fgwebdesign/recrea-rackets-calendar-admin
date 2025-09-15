@@ -75,6 +75,10 @@ export default function TournamentMatchesPage() {
   const pendingMatches = Array.isArray(matches) ? matches.filter(m => m.status === 'pending').length : 0;
   const inProgressMatches = Array.isArray(matches) ? matches.filter(m => m.status === 'in_progress').length : 0;
   
+  // Verificar si hay partidos sin programar (sin fecha, hora o cancha)
+  const unprogrammedMatches = Array.isArray(matches) ? 
+    matches.filter(m => !m.match_day || !m.start_time || !m.court_id).length : 0;
+  
   // Detectar si ya existen partidos eliminatorios
   const hasEliminationMatches = Array.isArray(matches) ? 
     matches.some(match => match.round !== 'group') : false;
@@ -119,6 +123,27 @@ export default function TournamentMatchesPage() {
     const name2 = `${player2.first_name || ''} ${player2.last_name || ''}`.trim();
     
     return `${name1} / ${name2}`;
+  };
+
+  // Determinar quién ganó el partido
+  const getMatchWinner = (match: TournamentMatch): 'home' | 'away' | null => {
+    if (match.status !== 'completed') return null;
+    
+    const homeSetsWon = (match.team1_sets1_won > match.team2_sets1_won ? 1 : 0) + 
+                       (match.team1_sets2_won > match.team2_sets2_won ? 1 : 0);
+    const awaySetsWon = (match.team2_sets1_won > match.team1_sets1_won ? 1 : 0) + 
+                       (match.team2_sets2_won > match.team1_sets2_won ? 1 : 0);
+    
+    // Si hay super tiebreak, determinar ganador por super tiebreak
+    if (match.team1_tie3_won && match.team2_tie3_won) {
+      return match.team1_tie3_won > match.team2_tie3_won ? 'home' : 'away';
+    }
+    
+    // Si no hay super tiebreak, determinar por sets ganados
+    if (homeSetsWon > awaySetsWon) return 'home';
+    if (awaySetsWon > homeSetsWon) return 'away';
+    
+    return null;
   };
 
   // Abrir modal para setear resultado
@@ -391,7 +416,7 @@ export default function TournamentMatchesPage() {
                 </Button>
               )}
 
-              {totalMatches > 0 && pendingMatches > 0 && (
+              {totalMatches > 0 && unprogrammedMatches > 0 && (
                 <Button
                   onClick={handleScheduleMatches}
                   disabled={isSchedulingMatches}
@@ -410,7 +435,7 @@ export default function TournamentMatchesPage() {
         </div>
 
         {/* Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
@@ -462,6 +487,20 @@ export default function TournamentMatchesPage() {
                 <div>
                   <p className="text-sm font-medium text-purple-600 dark:text-purple-400">En curso</p>
                   <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{inProgressMatches}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-800">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-orange-500 rounded-lg">
+                  <Calendar className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Sin Programar</p>
+                  <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{unprogrammedMatches}</p>
                 </div>
               </div>
             </CardContent>
@@ -567,48 +606,136 @@ export default function TournamentMatchesPage() {
                             </CardHeader>
                             
                             <CardContent className="space-y-4">
-                              {/* Equipos */}
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                              {/* Equipos y Resultados */}
+                              <div className="space-y-4">
+                                {/* Team 1 */}
+                                <div className={`rounded-lg p-4 ${getMatchWinner(match) === 'home' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-white dark:bg-gray-800'}`}>
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
                                       {formatPlayerNames(homeTeam).charAt(0)}
                                     </div>
-                                    <div>
-                                      <p className="font-medium text-gray-900 dark:text-white">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-gray-900 dark:text-white truncate">
                                         {formatPlayerNames(homeTeam)}
                                       </p>
                                     </div>
+                                    {getMatchWinner(match) === 'home' && (
+                                      <Badge className="bg-green-500 hover:bg-green-500 text-white text-xs px-2 py-1">
+                                        <Trophy className="w-3 h-3 mr-1" />
+                                        Ganador
+                                      </Badge>
+                                    )}
                                   </div>
-                                  <div className="text-right">
-                                    <p className="text-lg font-bold text-gray-900 dark:text-white">
-                                      {match.team1_sets1_won || 0} - {match.team2_sets1_won || 0}
-                                    </p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                      Set 1
-                                    </p>
+                                  
+                                  {/* Resultados del Team 1 */}
+                                  <div className="grid grid-cols-2 gap-3">
+                                    {/* Set 1 */}
+                                    <div className="text-center">
+                                      <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                                        {match.team1_sets1_won || 0}
+                                      </div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        Set 1
+                                      </div>
+                                      {(match.team1_tie1_won ?? 0) > 0 && (
+                                        <div className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
+                                          ({match.team1_tie1_won})
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Set 2 */}
+                                    <div className="text-center">
+                                      <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                                        {match.team1_sets2_won || 0}
+                                      </div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        Set 2
+                                      </div>
+                                      {(match.team1_tie2_won ?? 0) > 0 && (
+                                        <div className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
+                                          ({match.team1_tie2_won})
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
+                                  
+                                  {/* Super Tiebreak */}
+                                  {(match.team1_tie3_won ?? 0) > 0 && (
+                                    <div className="mt-3 text-center">
+                                      <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+                                        {match.team1_tie3_won}
+                                      </div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        Super Tiebreak
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                                 
-                                <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                {/* Team 2 */}
+                                <div className={`rounded-lg p-4 ${getMatchWinner(match) === 'away' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-white dark:bg-gray-800'}`}>
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
                                       {formatPlayerNames(awayTeam).charAt(0)}
                                     </div>
-                                    <div>
-                                      <p className="font-medium text-gray-900 dark:text-white">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-gray-900 dark:text-white truncate">
                                         {formatPlayerNames(awayTeam)}
                                       </p>
                                     </div>
+                                    {getMatchWinner(match) === 'away' && (
+                                      <Badge className="bg-green-500 hover:bg-green-500 text-white text-xs px-2 py-1">
+                                        <Trophy className="w-3 h-3 mr-1" />
+                                        Ganador
+                                      </Badge>
+                                    )}
                                   </div>
-                                  <div className="text-right">
-                                    <p className="text-lg font-bold text-gray-900 dark:text-white">
-                                      {match.team1_sets2_won || 0} - {match.team2_sets2_won || 0}
-                                    </p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                      Set 2
-                                    </p>
+                                  
+                                  {/* Resultados del Team 2 */}
+                                  <div className="grid grid-cols-2 gap-3">
+                                    {/* Set 1 */}
+                                    <div className="text-center">
+                                      <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                                        {match.team2_sets1_won || 0}
+                                      </div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        Set 1
+                                      </div>
+                                      {(match.team2_tie1_won ?? 0) > 0 && (
+                                        <div className="text-xs text-red-600 dark:text-red-400 font-semibold">
+                                          ({match.team2_tie1_won})
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Set 2 */}
+                                    <div className="text-center">
+                                      <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                                        {match.team2_sets2_won || 0}
+                                      </div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        Set 2
+                                      </div>
+                                      {(match.team2_tie2_won ?? 0) > 0 && (
+                                        <div className="text-xs text-red-600 dark:text-red-400 font-semibold">
+                                          ({match.team2_tie2_won})
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
+                                  
+                                  {/* Super Tiebreak */}
+                                  {(match.team2_tie3_won ?? 0) > 0 && (
+                                    <div className="mt-3 text-center">
+                                      <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+                                        {match.team2_tie3_won}
+                                      </div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        Super Tiebreak
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               
@@ -773,6 +900,7 @@ export default function TournamentMatchesPage() {
             tournamentId={tournamentId}
             onBracketGenerated={handleBracketGenerated}
             hasEliminationMatches={hasEliminationMatches}
+            matches={matches}
           />
           
           {hasEliminationMatches && (

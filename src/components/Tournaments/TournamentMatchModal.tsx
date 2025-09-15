@@ -56,53 +56,104 @@ export function TournamentMatchModal({
 
   // Obtener equipo por ID
   const getTeamById = (teamId: string): any => {
-    if (!Array.isArray(teams)) return null;
-    return teams.find(team => team.team_id === teamId) || null;
+    console.log(`🔍 Modal - Buscando equipo ${teamId} en teams:`, teams);
+    if (!Array.isArray(teams)) {
+      console.log('❌ Modal - teams no es un array:', teams);
+      return null;
+    }
+    const foundTeam = teams.find(team => team.team_id === teamId);
+    console.log(`🔍 Modal - Equipo encontrado:`, foundTeam);
+    return foundTeam || null;
   };
 
   // Formatear nombres de jugadores
   const formatPlayerNames = (team: any): string => {
-    if (!team) return 'Equipo no encontrado';
+    console.log(`🔍 Modal - Formateando nombres para equipo:`, team);
+    if (!team) {
+      console.log('❌ Modal - Equipo no encontrado');
+      return 'Equipo no encontrado';
+    }
     
     const player1 = team.teams?.player1;
     const player2 = team.teams?.player2;
     
-    if (!player1 || !player2) return 'Jugadores no disponibles';
+    console.log(`🔍 Modal - Jugadores:`, { player1, player2 });
+    
+    if (!player1 || !player2) {
+      console.log('❌ Modal - Jugadores faltantes');
+      return 'Jugadores no disponibles';
+    }
     
     const name1 = `${player1.first_name || ''} ${player1.last_name || ''}`.trim();
     const name2 = `${player2.first_name || ''} ${player2.last_name || ''}`.trim();
     
-    return `${name1} / ${name2}`;
+    const result = `${name1} / ${name2}`;
+    console.log(`✅ Modal - Nombre formateado: ${result}`);
+    return result;
   };
 
   const homeTeamName = formatPlayerNames(getTeamById(match.home_team_id));
   const awayTeamName = formatPlayerNames(getTeamById(match.away_team_id));
 
+  // ===== DEBUG: Verificar nombres finales =====
+  console.log(`🎯 Modal - Nombres finales:`);
+  console.log(`  - Home Team: "${homeTeamName}"`);
+  console.log(`  - Away Team: "${awayTeamName}"`);
+  console.log(`  - Match ID: ${match.id}`);
+  console.log(`  - Modal isOpen: ${isOpen}`);
+
   useEffect(() => {
     setLocalError(null);
+    
+    // ===== DEBUG: Ver datos del partido =====
+    console.log(`🔍 Modal - Datos del partido:`, {
+      id: match.id,
+      status: match.status,
+      team1_sets1_won: match.team1_sets1_won,
+      team2_sets1_won: match.team2_sets1_won,
+      team1_sets2_won: match.team1_sets2_won,
+      team2_sets2_won: match.team2_sets2_won,
+      team1_tie1_won: match.team1_tie1_won,
+      team2_tie1_won: match.team2_tie1_won,
+      team1_tie2_won: match.team1_tie2_won,
+      team2_tie2_won: match.team2_tie2_won,
+      team1_tie3_won: match.team1_tie3_won,
+      team2_tie3_won: match.team2_tie3_won
+    });
+    
     // Inicializar con datos existentes del partido
-    setSet1({
+    const set1Data = {
       team1: match.team1_sets1_won || null,
       team2: match.team2_sets1_won || null,
       tiebreak: match.team1_tie1_won || match.team2_tie1_won ? {
         team1: match.team1_tie1_won || null,
         team2: match.team2_tie1_won || null
       } : null
-    });
-    setSet2({
+    };
+    
+    const set2Data = {
       team1: match.team1_sets2_won || null,
       team2: match.team2_sets2_won || null,
       tiebreak: match.team1_tie2_won || match.team2_tie2_won ? {
         team1: match.team1_tie2_won || null,
         team2: match.team2_tie2_won || null
       } : null
+    };
+    
+    const superTiebreakData = match.team1_tie3_won || match.team2_tie3_won ? {
+      team1: match.team1_tie3_won || 0,
+      team2: match.team2_tie3_won || 0
+    } : null;
+    
+    console.log(`🔍 Modal - Datos inicializados:`, {
+      set1: set1Data,
+      set2: set2Data,
+      superTiebreak: superTiebreakData
     });
-    setSuperTiebreak(
-      match.team1_tie3_won || match.team2_tie3_won ? {
-        team1: match.team1_tie3_won || 0,
-        team2: match.team2_tie3_won || 0
-      } : null
-    );
+    
+    setSet1(set1Data);
+    setSet2(set2Data);
+    setSuperTiebreak(superTiebreakData);
   }, [match]);
 
   const showSet1Tiebreak = (set1.team1 === 6 && set1.team2 === 6) || 
@@ -240,57 +291,6 @@ export function TournamentMatchModal({
     onSubmit(match.id, result);
   };
 
-  const renderTeamScore = (teamName: string, isTeam1: boolean, set: SetScore, setNumber: number) => (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium flex items-center gap-2 text-gray-700 dark:text-gray-300">
-        {teamName}
-        {set.team1 !== null && set.team2 !== null && (
-          isTeam1 ? 
-            (getSetWinner(set) === 1 ? <Trophy className="w-4 h-4 text-yellow-500" /> : null) :
-            (getSetWinner(set) === 2 ? <Trophy className="w-4 h-4 text-yellow-500" /> : null)
-        )}
-      </Label>
-      <div className="relative">
-        <Input
-          type="number"
-          min="0"
-          max="7"
-          value={isTeam1 ? set.team1 ?? '' : set.team2 ?? ''}
-          onChange={(e) => {
-            const value = e.target.value === '' ? null : Math.min(7, parseInt(e.target.value));
-            if (setNumber === 1) {
-              setSet1(prev => ({
-                ...prev,
-                [isTeam1 ? 'team1' : 'team2']: value
-              }));
-            } else {
-              setSet2(prev => ({
-                ...prev,
-                [isTeam1 ? 'team1' : 'team2']: value
-              }));
-            }
-          }}
-          placeholder="0"
-          disabled={isLoading}
-          className={cn(
-            "w-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400",
-            "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-          )}
-        />
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Info className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Ingresa un número entre 0 y 7</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-    </div>
-  );
-
   const renderCompletedMatchView = () => {
     return (
       <div className="space-y-8">
@@ -406,250 +406,348 @@ export function TournamentMatchModal({
             {match.status === 'completed' ? (
               renderCompletedMatchView()
             ) : (
-              <div className="flex flex-col h-full">
-                  {/* Content */}
-                  <div className="flex-1 p-8">
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-3 gap-6">
-                          {/* Set 1 */}
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-2">
-                              <Swords className="w-4 h-4 text-purple-500 dark:text-purple-400" />
-                              <h3 className="font-semibold text-gray-900 dark:text-white">Set 1</h3>
-                              {getSetWinner(set1) > 0 && (
-                                <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 ml-auto">
-                                  Ganador: {getSetWinner(set1) === 1 ? homeTeamName : awayTeamName}
-                                </Badge>
-                              )}
-                            </div>
-                            {renderTeamScore(homeTeamName, true, set1, 1)}
-                            {renderTeamScore(awayTeamName, false, set1, 1)}
-                            {showSet1Tiebreak && (
-                              <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                                <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2 text-sm">
-                                  Tiebreak
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Info className="w-4 h-4 text-gray-400" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>El tiebreak se juega cuando el set está 6-6</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </h4>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div className="space-y-1">
-                                    <Label className="text-sm text-gray-600 dark:text-gray-300">{homeTeamName}</Label>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      value={set1.tiebreak?.team1 ?? ''}
-                                      onChange={(e) => {
-                                        const value = e.target.value === '' ? null : parseInt(e.target.value);
-                                        setSet1(prev => ({
-                                          ...prev,
-                                          tiebreak: { 
-                                            team1: value,
-                                            team2: prev.tiebreak?.team2 ?? null
-                                          }
-                                        }));
-                                      }}
-                                      className={cn(
-                                        "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400",
-                                        "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                      )}
-                                    />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-sm text-gray-600 dark:text-gray-300">{awayTeamName}</Label>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      value={set1.tiebreak?.team2 ?? ''}
-                                      onChange={(e) => {
-                                        const value = e.target.value === '' ? null : parseInt(e.target.value);
-                                        setSet1(prev => ({
-                                          ...prev,
-                                          tiebreak: { 
-                                            team1: prev.tiebreak?.team1 ?? null,
-                                            team2: value
-                                          }
-                                        }));
-                                      }}
-                                      className={cn(
-                                        "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400",
-                                        "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                      )}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Set 2 */}
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-2">
-                              <Swords className="w-4 h-4 text-purple-500 dark:text-purple-400" />
-                              <h3 className="font-semibold text-gray-900 dark:text-white">Set 2</h3>
-                              {getSetWinner(set2) > 0 && (
-                                <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 ml-auto">
-                                  Ganador: {getSetWinner(set2) === 1 ? homeTeamName : awayTeamName}
-                                </Badge>
-                              )}
-                            </div>
-                            {renderTeamScore(homeTeamName, true, set2, 2)}
-                            {renderTeamScore(awayTeamName, false, set2, 2)}
-                            {showSet2Tiebreak && (
-                              <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                                <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2 text-sm">
-                                  Tiebreak
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Info className="w-4 h-4 text-gray-400" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>El tiebreak se juega cuando el set está 6-6</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </h4>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div className="space-y-1">
-                                    <Label className="text-sm text-gray-600 dark:text-gray-300">{homeTeamName}</Label>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      value={set2.tiebreak?.team1 ?? ''}
-                                      onChange={(e) => {
-                                        const value = e.target.value === '' ? null : parseInt(e.target.value);
-                                        setSet2(prev => ({
-                                          ...prev,
-                                          tiebreak: { 
-                                            team1: value,
-                                            team2: prev.tiebreak?.team2 ?? null
-                                          }
-                                        }));
-                                      }}
-                                      className={cn(
-                                        "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400",
-                                        "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                      )}
-                                    />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-sm text-gray-600 dark:text-gray-300">{awayTeamName}</Label>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      value={set2.tiebreak?.team2 ?? ''}
-                                      onChange={(e) => {
-                                        const value = e.target.value === '' ? null : parseInt(e.target.value);
-                                        setSet2(prev => ({
-                                          ...prev,
-                                          tiebreak: { 
-                                            team1: prev.tiebreak?.team1 ?? null,
-                                            team2: value
-                                          }
-                                        }));
-                                      }}
-                                      className={cn(
-                                        "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400",
-                                        "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                      )}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Super Tiebreak */}
-                          {showSuperTiebreak ? (
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-2">
-                                <Trophy className="w-4 h-4 text-yellow-500" />
-                                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                  Super Tiebreak
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Info className="w-4 h-4 text-yellow-500" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>El super tiebreak se juega cuando cada equipo ha ganado un set</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </h3>
-                              </div>
-                              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                                <div className="space-y-3">
-                                  <div className="space-y-2">
-                                    <Label className="text-sm text-gray-600 dark:text-gray-300">{homeTeamName}</Label>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      value={superTiebreak?.team1 ?? ''}
-                                      onChange={(e) => {
-                                        const value = e.target.value === '' ? null : parseInt(e.target.value);
-                                        setSuperTiebreak(prev => ({
-                                          team1: value ?? 0,
-                                          team2: prev?.team2 ?? 0
-                                        }));
-                                      }}
-                                      className={cn(
-                                        "bg-white dark:bg-gray-800 border-yellow-200 dark:border-yellow-800 focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400",
-                                        "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                      )}
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label className="text-sm text-gray-600 dark:text-gray-300">{awayTeamName}</Label>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      value={superTiebreak?.team2 ?? ''}
-                                      onChange={(e) => {
-                                        const value = e.target.value === '' ? null : parseInt(e.target.value);
-                                        setSuperTiebreak(prev => ({
-                                          team1: prev?.team1 ?? 0,
-                                          team2: value ?? 0
-                                        }));
-                                      }}
-                                      className={cn(
-                                        "bg-white dark:bg-gray-800 border-yellow-200 dark:border-yellow-800 focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400",
-                                        "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                      )}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ) : <div />}
-                        </div>
-
-                        {/* Alertas de error */}
-                        {(localError || error) && (
-                          <Alert variant="destructive" className="mt-4 animate-in fade-in slide-in-from-top-1">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{localError || error}</AlertDescription>
-                          </Alert>
-                        )}
-                        
-                        {/* Alertas de éxito */}
-                        {success && (
-                          <Alert className="mt-4 animate-in fade-in slide-in-from-top-1 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
-                            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                            <AlertDescription className="text-green-800 dark:text-green-200">{success}</AlertDescription>
-                          </Alert>
-                        )}
-                      </div>
+              <div className="p-8">
+                {/* Match Header */}
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    {homeTeamName} vs {awayTeamName}
+                  </h2>
+                  <div className="flex items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                    <span>{match.match_day || 'Sin fecha'}</span>
+                    <span>•</span>
+                    <span>{match.start_time || 'Sin hora'}</span>
+                    <span>•</span>
+                    <span>{match.court_name || 'Sin cancha'}</span>
                   </div>
                 </div>
+
+                {/* Score Input Sections */}
+                <div className="space-y-8">
+                  {/* Set 1 */}
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <Swords className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Set 1</h3>
+                      {getSetWinner(set1) > 0 && (
+                        <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 ml-auto">
+                          Ganador: {getSetWinner(set1) === 1 ? homeTeamName : awayTeamName}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-6">
+                      {/* Team 1 */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                          {homeTeamName}
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="7"
+                            value={set1.team1 ?? ''}
+                            onChange={(e) => {
+                              const value = e.target.value === '' ? null : Math.min(7, parseInt(e.target.value));
+                              setSet1(prev => ({ ...prev, team1: value }));
+                            }}
+                            placeholder="0"
+                            disabled={isLoading}
+                            className="text-center text-2xl font-bold bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 h-12"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Team 2 */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                          {awayTeamName}
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="7"
+                            value={set1.team2 ?? ''}
+                            onChange={(e) => {
+                              const value = e.target.value === '' ? null : Math.min(7, parseInt(e.target.value));
+                              setSet1(prev => ({ ...prev, team2: value }));
+                            }}
+                            placeholder="0"
+                            disabled={isLoading}
+                            className="text-center text-2xl font-bold bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 h-12"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Tiebreak for Set 1 */}
+                    {showSet1Tiebreak && (
+                      <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                        <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                          Tiebreak
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="w-4 h-4 text-purple-500" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>El tiebreak se juega cuando el set está 6-6</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm text-gray-600 dark:text-gray-300 truncate">{homeTeamName}</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={set1.tiebreak?.team1 ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value === '' ? null : parseInt(e.target.value);
+                                setSet1(prev => ({
+                                  ...prev,
+                                  tiebreak: { 
+                                    team1: value,
+                                    team2: prev.tiebreak?.team2 ?? null
+                                  }
+                                }));
+                              }}
+                              className="text-center font-semibold bg-white dark:bg-gray-700 border-purple-200 dark:border-purple-800 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm text-gray-600 dark:text-gray-300 truncate">{awayTeamName}</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={set1.tiebreak?.team2 ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value === '' ? null : parseInt(e.target.value);
+                                setSet1(prev => ({
+                                  ...prev,
+                                  tiebreak: { 
+                                    team1: prev.tiebreak?.team1 ?? null,
+                                    team2: value
+                                  }
+                                }));
+                              }}
+                              className="text-center font-semibold bg-white dark:bg-gray-700 border-purple-200 dark:border-purple-800 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Set 2 */}
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <Swords className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Set 2</h3>
+                      {getSetWinner(set2) > 0 && (
+                        <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 ml-auto">
+                          Ganador: {getSetWinner(set2) === 1 ? homeTeamName : awayTeamName}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-6">
+                      {/* Team 1 */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                          {homeTeamName}
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="7"
+                            value={set2.team1 ?? ''}
+                            onChange={(e) => {
+                              const value = e.target.value === '' ? null : Math.min(7, parseInt(e.target.value));
+                              setSet2(prev => ({ ...prev, team1: value }));
+                            }}
+                            placeholder="0"
+                            disabled={isLoading}
+                            className="text-center text-2xl font-bold bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 h-12"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Team 2 */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                          {awayTeamName}
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="7"
+                            value={set2.team2 ?? ''}
+                            onChange={(e) => {
+                              const value = e.target.value === '' ? null : Math.min(7, parseInt(e.target.value));
+                              setSet2(prev => ({ ...prev, team2: value }));
+                            }}
+                            placeholder="0"
+                            disabled={isLoading}
+                            className="text-center text-2xl font-bold bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 h-12"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Tiebreak for Set 2 */}
+                    {showSet2Tiebreak && (
+                      <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                        <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                          Tiebreak
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="w-4 h-4 text-purple-500" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>El tiebreak se juega cuando el set está 6-6</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm text-gray-600 dark:text-gray-300 truncate">{homeTeamName}</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={set2.tiebreak?.team1 ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value === '' ? null : parseInt(e.target.value);
+                                setSet2(prev => ({
+                                  ...prev,
+                                  tiebreak: { 
+                                    team1: value,
+                                    team2: prev.tiebreak?.team2 ?? null
+                                  }
+                                }));
+                              }}
+                              className="text-center font-semibold bg-white dark:bg-gray-700 border-purple-200 dark:border-purple-800 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-sm text-gray-600 dark:text-gray-300 truncate">{awayTeamName}</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={set2.tiebreak?.team2 ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value === '' ? null : parseInt(e.target.value);
+                                setSet2(prev => ({
+                                  ...prev,
+                                  tiebreak: { 
+                                    team1: prev.tiebreak?.team1 ?? null,
+                                    team2: value
+                                  }
+                                }));
+                              }}
+                              className="text-center font-semibold bg-white dark:bg-gray-700 border-purple-200 dark:border-purple-800 focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Super Tiebreak */}
+                  {showSuperTiebreak && (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-6 border border-yellow-200 dark:border-yellow-800">
+                      <div className="flex items-center gap-3 mb-6">
+                        <Trophy className="w-5 h-5 text-yellow-500" />
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          Super Tiebreak
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="w-4 h-4 text-yellow-500" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>El super tiebreak se juega cuando cada equipo ha ganado un set</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-6">
+                        {/* Team 1 */}
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                            {homeTeamName}
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={superTiebreak?.team1 ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value === '' ? null : parseInt(e.target.value);
+                                setSuperTiebreak(prev => ({
+                                  team1: value ?? 0,
+                                  team2: prev?.team2 ?? 0
+                                }));
+                              }}
+                              placeholder="0"
+                              disabled={isLoading}
+                              className="text-center text-2xl font-bold bg-white dark:bg-gray-700 border-yellow-200 dark:border-yellow-800 focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400 h-12"
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Team 2 */}
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                            {awayTeamName}
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={superTiebreak?.team2 ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value === '' ? null : parseInt(e.target.value);
+                                setSuperTiebreak(prev => ({
+                                  team1: prev?.team1 ?? 0,
+                                  team2: value ?? 0
+                                }));
+                              }}
+                              placeholder="0"
+                              disabled={isLoading}
+                              className="text-center text-2xl font-bold bg-white dark:bg-gray-700 border-yellow-200 dark:border-yellow-800 focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400 h-12"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Alertas de error */}
+                {(localError || error) && (
+                  <Alert variant="destructive" className="mt-6 animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{localError || error}</AlertDescription>
+                  </Alert>
+                )}
+                
+                {/* Alertas de éxito */}
+                {success && (
+                  <Alert className="mt-6 animate-in fade-in slide-in-from-top-1 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <AlertDescription className="text-green-800 dark:text-green-200">{success}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
             )}
           </div>
 
