@@ -13,8 +13,8 @@ interface SetScore {
     if (set.team1 === 7 && set.team2 >= 6) return false;
     if (set.team2 === 7 && set.team1 >= 6) return false;
     if (set.team1 === 6 && set.team2 === 6) return true;
-    if (set.team1 === 6 && set.team2 < 5) return true;
-    if (set.team2 === 6 && set.team1 < 5) return true;
+    if (set.team1 === 6 && set.team2 <= 4) return true;  // ✅ Permite 6-0, 6-1, 6-2, 6-3, 6-4
+    if (set.team2 === 6 && set.team1 <= 4) return true;  // ✅ Permite 0-6, 1-6, 2-6, 3-6, 4-6
     if (set.team1 === 7 && set.team2 === 5) return true;
     if (set.team2 === 7 && set.team1 === 5) return true;
     return false;
