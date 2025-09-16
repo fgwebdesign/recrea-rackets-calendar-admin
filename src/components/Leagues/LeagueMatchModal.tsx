@@ -76,7 +76,7 @@ export function LeagueMatchModal({
   };
 
   const getSetWinner = (set: SetScore): number => {
-    if (!set.team1 || !set.team2) return 0;
+    if (set.team1 === null || set.team1 === undefined || set.team2 === null || set.team2 === undefined) return 0;
 
     if (set.tiebreak && set.tiebreak.team1 !== null && set.tiebreak.team2 !== null) {
       if (!validateTiebreakScore(set.tiebreak.team1) || !validateTiebreakScore(set.tiebreak.team2)) {
@@ -124,7 +124,7 @@ export function LeagueMatchModal({
 
 
   const isSetValid = (set: SetScore): boolean => {
-    if (!set.team1 || !set.team2) return false;
+    if (set.team1 === null || set.team1 === undefined || set.team2 === null || set.team2 === undefined) return false;
 
     if (set.tiebreak && set.tiebreak.team1 !== null && set.tiebreak.team2 !== null) {
       if (!validateTiebreakScore(set.tiebreak.team1) || !validateTiebreakScore(set.tiebreak.team2)) {
