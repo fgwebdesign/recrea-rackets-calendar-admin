@@ -135,7 +135,10 @@ export function CategoryStandings({
                     {standing.games_lost}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-green-600 dark:text-green-400">
-                    {standing.sets_difference > 0 ? `+${standing.sets_difference}` : standing.sets_difference}
+                    {(() => {
+                      const gamesDifference = standing.games_won - standing.games_lost;
+                      return gamesDifference > 0 ? `+${gamesDifference}` : gamesDifference;
+                    })()}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-3xl text-center font-orbitron font-bold text-green-600 dark:text-green-400">
                     {standing.points}
