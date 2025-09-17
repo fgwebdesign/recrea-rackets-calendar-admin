@@ -5,6 +5,7 @@ import UsersTable from '../../components/Users/UsersTable';
 import UserFilters from '../../components/Users/UserFilter';
 import Header from '@/components/Header';
 import { UsersIcon } from '@heroicons/react/24/outline';
+import { supabase } from '@/lib/supabase';
 
 interface User {
   id: string;
@@ -26,24 +27,41 @@ export default function UsersPage() {
   useEffect(() => {
     async function fetchUsers() {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/players`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch users');
+        // Usar directamente Supabase en lugar del endpoint /players
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw new Error(`Error fetching users: ${error.message}`);
         }
-        const data = await response.json();
-        const transformedUsers = data.map((user: any) => ({
-          id: user.id,
-          email: user.email,
-          name: `${user.first_name} ${user.last_name}`,
-          role: user.role === 'user' ? 'Jugador' : user.role,
-          status: 'active', 
-          lastLogin: new Date().toISOString().split('T')[0], 
-          avatar: user.profile_photo || 
-                 user.user_metadata?.avatar_url || 
-                 (user.raw_user_meta_data && user.raw_user_meta_data.avatar_url) || 
-                 '/assets/user.png',
-          phone: user.phone || 'No disponible'
-        }));
+
+        console.log('Raw users from Supabase:', data);
+
+        const transformedUsers = data.map((user: any) => {
+          // Debug: log the raw user data
+          console.log('Raw user data:', user);
+          
+          const firstName = user.first_name || '';
+          const lastName = user.last_name || '';
+          const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Usuario sin nombre';
+          
+          console.log('Processed name:', { firstName, lastName, fullName });
+          
+          return {
+            id: user.id,
+            email: user.email,
+            name: fullName,
+            role: 'Jugador', // Todos los usuarios de la tabla users son jugadores
+            status: 'active', 
+            lastLogin: new Date().toISOString().split('T')[0], 
+            avatar: '/assets/user.png', // Avatar por defecto
+            phone: user.phone || 'No disponible'
+          };
+        });
+        
+        console.log('Transformed users:', transformedUsers);
         setUsers(transformedUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
