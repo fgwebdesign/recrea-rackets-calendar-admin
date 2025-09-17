@@ -59,15 +59,13 @@ export function LeagueMatchModal({
     setError(null);
   }, []);
 
-  const showSet1Tiebreak = (set1.team1 === 6 && set1.team2 === 6) || 
-                          (set1.team1 === 5 && set1.team2 === 5);
+  const showSet1Tiebreak = (set1.team1 === 5 && set1.team2 === 5);
   
-  const showSet2Tiebreak = (set2.team1 === 6 && set2.team2 === 6) || 
-                          (set2.team1 === 5 && set2.team2 === 5);
+  const showSet2Tiebreak = (set2.team1 === 5 && set2.team2 === 5);
 
   const validateSetScore = (score: number | null): boolean => {
     if (score === null) return false;
-    return score >= 0 && score <= 7;
+    return score >= 0 && score <= 6; // Máximo 6 games en sets
   };
 
   const validateTiebreakScore = (score: number | null): boolean => {
@@ -75,18 +73,42 @@ export function LeagueMatchModal({
     return score >= 0;
   };
 
+  const isTiebreakValid = (tiebreak: { team1: number | null; team2: number | null } | null): boolean => {
+    if (!tiebreak || tiebreak.team1 === null || tiebreak.team2 === null) return false;
+    
+    // El tiebreak se juega hasta 7 puntos con diferencia de 2
+    const team1 = tiebreak.team1;
+    const team2 = tiebreak.team2;
+    
+    // Al menos uno debe llegar a 7
+    if (team1 < 7 && team2 < 7) return false;
+    
+    // El ganador debe tener diferencia de al menos 2
+    if (team1 > team2) {
+      return team1 >= 7 && (team1 - team2 >= 2);
+    } else if (team2 > team1) {
+      return team2 >= 7 && (team2 - team1 >= 2);
+    }
+    
+    return false;
+  };
+
   const getSetWinner = (set: SetScore): number => {
     if (set.team1 === null || set.team1 === undefined || set.team2 === null || set.team2 === undefined) return 0;
 
+    // Si hay tiebreak (empate 5-5), el ganador del tiebreak gana el set
     if (set.tiebreak && set.tiebreak.team1 !== null && set.tiebreak.team2 !== null) {
-      if (!validateTiebreakScore(set.tiebreak.team1) || !validateTiebreakScore(set.tiebreak.team2)) {
+      if (!isTiebreakValid(set.tiebreak)) {
         return 0;
       }
       return set.tiebreak.team1 > set.tiebreak.team2 ? 1 : 2;
     }
     
-    if (set.team1 > set.team2 && set.team1 >= 6 && (set.team1 - set.team2 >= 2)) return 1;
-    if (set.team2 > set.team1 && set.team2 >= 6 && (set.team2 - set.team1 >= 2)) return 2;
+    // Validación para sets normales (sin tiebreak)
+    // Se gana con 6 games y diferencia de al menos 2
+    if (set.team1 > set.team2 && set.team1 >= 6 && (set.team1 - set.team2 >= 2)) return 1; // 6-1, 6-2, 6-3, 6-4
+    if (set.team2 > set.team1 && set.team2 >= 6 && (set.team2 - set.team1 >= 2)) return 2; // 6-1, 6-2, 6-3, 6-4
+    
     return 0;
   };
 
@@ -126,15 +148,16 @@ export function LeagueMatchModal({
   const isSetValid = (set: SetScore): boolean => {
     if (set.team1 === null || set.team1 === undefined || set.team2 === null || set.team2 === undefined) return false;
 
+    // Si hay tiebreak (empate 5-5), es válido si el tiebreak es válido
     if (set.tiebreak && set.tiebreak.team1 !== null && set.tiebreak.team2 !== null) {
-      if (!validateTiebreakScore(set.tiebreak.team1) || !validateTiebreakScore(set.tiebreak.team2)) {
-        return false;
-      }
-      return true;
+      return isTiebreakValid(set.tiebreak);
     }
     
-    if (set.team1 > set.team2 && set.team1 >= 6 && (set.team1 - set.team2 >= 2)) return true;
-    if (set.team2 > set.team1 && set.team2 >= 6 && (set.team2 - set.team1 >= 2)) return true;
+    // Validación para sets normales (sin tiebreak)
+    // Se gana con 6 games y diferencia de al menos 2
+    if (set.team1 > set.team2 && set.team1 >= 6 && (set.team1 - set.team2 >= 2)) return true; // 6-1, 6-2, 6-3, 6-4
+    if (set.team2 > set.team1 && set.team2 >= 6 && (set.team2 - set.team1 >= 2)) return true; // 6-1, 6-2, 6-3, 6-4
+    
     return false;
   };
 
@@ -144,17 +167,31 @@ export function LeagueMatchModal({
     // Validar que los sets sean números válidos
     if (!validateSetScore(set1.team1) || !validateSetScore(set1.team2) ||
         !validateSetScore(set2.team1) || !validateSetScore(set2.team2)) {
-      setError("Los sets deben ser números entre 0 y 7");
+      setError("Los sets deben ser números entre 0 y 6");
       return;
+    }
+
+    // Validar tiebreaks si existen
+    if (set1.tiebreak && set1.tiebreak.team1 !== null && set1.tiebreak.team2 !== null) {
+      if (!isTiebreakValid(set1.tiebreak)) {
+        setError("El tiebreak del primer set debe ser válido (hasta 7 puntos con diferencia de 2)");
+        return;
+      }
+    }
+    if (set2.tiebreak && set2.tiebreak.team1 !== null && set2.tiebreak.team2 !== null) {
+      if (!isTiebreakValid(set2.tiebreak)) {
+        setError("El tiebreak del segundo set debe ser válido (hasta 7 puntos con diferencia de 2)");
+        return;
+      }
     }
 
     // Validar que haya un ganador en cada set
     if (!getSetWinner(set1)) {
-      setError("El primer set debe tener un ganador claro (diferencia de 2 juegos o ganar el tiebreak)");
+      setError("El primer set debe tener un ganador claro (6-1, 6-2, 6-3, 6-4 o ganar el tiebreak en 5-5)");
       return;
     }
     if (!getSetWinner(set2)) {
-      setError("El segundo set debe tener un ganador claro (diferencia de 2 juegos o ganar el tiebreak)");
+      setError("El segundo set debe tener un ganador claro (6-1, 6-2, 6-3, 6-4 o ganar el tiebreak en 5-5)");
       return;
     }
 

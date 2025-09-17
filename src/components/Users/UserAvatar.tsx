@@ -8,9 +8,6 @@ interface UserAvatarProps {
 }
 
 export default function UserAvatar({ name, avatar, className = "" }: UserAvatarProps) {
-  // Debug: log the name being processed
-  console.log('UserAvatar received name:', name);
-  
   // Get initials from name - mejorado para manejar casos edge
   const getInitials = (name: string) => {
     if (!name || name === 'undefined' || name === 'null' || name.trim() === '') {

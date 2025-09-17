@@ -44,15 +44,6 @@ export function CategoryStandings({
 }: CategoryStandingsProps) {
   const currentCategory = categories?.find(cat => cat.id === selectedCategory)?.name || '';
 
-  // Debug information
-  console.log('🔍 CategoryStandings Debug:', {
-    selectedCategory,
-    currentCategory,
-    standingsCount: standings?.length || 0,
-    isLoading,
-    categoriesCount: categories?.length || 0
-  });
-
   if (isLoading || !categories) {
     return (
       <div className="flex flex-col items-center justify-center p-8 space-y-4 bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">

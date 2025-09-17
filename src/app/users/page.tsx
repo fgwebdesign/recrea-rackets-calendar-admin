@@ -37,17 +37,10 @@ export default function UsersPage() {
           throw new Error(`Error fetching users: ${error.message}`);
         }
 
-        console.log('Raw users from Supabase:', data);
-
         const transformedUsers = data.map((user: any) => {
-          // Debug: log the raw user data
-          console.log('Raw user data:', user);
-          
           const firstName = user.first_name || '';
           const lastName = user.last_name || '';
           const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Usuario sin nombre';
-          
-          console.log('Processed name:', { firstName, lastName, fullName });
           
           return {
             id: user.id,
@@ -60,8 +53,6 @@ export default function UsersPage() {
             phone: user.phone || 'No disponible'
           };
         });
-        
-        console.log('Transformed users:', transformedUsers);
         setUsers(transformedUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
