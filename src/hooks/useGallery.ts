@@ -24,7 +24,7 @@ export function useGallery(leagueId: string) {
   const [total, setTotal] = useState(0);
   const { toast } = useToast();
 
-  const fetchImages = async (pageToFetch = page) => {
+  const fetchImages = async (pageToFetch = page, reset = false) => {
     try {
       setIsLoading(true);
       const response = await fetch(
@@ -37,8 +37,18 @@ export function useGallery(leagueId: string) {
 
       const data: GalleryResponse = await response.json();
       
-      // Si es la primera página, reemplazar imágenes, si no, agregar a las existentes
-      setImages(prev => pageToFetch === 1 ? data.photos : [...prev, ...data.photos]);
+      // Evitar duplicados usando un Set para IDs únicos
+      setImages(prev => {
+        if (reset || pageToFetch === 1) {
+          return data.photos;
+        }
+        
+        // Filtrar duplicados basándose en el ID
+        const existingIds = new Set(prev.map(img => img.id));
+        const newPhotos = data.photos.filter(img => !existingIds.has(img.id));
+        return [...prev, ...newPhotos];
+      });
+      
       setTotal(data.total);
       setError(null);
       return data;
@@ -59,7 +69,7 @@ export function useGallery(leagueId: string) {
     if (isLoading || images.length >= total) return;
     
     const nextPage = page + 1;
-    const data = await fetchImages(nextPage);
+    const data = await fetchImages(nextPage, false);
     if (data) {
       setPage(nextPage);
     }
@@ -67,9 +77,10 @@ export function useGallery(leagueId: string) {
 
   useEffect(() => {
     if (leagueId) {
-      fetchImages();
+      setPage(1);
+      fetchImages(1, true);
     }
-  }, [leagueId, page]);
+  }, [leagueId]);
 
   const deleteImage = async (imageId: string) => {
     try {
@@ -84,14 +95,15 @@ export function useGallery(leagueId: string) {
         throw new Error('Error al eliminar la imagen');
       }
 
+      // Eliminar imagen del estado local sin recargar todo
+      setImages(prev => prev.filter(img => img.id !== imageId));
+      setTotal(prev => prev - 1);
+
       toast({
         title: "¡Éxito!",
         description: "Imagen eliminada correctamente",
         className: "bg-green-500 text-white"
       });
-
-      // Recargar imágenes
-      fetchImages();
     } catch (error) {
       toast({
         variant: "destructive",
@@ -113,7 +125,7 @@ export function useGallery(leagueId: string) {
     deleteImage,
     refetch: () => {
       setPage(1);
-      return fetchImages(1);
+      return fetchImages(1, true);
     }
   };
 }
