@@ -2,6 +2,7 @@
 
 import { UsersIcon, TrophyIcon, CalendarIcon, BanknotesIcon } from '@heroicons/react/24/outline';
 import { Card, CardContent } from '@/components/ui/card';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface TournamentStatsProps {
   totalTeams: number;
@@ -10,6 +11,18 @@ interface TournamentStatsProps {
   pendingTeams: number;
   totalRevenue: number;
   tournamentType: string;
+  translations?: {
+    registeredTeams: string;
+    fullCapacity: string;
+    teamsRemaining: string;
+    paidTeamsTitle: string;
+    ofTotal: string;
+    noTeams: string;
+    pending: string;
+    toPay: string;
+    revenue: string;
+    collected: string;
+  };
 }
 
 export function TournamentStats({ 
@@ -18,13 +31,30 @@ export function TournamentStats({
   paidTeams, 
   pendingTeams, 
   totalRevenue, 
-  tournamentType 
+  tournamentType,
+  translations
 }: TournamentStatsProps) {
+  const t = useTranslations('tournaments');
+  
+  // Usar traducciones pasadas como props o fallback a hardcoded
+  const texts = translations || {
+    registeredTeams: 'Equipos Registrados',
+    fullCapacity: 'Cupo completo',
+    teamsRemaining: 'Faltan {count} equipos',
+    paidTeamsTitle: 'Equipos Pagados',
+    ofTotal: 'del total',
+    noTeams: 'Sin equipos',
+    pending: 'Pendientes',
+    toPay: 'por pagar',
+    revenue: 'Ingresos',
+    collected: 'recaudado'
+  };
+  
   const formatTournamentType = (type: string) => {
     const typeConfig = {
-      NINE_PLAYERS: '9 Jugadores',
-      TWELVE_PLAYERS: '12 Jugadores', 
-      SIXTEEN_PLAYERS: '16 Jugadores'
+      NINE_PLAYERS: t('nineTeams'),
+      TWELVE_PLAYERS: t('twelveTeams'), 
+      SIXTEEN_PLAYERS: t('sixteenTeams')
     }
     return typeConfig[type as keyof typeof typeConfig] || type
   };
@@ -42,12 +72,12 @@ export function TournamentStats({
               <UsersIcon className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Equipos Registrados</p>
+              <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{texts.registeredTeams}</p>
               <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
                 {totalTeams} / {maxTeams}
               </p>
               <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                {isComplete ? 'Cupo completo' : `Faltan ${maxTeams - totalTeams} equipos`}
+                {isComplete ? texts.fullCapacity : texts.teamsRemaining.replace('{count}', `${maxTeams - totalTeams}`)}
               </p>
             </div>
           </div>
@@ -81,10 +111,10 @@ export function TournamentStats({
               <TrophyIcon className="h-6 w-6 text-white" />
             </div>
             <div>
-              <p className="text-sm font-medium text-green-600 dark:text-green-400">Equipos Pagados</p>
+              <p className="text-sm font-medium text-green-600 dark:text-green-400">{texts.paidTeamsTitle}</p>
               <p className="text-2xl font-bold text-green-900 dark:text-green-100">{paidTeams}</p>
               <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                {totalTeams > 0 ? `${Math.round((paidTeams / totalTeams) * 100)}% del total` : 'Sin equipos'}
+                {totalTeams > 0 ? `${Math.round((paidTeams / totalTeams) * 100)}% ${texts.ofTotal}` : texts.noTeams}
               </p>
             </div>
           </div>
@@ -99,10 +129,10 @@ export function TournamentStats({
               <CalendarIcon className="h-6 w-6 text-white" />
             </div>
             <div>
-              <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">Pendientes</p>
+              <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">{texts.pending}</p>
               <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">{pendingTeams}</p>
               <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                por pagar
+                {texts.toPay}
               </p>
             </div>
           </div>
@@ -117,12 +147,12 @@ export function TournamentStats({
               <BanknotesIcon className="h-6 w-6 text-white" />
             </div>
             <div>
-              <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Ingresos</p>
+              <p className="text-sm font-medium text-purple-600 dark:text-purple-400">{texts.revenue}</p>
               <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
                 ${totalRevenue.toLocaleString()}
               </p>
               <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                recaudado
+                {texts.collected}
               </p>
             </div>
           </div>

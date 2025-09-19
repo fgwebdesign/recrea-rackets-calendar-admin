@@ -351,6 +351,84 @@ const translations: Record<Locale, Record<string, any>> = {
     showingTournaments: 'Mostrando torneos del',
     to: 'al',
     activeFilter: 'Filtro activo:',
+    // Tournament Detail Page
+    detail: {
+      errorLoading: 'Error al cargar el torneo',
+      retry: 'Reintentar',
+      backToTournaments: 'Volver a Torneos',
+      tournamentNotFound: 'No se encontró el torneo solicitado.',
+      registrationProgress: 'Progreso de Inscripciones',
+      registrationsComplete: '¡Inscripciones completas!',
+      tournamentStats: 'Estadísticas del Torneo',
+      navigation: {
+        calendar: 'Calendario',
+        calendarDescription: 'Programar partidos y gestionar horarios',
+        teams: 'Equipos',
+        teamsDescription: 'Ver equipos inscritos y pagos',
+        groups: 'Grupos',
+        groupsDescription: 'Generar y gestionar grupos',
+        matches: 'Partidos',
+        matchesDescription: 'Gestionar partidos y resultados',
+        standings: 'Clasificación',
+        standingsDescription: 'Ver posiciones y estadísticas',
+        bracket: 'Eliminatorias',
+        bracketDescription: 'Bracket de eliminación',
+        payments: 'Pagos',
+        paymentsDescription: 'Gestionar pagos e inscripciones'
+      },
+      info: {
+        description: 'Descripción',
+        noDescription: 'Sin descripción',
+        location: 'Ubicación',
+        inscriptionCost: 'Costo de Inscripción',
+        rules: 'Reglamento',
+        prizes: 'Premios'
+      },
+      stats: {
+        potentialRevenue: 'Revenue Potencial',
+        actualRevenue: 'Revenue Actual',
+        pendingRevenue: 'Revenue Pendiente',
+        paymentRate: 'Tasa de Pago',
+        perTeam: 'por equipo',
+        paidTeams: 'equipos pagados',
+        pendingTeams: 'equipos pendientes',
+        registeredTeams: 'Equipos Registrados',
+        scheduledMatches: 'Partidos Programados',
+        groupsGenerated: 'Grupos Generados',
+        totalRevenue: 'Ingresos Totales',
+        // Tournament Stats Component
+        fullCapacity: 'Cupo completo',
+        teamsRemaining: 'Faltan {count} equipos',
+        paidTeamsTitle: 'Equipos Pagados',
+        ofTotal: 'del total',
+        noTeams: 'Sin equipos',
+        pending: 'Pendientes',
+        toPay: 'por pagar',
+        revenue: 'Ingresos',
+        collected: 'recaudado'
+      }
+    },
+    // Teams Page
+    teamsPage: {
+      errorLoading: 'Error al cargar los equipos',
+      backToTournament: 'Volver al torneo',
+      title: 'Equipos',
+      description: 'Lista de equipos inscritos en el torneo',
+      registerTeam: 'Registrar Equipo',
+      registeredTeams: 'Equipos Inscritos',
+      noTeamsRegistered: 'No hay equipos inscritos',
+      noTeamsDescription: 'Este torneo aún no tiene equipos registrados. Los equipos aparecerán aquí una vez que se inscriban.',
+      // Stats translations
+      fullCapacity: 'Cupo completo',
+      teamsRemaining: 'Faltan {count} equipos',
+      paidTeamsTitle: 'Equipos Pagados',
+      ofTotal: 'del total',
+      noTeams: 'Sin equipos',
+      pending: 'Pendientes',
+      toPay: 'por pagar',
+      revenue: 'Ingresos',
+      collected: 'recaudado'
+    },
     // Create Tournament
     create: {
       title: 'Crear Nuevo Torneo',
@@ -855,6 +933,84 @@ const translations: Record<Locale, Record<string, any>> = {
     showingTournaments: 'Showing tournaments from',
     to: 'to',
     activeFilter: 'Active filter:',
+    // Tournament Detail Page
+    detail: {
+      errorLoading: 'Error loading tournament',
+      retry: 'Retry',
+      backToTournaments: 'Back to Tournaments',
+      tournamentNotFound: 'The requested tournament was not found.',
+      registrationProgress: 'Registration Progress',
+      registrationsComplete: 'Registrations complete!',
+      tournamentStats: 'Tournament Statistics',
+      navigation: {
+        calendar: 'Calendar',
+        calendarDescription: 'Schedule matches and manage schedules',
+        teams: 'Teams',
+        teamsDescription: 'View registered teams and payments',
+        groups: 'Groups',
+        groupsDescription: 'Generate and manage groups',
+        matches: 'Matches',
+        matchesDescription: 'Manage matches and results',
+        standings: 'Standings',
+        standingsDescription: 'View positions and statistics',
+        bracket: 'Eliminations',
+        bracketDescription: 'Elimination bracket',
+        payments: 'Payments',
+        paymentsDescription: 'Manage payments and registrations'
+      },
+      info: {
+        description: 'Description',
+        noDescription: 'No description',
+        location: 'Location',
+        inscriptionCost: 'Registration Cost',
+        rules: 'Rules',
+        prizes: 'Prizes'
+      },
+      stats: {
+        potentialRevenue: 'Potential Revenue',
+        actualRevenue: 'Actual Revenue',
+        pendingRevenue: 'Pending Revenue',
+        paymentRate: 'Payment Rate',
+        perTeam: 'per team',
+        paidTeams: 'paid teams',
+        pendingTeams: 'pending teams',
+        registeredTeams: 'Registered Teams',
+        scheduledMatches: 'Scheduled Matches',
+        groupsGenerated: 'Groups Generated',
+        totalRevenue: 'Total Revenue',
+        // Tournament Stats Component
+        fullCapacity: 'Full capacity',
+        teamsRemaining: '{count} teams remaining',
+        paidTeamsTitle: 'Paid Teams',
+        ofTotal: 'of total',
+        noTeams: 'No teams',
+        pending: 'Pending',
+        toPay: 'to pay',
+        revenue: 'Revenue',
+        collected: 'collected'
+      }
+    },
+    // Teams Page
+    teamsPage: {
+      errorLoading: 'Error loading teams',
+      backToTournament: 'Back to tournament',
+      title: 'Teams',
+      description: 'List of teams registered in the tournament',
+      registerTeam: 'Register Team',
+      registeredTeams: 'Registered Teams',
+      noTeamsRegistered: 'No teams registered',
+      noTeamsDescription: 'This tournament does not have any registered teams yet. Teams will appear here once they register.',
+      // Stats translations
+      fullCapacity: 'Full capacity',
+      teamsRemaining: '{count} teams remaining',
+      paidTeamsTitle: 'Paid Teams',
+      ofTotal: 'of total',
+      noTeams: 'No teams',
+      pending: 'Pending',
+      toPay: 'to pay',
+      revenue: 'Revenue',
+      collected: 'collected'
+    },
     // Create Tournament
     create: {
       title: 'Create New Tournament',

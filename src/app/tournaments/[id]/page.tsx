@@ -29,6 +29,7 @@ import Image from 'next/image'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { getCategoryName } from '@/utils/category'
 import { TournamentTypeEditor } from '@/components/Tournaments/TournamentTypeEditor'
+import { useTranslations } from '@/contexts/TranslationContext'
 
 interface PageProps {
   params: Promise<{
@@ -38,6 +39,7 @@ interface PageProps {
 
 export default function TournamentPage({ params }: PageProps) {
   const router = useRouter()
+  const t = useTranslations('tournaments')
   
   // ✅ Usar React.use() para acceder a params
   const { id } = use(params)
@@ -122,7 +124,7 @@ export default function TournamentPage({ params }: PageProps) {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
-              <span>Error al cargar el torneo: {error}</span>
+              <span>{t('detail.errorLoading')}: {error}</span>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -130,7 +132,7 @@ export default function TournamentPage({ params }: PageProps) {
                 className="ml-4"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Reintentar
+                {t('detail.retry')}
               </Button>
             </AlertDescription>
           </Alert>
@@ -140,7 +142,7 @@ export default function TournamentPage({ params }: PageProps) {
               onClick={() => router.push('/tournaments')}
             >
               <ArrowLeftIcon className="h-4 w-4 mr-2" />
-              Volver a Torneos
+              {t('detail.backToTournaments')}
             </Button>
           </div>
         </div>
@@ -155,7 +157,7 @@ export default function TournamentPage({ params }: PageProps) {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              No se encontró el torneo solicitado.
+              {t('detail.tournamentNotFound')}
             </AlertDescription>
           </Alert>
           <div className="mt-4">
@@ -164,7 +166,7 @@ export default function TournamentPage({ params }: PageProps) {
               onClick={() => router.push('/tournaments')}
             >
               <ArrowLeftIcon className="h-4 w-4 mr-2" />
-              Volver a Torneos
+              {t('detail.backToTournaments')}
             </Button>
           </div>
         </div>
@@ -174,9 +176,9 @@ export default function TournamentPage({ params }: PageProps) {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      upcoming: { label: 'Inscripciones Abiertas', variant: 'default' as const },
-      in_progress: { label: 'En Progreso', variant: 'secondary' as const },
-      completed: { label: 'Finalizado', variant: 'outline' as const }
+      upcoming: { label: t('statusUpcoming'), variant: 'default' as const },
+      in_progress: { label: t('statusInProgress'), variant: 'secondary' as const },
+      completed: { label: t('statusCompleted'), variant: 'outline' as const }
     }
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.upcoming
@@ -185,60 +187,53 @@ export default function TournamentPage({ params }: PageProps) {
 
   const formatTournamentType = (type: string) => {
     const typeConfig = {
-      SIX_PLAYERS: '6 Jugadores',
-      NINE_PLAYERS: '9 Jugadores',
-      TWELVE_PLAYERS: '12 Jugadores', 
-      SIXTEEN_PLAYERS: '16 Jugadores'
+      SIX_PLAYERS: t('sixTeams'),
+      NINE_PLAYERS: t('nineTeams'),
+      TWELVE_PLAYERS: t('twelveTeams'), 
+      SIXTEEN_PLAYERS: t('sixteenTeams')
     }
     return typeConfig[type as keyof typeof typeConfig] || type
   }
 
   const navigationCards = [
     {
-      title: 'Calendario',
-      description: 'Programar partidos y gestionar horarios',
-      icon: CalendarIcon,
-      href: `/tournaments/${id}/draw`,
-      color: 'bg-blue-500'
-    },
-    {
-      title: 'Equipos',
-      description: 'Ver equipos inscritos y pagos',
+      title: t('detail.navigation.teams'),
+      description: t('detail.navigation.teamsDescription'),
       icon: UsersIcon,
       href: `/tournaments/${id}/teams`,
       color: 'bg-green-500'
     },
     {
-      title: 'Grupos',
-      description: 'Generar y gestionar grupos',
+      title: t('detail.navigation.groups'),
+      description: t('detail.navigation.groupsDescription'),
       icon: Cog6ToothIcon,
       href: `/tournaments/${id}/groups`,
       color: 'bg-purple-500'
     },
     {
-      title: 'Partidos',
-      description: 'Gestionar partidos y resultados',
+      title: t('detail.navigation.matches'),
+      description: t('detail.navigation.matchesDescription'),
       icon: PlayIcon,
       href: `/tournaments/${id}/matches`,
       color: 'bg-indigo-500'
     },
     {
-      title: 'Clasificación',
-      description: 'Ver posiciones y estadísticas',
+      title: t('detail.navigation.standings'),
+      description: t('detail.navigation.standingsDescription'),
       icon: ChartBarIcon,
       href: `/tournaments/${id}/admin-groups`,
       color: 'bg-orange-500'
     },
     {
-      title: 'Eliminatorias',
-      description: 'Bracket de eliminación',
+      title: t('detail.navigation.bracket'),
+      description: t('detail.navigation.bracketDescription'),
       icon: TrophyIcon,
       href: `/tournaments/${id}/bracket`,
       color: 'bg-yellow-500'
     },
     {
-      title: 'Pagos',
-      description: 'Gestionar pagos e inscripciones',
+      title: t('detail.navigation.payments'),
+      description: t('detail.navigation.paymentsDescription'),
       icon: BanknotesIcon,
       href: `/tournaments/${id}/payments`,
       color: 'bg-emerald-500'
@@ -300,7 +295,7 @@ export default function TournamentPage({ params }: PageProps) {
                   </div>
                   <div className="flex items-center gap-2">
                     <UsersIcon className="h-5 w-5 text-green-500" />
-                    <span className="font-medium">{tournament.tournament_teams?.length || 0}/{tournament.max_teams} equipos</span>
+                    <span className="font-medium">{tournament.tournament_teams?.length || 0}/{tournament.max_teams} {t('teams')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <TrophyIcon className="h-5 w-5 text-yellow-500" />
@@ -316,7 +311,7 @@ export default function TournamentPage({ params }: PageProps) {
                 {/* Progress Bar */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Progreso de Inscripciones</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{t('detail.registrationProgress')}</span>
                     <span className="font-semibold text-gray-900 dark:text-gray-100">
                       {tournament.tournament_teams?.length || 0}/{tournament.max_teams}
                     </span>
@@ -335,7 +330,7 @@ export default function TournamentPage({ params }: PageProps) {
                   </div>
                   {(tournament.tournament_teams?.length || 0) >= tournament.max_teams && (
                     <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                      ¡Inscripciones completas!
+                      {t('detail.registrationsComplete')}
                     </p>
                   )}
                 </div>
@@ -351,12 +346,12 @@ export default function TournamentPage({ params }: PageProps) {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
                   <InformationCircleIcon className="h-5 w-5" />
-                  Descripción
+                  {t('detail.info.description')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {tournamentInfo.description || 'Sin descripción'}
+                  {tournamentInfo.description || t('detail.info.noDescription')}
                 </p>
               </CardContent>
             </Card>
@@ -365,7 +360,7 @@ export default function TournamentPage({ params }: PageProps) {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
                   <MapPinIcon className="h-5 w-5" />
-                  Ubicación
+                  {t('detail.info.location')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -382,7 +377,7 @@ export default function TournamentPage({ params }: PageProps) {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm text-yellow-700 dark:text-yellow-300">
                   <BanknotesIcon className="h-5 w-5" />
-                  Costo de Inscripción
+                  {t('detail.info.inscriptionCost')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -397,7 +392,7 @@ export default function TournamentPage({ params }: PageProps) {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
                     <DocumentTextIcon className="h-5 w-5" />
-                    Reglamento
+                    {t('detail.info.rules')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -413,7 +408,7 @@ export default function TournamentPage({ params }: PageProps) {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-sm text-orange-700 dark:text-orange-300">
                     <TrophyIcon className="h-5 w-5" />
-                    Premios
+                    {t('detail.info.prizes')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -446,7 +441,7 @@ export default function TournamentPage({ params }: PageProps) {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-sm text-pink-700 dark:text-pink-300">
                     <StarIcon className="h-5 w-5" />
-                    Patrocinadores
+                    {t('sponsors')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -512,33 +507,33 @@ export default function TournamentPage({ params }: PageProps) {
           <div className="mt-8 space-y-6">
             <div className="flex items-center gap-2">
               <ChartBarIcon className="h-6 w-6 text-blue-600" />
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Estadísticas del Torneo</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('detail.tournamentStats')}</h2>
             </div>
 
             {/* Cards de Estadísticas */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard
-                title="Revenue Potencial"
+                title={t('detail.stats.potentialRevenue')}
                 value={`$${paymentStats.total_potential_revenue.toLocaleString()}`}
-                subtitle={`$${paymentStats.inscription_cost} por equipo`}
+                subtitle={`$${paymentStats.inscription_cost} ${t('detail.stats.perTeam')}`}
                 icon={<BanknotesIcon className="h-6 w-6 text-green-600" />}
               />
               <StatCard
-                title="Revenue Actual"
+                title={t('detail.stats.actualRevenue')}
                 value={`$${paymentStats.actual_revenue.toLocaleString()}`}
-                subtitle={`${paymentStats.paid_teams} equipos pagados`}
+                subtitle={`${paymentStats.paid_teams} ${t('detail.stats.paidTeams')}`}
                 icon={<BanknotesIcon className="h-6 w-6 text-blue-600" />}
               />
               <StatCard
-                title="Revenue Pendiente"
+                title={t('detail.stats.pendingRevenue')}
                 value={`$${paymentStats.pending_revenue.toLocaleString()}`}
-                subtitle={`${paymentStats.pending_teams} equipos pendientes`}
+                subtitle={`${paymentStats.pending_teams} ${t('detail.stats.pendingTeams')}`}
                 icon={<BanknotesIcon className="h-6 w-6 text-orange-600" />}
               />
               <StatCard
-                title="Tasa de Pago"
+                title={t('detail.stats.paymentRate')}
                 value={`${paymentStats.payment_rate.toFixed(1)}%`}
-                subtitle={`${paymentStats.paid_teams}/${paymentStats.total_teams} equipos`}
+                subtitle={`${paymentStats.paid_teams}/${paymentStats.total_teams} ${t('teams')}`}
                 icon={<ChartBarIcon className="h-6 w-6 text-purple-600" />}
               />
             </div>
@@ -552,56 +547,6 @@ export default function TournamentPage({ params }: PageProps) {
                 paidTeams={paymentStats.paid_teams}
               />
             </div>
-          </div>
-        )}
-
-        {/* Estadísticas Básicas (fallback) */}
-        {stats && !paymentStats && (
-          <div className="mt-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ChartBarIcon className="h-5 w-5" />
-                  Estadísticas del Torneo
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      {stats.total_teams || 0}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Equipos Registrados
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      {stats.matches_scheduled || 0}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Partidos Programados
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      {stats.groups_generated ? 'Sí' : 'No'}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Grupos Generados
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      ${stats.total_revenue || 0}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Ingresos Totales
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         )}
       </div>

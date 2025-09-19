@@ -14,12 +14,14 @@ import { Badge } from '@/components/ui/badge';
 import { getCategoryName } from '@/utils/category';
 import { TeamCard } from '@/components/Tournaments/TeamCard';
 import { TournamentStats } from '@/components/Tournaments/TournamentStats';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 export default function TournamentTeamsPage() {
   const params = useParams();
   const router = useRouter();
   const tournamentId = params.id as string;
   const [isAdmin, setIsAdmin] = useState(false);
+  const t = useTranslations('tournaments');
 
   const { 
     tournament, 
@@ -74,7 +76,7 @@ export default function TournamentTeamsPage() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
-              <span>Error al cargar los equipos: {error}</span>
+              <span>{t('teamsPage.errorLoading')}: {error}</span>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -82,7 +84,7 @@ export default function TournamentTeamsPage() {
                 className="ml-4"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Reintentar
+                {t('detail.retry')}
               </Button>
             </AlertDescription>
           </Alert>
@@ -98,7 +100,7 @@ export default function TournamentTeamsPage() {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              No se encontró el torneo solicitado.
+              {t('detail.tournamentNotFound')}
             </AlertDescription>
           </Alert>
         </div>
@@ -122,7 +124,7 @@ export default function TournamentTeamsPage() {
             className="mb-4 flex items-center"
           >
             <ArrowLeftIcon className="w-4 h-4 mr-2" />
-            Volver al torneo
+            {t('teamsPage.backToTournament')}
           </Button>
         </div>
 
@@ -130,7 +132,7 @@ export default function TournamentTeamsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                Equipos - {tournament.name}
+                {t('teamsPage.title')} - {tournament.name}
               </h1>
               <div className="flex items-center gap-3 mb-2">
                 <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
@@ -138,7 +140,7 @@ export default function TournamentTeamsPage() {
                 </Badge>
               </div>
               <p className="text-gray-600 dark:text-gray-400">
-                Lista de equipos inscritos en el torneo
+                {t('teamsPage.description')}
               </p>
             </div>
             {isAdmin && (
@@ -147,7 +149,7 @@ export default function TournamentTeamsPage() {
                 className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
-                Registrar Equipo
+                {t('teamsPage.registerTeam')}
               </Button>
             )}
           </div>
@@ -161,6 +163,18 @@ export default function TournamentTeamsPage() {
           pendingTeams={pendingTeams}
           totalRevenue={totalRevenue}
           tournamentType={tournament.tournament_type}
+          translations={{
+            registeredTeams: t('teamsPage.registeredTeams'),
+            fullCapacity: t('teamsPage.fullCapacity'),
+            teamsRemaining: t('teamsPage.teamsRemaining'),
+            paidTeamsTitle: t('teamsPage.paidTeamsTitle'),
+            ofTotal: t('teamsPage.ofTotal'),
+            noTeams: t('teamsPage.noTeams'),
+            pending: t('teamsPage.pending'),
+            toPay: t('teamsPage.toPay'),
+            revenue: t('teamsPage.revenue'),
+            collected: t('teamsPage.collected')
+          }}
         />
 
         {/* Lista de equipos */}
@@ -170,9 +184,9 @@ export default function TournamentTeamsPage() {
               <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                 <UsersIcon className="h-5 w-5 text-white" />
               </div>
-              Equipos Inscritos
+              {t('teamsPage.registeredTeams')}
               <span className="ml-auto text-sm font-normal text-gray-500 dark:text-gray-400">
-                {totalTeams} equipos
+                {totalTeams} {t('teams')}
               </span>
             </CardTitle>
           </CardHeader>
@@ -191,10 +205,10 @@ export default function TournamentTeamsPage() {
                   <UsersIcon className="w-16 h-16 text-blue-500" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-                  No hay equipos inscritos
+                  {t('teamsPage.noTeamsRegistered')}
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">
-                  Este torneo aún no tiene equipos registrados. Los equipos aparecerán aquí una vez que se inscriban.
+                  {t('teamsPage.noTeamsDescription')}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button 
@@ -202,7 +216,7 @@ export default function TournamentTeamsPage() {
                     onClick={() => router.push(`/tournaments/${tournamentId}`)}
                     className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/20"
                   >
-                    Volver al torneo
+                    {t('teamsPage.backToTournament')}
                   </Button>
                   {isAdmin && (
                     <Button 
@@ -210,7 +224,7 @@ export default function TournamentTeamsPage() {
                       className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
                     >
                       <PlusIcon className="h-4 w-4 mr-2" />
-                      Registrar Equipo
+                      {t('teamsPage.registerTeam')}
                     </Button>
                   )}
                 </div>

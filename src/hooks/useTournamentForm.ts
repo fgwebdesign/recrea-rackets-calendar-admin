@@ -79,9 +79,7 @@ const INITIAL_FORM_DATA: TournamentFormData = {
 
 export function useTournamentForm() {
   const router = useRouter();
-  const t = useTranslations('tournaments.create.validation');
-  const tSuccess = useTranslations('tournaments.create.success');
-  const tError = useTranslations('tournaments.create.error');
+  const t = useTranslations('tournaments');
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<TournamentFormData>(INITIAL_FORM_DATA);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,31 +92,31 @@ export function useTournamentForm() {
     const newErrors: FormErrors = {};
 
     if (!data.name.trim()) {
-      newErrors.name = t('nameRequired');
+      newErrors.name = t('create.validation.nameRequired');
     }
 
     if (!data.categories.length) {
-      newErrors.categories = t('categoriesRequired');
+      newErrors.categories = t('create.validation.categoriesRequired');
     }
 
     if (!data.start_date) {
-      newErrors.start_date = t('startDateRequired');
+      newErrors.start_date = t('create.validation.startDateRequired');
     }
 
     if (!data.end_date) {
-      newErrors.end_date = t('endDateRequired');
+      newErrors.end_date = t('create.validation.endDateRequired');
     }
 
     if (data.start_date && data.end_date && new Date(data.start_date) > new Date(data.end_date)) {
-      newErrors.end_date = t('endDateAfterStart');
+      newErrors.end_date = t('create.validation.endDateAfterStart');
     }
 
     if (!data.courts_available || data.courts_available < 1) {
-      newErrors.courts_available = t('courtsRequired');
+      newErrors.courts_available = t('create.validation.courtsRequired');
     }
 
     if (!data.tournament_thumbnail) {
-      newErrors.tournament_thumbnail = t('imageRequired');
+      newErrors.tournament_thumbnail = t('create.validation.imageRequired');
     }
 
     setErrors(newErrors);
@@ -129,43 +127,43 @@ export function useTournamentForm() {
     const newErrors: FormErrors = {};
 
     if (!data.description.trim()) {
-      newErrors.description = t('descriptionRequired');
+      newErrors.description = t('create.validation.descriptionRequired');
     }
 
     if (!data.rules.trim()) {
-      newErrors.rules = t('rulesRequired');
+      newErrors.rules = t('create.validation.rulesRequired');
     }
 
     if (!data.tournament_location.trim()) {
-      newErrors.tournament_location = t('locationRequired');
+      newErrors.tournament_location = t('create.validation.locationRequired');
     }
 
     if (!data.tournament_address.trim()) {
-      newErrors.tournament_address = t('addressRequired');
+      newErrors.tournament_address = t('create.validation.addressRequired');
     }
 
     if (!data.tournament_club_name.trim()) {
-      newErrors.tournament_club_name = t('clubNameRequired');
+      newErrors.tournament_club_name = t('create.validation.clubNameRequired');
     }
 
     if (!data.signup_limit_date) {
-      newErrors.signup_limit_date = t('signupLimitRequired');
+      newErrors.signup_limit_date = t('create.validation.signupLimitRequired');
     }
 
     if (data.inscription_cost < 0) {
-      newErrors.inscription_cost = t('costNegative');
+      newErrors.inscription_cost = t('create.validation.costNegative');
     }
 
     if (!data.first_place_prize.trim()) {
-      newErrors.first_place_prize = t('firstPlaceRequired');
+      newErrors.first_place_prize = t('create.validation.firstPlaceRequired');
     }
 
     if (!data.second_place_prize.trim()) {
-      newErrors.second_place_prize = t('secondPlaceRequired');
+      newErrors.second_place_prize = t('create.validation.secondPlaceRequired');
     }
 
     if (!data.third_place_prize.trim()) {
-      newErrors.third_place_prize = t('thirdPlaceRequired');
+      newErrors.third_place_prize = t('create.validation.thirdPlaceRequired');
     }
 
     setErrors(newErrors);
@@ -198,8 +196,8 @@ export function useTournamentForm() {
         } catch (error) {
           console.error('Error uploading image:', error);
           toast({
-            title: tError('title'),
-            description: tError('uploadImage'),
+            title: t('create.error.title'),
+            description: t('create.error.uploadImage'),
             variant: "destructive"
           });
           return;
@@ -215,7 +213,7 @@ export function useTournamentForm() {
     if (validateSecondStep(data)) {
       try {
         const token = localStorage.getItem('adminToken');
-        if (!token) throw new Error(tError('notAuthenticated'));
+        if (!token) throw new Error(t('create.error.notAuthenticated'));
 
         // Formatear datos para el backend
         const tournamentData: TournamentCreationData = {
@@ -267,8 +265,8 @@ export function useTournamentForm() {
 
           if (allHaveInfo) {
             toast({
-              title: tSuccess('title'),
-              description: tSuccess('description').replace('{count}', result.torneos.length.toString())
+              title: t('create.success.title'),
+              description: t('create.success.description').replace('{count}', result.torneos.length.toString())
             });
             router.push('/tournaments');
           } else {
@@ -280,8 +278,8 @@ export function useTournamentForm() {
       } catch (error) {
         console.error('Error creating tournament:', error);
         toast({
-          title: tError('title'),
-          description: error instanceof Error ? error.message : tError('createTournament'),
+          title: t('create.error.title'),
+          description: error instanceof Error ? error.message : t('create.error.createTournament'),
           variant: "destructive"
         });
       }
