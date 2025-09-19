@@ -2,6 +2,7 @@
 
 import { UsersIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { Badge } from '@/components/ui/badge';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface Player {
   id: string;
@@ -22,6 +23,8 @@ interface TeamSummaryProps {
 }
 
 export function TeamSummary({ player1, player2, slotLabel, slotInfo }: TeamSummaryProps) {
+  const t = useTranslations('tournaments');
+  
   if (!player1 || !player2) return null;
 
   const getPlayerInitials = (player: Player) => {
@@ -35,18 +38,18 @@ export function TeamSummary({ player1, player2, slotLabel, slotInfo }: TeamSumma
           <UsersIcon className="h-5 w-5 text-white" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Equipo Seleccionado
+          {t('adminRegister.teamSummary.title')}
         </h3>
         <Badge className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
           <CheckCircleIcon className="h-3 w-3 mr-1" />
-          Completo
+          {t('adminRegister.teamSummary.complete')}
         </Badge>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Jugadores */}
         <div className="space-y-4">
-          <h4 className="font-medium text-gray-700 dark:text-gray-300">Jugadores:</h4>
+          <h4 className="font-medium text-gray-700 dark:text-gray-300">{t('adminRegister.teamSummary.players')}:</h4>
           
           {/* Jugador 1 */}
           <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -62,7 +65,7 @@ export function TeamSummary({ player1, player2, slotLabel, slotInfo }: TeamSumma
               </div>
             </div>
             <Badge className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-              Jugador 1
+              {t('adminRegister.teamSummary.player1')}
             </Badge>
           </div>
 
@@ -80,7 +83,7 @@ export function TeamSummary({ player1, player2, slotLabel, slotInfo }: TeamSumma
               </div>
             </div>
             <Badge className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
-              Jugador 2
+              {t('adminRegister.teamSummary.player2')}
             </Badge>
           </div>
         </div>
@@ -88,7 +91,7 @@ export function TeamSummary({ player1, player2, slotLabel, slotInfo }: TeamSumma
         {/* Información del Horario */}
         {slotLabel && slotInfo && (
           <div className="space-y-4">
-            <h4 className="font-medium text-gray-700 dark:text-gray-300">Horario:</h4>
+            <h4 className="font-medium text-gray-700 dark:text-gray-300">{t('adminRegister.teamSummary.schedule')}:</h4>
             
             <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2 mb-3">
@@ -102,21 +105,21 @@ export function TeamSummary({ player1, player2, slotLabel, slotInfo }: TeamSumma
               
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Cupos disponibles:</span>
+                  <span className="text-gray-600 dark:text-gray-400">{t('adminRegister.teamSummary.availableSlots')}:</span>
                   <span className="font-medium text-gray-900 dark:text-gray-100">
                     {slotInfo.remaining_slots}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Ocupación:</span>
+                  <span className="text-gray-600 dark:text-gray-400">{t('adminRegister.teamSummary.occupation')}:</span>
                   <span className="font-medium text-gray-900 dark:text-gray-100">
                     {slotInfo.percentage_full}%
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Capacidad total:</span>
+                  <span className="text-gray-600 dark:text-gray-400">{t('adminRegister.teamSummary.totalCapacity')}:</span>
                   <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {slotInfo.total_capacity} equipos
+                    {slotInfo.total_capacity} {t('adminRegister.teamSummary.teams')}
                   </span>
                 </div>
               </div>

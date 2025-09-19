@@ -429,6 +429,95 @@ const translations: Record<Locale, Record<string, any>> = {
       revenue: 'Ingresos',
       collected: 'recaudado'
     },
+    // Admin Register Team Page
+    adminRegister: {
+      backToTeams: 'Volver a equipos',
+      title: 'Registrar Equipo',
+      description: 'Inscribe un equipo en el torneo desde el panel de administración',
+      formTitle: 'Formulario de Registro',
+      placeholders: {
+        selectFirstPlayer: 'Seleccionar primer jugador...',
+        selectSecondPlayer: 'Seleccionar segundo jugador...'
+      },
+      validation: {
+        player1Required: 'Debe seleccionar el primer jugador',
+        player2Required: 'Debe seleccionar el segundo jugador',
+        playersMustBeDifferent: 'Los dos jugadores deben ser distintos',
+        slotRequired: 'Debe seleccionar un horario',
+        slotFull: 'Este horario está completo',
+        shirtSizesRequired: 'Debe seleccionar al menos un talle de remera',
+        shirtSizesMax: 'No puede seleccionar más de 2 talles'
+      },
+      errors: {
+        title: 'Error',
+        loadPlayers: 'Error al cargar jugadores disponibles',
+        loadPlayersDescription: 'Error al cargar la lista de jugadores disponibles',
+        loadSlots: 'Error al cargar slots disponibles',
+        loadSlotsDescription: 'Error al cargar los horarios disponibles',
+        registrationError: 'Error de Registro',
+        playersAlreadyRegistered: 'Uno o ambos jugadores ya están registrados en este torneo',
+        tournamentFull: 'Torneo Completo',
+        tournamentFullDescription: 'El torneo está completo o el horario seleccionado no tiene cupos disponibles',
+        invalidPlayers: 'Jugadores Inválidos',
+        validationError: 'Error de Validación',
+        validationErrorDescription: 'Error en los datos enviados',
+        tournamentNotFound: 'Torneo No Encontrado',
+        tournamentNotFoundDescription: 'El torneo solicitado no existe',
+        serverError: 'Error del Servidor',
+        serverErrorDescription: 'Error interno del servidor. Intenta nuevamente.',
+        registerTeamError: 'Error al registrar el equipo',
+        connectionError: 'Error de Conexión',
+        connectionErrorDescription: 'Verifica tu conexión a internet e intenta nuevamente.'
+      },
+      success: {
+        title: '¡Equipo Registrado Exitosamente!',
+        registeredIn: 'registrados en'
+      },
+      registering: 'Registrando Equipo...',
+      registerTeam: 'Registrar Equipo',
+      playerSelector: {
+        selected: 'Seleccionado',
+        searchPlaceholder: 'Buscar jugador...',
+        noPlayersFound: 'No se encontraron jugadores',
+        tryDifferentSearch: 'Intenta con otro término de búsqueda'
+      },
+      timeSlotSelector: {
+        label: 'Horario No Disponible *',
+        selectPlaceholder: 'Seleccionar horario...',
+        slotsAvailable: 'cupos disponibles',
+        occupied: 'ocupado',
+        full: 'COMPLETO',
+        scheduleInfo: 'Información del Horario',
+        availableSlots: 'Cupos disponibles',
+        occupation: 'Ocupación',
+        totalCapacity: 'Capacidad total',
+        teams: 'equipos'
+      },
+      teamSummary: {
+        title: 'Equipo Seleccionado',
+        complete: 'Completo',
+        players: 'Jugadores',
+        player1: 'Jugador 1',
+        player2: 'Jugador 2',
+        schedule: 'Horario',
+        availableSlots: 'Cupos disponibles',
+        occupation: 'Ocupación',
+        totalCapacity: 'Capacidad total',
+        teams: 'equipos'
+      },
+      formStatus: {
+        title: 'Estado del Formulario',
+        completedCount: 'completados',
+        firstPlayer: 'Primer Jugador',
+        secondPlayer: 'Segundo Jugador',
+        schedule: 'Horario',
+        error: 'Error',
+        completed: 'Completado',
+        pending: 'Pendiente',
+        fixErrors: 'Corrige los errores antes de continuar',
+        readyToSubmit: 'Formulario completo y listo para enviar'
+      }
+    },
     // Create Tournament
     create: {
       title: 'Crear Nuevo Torneo',
@@ -1010,6 +1099,95 @@ const translations: Record<Locale, Record<string, any>> = {
       toPay: 'to pay',
       revenue: 'Revenue',
       collected: 'collected'
+    },
+    // Admin Register Team Page
+    adminRegister: {
+      backToTeams: 'Back to teams',
+      title: 'Register Team',
+      description: 'Register a team in the tournament from the administration panel',
+      formTitle: 'Registration Form',
+      placeholders: {
+        selectFirstPlayer: 'Select first player...',
+        selectSecondPlayer: 'Select second player...'
+      },
+      validation: {
+        player1Required: 'Must select the first player',
+        player2Required: 'Must select the second player',
+        playersMustBeDifferent: 'The two players must be different',
+        slotRequired: 'Must select a schedule',
+        slotFull: 'This schedule is full',
+        shirtSizesRequired: 'Must select at least one shirt size',
+        shirtSizesMax: 'Cannot select more than 2 sizes'
+      },
+      errors: {
+        title: 'Error',
+        loadPlayers: 'Error loading available players',
+        loadPlayersDescription: 'Error loading the list of available players',
+        loadSlots: 'Error loading available slots',
+        loadSlotsDescription: 'Error loading available schedules',
+        registrationError: 'Registration Error',
+        playersAlreadyRegistered: 'One or both players are already registered in this tournament',
+        tournamentFull: 'Tournament Full',
+        tournamentFullDescription: 'The tournament is full or the selected schedule has no available spots',
+        invalidPlayers: 'Invalid Players',
+        validationError: 'Validation Error',
+        validationErrorDescription: 'Error in the data sent',
+        tournamentNotFound: 'Tournament Not Found',
+        tournamentNotFoundDescription: 'The requested tournament does not exist',
+        serverError: 'Server Error',
+        serverErrorDescription: 'Internal server error. Please try again.',
+        registerTeamError: 'Error registering team',
+        connectionError: 'Connection Error',
+        connectionErrorDescription: 'Check your internet connection and try again.'
+      },
+      success: {
+        title: 'Team Registered Successfully!',
+        registeredIn: 'registered in'
+      },
+      registering: 'Registering Team...',
+      registerTeam: 'Register Team',
+      playerSelector: {
+        selected: 'Selected',
+        searchPlaceholder: 'Search player...',
+        noPlayersFound: 'No players found',
+        tryDifferentSearch: 'Try with a different search term'
+      },
+      timeSlotSelector: {
+        label: 'Unavailable Schedule *',
+        selectPlaceholder: 'Select schedule...',
+        slotsAvailable: 'slots available',
+        occupied: 'occupied',
+        full: 'FULL',
+        scheduleInfo: 'Schedule Information',
+        availableSlots: 'Available slots',
+        occupation: 'Occupation',
+        totalCapacity: 'Total capacity',
+        teams: 'teams'
+      },
+      teamSummary: {
+        title: 'Selected Team',
+        complete: 'Complete',
+        players: 'Players',
+        player1: 'Player 1',
+        player2: 'Player 2',
+        schedule: 'Schedule',
+        availableSlots: 'Available slots',
+        occupation: 'Occupation',
+        totalCapacity: 'Total capacity',
+        teams: 'teams'
+      },
+      formStatus: {
+        title: 'Form Status',
+        completedCount: 'completed',
+        firstPlayer: 'First Player',
+        secondPlayer: 'Second Player',
+        schedule: 'Schedule',
+        error: 'Error',
+        completed: 'Completed',
+        pending: 'Pending',
+        fixErrors: 'Fix errors before continuing',
+        readyToSubmit: 'Form complete and ready to submit'
+      }
     },
     // Create Tournament
     create: {

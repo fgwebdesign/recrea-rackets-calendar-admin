@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ClockIcon, CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { Badge } from '@/components/ui/badge';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface TimeSlot {
   slot_id: string;
@@ -22,6 +23,7 @@ interface TimeSlotSelectorProps {
 }
 
 export function TimeSlotSelector({ slots, selectedSlot, onSlotSelect, disabled }: TimeSlotSelectorProps) {
+  const t = useTranslations('tournaments');
   const [isOpen, setIsOpen] = useState(false);
 
   const getSlotStatus = (slot: TimeSlot) => {
@@ -85,7 +87,7 @@ export function TimeSlotSelector({ slots, selectedSlot, onSlotSelect, disabled }
   return (
     <div className="relative">
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-        Horario No Disponible *
+        {t('adminRegister.timeSlotSelector.label')}
       </label>
       
       {/* Selector Button */}
@@ -111,21 +113,21 @@ export function TimeSlotSelector({ slots, selectedSlot, onSlotSelect, disabled }
                 <div>
                   <div className="font-medium">{selectedSlotData.label}</div>
                   <div className="text-sm opacity-75">
-                    {selectedSlotData.remaining_slots} cupos disponibles
+                    {selectedSlotData.remaining_slots} {t('adminRegister.timeSlotSelector.slotsAvailable')}
                   </div>
                 </div>
               </>
             ) : (
               <>
                 <ClockIcon className="h-5 w-5 text-gray-400" />
-                <span className="text-gray-500 dark:text-gray-400">Seleccionar horario...</span>
+                <span className="text-gray-500 dark:text-gray-400">{t('adminRegister.timeSlotSelector.selectPlaceholder')}</span>
               </>
             )}
           </div>
           <div className="flex items-center gap-2">
             {selectedSlotData && (
               <Badge className={getSlotColors(getSlotStatus(selectedSlotData)).badge}>
-                {selectedSlotData.percentage_full}% ocupado
+                {selectedSlotData.percentage_full}% {t('adminRegister.timeSlotSelector.occupied')}
               </Badge>
             )}
             <svg
@@ -173,15 +175,15 @@ export function TimeSlotSelector({ slots, selectedSlot, onSlotSelect, disabled }
                       <div className="font-medium">{slot.label}</div>
                       <div className="text-sm opacity-75">
                         {slot.is_available 
-                          ? `${slot.remaining_slots} cupos disponibles`
-                          : 'COMPLETO'
+                          ? `${slot.remaining_slots} ${t('adminRegister.timeSlotSelector.slotsAvailable')}`
+                          : t('adminRegister.timeSlotSelector.full')
                         }
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge className={colors.badge}>
-                      {slot.percentage_full}% ocupado
+                      {slot.percentage_full}% {t('adminRegister.timeSlotSelector.occupied')}
                     </Badge>
                     {!slot.is_available && (
                       <XCircleIcon className="h-5 w-5 text-red-500" />
@@ -200,14 +202,14 @@ export function TimeSlotSelector({ slots, selectedSlot, onSlotSelect, disabled }
           <div className="flex items-center gap-2 mb-2">
             <ClockIcon className={`h-4 w-4 ${getSlotColors(getSlotStatus(selectedSlotData)).icon}`} />
             <h4 className={`font-medium ${getSlotColors(getSlotStatus(selectedSlotData)).text}`}>
-              Información del Horario:
+              {t('adminRegister.timeSlotSelector.scheduleInfo')}:
             </h4>
           </div>
           <div className={`text-sm space-y-1 ${getSlotColors(getSlotStatus(selectedSlotData)).text}`}>
             <p><strong>{selectedSlotData.label}</strong></p>
-            <p>Cupos disponibles: {selectedSlotData.remaining_slots}</p>
-            <p>Ocupación: {selectedSlotData.percentage_full}%</p>
-            <p>Capacidad total: {selectedSlotData.total_capacity} equipos</p>
+            <p>{t('adminRegister.timeSlotSelector.availableSlots')}: {selectedSlotData.remaining_slots}</p>
+            <p>{t('adminRegister.timeSlotSelector.occupation')}: {selectedSlotData.percentage_full}%</p>
+            <p>{t('adminRegister.timeSlotSelector.totalCapacity')}: {selectedSlotData.total_capacity} {t('adminRegister.timeSlotSelector.teams')}</p>
           </div>
         </div>
       )}

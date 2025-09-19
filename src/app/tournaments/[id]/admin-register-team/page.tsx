@@ -18,6 +18,7 @@ import { TimeSlotSelector } from '@/components/Tournaments/TimeSlotSelector';
 import { TeamSummary } from '@/components/Tournaments/TeamSummary';
 import { FormStatus } from '@/components/Tournaments/FormStatus';
 import { ShirtSizesSelector } from '@/components/Tournaments/ShirtSizesSelector';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface Player {
   id: string;
@@ -42,6 +43,7 @@ export default function AdminRegisterTeamPage() {
   const params = useParams();
   const router = useRouter();
   const tournamentId = params.id as string;
+  const t = useTranslations('tournaments');
   
   const [players, setPlayers] = useState<Player[]>([]);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
@@ -104,32 +106,32 @@ export default function AdminRegisterTeamPage() {
 
     // Validar jugador 1
     if (!selectedPlayer1) {
-      errors.player1 = 'Debe seleccionar el primer jugador';
+      errors.player1 = t('adminRegister.validation.player1Required');
     }
 
     // Validar jugador 2
     if (!selectedPlayer2) {
-      errors.player2 = 'Debe seleccionar el segundo jugador';
+      errors.player2 = t('adminRegister.validation.player2Required');
     } else if (selectedPlayer1 && selectedPlayer1 === selectedPlayer2) {
-      errors.player2 = 'Los dos jugadores deben ser distintos';
+      errors.player2 = t('adminRegister.validation.playersMustBeDifferent');
     }
 
     // Validar time slot
     if (!selectedSlot) {
-      errors.slot = 'Debe seleccionar un horario';
+      errors.slot = t('adminRegister.validation.slotRequired');
     } else {
       const slot = availableSlots.find(s => s.slot_id === selectedSlot);
       if (slot && !slot.is_available) {
-        errors.slot = 'Este horario está completo';
+        errors.slot = t('adminRegister.validation.slotFull');
       }
     }
 
     // Validar talles de remera si el torneo los requiere
     if (getRequiresShirts()) {
       if (selectedShirtSizes.length === 0) {
-        errors.shirtSizes = 'Debe seleccionar al menos un talle de remera';
+        errors.shirtSizes = t('adminRegister.validation.shirtSizesRequired');
       } else if (selectedShirtSizes.length > 2) {
-        errors.shirtSizes = 'No puede seleccionar más de 2 talles';
+        errors.shirtSizes = t('adminRegister.validation.shirtSizesMax');
       }
     }
 
@@ -167,7 +169,7 @@ export default function AdminRegisterTeamPage() {
       });
       
       if (!response.ok) {
-        throw new Error('Error al cargar jugadores disponibles');
+        throw new Error(t('adminRegister.errors.loadPlayers'));
       }
       
       const data = await response.json();
@@ -175,8 +177,8 @@ export default function AdminRegisterTeamPage() {
     } catch (err) {
       console.error('Error cargando jugadores:', err);
       toast({
-        title: "Error",
-        description: "Error al cargar la lista de jugadores disponibles",
+        title: t('adminRegister.errors.title'),
+        description: t('adminRegister.errors.loadPlayersDescription'),
         variant: "destructive",
       });
     }
@@ -191,7 +193,7 @@ export default function AdminRegisterTeamPage() {
       });
       
       if (!response.ok) {
-        throw new Error('Error al cargar slots disponibles');
+        throw new Error(t('adminRegister.errors.loadSlots'));
       }
       
       const data = await response.json();
@@ -199,8 +201,8 @@ export default function AdminRegisterTeamPage() {
     } catch (err) {
       console.error('Error cargando slots:', err);
       toast({
-        title: "Error",
-        description: "Error al cargar los horarios disponibles",
+        title: t('adminRegister.errors.title'),
+        description: t('adminRegister.errors.loadSlotsDescription'),
         variant: "destructive",
       });
     } finally {
@@ -249,45 +251,45 @@ export default function AdminRegisterTeamPage() {
         if (response.status === 400) {
           if (data.message.includes('ya están registrados')) {
             toast({
-              title: "Error de Registro",
-              description: "Uno o ambos jugadores ya están registrados en este torneo",
+              title: t('adminRegister.errors.registrationError'),
+              description: t('adminRegister.errors.playersAlreadyRegistered'),
               variant: "destructive",
             });
           } else if (data.message.includes('está completo')) {
             toast({
-              title: "Torneo Completo",
-              description: "El torneo está completo o el horario seleccionado no tiene cupos disponibles",
+              title: t('adminRegister.errors.tournamentFull'),
+              description: t('adminRegister.errors.tournamentFullDescription'),
               variant: "destructive",
             });
           } else if (data.message.includes('distintos')) {
             toast({
-              title: "Jugadores Inválidos",
-              description: "Los dos jugadores deben ser distintos",
+              title: t('adminRegister.errors.invalidPlayers'),
+              description: t('adminRegister.errors.playersMustBeDifferent'),
               variant: "destructive",
             });
           } else {
             toast({
-              title: "Error de Validación",
-              description: data.message || 'Error en los datos enviados',
+              title: t('adminRegister.errors.validationError'),
+              description: data.message || t('adminRegister.errors.validationErrorDescription'),
               variant: "destructive",
             });
           }
         } else if (response.status === 404) {
           toast({
-            title: "Torneo No Encontrado",
-            description: "El torneo solicitado no existe",
+            title: t('adminRegister.errors.tournamentNotFound'),
+            description: t('adminRegister.errors.tournamentNotFoundDescription'),
             variant: "destructive",
           });
         } else if (response.status === 500) {
           toast({
-            title: "Error del Servidor",
-            description: "Error interno del servidor. Intenta nuevamente.",
+            title: t('adminRegister.errors.serverError'),
+            description: t('adminRegister.errors.serverErrorDescription'),
             variant: "destructive",
           });
         } else {
           toast({
-            title: "Error",
-            description: data.message || 'Error al registrar el equipo',
+            title: t('adminRegister.errors.title'),
+            description: data.message || t('adminRegister.errors.registerTeamError'),
             variant: "destructive",
           });
         }
@@ -306,8 +308,8 @@ export default function AdminRegisterTeamPage() {
       });
       
       toast({
-        title: "¡Equipo Registrado Exitosamente!",
-        description: `${player1Name?.first_name} ${player1Name?.last_name} & ${player2Name?.first_name} ${player2Name?.last_name} registrados en ${slotInfo?.label}`,
+        title: t('adminRegister.success.title'),
+        description: `${player1Name?.first_name} ${player1Name?.last_name} & ${player2Name?.first_name} ${player2Name?.last_name} ${t('adminRegister.success.registeredIn')} ${slotInfo?.label}`,
         variant: "default",
       });
       
@@ -323,8 +325,8 @@ export default function AdminRegisterTeamPage() {
     } catch (err: any) {
       console.error('Error en registro:', err);
       toast({
-        title: "Error de Conexión",
-        description: "Verifica tu conexión a internet e intenta nuevamente.",
+        title: t('adminRegister.errors.connectionError'),
+        description: t('adminRegister.errors.connectionErrorDescription'),
         variant: "destructive",
       });
     } finally {
@@ -363,7 +365,7 @@ export default function AdminRegisterTeamPage() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              No se encontró el torneo solicitado.
+              {t('detail.tournamentNotFound')}
             </AlertDescription>
           </Alert>
         </div>
@@ -381,13 +383,13 @@ export default function AdminRegisterTeamPage() {
             className="mb-6 flex items-center"
           >
             <ArrowLeftIcon className="w-4 h-4 mr-2" />
-            Volver a equipos
+            {t('adminRegister.backToTeams')}
           </Button>
         </div>
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-            Registrar Equipo - {tournament.name}
+            {t('adminRegister.title')} - {tournament.name}
           </h1>
           <div className="flex items-center gap-3 mb-3">
             <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
@@ -395,7 +397,7 @@ export default function AdminRegisterTeamPage() {
             </Badge>
           </div>
           <p className="text-gray-600 dark:text-gray-400">
-            Inscribe un equipo en el torneo desde el panel de administración
+            {t('adminRegister.description')}
           </p>
         </div>
 
@@ -405,7 +407,7 @@ export default function AdminRegisterTeamPage() {
               <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                 <UsersIcon className="h-5 w-5 text-white" />
               </div>
-              Formulario de Registro
+              {t('adminRegister.formTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-8">
@@ -416,7 +418,7 @@ export default function AdminRegisterTeamPage() {
                   players={players}
                   selectedPlayer={selectedPlayer1}
                   onPlayerSelect={setSelectedPlayer1}
-                  placeholder="Seleccionar primer jugador..."
+                  placeholder={t('adminRegister.placeholders.selectFirstPlayer')}
                 />
                 {validationErrors.player1 && (
                   <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
@@ -433,7 +435,7 @@ export default function AdminRegisterTeamPage() {
                   selectedPlayer={selectedPlayer2}
                   onPlayerSelect={setSelectedPlayer2}
                   disabled={!selectedPlayer1}
-                  placeholder="Seleccionar segundo jugador..."
+                  placeholder={t('adminRegister.placeholders.selectSecondPlayer')}
                   excludePlayer={selectedPlayer1}
                 />
                 {validationErrors.player2 && (
@@ -507,12 +509,12 @@ export default function AdminRegisterTeamPage() {
                   {loading ? (
                     <>
                       <Loader2 className="h-5 w-5 mr-3 animate-spin" />
-                      Registrando Equipo...
+                      {t('adminRegister.registering')}
                     </>
                   ) : (
                     <>
                       <UsersIcon className="h-5 w-5 mr-3" />
-                      Registrar Equipo
+                      {t('adminRegister.registerTeam')}
                     </>
                   )}
                 </Button>

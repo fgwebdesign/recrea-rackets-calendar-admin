@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { UserIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Badge } from '@/components/ui/badge';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface Player {
   id: string;
@@ -30,6 +31,7 @@ export function PlayerSelector({
   placeholder = "Seleccionar jugador...",
   excludePlayer 
 }: PlayerSelectorProps) {
+  const t = useTranslations('tournaments');
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -95,7 +97,7 @@ export function PlayerSelector({
             {selectedPlayerData && (
               <Badge className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
                 <CheckIcon className="h-3 w-3 mr-1" />
-                Seleccionado
+                {t('adminRegister.playerSelector.selected')}
               </Badge>
             )}
             <svg
@@ -119,7 +121,7 @@ export function PlayerSelector({
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
             <input
               type="text"
-              placeholder="Buscar jugador..."
+              placeholder={t('adminRegister.playerSelector.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -188,10 +190,10 @@ export function PlayerSelector({
             ) : (
               <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                 <UserIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No se encontraron jugadores</p>
+                <p>{t('adminRegister.playerSelector.noPlayersFound')}</p>
                 {searchTerm && (
                   <p className="text-sm mt-1">
-                    Intenta con otro término de búsqueda
+                    {t('adminRegister.playerSelector.tryDifferentSearch')}
                   </p>
                 )}
               </div>
