@@ -8,13 +8,24 @@ interface UserAvatarProps {
 }
 
 export default function UserAvatar({ name, avatar, className = "" }: UserAvatarProps) {
-  // Get initials from name
+  // Get initials from name - mejorado para manejar casos edge
   const getInitials = (name: string) => {
-    const names = name.split(' ');
+    if (!name || name === 'undefined' || name === 'null' || name.trim() === '') {
+      return 'U';
+    }
+    
+    // Limpiar el nombre de cualquier "undefined" que pueda haber quedado
+    const cleanName = name.replace(/undefined/gi, '').trim();
+    
+    if (!cleanName) {
+      return 'U';
+    }
+    
+    const names = cleanName.split(' ').filter(n => n.length > 0);
     if (names.length >= 2) {
       return `${names[0][0]}${names[1][0]}`.toUpperCase();
     }
-    return name[0].toUpperCase();
+    return cleanName[0].toUpperCase();
   };
 
   // If there's a valid avatar URL

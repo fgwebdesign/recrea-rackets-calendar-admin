@@ -66,7 +66,26 @@ export function CategoryStandings({
       />
 
       {!standings.length ? (
-        <EmptyStandings message={`No hay datos disponibles para la categoría ${currentCategory}.`} />
+        <div className="text-center p-8 bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="text-red-500 dark:text-red-400 mb-2">
+            <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            Sin posiciones disponibles
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            No hay datos disponibles para la categoría {currentCategory}.
+          </p>
+          <div className="text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 p-3 rounded">
+            <p><strong>Debug Info:</strong></p>
+            <p>• Categoría seleccionada: {selectedCategory}</p>
+            <p>• Nombre de categoría: {currentCategory}</p>
+            <p>• Total de standings: {standings?.length || 0}</p>
+            <p>• Estado de carga: {isLoading ? 'Cargando...' : 'Completado'}</p>
+          </div>
+        </div>
       ) : (
         <div className="w-full overflow-x-auto rounded-lg bg-white dark:bg-gray-900 p-4 shadow-sm border border-gray-200 dark:border-gray-700">
           <table className="w-full">
@@ -110,13 +129,16 @@ export function CategoryStandings({
                     {standing.losses}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-green-600 dark:text-green-400">
-                    {standing.sets_won}
+                    {standing.games_won}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-red-600 dark:text-red-500">
-                    {standing.sets_lost}
+                    {standing.games_lost}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-green-600 dark:text-green-400">
-                    {standing.sets_difference}
+                    {(() => {
+                      const gamesDifference = standing.games_won - standing.games_lost;
+                      return gamesDifference > 0 ? `+${gamesDifference}` : gamesDifference;
+                    })()}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-3xl text-center font-orbitron font-bold text-green-600 dark:text-green-400">
                     {standing.points}

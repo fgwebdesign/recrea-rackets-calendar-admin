@@ -5,7 +5,7 @@ import UsersTable from '../../components/Users/UsersTable';
 import UserFilters from '../../components/Users/UserFilter';
 import Header from '@/components/Header';
 import { UsersIcon } from '@heroicons/react/24/outline';
-import { useTranslations } from '@/contexts/TranslationContext';
+import { supabase } from '@/lib/supabase';
 
 interface User {
   id: string;
@@ -19,7 +19,6 @@ interface User {
 }
 
 export default function UsersPage() {
-  const t = useTranslations('users');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
   const [users, setUsers] = useState<User[]>([]);
@@ -28,24 +27,32 @@ export default function UsersPage() {
   useEffect(() => {
     async function fetchUsers() {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/players`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch users');
+        // Usar directamente Supabase en lugar del endpoint /players
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw new Error(`Error fetching users: ${error.message}`);
         }
-        const data = await response.json();
-        const transformedUsers = data.map((user: any) => ({
-          id: user.id,
-          email: user.email,
-          name: `${user.first_name} ${user.last_name}`,
-          role: user.role === 'user' ? t('player') : user.role,
-          status: 'active', 
-          lastLogin: new Date().toISOString().split('T')[0], 
-          avatar: user.profile_photo || 
-                 user.user_metadata?.avatar_url || 
-                 (user.raw_user_meta_data && user.raw_user_meta_data.avatar_url) || 
-                 '/assets/user.png',
-          phone: user.phone || t('notAvailable')
-        }));
+
+        const transformedUsers = data.map((user: any) => {
+          const firstName = user.first_name || '';
+          const lastName = user.last_name || '';
+          const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Usuario sin nombre';
+          
+          return {
+            id: user.id,
+            email: user.email,
+            name: fullName,
+            role: 'Jugador', // Todos los usuarios de la tabla users son jugadores
+            status: 'active', 
+            lastLogin: new Date().toISOString().split('T')[0], 
+            avatar: '/assets/user.png', // Avatar por defecto
+            phone: user.phone || 'No disponible'
+          };
+        });
         setUsers(transformedUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -81,8 +88,8 @@ export default function UsersPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         <Header 
-          title={t('title')}
-          description={t('description')}
+          title="Usuarios"
+          description="Administra y visualiza todos los usuarios."
           icon={<UsersIcon className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
         />
 

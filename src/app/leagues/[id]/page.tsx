@@ -90,7 +90,8 @@ export default function LeagueDetailsPage() {
     deleteImage, 
     refetch: refetchGallery,
     hasMore,
-    loadMore
+    loadMore,
+    total
   } = useGallery(leagueId)
 
   if (isLoadingLeague || isLoadingCategories || isLoadingStandings) {
@@ -506,6 +507,7 @@ export default function LeagueDetailsPage() {
                       hasMore={hasMore}
                       isLoading={isLoadingGallery}
                       onLoadMore={loadMore}
+                      total={total}
                     />
                   )}
                 </CardContent>
