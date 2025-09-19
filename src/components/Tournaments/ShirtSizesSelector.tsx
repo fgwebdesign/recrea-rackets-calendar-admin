@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Shirt } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface ShirtSizesSelectorProps {
   selectedSizes: string[];
@@ -29,6 +30,8 @@ export function ShirtSizesSelector({
   error, 
   disabled = false 
 }: ShirtSizesSelectorProps) {
+  const t = useTranslations('tournaments');
+  
   const handleSizeToggle = (size: string) => {
     if (disabled) return;
     
@@ -57,10 +60,10 @@ export function ShirtSizesSelector({
           <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg">
             <Shirt className="h-5 w-5 text-emerald-600" />
           </div>
-          Seleccionar Talles de Remera
+          {t('adminRegister.shirtSizesSelector.title')}
         </CardTitle>
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          Selecciona entre 1 y 2 talles para el equipo. Puedes elegir el mismo talle para ambos jugadores.
+          {t('adminRegister.shirtSizesSelector.description')}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -92,7 +95,7 @@ export function ShirtSizesSelector({
         {/* Información de selección */}
         <div className="flex items-center justify-between text-sm">
           <span className="text-slate-600 dark:text-slate-400">
-            Seleccionados: {selectedSizes.length}/2
+            {t('adminRegister.shirtSizesSelector.selected')}: {selectedSizes.length}/2
           </span>
           {selectedSizes.length > 0 && (
             <span className="text-emerald-600 dark:text-emerald-400 font-medium">
@@ -112,7 +115,7 @@ export function ShirtSizesSelector({
         {/* Información adicional */}
         <div className="bg-blue-50 dark:bg-blue-500/10 p-3 rounded-lg">
           <p className="text-xs text-blue-700 dark:text-blue-300">
-            <strong>Nota:</strong> Si seleccionas el mismo talle dos veces (ej: M, M), ambos jugadores recibirán el mismo talle de remera.
+            <strong>{t('adminRegister.shirtSizesSelector.note')}:</strong> {t('adminRegister.shirtSizesSelector.noteDescription')}
           </p>
         </div>
       </CardContent>

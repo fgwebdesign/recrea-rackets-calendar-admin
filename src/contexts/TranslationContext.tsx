@@ -516,6 +516,13 @@ const translations: Record<Locale, Record<string, any>> = {
         pending: 'Pendiente',
         fixErrors: 'Corrige los errores antes de continuar',
         readyToSubmit: 'Formulario completo y listo para enviar'
+      },
+      shirtSizesSelector: {
+        title: 'Seleccionar Talles de Remera',
+        description: 'Selecciona entre 1 y 2 talles para el equipo. Puedes elegir el mismo talle para ambos jugadores.',
+        selected: 'Seleccionados',
+        note: 'Nota',
+        noteDescription: 'Si seleccionas el mismo talle dos veces (ej: M, M), ambos jugadores recibirán el mismo talle de remera.'
       }
     },
     // Create Tournament
@@ -1187,6 +1194,13 @@ const translations: Record<Locale, Record<string, any>> = {
         pending: 'Pending',
         fixErrors: 'Fix errors before continuing',
         readyToSubmit: 'Form complete and ready to submit'
+      },
+      shirtSizesSelector: {
+        title: 'Select Shirt Sizes',
+        description: 'Select between 1 and 2 sizes for the team. You can choose the same size for both players.',
+        selected: 'Selected',
+        note: 'Note',
+        noteDescription: 'If you select the same size twice (e.g., M, M), both players will receive the same shirt size.'
       }
     },
     // Create Tournament
