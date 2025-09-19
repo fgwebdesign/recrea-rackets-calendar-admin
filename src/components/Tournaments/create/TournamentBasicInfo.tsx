@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { TournamentFormData } from '@/hooks/useTournamentForm';
 import { Category } from '@/types/category';
 import { SponsorSelector } from './SponsorSelector';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface Court {
   id: string;
@@ -53,6 +54,7 @@ function LabelWithTooltip({
 }
 
 export function TournamentBasicInfo({ formData, setFormData, categories = [], courts = [], onSubmit, errors }: TournamentBasicInfoProps) {
+  const t = useTranslations('tournaments');
   const handleCategoryToggle = (categoryId: string) => {
     const currentCategories = Array.isArray(formData.categories) ? formData.categories : [];
     const isSelected = currentCategories.includes(categoryId);
@@ -109,24 +111,24 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
     <TooltipProvider>
       <div className="p-8 space-y-6 bg-background/50 rounded-lg border border-border/50">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200 mb-2">
-            Información Básica del Torneo
-          </h2>
+            <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200 mb-2">
+              {t('create.basicInfo.title')}
+            </h2>
         </div>
 
         <div className="space-y-5">
           <div>
             <LabelWithTooltip
               htmlFor="name"
-              label="Nombre del Torneo"
-              tooltip="Nombre identificativo del torneo"
+              label={t('create.basicInfo.name.label')}
+              tooltip={t('create.basicInfo.name.tooltip')}
             />
             <div className="space-y-2">
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ej: Torneo de Verano 2024"
+                placeholder={t('create.basicInfo.name.placeholder')}
                 aria-invalid={!!errors.name}
                 className={cn(
                   "bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:border-primary",
@@ -141,8 +143,8 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
 
           <div>
             <LabelWithTooltip
-              label="Categorías"
-              tooltip="Selecciona las categorías que participarán en el torneo"
+              label={t('create.basicInfo.categories.label')}
+              tooltip={t('create.basicInfo.categories.tooltip')}
             />
             <div className="space-y-2">
               <div className={cn(
@@ -178,8 +180,8 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
 
           <div>
             <LabelWithTooltip
-              label="Remeras para Participantes"
-              tooltip="Marca esta opción si el torneo incluye remeras para los participantes. Los jugadores deberán seleccionar sus talles al inscribirse."
+              label={t('create.basicInfo.shirts.label')}
+              tooltip={t('create.basicInfo.shirts.tooltip')}
             />
             <div className="space-y-3">
               <div className={cn(
@@ -204,10 +206,10 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
                   </div>
                   <div>
                     <Label htmlFor="requires_shirts" className="text-sm font-medium cursor-pointer">
-                      Incluir remeras para participantes
+                      {t('create.basicInfo.shirts.switchLabel')}
                     </Label>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Los jugadores seleccionarán sus talles al inscribirse
+                      {t('create.basicInfo.shirts.description')}
                     </p>
                   </div>
                 </div>
@@ -222,7 +224,7 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
                 <div className="bg-emerald-50 dark:bg-emerald-500/10 p-3 rounded-lg border border-emerald-200 dark:border-emerald-500/30">
                   <p className="text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
                     <Info className="h-3 w-3" />
-                    <span className="font-medium">Talles disponibles:</span> XS, S, M, L, XL, XXL
+                    <span className="font-medium">{t('create.basicInfo.shirts.sizesInfo')}</span>
                   </p>
                 </div>
               )}
@@ -241,8 +243,8 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
             <div>
               <LabelWithTooltip
                 htmlFor="start_date"
-                label="Fecha de Inicio"
-                tooltip="Fecha de inicio del torneo"
+                label={t('create.basicInfo.dates.startDate.label')}
+                tooltip={t('create.basicInfo.dates.startDate.tooltip')}
               />
               <div className="space-y-2">
                 <DatePicker
@@ -251,7 +253,7 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
                     ...formData, 
                     start_date: date ? formatDateForInput(date) : '' 
                   })}
-                  placeholder="Selecciona fecha de inicio"
+                  placeholder={t('create.basicInfo.dates.startDate.placeholder')}
                   error={!!errors.start_date}
                 />
                 {errors.start_date && (
@@ -263,8 +265,8 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
             <div>
               <LabelWithTooltip
                 htmlFor="end_date"
-                label="Fecha de Fin"
-                tooltip="Fecha de finalización del torneo. La fecha verde es la recomendada (exactamente 3 días: inicio, día 2, día 3), las rojas están restringidas (muy cortas o muy largas)."
+                label={t('create.basicInfo.dates.endDate.label')}
+                tooltip={t('create.basicInfo.dates.endDate.tooltip')}
               />
               <div className="space-y-2">
                 <DatePicker
@@ -273,7 +275,7 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
                     ...formData, 
                     end_date: date ? formatDateForInput(date) : '' 
                   })}
-                  placeholder="Selecciona fecha de fin"
+                  placeholder={t('create.basicInfo.dates.endDate.placeholder')}
                   error={!!errors.end_date}
                   suggestedDates={getSuggestedEndDates()}
                   restrictedDates={getRestrictedEndDates()}
@@ -290,8 +292,8 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
             <div>
               <LabelWithTooltip
                 htmlFor="courts_available"
-                label="Canchas Disponibles"
-                tooltip="Número de canchas disponibles para el torneo"
+                label={t('create.basicInfo.courts.label')}
+                tooltip={t('create.basicInfo.courts.tooltip')}
               />
               <div className="space-y-2">
                 <Select
@@ -304,12 +306,12 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
                       errors.courts_available && "border-red-500 dark:border-red-500"
                     )}
                   >
-                    <SelectValue placeholder="Selecciona las canchas" />
+                    <SelectValue placeholder={t('create.basicInfo.courts.placeholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {courts.map((court, index) => (
                       <SelectItem key={court.id} value={(index + 1).toString()}>
-                        {index + 1} {index === 0 ? 'cancha' : 'canchas'}
+                        {index + 1} {index === 0 ? t('create.basicInfo.courts.single') : t('create.basicInfo.courts.plural')}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -323,8 +325,8 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
             <div>
               <LabelWithTooltip
                 htmlFor="tournament_type"
-                label="Tipo de Torneo"
-                tooltip="Formato del torneo"
+                label={t('create.basicInfo.tournamentType.label')}
+                tooltip={t('create.basicInfo.tournamentType.tooltip')}
               />
               <div className="space-y-2">
                 <Select
@@ -339,13 +341,13 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
                       errors.tournament_type && "border-red-500 dark:border-red-500"
                     )}
                   >
-                    <SelectValue placeholder="Selecciona el tipo" />
+                    <SelectValue placeholder={t('create.basicInfo.tournamentType.placeholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="SIX_PLAYERS">6 Jugadores</SelectItem>
-                    <SelectItem value="NINE_PLAYERS">9 Jugadores</SelectItem>
-                    <SelectItem value="TWELVE_PLAYERS">12 Jugadores</SelectItem>
-                    <SelectItem value="SIXTEEN_PLAYERS">16 Jugadores</SelectItem>
+                    <SelectItem value="SIX_PLAYERS">{t('create.basicInfo.tournamentType.sixPlayers')}</SelectItem>
+                    <SelectItem value="NINE_PLAYERS">{t('create.basicInfo.tournamentType.ninePlayers')}</SelectItem>
+                    <SelectItem value="TWELVE_PLAYERS">{t('create.basicInfo.tournamentType.twelvePlayers')}</SelectItem>
+                    <SelectItem value="SIXTEEN_PLAYERS">{t('create.basicInfo.tournamentType.sixteenPlayers')}</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.tournament_type && (
@@ -357,8 +359,8 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
 
           <div>
             <LabelWithTooltip
-              label="Imagen del Torneo"
-              tooltip="Imagen representativa del torneo"
+              label={t('create.basicInfo.image.label')}
+              tooltip={t('create.basicInfo.image.tooltip')}
             />
             <div className="space-y-2">
               <ImageUpload
@@ -376,7 +378,7 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
 
           <div className="pt-4 flex justify-end">
             <Button onClick={() => onSubmit(formData)} className="bg-primary hover:bg-primary/90">
-              Continuar
+              {t('create.basicInfo.continue')}
             </Button>
           </div>
         </div>

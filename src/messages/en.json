@@ -47,7 +47,28 @@
     "totalTournaments": "Total Tournaments",
     "inProgress": "In Progress",
     "totalTeams": "Total Teams",
-    "revenue": "Revenue"
+    "revenue": "Revenue",
+    "upcomingMatchesLeagues": "Upcoming Matches - Leagues",
+    "upcomingMatchesTournaments": "Upcoming Matches - Tournaments",
+    "registrationProgressLeagues": "Registration Progress - Leagues",
+    "registrationProgressTournaments": "Registration Progress - Tournaments",
+    "standingsLeagues": "Standings - Leagues",
+    "standingsTournaments": "Standings - Tournaments",
+    "leagues": "Leagues",
+    "tournaments": "Tournaments",
+    "selectTournament": "Select a tournament!",
+    "selectTournamentDescription": "Choose a tournament from the dropdown menu to see its standings and statistics.",
+    "positionsComingSoon": "Positions coming soon",
+    "positionsComingSoonDescription": "Positions will appear here when tournament matches are generated.",
+    "errorLoadingPositions": "Error loading positions",
+    "noMatchesScheduled": "No matches scheduled yet!",
+    "noMatchesScheduledDescription": "Tournament matches will appear here when they are scheduled. Stay tuned for upcoming competitions!",
+    "noMatchesForAllCategories": "Tournament matches will appear here when they are scheduled. Stay tuned for upcoming competitions!",
+    "noMatchesForCategory": "No matches scheduled for the {category} category. Check other categories or wait for more matches to be scheduled!",
+    "noTournaments": "No tournaments available",
+    "noTournamentsDescription": "No tournaments are available at this time. Tournaments will appear here when they are created.",
+    "noTournamentsForCategory": "No tournaments in this category",
+    "noTournamentsForCategoryDescription": "No tournaments available for the selected category."
   },
   "tournaments": {
     "title": "Tournaments",
@@ -119,9 +140,19 @@
     "invalidCredentials": "Invalid credentials",
     "adminRequired": "Administrator permissions required"
   },
-  "language": {
-    "spanish": "Español",
-    "english": "English",
-    "changeLanguage": "Change language"
+  "emptyStates": {
+    "noTournaments": "No tournaments available",
+    "noTournamentsDescription": "No tournaments are available at this time. Tournaments will appear here when they are created.",
+    "noMatchesScheduled": "No matches scheduled yet!",
+    "noMatchesScheduledDescription": "Tournament matches will appear here when they are scheduled. Stay tuned for upcoming competitions!",
+    "noMatchesForCategory": "No matches scheduled for the {category} category. Check other categories or wait for more matches to be scheduled!",
+    "noMatchesForAllCategories": "Tournament matches will appear here when they are scheduled. Stay tuned for upcoming competitions!",
+    "noLeagues": "No leagues available",
+    "noLeaguesDescription": "No leagues are available at this time. Leagues will appear here when they are created.",
+    "noMatches": "No matches scheduled",
+    "noMatchesDescription": "No matches scheduled for this date",
+    "noMatchesForLeague": "No matches scheduled for this league",
+    "noTournamentsForCategory": "No tournaments in this category",
+    "noTournamentsForCategoryDescription": "No tournaments available for the selected category."
   }
 }

@@ -27,7 +27,7 @@ export function LanguageToggle() {
   return (
     <div className="relative group">
       {/* Switch Container */}
-      <div className="relative flex items-center space-x-2">
+      <div className="relative flex flex-col items-center space-y-2">
         {/* Spanish Flag */}
         <div className={`
           w-8 h-8 rounded-full transition-all duration-300 ease-in-out
@@ -61,11 +61,11 @@ export function LanguageToggle() {
         <button
           onClick={toggleLanguage}
           className={`
-            relative w-12 h-6 rounded-full transition-all duration-300 ease-in-out
+            relative w-6 h-12 rounded-full transition-all duration-300 ease-in-out
             focus:outline-none focus:ring-4 focus:ring-blue-500/20
             ${locale === 'es' 
-              ? 'bg-gradient-to-r from-red-500 to-red-600 shadow-lg shadow-red-500/30' 
-              : 'bg-gradient-to-r from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30'
+              ? 'bg-gradient-to-b from-red-500 to-red-600 shadow-lg shadow-red-500/30' 
+              : 'bg-gradient-to-b from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30'
             }
             hover:scale-105 active:scale-95
           `}
@@ -78,9 +78,9 @@ export function LanguageToggle() {
 
           {/* Sliding Indicator */}
           <div className={`
-            absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-lg
+            absolute left-0.5 w-5 h-5 bg-white rounded-full shadow-lg
             transition-all duration-300 ease-in-out
-            ${locale === 'es' ? 'left-0.5' : 'left-6.5'}
+            ${locale === 'es' ? 'top-0.5' : 'top-6.5'}
           `}>
             {/* Inner glow effect */}
             <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white to-gray-100"></div>

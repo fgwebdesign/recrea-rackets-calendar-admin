@@ -6,6 +6,7 @@ import { EmptySchedule } from "./EmptySchedule";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCategories } from "@/hooks/useCategories";
 import { useTournaments } from "@/hooks/useTournaments";
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface TournamentMatch {
   id: string;
@@ -26,6 +27,7 @@ interface TournamentScheduleCardProps {
 
 export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: TournamentScheduleCardProps) {
   const router = useRouter();
+  const t = useTranslations('dashboard');
   const [matches, setMatches] = useState<TournamentMatch[]>([]);
   const [filteredMatches, setFilteredMatches] = useState<TournamentMatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -202,11 +204,10 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
             <CalendarDays className="w-12 h-12 text-purple-500 dark:text-purple-400" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            ¡No hay partidos programados aún!
+            {t('noMatchesScheduled')}
           </h3>
           <p className="text-gray-600 dark:text-gray-400 max-w-sm">
-            Los partidos de torneos aparecerán aquí cuando estén programados. 
-            ¡Mantente atento a las próximas competencias!
+            {t('noMatchesScheduledDescription')}
           </p>
         </div>
       </div>
@@ -243,12 +244,12 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
             <CalendarDays className="w-12 h-12 text-purple-500 dark:text-purple-400" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            ¡No hay partidos programados aún!
+            {t('noMatchesScheduled')}
           </h3>
           <p className="text-gray-600 dark:text-gray-400 max-w-sm">
             {selectedCategory === 'all' 
-              ? 'Los partidos de torneos aparecerán aquí cuando estén programados. ¡Mantente atento a las próximas competencias!'
-              : `No hay partidos programados para la categoría ${selectedCategory}. ¡Revisa otras categorías o espera a que se programen más partidos!`}
+              ? t('noMatchesForAllCategories')
+              : t('noMatchesForCategory').replace('{category}', selectedCategory)}
           </p>
         </div>
       </div>

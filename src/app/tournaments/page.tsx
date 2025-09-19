@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import Header from '@/components/Header'
 import { useCategories } from '@/hooks/useCategories'
 import { useTournaments } from '@/hooks/useTournaments'
+import { useTranslations } from '@/contexts/TranslationContext'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +21,7 @@ import CalendarFilter from '@/components/Tournaments/CalendarFilter'
 
 export default function TournamentsPage() {
   const router = useRouter()
+  const t = useTranslations('tournaments')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
@@ -72,11 +74,11 @@ export default function TournamentsPage() {
   const getStatusBadge = (status: Tournament['status']) => {
     switch (status) {
       case 'upcoming':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 transition-colors">Inscripciones Abiertas</Badge>
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 transition-colors">{t('statusUpcoming')}</Badge>
       case 'in_progress':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors">En Curso</Badge>
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors">{t('statusInProgress')}</Badge>
       case 'completed':
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 transition-colors">Finalizado</Badge>
+        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 transition-colors">{t('statusCompleted')}</Badge>
     }
   }
 
@@ -105,7 +107,7 @@ export default function TournamentsPage() {
                 onClick={refetch}
                 className="ml-4"
               >
-                Reintentar
+                {t('retry')}
               </Button>
             </AlertDescription>
           </Alert>
@@ -167,16 +169,16 @@ export default function TournamentsPage() {
       <div className="max-w-7xl mx-auto p-8">
         {/* 🎯 Header mejorado */}
         <Header 
-          title="Torneos"
+          title={t('title')}
           icon={<TrophyIcon className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
-          description="Administra y visualiza todos los torneos del sistema."
+          description={t('description')}
           button={
             <Button
               onClick={() => router.push('/tournaments/create')}
               className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 dark:from-blue-500 dark:to-blue-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center shadow-lg hover:shadow-xl transform hover:scale-105"
             >
               <PlusIcon className="mr-2 w-5 h-5" />
-              Crear Torneo
+              {t('createTournament')}
             </Button>
           }
         />
@@ -187,7 +189,7 @@ export default function TournamentsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Torneos</p>
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">{t('totalTournaments')}</p>
                   <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{stats.total}</p>
                 </div>
                 <TrophyIcon className="h-8 w-8 text-blue-500" />
@@ -199,7 +201,7 @@ export default function TournamentsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-600 dark:text-green-400">En Curso</p>
+                  <p className="text-sm font-medium text-green-600 dark:text-green-400">{t('inProgress')}</p>
                   <p className="text-3xl font-bold text-green-700 dark:text-green-300">{stats.inProgress}</p>
                 </div>
                 <ClockIcon className="h-8 w-8 text-green-500" />
@@ -211,7 +213,7 @@ export default function TournamentsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Total Equipos</p>
+                  <p className="text-sm font-medium text-purple-600 dark:text-purple-400">{t('totalTeams')}</p>
                   <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{stats.totalTeams}</p>
                 </div>
                 <UsersIcon className="h-8 w-8 text-purple-500" />
@@ -223,7 +225,7 @@ export default function TournamentsPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Ingresos</p>
+                  <p className="text-sm font-medium text-amber-600 dark:text-amber-400">{t('revenue')}</p>
                   <p className="text-3xl font-bold text-amber-700 dark:text-amber-300">${stats.totalRevenue.toLocaleString()}</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-amber-500" />
@@ -239,7 +241,7 @@ export default function TournamentsPage() {
               <div className="flex-1 flex gap-4">
                 <div className="relative flex-1">
                   <Input
-                    placeholder="Buscar por nombre o categoría..."
+                    placeholder={t('searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 bg-transparent border-gray-300 focus:border-blue-500 focus:ring-blue-500"
@@ -249,10 +251,10 @@ export default function TournamentsPage() {
                 
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                   <SelectTrigger className="w-[200px] bg-transparent border-gray-300 focus:border-blue-500">
-                    <SelectValue placeholder="Todas las categorías" />
+                    <SelectValue placeholder={t('allCategories')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas las categorías</SelectItem>
+                    <SelectItem value="all">{t('allCategories')}</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
@@ -272,7 +274,7 @@ export default function TournamentsPage() {
                   }`}
                 >
                   <FunnelIcon className="h-4 w-4 mr-2" />
-                  Filtro Fechas
+                  {t('dateFilter')}
                 </Button>
               </div>
 
@@ -286,7 +288,7 @@ export default function TournamentsPage() {
                       : 'hover:bg-gray-50'
                   }`}
                 >
-                  Todos
+                  {t('allStatuses')}
                 </Button>
                 <Button
                   variant={selectedStatus === 'upcoming' ? 'default' : 'outline'}
@@ -297,7 +299,7 @@ export default function TournamentsPage() {
                       : 'hover:bg-gray-50'
                   }`}
                 >
-                  Inscripciones Abiertas
+                  {t('statusUpcoming')}
                 </Button>
                 <Button
                   variant={selectedStatus === 'in_progress' ? 'default' : 'outline'}
@@ -308,7 +310,7 @@ export default function TournamentsPage() {
                       : 'hover:bg-gray-50'
                   }`}
                 >
-                  En Curso
+                  {t('statusInProgress')}
                 </Button>
                 <Button
                   variant={selectedStatus === 'completed' ? 'default' : 'outline'}
@@ -319,7 +321,7 @@ export default function TournamentsPage() {
                       : 'hover:bg-gray-50'
                   }`}
                 >
-                  Finalizados
+                  {t('statusCompletedPlural')}
                 </Button>
               </div>
             </div>
@@ -333,7 +335,7 @@ export default function TournamentsPage() {
               <div className="flex items-center gap-2 mb-4">
                 <CalendarIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
-                  Filtro por Fechas
+                  {t('dateFilter')}
                 </h3>
               </div>
               <CalendarFilter
@@ -392,7 +394,7 @@ export default function TournamentsPage() {
                         <div className="absolute bottom-4 left-4 right-4">
                           <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-2xl p-3 shadow-lg border border-white/20 dark:border-gray-700/50">
                             <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-2">
-                              <span className="font-medium">Inscripciones</span>
+                              <span className="font-medium">{t('registrations')}</span>
                               <span className="font-bold text-sm">{teamsCount}/{tournament.max_teams}</span>
                             </div>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
@@ -407,7 +409,7 @@ export default function TournamentsPage() {
                             {isFull && (
                               <div className="flex items-center gap-1 mt-2">
                                 <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                                <span className="text-xs font-medium text-green-600 dark:text-green-400">¡Completo!</span>
+                                <span className="text-xs font-medium text-green-600 dark:text-green-400">{t('complete')}</span>
                               </div>
                             )}
                           </div>
@@ -445,8 +447,8 @@ export default function TournamentsPage() {
                         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 px-3 py-1.5 rounded-full border border-blue-200 dark:border-blue-800">
                           <TrophyIcon className="h-4 w-4 text-blue-500" />
                           <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                            {tournament.tournament_type === 'NINE_PLAYERS' ? '9 Equipos' : 
-                             tournament.tournament_type === 'TWELVE_PLAYERS' ? '12 Equipos' : '16 Equipos'}
+                            {tournament.tournament_type === 'NINE_PLAYERS' ? t('nineTeams') : 
+                             tournament.tournament_type === 'TWELVE_PLAYERS' ? t('twelveTeams') : t('sixteenTeams')}
                           </p>
                         </div>
                       </div>
@@ -456,7 +458,7 @@ export default function TournamentsPage() {
                         <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-3 border border-green-100 dark:border-green-800 hover:shadow-md transition-all duration-300">
                           <div className="flex items-center gap-2 mb-1">
                             <CalendarIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
-                            <p className="text-xs font-medium text-green-700 dark:text-green-300">Inicio</p>
+                            <p className="text-xs font-medium text-green-700 dark:text-green-300">{t('startDate')}</p>
                           </div>
                           <p className="text-sm font-semibold text-green-800 dark:text-green-200">
                             {(() => {
@@ -472,7 +474,7 @@ export default function TournamentsPage() {
                         <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-xl p-3 border border-red-100 dark:border-red-800 hover:shadow-md transition-all duration-300">
                           <div className="flex items-center gap-2 mb-1">
                             <CalendarIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
-                            <p className="text-xs font-medium text-red-700 dark:text-red-300">Fin</p>
+                            <p className="text-xs font-medium text-red-700 dark:text-red-300">{t('endDate')}</p>
                           </div>
                           <p className="text-sm font-semibold text-red-800 dark:text-red-200">
                             {(() => {
@@ -492,7 +494,7 @@ export default function TournamentsPage() {
                          <div className="space-y-2">
                            <div className="flex items-center gap-2">
                              <StarIcon className="h-4 w-4 text-pink-600 dark:text-pink-400" />
-                             <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Patrocinadores</p>
+                             <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('sponsors')}</p>
                            </div>
                            <div className="flex flex-wrap gap-2">
                              {tournament.tournament_sponsors && tournament.tournament_sponsors.length > 0 ? (
@@ -514,7 +516,7 @@ export default function TournamentsPage() {
                                  </div>
                                ))
                              ) : (
-                               <p className="text-xs text-gray-400 dark:text-gray-500">Sin patrocinadores</p>
+                               <p className="text-xs text-gray-400 dark:text-gray-500">{t('noSponsors')}</p>
                              )}
                            </div>
                          </div>
@@ -525,7 +527,7 @@ export default function TournamentsPage() {
                              <div className="p-2 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl group-hover/stat:scale-110 transition-transform duration-300">
                                <UsersIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                              </div>
-                             <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Equipos</p>
+                             <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('teams')}</p>
                            </div>
                            <p className="text-xl font-bold text-gray-900 dark:text-white">
                              {teamsCount}
@@ -549,36 +551,24 @@ export default function TournamentsPage() {
               
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                 {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all'
-                  ? 'No se encontraron torneos'
-                  : '¡Comienza tu primer torneo!'}
+                  ? t('noTournamentsFound')
+                  : t('startFirstTournament')}
               </h3>
               
               <p className="text-gray-500 dark:text-gray-400 text-center mb-8 max-w-md">
                 {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all'
-                  ? 'No hay torneos que coincidan con los filtros seleccionados. Intenta ajustar tu búsqueda.'
-                  : 'Crea tu primer torneo y comienza a organizar competencias increíbles de pádel.'}
+                  ? t('noTournamentsFoundDescription')
+                  : t('startFirstTournamentDescription')}
               </p>
 
               {!searchQuery && selectedCategory === 'all' && selectedStatus === 'all' && (
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex justify-center">
                   <Button
                     onClick={() => router.push('/tournaments/create')}
                     className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
                     <PlusIcon className="w-5 h-5 mr-2" />
-                    Crear Primer Torneo
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSearchQuery('')
-                      setSelectedCategory('all')
-                      setSelectedStatus('all')
-                    }}
-                    className="px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    Ver Todos los Torneos
+                    {t('createFirstTournament')}
                   </Button>
                 </div>
               )}
@@ -593,7 +583,7 @@ export default function TournamentsPage() {
                   }}
                   className="px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
-                  Limpiar Filtros
+                  {t('clearFilters')}
                 </Button>
               )}
             </CardContent>

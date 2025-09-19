@@ -8,6 +8,7 @@ import { EmptyTournaments } from './EmptyTournaments';
 import Image from 'next/image';
 import { useTournaments } from '@/hooks/useTournaments';
 import { useCategories } from '@/hooks/useCategories';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface TournamentRegistrationProgressProps {
   tournaments?: any[];
@@ -18,6 +19,7 @@ export function TournamentRegistrationProgress({
   tournaments: propTournaments, 
   categories: propCategories 
 }: TournamentRegistrationProgressProps) {
+  const t = useTranslations('dashboard');
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -98,10 +100,10 @@ export function TournamentRegistrationProgress({
             <Trophy className="w-12 h-12 text-blue-500 dark:text-blue-400" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Sin torneos en esta categoría
+            {t('noTournamentsForCategory')}
           </h3>
           <p className="text-gray-600 dark:text-gray-400 max-w-sm">
-            No hay torneos disponibles para la categoría seleccionada.
+            {t('noTournamentsForCategoryDescription')}
           </p>
         </div>
       </div>

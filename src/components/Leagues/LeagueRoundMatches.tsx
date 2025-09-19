@@ -10,6 +10,7 @@ import { LeagueMatchModal } from "./LeagueMatchModal"
 import { updateMatchResult } from "@/services/leagueService"
 import { toast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface LeagueRoundMatchesProps {
   matches: LeagueMatch[]
@@ -19,6 +20,7 @@ interface LeagueRoundMatchesProps {
 }
 
 export function LeagueRoundMatches({ matches, roundNumber, totalRounds, onMatchUpdate }: LeagueRoundMatchesProps) {
+  const t = useTranslations('emptyStates');
   const [selectedMatch, setSelectedMatch] = useState<LeagueMatch | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -104,7 +106,7 @@ export function LeagueRoundMatches({ matches, roundNumber, totalRounds, onMatchU
             <div className="bg-gray-100 dark:bg-[#0E1629] p-4 rounded-full mb-4">
               <AlertCircle className="w-8 h-8 text-gray-500 dark:text-gray-400" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No hay partidos programados</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('noMatches')}</h3>
             <p className="text-gray-600 dark:text-gray-400">No se encontraron partidos para esta fecha.</p>
           </div>
         </CardContent>

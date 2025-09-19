@@ -62,15 +62,22 @@ const translations: Record<Locale, Record<string, any>> = {
       categoryNotFound: 'Categoría no encontrada',
       date: 'Fecha',
       time: 'Hora',
-      noMatchesScheduled: 'No hay partidos programados aún.',
+      noMatchesScheduled: '¡No hay partidos programados aún!',
+      noMatchesScheduledDescription: 'Los partidos de torneos aparecerán aquí cuando estén programados. ¡Mantente atento a las próximas competencias!',
+      noMatchesForAllCategories: 'Los partidos de torneos aparecerán aquí cuando estén programados. ¡Mantente atento a las próximas competencias!',
+      noMatchesForCategory: 'No hay partidos programados para la categoría {category}. ¡Revisa otras categorías o espera a que se programen más partidos!',
       noMatchesForNow: 'Sin partidos por ahora.',
       noLeaguesAvailable: 'No hay ligas disponibles en este momento.',
       noPositionsAvailable: 'No hay posiciones disponibles en este momento.',
       errorLoadingPositions: 'Error al cargar posiciones',
       selectTournament: '¡Selecciona un torneo!',
       selectTournamentDescription: 'Elige un torneo del menú desplegable para ver su tabla de posiciones y estadísticas.',
-      positionsComingSoon: '¡Posiciones próximamente!',
-      positionsComingSoonDescription: 'Las posiciones aparecerán aquí cuando los equipos comiencen a jugar partidos. ¡Mantente atento para ver quién lidera la competencia!'
+      positionsComingSoon: 'Posiciones próximamente',
+      positionsComingSoonDescription: 'Las posiciones aparecerán aquí cuando se generen los partidos del torneo.',
+      noTournaments: 'Sin torneos disponibles',
+      noTournamentsDescription: 'No hay torneos disponibles en este momento. Los torneos aparecerán aquí cuando estén creados.',
+      noTournamentsForCategory: 'Sin torneos en esta categoría',
+      noTournamentsForCategoryDescription: 'No hay torneos disponibles para la categoría seleccionada.'
     },
     datetime: {
       monday: 'Lunes',
@@ -287,6 +294,221 @@ const translations: Record<Locale, Record<string, any>> = {
     imageTooLarge: 'La imagen no debe superar los 5MB',
     errorCreatingCourt: 'Error al crear la cancha',
     error: 'Error'
+  },
+  // Tournaments
+  tournaments: {
+    title: 'Torneos',
+    description: 'Administra y visualiza todos los torneos del sistema.',
+    createTournament: 'Crear Torneo',
+    createFirstTournament: 'Crear Primer Torneo',
+    // Estados de torneos
+    statusUpcoming: 'Inscripciones Abiertas',
+    statusInProgress: 'En Curso',
+    statusCompleted: 'Finalizado',
+    statusCompletedPlural: 'Finalizados',
+    // Estadísticas
+    totalTournaments: 'Total Torneos',
+    totalTeams: 'Total Equipos',
+    revenue: 'Ingresos',
+    inProgress: 'En Curso',
+    // Filtros
+    searchPlaceholder: 'Buscar por nombre o categoría...',
+    allCategories: 'Todas las categorías',
+    allStatuses: 'Todos',
+    dateFilter: 'Filtro Fechas',
+    clearFilters: 'Limpiar Filtros',
+    viewAllTournaments: 'Ver Todos los Torneos',
+    // Torneo específico
+    registrations: 'Inscripciones',
+    complete: '¡Completo!',
+    teams: 'Equipos',
+    startDate: 'Inicio',
+    endDate: 'Fin',
+    sponsors: 'Patrocinadores',
+    noSponsors: 'Sin patrocinadores',
+    // Tipos de torneo
+    nineTeams: '9 Equipos',
+    twelveTeams: '12 Equipos',
+    sixteenTeams: '16 Equipos',
+    // Empty states
+    noTournamentsFound: 'No se encontraron torneos',
+    startFirstTournament: '¡Comienza tu primer torneo!',
+    noTournamentsFoundDescription: 'No hay torneos que coincidan con los filtros seleccionados. Intenta ajustar tu búsqueda.',
+    startFirstTournamentDescription: 'Crea tu primer torneo y comienza a organizar competencias increíbles de pádel.',
+    // Botones de acción
+    retry: 'Reintentar',
+    // Calendar Filter
+    quickFilters: 'Filtros Rápidos',
+    customRange: 'Rango Personalizado',
+    selectDates: 'Seleccionar fechas',
+    selectEnd: 'Seleccionar fin',
+    thisMonth: 'Este Mes',
+    nextMonth: 'Próximo Mes',
+    thisYear: 'Este Año',
+    upcoming: 'Próximos',
+    clear: 'Limpiar',
+    daysSelected: 'días seleccionados',
+    showingTournaments: 'Mostrando torneos del',
+    to: 'al',
+    activeFilter: 'Filtro activo:',
+    // Create Tournament
+    create: {
+      title: 'Crear Nuevo Torneo',
+      description: 'Configure los detalles de su nuevo torneo',
+      loadingCategories: 'Cargando categorías...',
+      stepProgress: 'Paso {step} de 2',
+      progressPercentage: '{percentage}%',
+      basicInfo: {
+        title: 'Información Básica del Torneo',
+        name: {
+          label: 'Nombre del Torneo',
+          tooltip: 'Nombre identificativo del torneo',
+          placeholder: 'Ej: Torneo de Verano 2024'
+        },
+        categories: {
+          label: 'Categorías',
+          tooltip: 'Selecciona las categorías que participarán en el torneo'
+        },
+        shirts: {
+          label: 'Remeras para Participantes',
+          tooltip: 'Marca esta opción si el torneo incluye remeras para los participantes. Los jugadores deberán seleccionar sus talles al inscribirse.',
+          switchLabel: 'Incluir remeras para participantes',
+          description: 'Los jugadores seleccionarán sus talles al inscribirse',
+          sizesInfo: 'Talles disponibles: XS, S, M, L, XL, XXL'
+        },
+        sponsors: {
+          label: 'Patrocinadores',
+          tooltip: 'Selecciona los patrocinadores que participarán en el torneo',
+          loading: 'Cargando patrocinadores...',
+          error: 'Error al cargar sponsors: {error}',
+          noSponsors: 'No hay sponsors disponibles. Puedes crear sponsors desde la sección "Patrocinadores".',
+          sponsorLabel: 'Patrocinador',
+          seeMore: 'Ver más ({count} más)',
+          seeLess: 'Ver menos',
+          selected: '{count} sponsor seleccionado',
+          selectedPlural: '{count} sponsors seleccionados'
+        },
+        dates: {
+          startDate: {
+            label: 'Fecha de Inicio',
+            tooltip: 'Fecha de inicio del torneo',
+            placeholder: 'Selecciona fecha de inicio'
+          },
+          endDate: {
+            label: 'Fecha de Fin',
+            tooltip: 'Fecha de finalización del torneo. La fecha verde es la recomendada (exactamente 3 días: inicio, día 2, día 3), las rojas están restringidas (muy cortas o muy largas).',
+            placeholder: 'Selecciona fecha de fin'
+          }
+        },
+        courts: {
+          label: 'Canchas Disponibles',
+          tooltip: 'Número de canchas disponibles para el torneo',
+          placeholder: 'Selecciona las canchas',
+          single: 'cancha',
+          plural: 'canchas'
+        },
+        tournamentType: {
+          label: 'Tipo de Torneo',
+          tooltip: 'Formato del torneo',
+          placeholder: 'Selecciona el tipo',
+          sixPlayers: '6 Jugadores',
+          ninePlayers: '9 Jugadores',
+          twelvePlayers: '12 Jugadores',
+          sixteenPlayers: '16 Jugadores'
+        },
+        image: {
+          label: 'Imagen del Torneo',
+          tooltip: 'Imagen representativa del torneo'
+        },
+        continue: 'Continuar'
+      },
+      detailInfo: {
+        title: 'Información Detallada del Torneo',
+        description: {
+          label: 'Descripción',
+          tooltip: 'Descripción general del torneo',
+          placeholder: 'Describe los detalles importantes del torneo...'
+        },
+        rules: {
+          label: 'Reglas del Torneo',
+          tooltip: 'Reglas y normativas específicas',
+          placeholder: 'Especifica las reglas y normativas del torneo...'
+        },
+        location: {
+          title: 'Ubicación del Torneo',
+          placeName: {
+            label: 'Nombre del Lugar',
+            placeholder: 'Ej: Club Deportivo Central'
+          },
+          address: {
+            label: 'Dirección',
+            placeholder: 'Ej: Av. Principal 123, Ciudad'
+          },
+          clubName: {
+            label: 'Nombre del Club',
+            placeholder: 'Ej: Recrea Padel Club'
+          },
+          signupLimit: {
+            label: 'Fecha Límite de Inscripción',
+            placeholder: 'Selecciona fecha límite'
+          }
+        },
+        prizes: {
+          title: 'Premios del Torneo',
+          firstPlace: {
+            label: 'Primer Lugar',
+            placeholder: 'Ej: Trofeo + $50,000'
+          },
+          secondPlace: {
+            label: 'Segundo Lugar',
+            placeholder: 'Ej: Medalla + $30,000'
+          },
+          thirdPlace: {
+            label: 'Tercer Lugar',
+            placeholder: 'Ej: Medalla + $20,000'
+          }
+        },
+        sponsors: {
+          title: 'Patrocinadores'
+        },
+        inscriptionCost: {
+          label: 'Costo de Inscripción',
+          tooltip: 'Costo por equipo para participar en el torneo'
+        },
+        back: 'Atrás',
+        create: 'Crear Torneo',
+        creating: 'Creando...'
+      },
+      validation: {
+        nameRequired: 'El nombre del torneo es requerido',
+        categoriesRequired: 'Debes seleccionar al menos una categoría',
+        startDateRequired: 'La fecha de inicio es requerida',
+        endDateRequired: 'La fecha de fin es requerida',
+        endDateAfterStart: 'La fecha de fin debe ser posterior a la fecha de inicio',
+        courtsRequired: 'Debe haber al menos una cancha disponible',
+        imageRequired: 'La imagen del torneo es requerida',
+        descriptionRequired: 'La descripción es requerida',
+        rulesRequired: 'Las reglas del torneo son requeridas',
+        locationRequired: 'La ubicación del torneo es requerida',
+        addressRequired: 'La dirección del torneo es requerida',
+        clubNameRequired: 'El nombre del club es requerido',
+        signupLimitRequired: 'La fecha límite de inscripción es requerida',
+        costNegative: 'El costo de inscripción no puede ser negativo',
+        firstPlaceRequired: 'El premio para el primer lugar es requerido',
+        secondPlaceRequired: 'El premio para el segundo lugar es requerido',
+        thirdPlaceRequired: 'El premio para el tercer lugar es requerido'
+      },
+      success: {
+        title: '¡Éxito!',
+        description: 'Se han creado {count} torneo(s) correctamente'
+      },
+      error: {
+        title: 'Error',
+        uploadImage: 'Error al subir la imagen',
+        createTournament: 'Error al crear el torneo',
+        notAuthenticated: 'No estás autenticado'
+      }
+    }
   }
   },
   en: {
@@ -344,15 +566,22 @@ const translations: Record<Locale, Record<string, any>> = {
       categoryNotFound: 'Category not found',
       date: 'Date',
       time: 'Time',
-      noMatchesScheduled: 'No matches scheduled yet.',
+      noMatchesScheduled: 'No matches scheduled yet!',
+      noMatchesScheduledDescription: 'Tournament matches will appear here when they are scheduled. Stay tuned for upcoming competitions!',
+      noMatchesForAllCategories: 'Tournament matches will appear here when they are scheduled. Stay tuned for upcoming competitions!',
+      noMatchesForCategory: 'No matches scheduled for the {category} category. Check other categories or wait for more matches to be scheduled!',
       noMatchesForNow: 'No matches for now.',
       noLeaguesAvailable: 'No leagues available at the moment.',
       noPositionsAvailable: 'No positions available at the moment.',
       errorLoadingPositions: 'Error loading positions',
       selectTournament: 'Select a tournament!',
       selectTournamentDescription: 'Choose a tournament from the dropdown menu to see its standings and statistics.',
-      positionsComingSoon: 'Positions coming soon!',
-      positionsComingSoonDescription: 'Positions will appear here when teams start playing matches. Stay tuned to see who leads the competition!'
+      positionsComingSoon: 'Positions coming soon',
+      positionsComingSoonDescription: 'Positions will appear here when tournament matches are generated.',
+      noTournaments: 'No tournaments available',
+      noTournamentsDescription: 'No tournaments are available at this time. Tournaments will appear here when they are created.',
+      noTournamentsForCategory: 'No tournaments in this category',
+      noTournamentsForCategoryDescription: 'No tournaments available for the selected category.'
     },
     datetime: {
       monday: 'Monday',
@@ -569,6 +798,221 @@ const translations: Record<Locale, Record<string, any>> = {
     imageTooLarge: 'Image must not exceed 5MB',
     errorCreatingCourt: 'Error creating court',
     error: 'Error'
+  },
+  // Tournaments
+  tournaments: {
+    title: 'Tournaments',
+    description: 'Manage and view all tournaments in the system.',
+    createTournament: 'Create Tournament',
+    createFirstTournament: 'Create First Tournament',
+    // Estados de torneos
+    statusUpcoming: 'Registrations Open',
+    statusInProgress: 'In Progress',
+    statusCompleted: 'Completed',
+    statusCompletedPlural: 'Completed',
+    // Estadísticas
+    totalTournaments: 'Total Tournaments',
+    totalTeams: 'Total Teams',
+    revenue: 'Revenue',
+    inProgress: 'In Progress',
+    // Filtros
+    searchPlaceholder: 'Search by name or category...',
+    allCategories: 'All categories',
+    allStatuses: 'All',
+    dateFilter: 'Date Filter',
+    clearFilters: 'Clear Filters',
+    viewAllTournaments: 'View All Tournaments',
+    // Torneo específico
+    registrations: 'Registrations',
+    complete: 'Complete!',
+    teams: 'Teams',
+    startDate: 'Start',
+    endDate: 'End',
+    sponsors: 'Sponsors',
+    noSponsors: 'No sponsors',
+    // Tipos de torneo
+    nineTeams: '9 Teams',
+    twelveTeams: '12 Teams',
+    sixteenTeams: '16 Teams',
+    // Empty states
+    noTournamentsFound: 'No tournaments found',
+    startFirstTournament: 'Start your first tournament!',
+    noTournamentsFoundDescription: 'No tournaments match the selected filters. Try adjusting your search.',
+    startFirstTournamentDescription: 'Create your first tournament and start organizing amazing padel competitions.',
+    // Botones de acción
+    retry: 'Retry',
+    // Calendar Filter
+    quickFilters: 'Quick Filters',
+    customRange: 'Custom Range',
+    selectDates: 'Select dates',
+    selectEnd: 'Select end',
+    thisMonth: 'This Month',
+    nextMonth: 'Next Month',
+    thisYear: 'This Year',
+    upcoming: 'Upcoming',
+    clear: 'Clear',
+    daysSelected: 'days selected',
+    showingTournaments: 'Showing tournaments from',
+    to: 'to',
+    activeFilter: 'Active filter:',
+    // Create Tournament
+    create: {
+      title: 'Create New Tournament',
+      description: 'Configure the details of your new tournament',
+      loadingCategories: 'Loading categories...',
+      stepProgress: 'Step {step} of 2',
+      progressPercentage: '{percentage}%',
+      basicInfo: {
+        title: 'Basic Tournament Information',
+        name: {
+          label: 'Tournament Name',
+          tooltip: 'Identifying name of the tournament',
+          placeholder: 'E.g: Summer Tournament 2024'
+        },
+        categories: {
+          label: 'Categories',
+          tooltip: 'Select the categories that will participate in the tournament'
+        },
+        shirts: {
+          label: 'Shirts for Participants',
+          tooltip: 'Check this option if the tournament includes shirts for participants. Players will need to select their sizes when registering.',
+          switchLabel: 'Include shirts for participants',
+          description: 'Players will select their sizes when registering',
+          sizesInfo: 'Available sizes: XS, S, M, L, XL, XXL'
+        },
+        sponsors: {
+          label: 'Sponsors',
+          tooltip: 'Select the sponsors that will participate in the tournament',
+          loading: 'Loading sponsors...',
+          error: 'Error loading sponsors: {error}',
+          noSponsors: 'No sponsors available. You can create sponsors from the "Sponsors" section.',
+          sponsorLabel: 'Sponsor',
+          seeMore: 'See more ({count} more)',
+          seeLess: 'See less',
+          selected: '{count} sponsor selected',
+          selectedPlural: '{count} sponsors selected'
+        },
+        dates: {
+          startDate: {
+            label: 'Start Date',
+            tooltip: 'Tournament start date',
+            placeholder: 'Select start date'
+          },
+          endDate: {
+            label: 'End Date',
+            tooltip: 'Tournament end date. The green date is recommended (exactly 3 days: start, day 2, day 3), red ones are restricted (too short or too long).',
+            placeholder: 'Select end date'
+          }
+        },
+        courts: {
+          label: 'Available Courts',
+          tooltip: 'Number of courts available for the tournament',
+          placeholder: 'Select courts',
+          single: 'court',
+          plural: 'courts'
+        },
+        tournamentType: {
+          label: 'Tournament Type',
+          tooltip: 'Tournament format',
+          placeholder: 'Select type',
+          sixPlayers: '6 Players',
+          ninePlayers: '9 Players',
+          twelvePlayers: '12 Players',
+          sixteenPlayers: '16 Players'
+        },
+        image: {
+          label: 'Tournament Image',
+          tooltip: 'Representative image of the tournament'
+        },
+        continue: 'Continue'
+      },
+      detailInfo: {
+        title: 'Detailed Tournament Information',
+        description: {
+          label: 'Description',
+          tooltip: 'General tournament description',
+          placeholder: 'Describe the important details of the tournament...'
+        },
+        rules: {
+          label: 'Tournament Rules',
+          tooltip: 'Specific rules and regulations',
+          placeholder: 'Specify the rules and regulations of the tournament...'
+        },
+        location: {
+          title: 'Tournament Location',
+          placeName: {
+            label: 'Place Name',
+            placeholder: 'E.g: Central Sports Club'
+          },
+          address: {
+            label: 'Address',
+            placeholder: 'E.g: Main Ave 123, City'
+          },
+          clubName: {
+            label: 'Club Name',
+            placeholder: 'E.g: Recrea Padel Club'
+          },
+          signupLimit: {
+            label: 'Registration Deadline',
+            placeholder: 'Select deadline'
+          }
+        },
+        prizes: {
+          title: 'Tournament Prizes',
+          firstPlace: {
+            label: 'First Place',
+            placeholder: 'E.g: Trophy + $50,000'
+          },
+          secondPlace: {
+            label: 'Second Place',
+            placeholder: 'E.g: Medal + $30,000'
+          },
+          thirdPlace: {
+            label: 'Third Place',
+            placeholder: 'E.g: Medal + $20,000'
+          }
+        },
+        sponsors: {
+          title: 'Sponsors'
+        },
+        inscriptionCost: {
+          label: 'Registration Cost',
+          tooltip: 'Cost per team to participate in the tournament'
+        },
+        back: 'Back',
+        create: 'Create Tournament',
+        creating: 'Creating...'
+      },
+      validation: {
+        nameRequired: 'Tournament name is required',
+        categoriesRequired: 'You must select at least one category',
+        startDateRequired: 'Start date is required',
+        endDateRequired: 'End date is required',
+        endDateAfterStart: 'End date must be after start date',
+        courtsRequired: 'There must be at least one court available',
+        imageRequired: 'Tournament image is required',
+        descriptionRequired: 'Description is required',
+        rulesRequired: 'Tournament rules are required',
+        locationRequired: 'Tournament location is required',
+        addressRequired: 'Tournament address is required',
+        clubNameRequired: 'Club name is required',
+        signupLimitRequired: 'Registration deadline is required',
+        costNegative: 'Registration cost cannot be negative',
+        firstPlaceRequired: 'First place prize is required',
+        secondPlaceRequired: 'Second place prize is required',
+        thirdPlaceRequired: 'Third place prize is required'
+      },
+      success: {
+        title: 'Success!',
+        description: '{count} tournament(s) created successfully'
+      },
+      error: {
+        title: 'Error',
+        uploadImage: 'Error uploading image',
+        createTournament: 'Error creating tournament',
+        notAuthenticated: 'You are not authenticated'
+      }
+    }
   }
   }
 };

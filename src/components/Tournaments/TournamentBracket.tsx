@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Space } from 'lucide-react';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface Match {
   id: string;
@@ -20,6 +21,7 @@ interface TournamentBracketProps {
 }
 
 export function TournamentBracket({ matches, format, tournamentId }: TournamentBracketProps) {
+  const t = useTranslations('emptyStates');
   const [matchesByRound, setMatchesByRound] = useState<{[key: number]: any[]}>({});
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function TournamentBracket({ matches, format, tournamentId }: TournamentB
     return (
       <div className="bg-white rounded-xl shadow-sm p-8 text-center">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          No hay partidos programados
+          {t('noMatches')}
         </h2>
         <p className="text-gray-500">
           Aún no se han generado los partidos para este torneo.

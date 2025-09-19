@@ -9,6 +9,7 @@ import { CalendarIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from '@her
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameMonth, isSameDay, isWithinInterval } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/contexts/TranslationContext'
 
 interface CalendarFilterProps {
   onDateRangeChange: (startDate: Date | null, endDate: Date | null) => void
@@ -21,6 +22,7 @@ export default function CalendarFilter({
   onQuickFilterChange,
   className 
 }: CalendarFilterProps) {
+  const t = useTranslations('tournaments')
   const [startDate, setStartDate] = useState<Date | null>(null)
   const [endDate, setEndDate] = useState<Date | null>(null)
   const [activeQuickFilter, setActiveQuickFilter] = useState<string>('')
@@ -28,11 +30,11 @@ export default function CalendarFilter({
   const [isOpen, setIsOpen] = useState(false)
 
   const quickFilters = [
-    { key: 'this_month', label: 'Este Mes', icon: '📅' },
-    { key: 'next_month', label: 'Próximo Mes', icon: '📆' },
-    { key: 'this_year', label: 'Este Año', icon: '🗓️' },
-    { key: 'upcoming', label: 'Próximos', icon: '⏰' },
-    { key: 'clear', label: 'Limpiar', icon: '❌' }
+    { key: 'this_month', label: t('thisMonth'), icon: '📅' },
+    { key: 'next_month', label: t('nextMonth'), icon: '📆' },
+    { key: 'this_year', label: t('thisYear'), icon: '🗓️' },
+    { key: 'upcoming', label: t('upcoming'), icon: '⏰' },
+    { key: 'clear', label: t('clear'), icon: '❌' }
   ]
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -97,7 +99,7 @@ export default function CalendarFilter({
       {/* 🗓️ Filtros Rápidos */}
       <div className="space-y-2">
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Filtros Rápidos
+          {t('quickFilters')}
         </p>
         <div className="flex flex-wrap gap-2">
           {quickFilters.map((filter) => (
@@ -123,7 +125,7 @@ export default function CalendarFilter({
       {/* 📅 Selector de Rango Personalizado - Estilo Airbnb */}
       <div className="space-y-2">
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Rango Personalizado
+          {t('customRange')}
         </p>
         
         <div className="flex items-center gap-2">
@@ -140,9 +142,9 @@ export default function CalendarFilter({
                 {startDate && endDate ? (
                   `${format(startDate, "dd MMM", { locale: es })} - ${format(endDate, "dd MMM", { locale: es })}`
                 ) : startDate ? (
-                  `${format(startDate, "dd MMM", { locale: es })} - Seleccionar fin`
+                  `${format(startDate, "dd MMM", { locale: es })} - ${t('selectEnd')}`
                 ) : (
-                  "Seleccionar fechas"
+                  t('selectDates')
                 )}
               </Button>
             </PopoverTrigger>
@@ -218,7 +220,7 @@ export default function CalendarFilter({
                       </span>
                     </div>
                     <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                      {Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1} días seleccionados
+                      {Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1} {t('daysSelected')}
                     </p>
                   </div>
                 )}
@@ -243,7 +245,7 @@ export default function CalendarFilter({
           <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
             <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <span className="text-sm text-blue-700 dark:text-blue-300">
-              Mostrando torneos del {format(startDate, "dd MMM yyyy", { locale: es })} al {format(endDate, "dd MMM yyyy", { locale: es })}
+              {t('showingTournaments')} {format(startDate, "dd MMM yyyy", { locale: es })} {t('to')} {format(endDate, "dd MMM yyyy", { locale: es })}
             </span>
           </div>
         )}
@@ -252,7 +254,7 @@ export default function CalendarFilter({
           <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
             <CalendarIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
             <span className="text-sm text-green-700 dark:text-green-300">
-              Filtro activo: {quickFilters.find(f => f.key === activeQuickFilter)?.label}
+              {t('activeFilter')} {quickFilters.find(f => f.key === activeQuickFilter)?.label}
             </span>
           </div>
         )}

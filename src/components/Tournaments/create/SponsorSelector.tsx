@@ -10,6 +10,7 @@ import { Info, ChevronDown, ChevronUp } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import Image from 'next/image';
 import { Sponsor } from '@/types/sponsor';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface SponsorSelectorProps {
   selectedSponsors: string[];
@@ -44,6 +45,7 @@ function LabelWithTooltip({
 }
 
 export function SponsorSelector({ selectedSponsors, onSponsorsChange, error }: SponsorSelectorProps) {
+  const t = useTranslations('tournaments');
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -73,7 +75,7 @@ export function SponsorSelector({ selectedSponsors, onSponsorsChange, error }: S
         setSponsors(data || []);
       } catch (err) {
         console.error('Error fetching sponsors:', err);
-        setFetchError(err instanceof Error ? err.message : 'Error al cargar sponsors');
+        setFetchError(err instanceof Error ? err.message : t('error').replace('{error}', err instanceof Error ? err.message : 'Unknown error'));
       } finally {
         setLoading(false);
       }
@@ -95,8 +97,8 @@ export function SponsorSelector({ selectedSponsors, onSponsorsChange, error }: S
     return (
       <div className="space-y-4">
         <LabelWithTooltip
-          label="Patrocinadores"
-          tooltip="Selecciona los patrocinadores que participarán en el torneo"
+          label={t('create.basicInfo.sponsors.label')}
+          tooltip={t('create.basicInfo.sponsors.tooltip')}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -120,12 +122,12 @@ export function SponsorSelector({ selectedSponsors, onSponsorsChange, error }: S
     return (
       <div className="space-y-4">
         <LabelWithTooltip
-          label="Patrocinadores"
-          tooltip="Selecciona los patrocinadores que participarán en el torneo"
+          label={t('create.basicInfo.sponsors.label')}
+          tooltip={t('create.basicInfo.sponsors.tooltip')}
         />
         <div className="p-4 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20">
           <p className="text-sm text-red-600 dark:text-red-400">
-            Error al cargar sponsors: {fetchError}
+            {t('create.basicInfo.sponsors.error').replace('{error}', fetchError)}
           </p>
         </div>
       </div>
@@ -136,12 +138,12 @@ export function SponsorSelector({ selectedSponsors, onSponsorsChange, error }: S
     return (
       <div className="space-y-4">
         <LabelWithTooltip
-          label="Patrocinadores"
-          tooltip="Selecciona los patrocinadores que participarán en el torneo"
+          label={t('create.basicInfo.sponsors.label')}
+          tooltip={t('create.basicInfo.sponsors.tooltip')}
         />
         <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            No hay sponsors disponibles. Puedes crear sponsors desde la sección "Patrocinadores".
+            {t('create.basicInfo.sponsors.noSponsors')}
           </p>
         </div>
       </div>
@@ -152,8 +154,8 @@ export function SponsorSelector({ selectedSponsors, onSponsorsChange, error }: S
     <TooltipProvider>
       <div className="space-y-4">
         <LabelWithTooltip
-          label="Patrocinadores"
-          tooltip="Selecciona los patrocinadores que participarán en el torneo"
+          label={t('create.basicInfo.sponsors.label')}
+          tooltip={t('create.basicInfo.sponsors.tooltip')}
         />
         
         <div className={cn(
@@ -203,7 +205,7 @@ export function SponsorSelector({ selectedSponsors, onSponsorsChange, error }: S
                           {sponsor.name}
                         </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Patrocinador
+                          {t('create.basicInfo.sponsors.sponsorLabel')}
                         </p>
                       </div>
 
@@ -234,12 +236,12 @@ export function SponsorSelector({ selectedSponsors, onSponsorsChange, error }: S
                 {showAll ? (
                   <>
                     <ChevronUp className="h-4 w-4" />
-                    Ver menos
+                    {t('create.basicInfo.sponsors.seeLess')}
                   </>
                 ) : (
                   <>
                     <ChevronDown className="h-4 w-4" />
-                    Ver más ({sponsors.length - MAX_VISIBLE_SPONSORS} más)
+                    {t('create.basicInfo.sponsors.seeMore').replace('{count}', (sponsors.length - MAX_VISIBLE_SPONSORS).toString())}
                   </>
                 )}
               </Button>
@@ -251,7 +253,10 @@ export function SponsorSelector({ selectedSponsors, onSponsorsChange, error }: S
             <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-500/30">
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-800 text-emerald-700 dark:text-emerald-300">
-                  {selectedSponsors.length} {selectedSponsors.length === 1 ? 'sponsor' : 'sponsors'} seleccionado{selectedSponsors.length === 1 ? '' : 's'}
+                  {selectedSponsors.length === 1 
+                    ? t('create.basicInfo.sponsors.selected').replace('{count}', selectedSponsors.length.toString())
+                    : t('create.basicInfo.sponsors.selectedPlural').replace('{count}', selectedSponsors.length.toString())
+                  }
                 </Badge>
                 <span className="text-sm text-emerald-700 dark:text-emerald-300">
                   {sponsors

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { EmptySchedule } from "./EmptySchedule";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCategories } from "@/hooks/useCategories";
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface Match {
   id: string;
@@ -29,6 +30,7 @@ interface LeagueScheduleCardProps {
 
 export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueScheduleCardProps) {
   const router = useRouter();
+  const t = useTranslations('emptyStates');
   const [matches, setMatches] = useState<Match[]>([]);
   const [filteredMatches, setFilteredMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -212,12 +214,12 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
             <CalendarDays className="w-12 h-12 text-purple-500 dark:text-purple-400" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            No hay partidos programados
+            {t('noMatches')}
           </h3>
           <p className="text-gray-600 dark:text-gray-400 max-w-sm">
             {selectedCategory === 'all' 
-              ? 'No hay partidos programados en ninguna categoría.'
-              : `No hay partidos programados para la categoría ${categories.find(cat => cat.id === selectedCategory)?.name || ''}.`}
+              ? t('noMatchesForLeague')
+              : t('noMatchesForCategory').replace('{category}', categories.find(cat => cat.id === selectedCategory)?.name || '')}
           </p>
         </div>
       </div>

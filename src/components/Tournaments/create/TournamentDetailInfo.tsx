@@ -9,6 +9,7 @@ import { Info, Trophy, MapPin, Users } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { TournamentFormData } from '@/hooks/useTournamentForm';
 import { SponsorsList } from '@/components/Tournaments/SponsorsList';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface TournamentDetailInfoProps {
   formData: TournamentFormData;
@@ -45,12 +46,13 @@ function LabelWithTooltip({
 }
 
 export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, isSubmitting = false }: TournamentDetailInfoProps) {
+  const t = useTranslations('tournaments.create.detailInfo');
   return (
     <TooltipProvider>
       <div className="p-8 space-y-6 bg-background/50 rounded-lg border border-border/50">
         <div>
           <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200 mb-2">
-            Información Detallada del Torneo
+            {t('title')}
           </h2>
         </div>
 
@@ -59,14 +61,14 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
             <div>
               <LabelWithTooltip
                 htmlFor="description"
-                label="Descripción"
-                tooltip="Descripción general del torneo"
+                label={t('description.label')}
+                tooltip={t('description.tooltip')}
               />
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe los detalles importantes del torneo..."
+                placeholder={t('description.placeholder')}
                 className="min-h-[100px] bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
               />
             </div>
@@ -74,14 +76,14 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
             <div>
               <LabelWithTooltip
                 htmlFor="rules"
-                label="Reglas del Torneo"
-                tooltip="Reglas y normativas específicas"
+                label={t('rules.label')}
+                tooltip={t('rules.tooltip')}
               />
               <Textarea
                 id="rules"
                 value={formData.rules}
                 onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
-                placeholder="Especifica las reglas y normativas del torneo..."
+                placeholder={t('rules.placeholder')}
                 className="min-h-[100px] bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
               />
             </div>
@@ -91,52 +93,52 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-blue-500" />
-                Ubicación del Torneo
+                {t('location.title')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="tournament_location">
-                  Nombre del Lugar
+                  {t('location.placeName.label')}
                 </Label>
                 <Input
                   id="tournament_location"
                   value={formData.tournament_location}
                   onChange={(e) => setFormData({ ...formData, tournament_location: e.target.value })}
-                  placeholder="Ej: Club Deportivo Central"
+                  placeholder={t('location.placeName.placeholder')}
                   className="bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
                 />
               </div>
 
               <div>
                 <Label htmlFor="tournament_address">
-                  Dirección
+                  {t('location.address.label')}
                 </Label>
                 <Input
                   id="tournament_address"
                   value={formData.tournament_address}
                   onChange={(e) => setFormData({ ...formData, tournament_address: e.target.value })}
-                  placeholder="Ej: Av. Principal 123, Ciudad"
+                  placeholder={t('location.address.placeholder')}
                   className="bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
                 />
               </div>
 
               <div>
                 <Label htmlFor="tournament_club_name">
-                  Nombre del Club
+                  {t('location.clubName.label')}
                 </Label>
                 <Input
                   id="tournament_club_name"
                   value={formData.tournament_club_name}
                   onChange={(e) => setFormData({ ...formData, tournament_club_name: e.target.value })}
-                  placeholder="Ej: Recrea Padel Club"
+                  placeholder={t('location.clubName.placeholder')}
                   className="bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
                 />
               </div>
 
               <div>
                 <Label htmlFor="signup_limit_date">
-                  Fecha Límite de Inscripción
+                  {t('location.signupLimit.label')}
                 </Label>
                 <DatePicker
                   value={formData.signup_limit_date ? parseDateFromInput(formData.signup_limit_date) : undefined}
@@ -144,7 +146,7 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
                     ...formData, 
                     signup_limit_date: date ? formatDateForInput(date) : '' 
                   })}
-                  placeholder="Selecciona fecha límite"
+                  placeholder={t('location.signupLimit.placeholder')}
                 />
               </div>
             </CardContent>
@@ -155,20 +157,20 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="w-5 h-5 text-yellow-500" />
-                  Premios del Torneo
+                  {t('prizes.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="first_place_prize" className="flex items-center gap-2">
                     <span className="text-yellow-500 font-bold">1°</span>
-                    Primer Lugar
+                    {t('prizes.firstPlace.label')}
                   </Label>
                   <Input
                     id="first_place_prize"
                     value={formData.first_place_prize}
                     onChange={(e) => setFormData({ ...formData, first_place_prize: e.target.value })}
-                    placeholder="Ej: Trofeo + $50,000"
+                    placeholder={t('prizes.firstPlace.placeholder')}
                     className="bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
                   />
                 </div>
@@ -176,13 +178,13 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
                 <div>
                   <Label htmlFor="second_place_prize" className="flex items-center gap-2">
                     <span className="text-gray-400 font-bold">2°</span>
-                    Segundo Lugar
+                    {t('prizes.secondPlace.label')}
                   </Label>
                   <Input
                     id="second_place_prize"
                     value={formData.second_place_prize}
                     onChange={(e) => setFormData({ ...formData, second_place_prize: e.target.value })}
-                    placeholder="Ej: Medalla + $30,000"
+                    placeholder={t('prizes.secondPlace.placeholder')}
                     className="bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
                   />
                 </div>
@@ -190,13 +192,13 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
                 <div>
                   <Label htmlFor="third_place_prize" className="flex items-center gap-2">
                     <span className="text-amber-700 font-bold">3°</span>
-                    Tercer Lugar
+                    {t('prizes.thirdPlace.label')}
                   </Label>
                   <Input
                     id="third_place_prize"
                     value={formData.third_place_prize}
                     onChange={(e) => setFormData({ ...formData, third_place_prize: e.target.value })}
-                    placeholder="Ej: Medalla + $20,000"
+                    placeholder={t('prizes.thirdPlace.placeholder')}
                     className="bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
                   />
                 </div>
@@ -207,14 +209,15 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-blue-500" />
-                  Patrocinadores
+                  {t('sponsors.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <SponsorsList
-                  sponsors={formData.sponsors}
-                  onSponsorsChange={(sponsors) => setFormData({ ...formData, sponsors })}
-                />
+                <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Los patrocinadores se seleccionan en el paso anterior.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -222,8 +225,8 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
           <div>
             <LabelWithTooltip
               htmlFor="inscription_cost"
-              label="Costo de Inscripción"
-              tooltip="Costo por equipo para participar en el torneo"
+              label={t('inscriptionCost.label')}
+              tooltip={t('inscriptionCost.tooltip')}
             />
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-gray-500">$</span>
@@ -245,14 +248,14 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
               onClick={onBack}
               disabled={isSubmitting}
             >
-              Atrás
+              {t('back')}
             </Button>
             <Button
               onClick={() => onSubmit(formData)}
               disabled={isSubmitting}
               className="bg-primary hover:bg-primary/90"
             >
-              {isSubmitting ? 'Creando...' : 'Crear Torneo'}
+              {isSubmitting ? t('creating') : t('create')}
             </Button>
           </div>
         </div>

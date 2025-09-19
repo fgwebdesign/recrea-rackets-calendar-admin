@@ -15,7 +15,7 @@ import { TournamentStandings } from '@/components/Dashboard/TournamentStandings'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import * as Collapsible from "@radix-ui/react-collapsible";
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Trophy, Users, Calendar, BarChart3, Target, Zap, Activity } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useLeagues } from '@/hooks/useLeagues';
 import { useCategories } from '@/hooks/useCategories';
@@ -30,7 +30,7 @@ export default function Dashboard() {
   const [isScheduleOpen, setIsScheduleOpen] = useState(true);
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
   const [isStandingsOpen, setIsStandingsOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState<'leagues' | 'tournaments'>('leagues');
+  const [activeTab, setActiveTab] = useState<'leagues' | 'tournaments'>('tournaments');
   const [selectedTournament, setSelectedTournament] = useState<string>('');
   
   const { users, isLoading: isLoadingUsers } = useUsers();
@@ -95,14 +95,26 @@ export default function Dashboard() {
 
           {/* Tabs para Leagues y Tournaments */}
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'leagues' | 'tournaments')} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="leagues" className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                {t('leagues')}
+            <TabsList className="grid w-full grid-cols-2 mb-8 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+              <TabsTrigger 
+                value="leagues" 
+                className="flex items-center gap-3 px-6 py-4 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-600 dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-blue-400"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <Users className="w-4 h-4" />
+                </div>
+                <span className="font-medium">{t('leagues')}</span>
               </TabsTrigger>
-              <TabsTrigger value="tournaments" className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                {t('tournaments')}
+              <TabsTrigger 
+                value="tournaments" 
+                className="flex items-center gap-3 px-6 py-4 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-purple-600 dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-purple-400"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                  <Trophy className="w-4 h-4" />
+                </div>
+                <span className="font-medium">{t('tournaments')}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -251,7 +263,10 @@ export default function Dashboard() {
                   <Collapsible.Trigger asChild>
                     <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isStatsOpen ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+                        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
+                          <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                            <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                          </div>
                           {t('tournamentStats')}
                         </CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isStatsOpen ? 'transform rotate-180' : ''}`} />
@@ -297,7 +312,10 @@ export default function Dashboard() {
                   <Collapsible.Trigger asChild>
                     <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isScheduleOpen ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+                        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
+                          <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                            <Calendar className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                          </div>
                           {t('upcomingMatchesTournaments')}
                         </CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isScheduleOpen ? 'transform rotate-180' : ''}`} />
@@ -322,7 +340,10 @@ export default function Dashboard() {
                   <Collapsible.Trigger asChild>
                     <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isRegistrationOpen ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+                        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
+                          <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                            <Activity className="w-5 h-5 text-green-600 dark:text-green-400" />
+                          </div>
                           {t('registrationProgressTournaments')}
                         </CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isRegistrationOpen ? 'transform rotate-180' : ''}`} />
@@ -350,7 +371,10 @@ export default function Dashboard() {
                   <Collapsible.Trigger asChild>
                     <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isStandingsOpen ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+                        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
+                          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                            <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                          </div>
                           {t('standingsTournaments')}
                         </CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isStandingsOpen ? 'transform rotate-180' : ''}`} />

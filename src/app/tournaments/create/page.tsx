@@ -9,8 +9,10 @@ import { useCategories } from '@/hooks/useCategories';
 import { useCourts } from '@/hooks/useCourts';
 import { Progress } from '@/components/ui/progress';
 import { useTournamentForm } from '@/hooks/useTournamentForm';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 export default function CreateTournamentPage() {
+  const t = useTranslations('tournaments');
   const { categories, isLoading: isLoadingCategories, fetchCategories } = useCategories();
   const { courts, isLoading: isLoadingCourts, fetchCourts } = useCourts();
   const {
@@ -40,7 +42,7 @@ export default function CreateTournamentPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-8 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando categorías...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{t('create.loadingCategories')}</p>
         </div>
       </div>
     );
@@ -50,15 +52,15 @@ export default function CreateTournamentPage() {
     <div className="min-h-screen bg-slate-100 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto p-8">
         <Header 
-          title="Crear Nuevo Torneo"
+          title={t('create.title')}
           icon={<TableIcon className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
-          description="Configure los detalles de su nuevo torneo."
+          description={t('create.description')}
         />
         
         <div className="space-y-8 mt-8">
           <div>
             <div className="flex justify-between mb-2 text-sm text-gray-600 dark:text-gray-400">
-              <span>Paso {step} de 2</span>
+              <span>{t('create.stepProgress').replace('{step}', `${step}`)}</span>
               <span>{Math.round((step / 2) * 100)}%</span>
             </div>
             <Progress 

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { formatUruguayDateTime } from "@/lib/utils";
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface LeagueMatchResultsProps {
   matches: LeagueMatch[]
@@ -23,6 +24,7 @@ interface LeagueMatchResultsProps {
 }
 
 export function LeagueMatchResults({ matches, onSaveResults }: LeagueMatchResultsProps) {
+  const t = useTranslations('emptyStates');
   const [selectedMatch, setSelectedMatch] = useState<LeagueMatch | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -217,7 +219,7 @@ export function LeagueMatchResults({ matches, onSaveResults }: LeagueMatchResult
           <div className="mx-auto w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mb-4">
             <Calendar className="w-6 h-6 text-gray-400 dark:text-gray-500" />
           </div>
-          <p className="text-gray-600 dark:text-gray-300 mb-2">No hay partidos programados para esta fecha</p>
+          <p className="text-gray-600 dark:text-gray-300 mb-2">{t('noMatchesDescription')}</p>
           <p className="text-sm text-gray-500 dark:text-gray-400">Los partidos aparecerán aquí cuando estén programados</p>
         </div>
       ) : (
@@ -328,7 +330,6 @@ export function LeagueMatchResults({ matches, onSaveResults }: LeagueMatchResult
           onClose={handleModalClose}
           match={selectedMatch}
           onSubmit={handleSaveResult}
-          onScheduleUpdate={handleSaveSchedule}
           isLoading={isLoading}
         />
       )}

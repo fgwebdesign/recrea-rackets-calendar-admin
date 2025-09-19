@@ -299,14 +299,14 @@ export default function AdminRegisterTeamPage() {
       const player2Name = players.find(p => p.id === selectedPlayer2);
       const slotInfo = availableSlots.find(s => s.slot_id === selectedSlot);
       
-      console.log('🎉 Mostrando toast de éxito:', {
+      console.log('✅ Mostrando toast de éxito:', {
         player1: player1Name?.first_name,
         player2: player2Name?.first_name,
         slot: slotInfo?.label
       });
       
       toast({
-        title: "¡Equipo Registrado Exitosamente! 🎉",
+        title: "¡Equipo Registrado Exitosamente!",
         description: `${player1Name?.first_name} ${player1Name?.last_name} & ${player2Name?.first_name} ${player2Name?.last_name} registrados en ${slotInfo?.label}`,
         variant: "default",
       });

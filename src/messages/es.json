@@ -47,7 +47,28 @@
     "totalTournaments": "Total Torneos",
     "inProgress": "En Curso",
     "totalTeams": "Total Equipos",
-    "revenue": "Ingresos"
+    "revenue": "Ingresos",
+    "upcomingMatchesLeagues": "Próximos Partidos - Ligas",
+    "upcomingMatchesTournaments": "Próximos Partidos - Torneos",
+    "registrationProgressLeagues": "Progreso de Inscripciones - Ligas",
+    "registrationProgressTournaments": "Progreso de Inscripciones - Torneos",
+    "standingsLeagues": "Tabla de Posiciones - Ligas",
+    "standingsTournaments": "Tabla de Posiciones - Torneos",
+    "leagues": "Ligas",
+    "tournaments": "Torneos",
+    "selectTournament": "¡Selecciona un torneo!",
+    "selectTournamentDescription": "Elige un torneo del menú desplegable para ver su tabla de posiciones y estadísticas.",
+    "positionsComingSoon": "Posiciones próximamente",
+    "positionsComingSoonDescription": "Las posiciones aparecerán aquí cuando se generen los partidos del torneo.",
+    "errorLoadingPositions": "Error al cargar posiciones",
+    "noMatchesScheduled": "¡No hay partidos programados aún!",
+    "noMatchesScheduledDescription": "Los partidos de torneos aparecerán aquí cuando estén programados. ¡Mantente atento a las próximas competencias!",
+    "noMatchesForAllCategories": "Los partidos de torneos aparecerán aquí cuando estén programados. ¡Mantente atento a las próximas competencias!",
+    "noMatchesForCategory": "No hay partidos programados para la categoría {category}. ¡Revisa otras categorías o espera a que se programen más partidos!",
+    "noTournaments": "Sin torneos disponibles",
+    "noTournamentsDescription": "No hay torneos disponibles en este momento. Los torneos aparecerán aquí cuando estén creados.",
+    "noTournamentsForCategory": "Sin torneos en esta categoría",
+    "noTournamentsForCategoryDescription": "No hay torneos disponibles para la categoría seleccionada."
   },
   "tournaments": {
     "title": "Torneos",
@@ -119,9 +140,19 @@
     "invalidCredentials": "Credenciales inválidas",
     "adminRequired": "Se requieren permisos de administrador"
   },
-  "language": {
-    "spanish": "Español",
-    "english": "English",
-    "changeLanguage": "Cambiar idioma"
+  "emptyStates": {
+    "noTournaments": "Sin torneos disponibles",
+    "noTournamentsDescription": "No hay torneos disponibles en este momento. Los torneos aparecerán aquí cuando estén creados.",
+    "noMatchesScheduled": "¡No hay partidos programados aún!",
+    "noMatchesScheduledDescription": "Los partidos de torneos aparecerán aquí cuando estén programados. ¡Mantente atento a las próximas competencias!",
+    "noMatchesForCategory": "No hay partidos programados para la categoría {category}. ¡Revisa otras categorías o espera a que se programen más partidos!",
+    "noMatchesForAllCategories": "Los partidos de torneos aparecerán aquí cuando estén programados. ¡Mantente atento a las próximas competencias!",
+    "noLeagues": "No hay ligas disponibles",
+    "noLeaguesDescription": "No hay ligas disponibles en este momento. Las ligas aparecerán aquí cuando estén creadas.",
+    "noMatches": "No hay partidos programados",
+    "noMatchesDescription": "No hay partidos programados para esta fecha",
+    "noMatchesForLeague": "No hay partidos programados para esta liga",
+    "noTournamentsForCategory": "Sin torneos en esta categoría",
+    "noTournamentsForCategoryDescription": "No hay torneos disponibles para la categoría seleccionada."
   }
 }
