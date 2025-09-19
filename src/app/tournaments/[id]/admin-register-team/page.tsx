@@ -17,6 +17,7 @@ import { PlayerSelector } from '@/components/Tournaments/PlayerSelector';
 import { TimeSlotSelector } from '@/components/Tournaments/TimeSlotSelector';
 import { TeamSummary } from '@/components/Tournaments/TeamSummary';
 import { FormStatus } from '@/components/Tournaments/FormStatus';
+import { ShirtSizesSelector } from '@/components/Tournaments/ShirtSizesSelector';
 
 interface Player {
   id: string;
@@ -47,20 +48,59 @@ export default function AdminRegisterTeamPage() {
   const [selectedPlayer1, setSelectedPlayer1] = useState<string>('');
   const [selectedPlayer2, setSelectedPlayer2] = useState<string>('');
   const [selectedSlot, setSelectedSlot] = useState<string>('');
+  const [selectedShirtSizes, setSelectedShirtSizes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [validationErrors, setValidationErrors] = useState<{
     player1?: string;
     player2?: string;
     slot?: string;
+    shirtSizes?: string;
   }>({});
 
   const { tournament, loading: tournamentLoading } = useTournament(tournamentId);
   const { categories } = useCategories();
 
+  // Función para obtener si el torneo requiere remeras
+  const getRequiresShirts = () => {
+    if (!tournament) return false;
+    
+    // Primero verificar si está directamente en el torneo
+    if (tournament.requires_shirts !== undefined) {
+      return tournament.requires_shirts;
+    }
+    
+    // Si no, verificar en tournament_info (que es un array)
+    if (tournament.tournament_info && Array.isArray(tournament.tournament_info) && tournament.tournament_info.length > 0) {
+      return tournament.tournament_info[0].requires_shirts || false;
+    }
+    
+    return false;
+  };
+
+  // Debug: verificar datos del torneo
+  useEffect(() => {
+    if (tournament) {
+      console.log('🔍 Tournament data:', tournament);
+      console.log('🔍 Tournament requires_shirts:', tournament.requires_shirts);
+      console.log('🔍 Tournament tournament_info:', tournament.tournament_info);
+      
+      // Verificar si requires_shirts está en tournament_info (array)
+      if (tournament.tournament_info && Array.isArray(tournament.tournament_info)) {
+        console.log('🔍 Tournament info is array, length:', tournament.tournament_info.length);
+        if (tournament.tournament_info.length > 0) {
+          console.log('🔍 Tournament info[0]:', tournament.tournament_info[0]);
+          console.log('🔍 Tournament info[0] requires_shirts:', tournament.tournament_info[0].requires_shirts);
+        }
+      }
+      
+      console.log('🔍 Final requires_shirts value:', getRequiresShirts());
+    }
+  }, [tournament]);
+
   // Función para validar formulario completo
   const validateForm = () => {
-    const errors: { player1?: string; player2?: string; slot?: string } = {};
+    const errors: { player1?: string; player2?: string; slot?: string; shirtSizes?: string } = {};
 
     // Validar jugador 1
     if (!selectedPlayer1) {
@@ -84,6 +124,15 @@ export default function AdminRegisterTeamPage() {
       }
     }
 
+    // Validar talles de remera si el torneo los requiere
+    if (getRequiresShirts()) {
+      if (selectedShirtSizes.length === 0) {
+        errors.shirtSizes = 'Debe seleccionar al menos un talle de remera';
+      } else if (selectedShirtSizes.length > 2) {
+        errors.shirtSizes = 'No puede seleccionar más de 2 talles';
+      }
+    }
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -95,10 +144,10 @@ export default function AdminRegisterTeamPage() {
 
   // Validar cuando cambian las selecciones
   useEffect(() => {
-    if (selectedPlayer1 || selectedPlayer2 || selectedSlot) {
+    if (selectedPlayer1 || selectedPlayer2 || selectedSlot || selectedShirtSizes.length > 0) {
       clearValidationErrors();
     }
-  }, [selectedPlayer1, selectedPlayer2, selectedSlot]);
+  }, [selectedPlayer1, selectedPlayer2, selectedSlot, selectedShirtSizes]);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -171,17 +220,26 @@ export default function AdminRegisterTeamPage() {
     clearValidationErrors();
 
     try {
+      const requestBody = {
+        userId1: selectedPlayer1,
+        userId2: selectedPlayer2,
+        unavailable_time_slot: selectedSlot,
+        ...(getRequiresShirts() && selectedShirtSizes.length > 0 && {
+          shirt_sizes: selectedShirtSizes
+        })
+      };
+
+      console.log('🔍 Enviando datos al backend:', requestBody);
+      console.log('🔍 getRequiresShirts():', getRequiresShirts());
+      console.log('🔍 selectedShirtSizes:', selectedShirtSizes);
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/admin-register-team`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         },
-        body: JSON.stringify({
-          userId1: selectedPlayer1,
-          userId2: selectedPlayer2,
-          unavailable_time_slot: selectedSlot
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const data = await response.json();
@@ -257,6 +315,7 @@ export default function AdminRegisterTeamPage() {
       setSelectedPlayer1('');
       setSelectedPlayer2('');
       setSelectedSlot('');
+      setSelectedShirtSizes([]);
       
       // Recargar slots disponibles
       await loadAvailableSlots();
@@ -401,6 +460,18 @@ export default function AdminRegisterTeamPage() {
                 )}
               </div>
 
+              {/* Selección de Talles de Remera - Solo si el torneo los requiere */}
+              {getRequiresShirts() && (
+                <div>
+                  <ShirtSizesSelector
+                    selectedSizes={selectedShirtSizes}
+                    onSizesChange={setSelectedShirtSizes}
+                    error={validationErrors.shirtSizes}
+                    disabled={!selectedPlayer1 || !selectedPlayer2}
+                  />
+                </div>
+              )}
+
               {/* Estado del Formulario */}
               <FormStatus
                 player1={selectedPlayer1}
@@ -424,7 +495,13 @@ export default function AdminRegisterTeamPage() {
               <div className="pt-6">
                 <Button
                   type="submit"
-                  disabled={loading || !selectedPlayer1 || !selectedPlayer2 || !selectedSlot}
+                  disabled={
+                    loading || 
+                    !selectedPlayer1 || 
+                    !selectedPlayer2 || 
+                    !selectedSlot ||
+                    (getRequiresShirts() && selectedShirtSizes.length === 0)
+                  }
                   className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-4 px-6 rounded-lg focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl text-lg font-semibold"
                 >
                   {loading ? (

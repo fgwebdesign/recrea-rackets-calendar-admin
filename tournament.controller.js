@@ -134,7 +134,8 @@ export async function createTournament(req, res) {
     tournament_thumbnail,
     first_place_prize,
     second_place_prize,
-    third_place_prize
+    third_place_prize,
+    requires_shirts = false // Campo para indicar si se requieren talles de remera
   } = req.body;
 
   try {
@@ -511,7 +512,8 @@ export async function createTournament(req, res) {
           first_place_prize: first_place_prize || '',
           second_place_prize: second_place_prize || '',
           third_place_prize: third_place_prize || '',
-          tournament_thumbnail: tournament_thumbnail || ''
+          tournament_thumbnail: tournament_thumbnail || '',
+          requires_shirts: Boolean(requires_shirts) // Campo para indicar si se requieren talles de remera
         })
         .select();
     });
@@ -1294,7 +1296,7 @@ function formatDate(dateString) {
 
 export async function joinTournament(req, res) {
   const tournament_id = req.params.id;
-  const { userId1, userId2, unavailable_time_slot } = req.body;
+  const { userId1, userId2, unavailable_time_slot, shirt_sizes } = req.body;
 
   try {
     // ---------- 0) Validaciones básicas de body ----------
@@ -1313,12 +1315,56 @@ export async function joinTournament(req, res) {
     // ---------- 1) Torneo ----------
     const { data: tournament, error: tErr } = await supabase
       .from('tournaments')
-      .select('id, name, category_id, courts_available, time_slots, group_time_slots, tournament_type, max_teams')
+      .select(`
+        id, name, category_id, courts_available, time_slots, group_time_slots, tournament_type, max_teams,
+        tournament_info!inner (
+          requires_shirts
+        )
+      `)
       .eq('id', tournament_id)
       .single();
 
     if (tErr || !tournament) {
       return res.status(404).json({ message: 'Tournament not found' });
+    }
+
+    // ---------- 1.5) Validación de talles de remera (CONDICIONAL) ----------
+    const VALID_SHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+    
+    // Solo validar si el torneo requiere remeras
+    if (tournament.tournament_info[0].requires_shirts) {
+      if (!shirt_sizes || !Array.isArray(shirt_sizes)) {
+        return res.status(400).json({ 
+          message: 'shirt_sizes es requerido y debe ser un array (este torneo incluye remeras)',
+          valid_sizes: VALID_SHIRT_SIZES,
+          example: ['M', 'L']
+        });
+      }
+      
+      if (shirt_sizes.length === 0 || shirt_sizes.length > 2) {
+        return res.status(400).json({ 
+          message: 'shirt_sizes debe contener entre 1 y 2 talles (uno por jugador)',
+          received: shirt_sizes.length,
+          valid_sizes: VALID_SHIRT_SIZES
+        });
+      }
+      
+      const invalidSizes = shirt_sizes.filter(size => !VALID_SHIRT_SIZES.includes(size));
+      if (invalidSizes.length > 0) {
+        return res.status(400).json({ 
+          message: `Talles inválidos: ${invalidSizes.join(', ')}`,
+          valid_sizes: VALID_SHIRT_SIZES,
+          received: shirt_sizes
+        });
+      }
+    } else {
+      // Si el torneo no requiere remeras, shirt_sizes debe ser null o undefined
+      if (shirt_sizes !== undefined && shirt_sizes !== null) {
+        return res.status(400).json({ 
+          message: 'shirt_sizes no es requerido para este torneo (no incluye remeras)',
+          tournament_requires_shirts: false
+        });
+      }
     }
 
     // ---------- 2) Usuarios existen ----------
@@ -1452,14 +1498,21 @@ export async function joinTournament(req, res) {
     }
 
     // ---------- 8) Registrar en tournament_teams ----------
+    const tournamentTeamData = {
+      tournament_id,
+      team_id: teamId,
+      unavailable_times: unavailable_time_slot,  // guardamos el ID del time slot
+      payment_status: 'pending'                 // se actualizará cuando el admin confirme con switch
+    };
+    
+    // Solo agregar shirt_sizes si el torneo requiere remeras
+    if (tournament.tournament_info[0].requires_shirts) {
+      tournamentTeamData.shirt_sizes = shirt_sizes;
+    }
+    
     const { error: joinErr } = await supabase
       .from('tournament_teams')
-      .insert({
-        tournament_id,
-        team_id: teamId,
-        unavailable_times: unavailable_time_slot,  // guardamos el ID del time slot
-        payment_status: 'pending'                 // se actualizará cuando el admin confirme con switch
-      });
+      .insert(tournamentTeamData);
 
     if (joinErr) {
       return res.status(500).json({ message: joinErr.message });
@@ -1670,7 +1723,7 @@ export async function updateTeamPaymentStatus(req, res) {
  */
 export async function adminRegisterTeam(req, res) {
   const tournament_id = req.params.id;
-  const { userId1, userId2, unavailable_time_slot } = req.body;
+  const { userId1, userId2, unavailable_time_slot, shirt_sizes } = req.body;
 
   try {
     // ---------- 0) Validaciones básicas de body (IDÉNTICAS A joinTournament) ----------
@@ -1692,10 +1745,18 @@ export async function adminRegisterTeam(req, res) {
       });
     }
 
+    // ---------- 0.5) Validación de talles de remera (CONDICIONAL - se validará después de obtener el torneo) ----------
+    // Esta validación se moverá después de obtener la información del torneo
+
     // ---------- 1) Torneo (IDÉNTICO A joinTournament) ----------
     const { data: tournament, error: tErr } = await supabase
       .from('tournaments')
-      .select('id, name, category_id, courts_available, time_slots, group_time_slots, tournament_type, max_teams')
+      .select(`
+        id, name, category_id, courts_available, time_slots, group_time_slots, tournament_type, max_teams,
+        tournament_info!inner (
+          requires_shirts
+        )
+      `)
       .eq('id', tournament_id)
       .single();
 
@@ -1703,6 +1764,45 @@ export async function adminRegisterTeam(req, res) {
       return res.status(404).json({ 
         message: 'Tournament not found' 
       });
+    }
+
+    // ---------- 1.5) Validación de talles de remera (CONDICIONAL) ----------
+    const VALID_SHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+    
+    // Solo validar si el torneo requiere remeras
+    if (tournament.tournament_info[0].requires_shirts) {
+      if (!shirt_sizes || !Array.isArray(shirt_sizes)) {
+        return res.status(400).json({ 
+          message: 'shirt_sizes es requerido y debe ser un array (este torneo incluye remeras)',
+          valid_sizes: VALID_SHIRT_SIZES,
+          example: ['M', 'L']
+        });
+      }
+      
+      if (shirt_sizes.length === 0 || shirt_sizes.length > 2) {
+        return res.status(400).json({ 
+          message: 'shirt_sizes debe contener entre 1 y 2 talles (uno por jugador)',
+          received: shirt_sizes.length,
+          valid_sizes: VALID_SHIRT_SIZES
+        });
+      }
+      
+      const invalidSizes = shirt_sizes.filter(size => !VALID_SHIRT_SIZES.includes(size));
+      if (invalidSizes.length > 0) {
+        return res.status(400).json({ 
+          message: `Talles inválidos: ${invalidSizes.join(', ')}`,
+          valid_sizes: VALID_SHIRT_SIZES,
+          received: shirt_sizes
+        });
+      }
+    } else {
+      // Si el torneo no requiere remeras, shirt_sizes debe ser null o undefined
+      if (shirt_sizes !== undefined && shirt_sizes !== null) {
+        return res.status(400).json({ 
+          message: 'shirt_sizes no es requerido para este torneo (no incluye remeras)',
+          tournament_requires_shirts: false
+        });
+      }
     }
 
     // ---------- 2) Usuarios existen (IDÉNTICO A joinTournament) ----------
@@ -1866,14 +1966,21 @@ export async function adminRegisterTeam(req, res) {
     }
 
     // ---------- 8) Registrar en tournament_teams (IDÉNTICO A joinTournament) ----------
+    const tournamentTeamData = {
+      tournament_id,
+      team_id: teamId,
+      unavailable_times: unavailable_time_slot,
+      payment_status: 'pending'
+    };
+    
+    // Solo agregar shirt_sizes si el torneo requiere remeras
+    if (tournament.tournament_info[0].requires_shirts) {
+      tournamentTeamData.shirt_sizes = shirt_sizes;
+    }
+    
     const { data: tournamentTeam, error: joinErr } = await supabase
       .from('tournament_teams')
-      .insert({
-        tournament_id,
-        team_id: teamId,
-        unavailable_times: unavailable_time_slot,
-        payment_status: 'pending'
-      })
+      .insert(tournamentTeamData)
       .select(`
         id,
         tournament_id,
@@ -3065,6 +3172,7 @@ export async function getTournamentTeams(req, res) {
       .select(`
         team_id,
         unavailable_times,
+        shirt_sizes,
         teams (
           id,
           player1_id,

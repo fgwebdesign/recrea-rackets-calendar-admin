@@ -4,8 +4,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { DatePicker, formatDateForInput, parseDateFromInput } from '@/components/ui/date-picker';
+import { Switch } from '@/components/ui/switch';
 import { cn } from "@/lib/utils";
-import { Info } from "lucide-react";
+import { Info, Shirt } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { TournamentFormData } from '@/hooks/useTournamentForm';
 import { Category } from '@/types/category';
@@ -171,6 +172,59 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
               </div>
               {errors.categories && (
                 <p className="text-sm text-red-500">{errors.categories}</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <LabelWithTooltip
+              label="Remeras para Participantes"
+              tooltip="Marca esta opción si el torneo incluye remeras para los participantes. Los jugadores deberán seleccionar sus talles al inscribirse."
+            />
+            <div className="space-y-3">
+              <div className={cn(
+                "flex items-center justify-between p-4 rounded-lg border-2 transition-all duration-200",
+                formData.requires_shirts 
+                  ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30" 
+                  : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+              )}>
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "p-2 rounded-lg transition-colors duration-200",
+                    formData.requires_shirts 
+                      ? "bg-emerald-100 dark:bg-emerald-500/20" 
+                      : "bg-slate-100 dark:bg-slate-700"
+                  )}>
+                    <Shirt className={cn(
+                      "h-5 w-5 transition-colors duration-200",
+                      formData.requires_shirts 
+                        ? "text-emerald-600" 
+                        : "text-slate-500 dark:text-slate-400"
+                    )} />
+                  </div>
+                  <div>
+                    <Label htmlFor="requires_shirts" className="text-sm font-medium cursor-pointer">
+                      Incluir remeras para participantes
+                    </Label>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Los jugadores seleccionarán sus talles al inscribirse
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="requires_shirts"
+                  checked={formData.requires_shirts}
+                  onCheckedChange={(checked) => setFormData({ ...formData, requires_shirts: !!checked })}
+                  className="data-[state=checked]:bg-emerald-600"
+                />
+              </div>
+              {formData.requires_shirts && (
+                <div className="bg-emerald-50 dark:bg-emerald-500/10 p-3 rounded-lg border border-emerald-200 dark:border-emerald-500/30">
+                  <p className="text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+                    <Info className="h-3 w-3" />
+                    <span className="font-medium">Talles disponibles:</span> XS, S, M, L, XL, XXL
+                  </p>
+                </div>
               )}
             </div>
           </div>

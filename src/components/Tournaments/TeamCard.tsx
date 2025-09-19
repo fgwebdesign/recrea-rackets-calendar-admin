@@ -1,6 +1,7 @@
 'use client';
 
 import { UsersIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { Shirt } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -10,6 +11,7 @@ interface Team {
   payment_amount?: number;
   created_at?: string;
   unavailable_times?: string;
+  shirt_sizes?: string[];
   teams?: {
     player1?: {
       first_name: string;
@@ -189,6 +191,34 @@ export function TeamCard({ team, index }: TeamCardProps) {
             )}
           </div>
         </div>
+
+        {/* Talles de Remera */}
+        {team.shirt_sizes && team.shirt_sizes.length > 0 && (
+          <div className="mb-6">
+            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+              <Shirt className="w-4 h-4 text-blue-500" />
+              Talles de Remera
+            </h4>
+            
+            <div className="flex flex-wrap gap-2">
+              {team.shirt_sizes.map((size, sizeIndex) => (
+                <Badge 
+                  key={sizeIndex}
+                  className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm px-3 py-1 font-medium"
+                >
+                  {size}
+                </Badge>
+              ))}
+            </div>
+            
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              {team.shirt_sizes.length === 1 
+                ? 'Un talle seleccionado' 
+                : `${team.shirt_sizes.length} talles seleccionados`
+              }
+            </p>
+          </div>
+        )}
 
         {/* Información adicional */}
         <div className="pt-4 border-t border-gray-200 dark:border-gray-700">

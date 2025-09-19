@@ -10,6 +10,7 @@ export interface TournamentCreationData {
   tournament_type: 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS';
   time_slots: number[][];
   group_time_slots: any[]; // El backend genera estos dinámicamente
+  requires_shirts: boolean;
   
   // Información detallada (tournament_info)
   description: string;

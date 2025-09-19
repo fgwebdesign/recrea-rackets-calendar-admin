@@ -21,6 +21,7 @@ export interface TournamentFormData {
   tournament_type: 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS';
   tournament_thumbnail: File | null;
   thumbnail_url?: string | null;
+  requires_shirts: boolean;
 
   // Paso 2: Información Detallada
   description: string;
@@ -52,6 +53,7 @@ const INITIAL_FORM_DATA: TournamentFormData = {
   courts_available: 1,
   tournament_type: 'NINE_PLAYERS',
   tournament_thumbnail: null,
+  requires_shirts: false,
   description: '',
   rules: '',
   tournament_location: '',
@@ -221,6 +223,7 @@ export function useTournamentForm() {
           tournament_type: data.tournament_type,
           time_slots: data.time_slots,
           group_time_slots: [], // El backend genera estos dinámicamente
+          requires_shirts: data.requires_shirts,
           description: data.description.trim(),
           rules: data.rules.trim(),
           tournament_location: data.tournament_location.trim(),

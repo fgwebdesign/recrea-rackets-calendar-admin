@@ -82,6 +82,7 @@ export interface Tournament {
   max_teams: number
   tournament_type: TournamentType
   group_time_slots?: GroupTimeSlot[]
+  requires_shirts?: boolean
   // Relaciones expandidas
   category?: Category
   tournament_info?: TournamentInfo
@@ -128,6 +129,7 @@ export interface TournamentInfo {
   updated_at: string
   tournament_address: string
   tournament_club_name: string
+  requires_shirts?: boolean
 }
 
 export interface TournamentTeam {
