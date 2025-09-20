@@ -427,7 +427,40 @@ const translations: Record<Locale, Record<string, any>> = {
       pending: 'Pendientes',
       toPay: 'por pagar',
       revenue: 'Ingresos',
-      collected: 'recaudado'
+      collected: 'recaudado',
+      // Team Card translations
+      team: 'Equipo',
+      players: 'Jugadores',
+      player1: 'Jugador 1',
+      player2: 'Jugador 2',
+      shirtSizes: 'Talles de Remera',
+      oneSizeSelected: 'Un talle seleccionado',
+      multipleSizesSelected: '{count} talles seleccionados',
+      unknownTeam: 'Equipo desconocido',
+      noRestrictions: 'Sin restricciones',
+      paymentStatus: {
+        paid: 'Pagado',
+        pending: 'Pendiente',
+        failed: 'Fallido'
+      },
+      timeSlots: {
+        day1Morning: 'Día 1 - Mañana',
+        day1Afternoon: 'Día 1 - Tarde',
+        day1Evening: 'Día 1 - Noche',
+        day1Night: 'Día 1 - Noche',
+        day2Morning: 'Día 2 - Mañana',
+        day2Afternoon: 'Día 2 - Tarde',
+        day2Evening: 'Día 2 - Noche',
+        day2Night: 'Día 2 - Noche',
+        day3Morning: 'Día 3 - Mañana',
+        day3Afternoon: 'Día 3 - Tarde',
+        day3Evening: 'Día 3 - Noche',
+        day3Night: 'Día 3 - Noche',
+        morning: 'Mañana',
+        afternoon: 'Tarde',
+        evening: 'Noche',
+        night: 'Noche'
+      }
     },
     // Admin Register Team Page
     adminRegister: {
@@ -1105,7 +1138,40 @@ const translations: Record<Locale, Record<string, any>> = {
       pending: 'Pending',
       toPay: 'to pay',
       revenue: 'Revenue',
-      collected: 'collected'
+      collected: 'collected',
+      // Team Card translations
+      team: 'Team',
+      players: 'Players',
+      player1: 'Player 1',
+      player2: 'Player 2',
+      shirtSizes: 'Shirt Sizes',
+      oneSizeSelected: 'One size selected',
+      multipleSizesSelected: '{count} sizes selected',
+      unknownTeam: 'Unknown team',
+      noRestrictions: 'No restrictions',
+      paymentStatus: {
+        paid: 'Paid',
+        pending: 'Pending',
+        failed: 'Failed'
+      },
+      timeSlots: {
+        day1Morning: 'Day 1 - Morning',
+        day1Afternoon: 'Day 1 - Afternoon',
+        day1Evening: 'Day 1 - Evening',
+        day1Night: 'Day 1 - Night',
+        day2Morning: 'Day 2 - Morning',
+        day2Afternoon: 'Day 2 - Afternoon',
+        day2Evening: 'Day 2 - Evening',
+        day2Night: 'Day 2 - Night',
+        day3Morning: 'Day 3 - Morning',
+        day3Afternoon: 'Day 3 - Afternoon',
+        day3Evening: 'Day 3 - Evening',
+        day3Night: 'Day 3 - Night',
+        morning: 'Morning',
+        afternoon: 'Afternoon',
+        evening: 'Evening',
+        night: 'Night'
+      }
     },
     // Admin Register Team Page
     adminRegister: {

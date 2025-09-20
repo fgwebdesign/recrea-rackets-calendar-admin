@@ -4,12 +4,11 @@ import { UsersIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/r
 import { Shirt } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface Team {
   team_id: string;
   payment_status: 'pending' | 'paid' | 'failed';
-  payment_amount?: number;
-  created_at?: string;
   unavailable_times?: string;
   shirt_sizes?: string[];
   teams?: {
@@ -30,6 +29,8 @@ interface TeamCardProps {
 }
 
 export function TeamCard({ team, index }: TeamCardProps) {
+  const t = useTranslations('tournaments');
+  
   const getPlayerInitials = (player: any) => {
     if (!player?.first_name) return '?';
     return `${player.first_name[0]}${player.last_name?.[0] || ''}`.toUpperCase();
@@ -41,66 +42,66 @@ export function TeamCard({ team, index }: TeamCardProps) {
         return {
           className: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200',
           icon: <CheckCircleIcon className="h-3 w-3 mr-1" />,
-          text: 'Pagado'
+          text: t('teamsPage.paymentStatus.paid')
         };
       case 'pending':
         return {
           className: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200',
           icon: <ClockIcon className="h-3 w-3 mr-1" />,
-          text: 'Pendiente'
+          text: t('teamsPage.paymentStatus.pending')
         };
       case 'failed':
         return {
           className: 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200',
           icon: <XCircleIcon className="h-3 w-3 mr-1" />,
-          text: 'Fallido'
+          text: t('teamsPage.paymentStatus.failed')
         };
       default:
         // Si no hay status o es undefined, mostrar como pendiente por defecto
         return {
           className: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200',
           icon: <ClockIcon className="h-3 w-3 mr-1" />,
-          text: 'Pendiente'
+          text: t('teamsPage.paymentStatus.pending')
         };
     }
   };
 
   const formatUnavailableTimes = (unavailableTimes?: string) => {
-    if (!unavailableTimes) return 'Sin restricciones';
+    if (!unavailableTimes) return t('teamsPage.noRestrictions');
     
     // Mapear los valores del backend a texto legible
     const timeSlotMap: Record<string, string> = {
       // Día 1
-      'day1_morning': 'Día 1 - Mañana',
-      'day1_afternoon': 'Día 1 - Tarde', 
-      'day1_evening': 'Día 1 - Noche',
-      'day1_night': 'Día 1 - Noche',
-      'dayl_night': 'Día 1 - Noche', // Manejo de posible error tipográfico
+      'day1_morning': t('teamsPage.timeSlots.day1Morning'),
+      'day1_afternoon': t('teamsPage.timeSlots.day1Afternoon'), 
+      'day1_evening': t('teamsPage.timeSlots.day1Evening'),
+      'day1_night': t('teamsPage.timeSlots.day1Night'),
+      'dayl_night': t('teamsPage.timeSlots.day1Night'),
       
       // Día 2
-      'day2_morning': 'Día 2 - Mañana',
-      'day2_afternoon': 'Día 2 - Tarde',
-      'day2_evening': 'Día 2 - Noche',
-      'day2_night': 'Día 2 - Noche',
+      'day2_morning': t('teamsPage.timeSlots.day2Morning'),
+      'day2_afternoon': t('teamsPage.timeSlots.day2Afternoon'),
+      'day2_evening': t('teamsPage.timeSlots.day2Evening'),
+      'day2_night': t('teamsPage.timeSlots.day2Night'),
       
       // Día 3
-      'day3_morning': 'Día 3 - Mañana',
-      'day3_afternoon': 'Día 3 - Tarde',
-      'day3_evening': 'Día 3 - Noche',
-      'day3_night': 'Día 3 - Noche',
+      'day3_morning': t('teamsPage.timeSlots.day3Morning'),
+      'day3_afternoon': t('teamsPage.timeSlots.day3Afternoon'),
+      'day3_evening': t('teamsPage.timeSlots.day3Evening'),
+      'day3_night': t('teamsPage.timeSlots.day3Night'),
       
       // Posibles variaciones adicionales
-      'morning': 'Mañana',
-      'afternoon': 'Tarde',
-      'evening': 'Noche',
-      'night': 'Noche'
+      'morning': t('teamsPage.timeSlots.morning'),
+      'afternoon': t('teamsPage.timeSlots.afternoon'),
+      'evening': t('teamsPage.timeSlots.evening'),
+      'night': t('teamsPage.timeSlots.night')
     };
 
     return timeSlotMap[unavailableTimes] || unavailableTimes;
   };
 
   const formatPlayerNames = (team: Team) => {
-    if (!team?.teams) return 'Equipo desconocido';
+    if (!team?.teams) return t('teamsPage.unknownTeam');
     
     const player1 = team.teams.player1;
     const player2 = team.teams.player2;
@@ -113,7 +114,7 @@ export function TeamCard({ team, index }: TeamCardProps) {
       return `${player2.first_name} ${player2.last_name || ''}`;
     }
     
-    return `Equipo #${team.team_id?.slice(-4) || 'N/A'}`;
+    return `${t('teamsPage.team')} #${team.team_id?.slice(-4) || 'N/A'}`;
   };
 
   const paymentStatus = getPaymentStatusBadge(team.payment_status);
@@ -129,11 +130,8 @@ export function TeamCard({ team, index }: TeamCardProps) {
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                Equipo #{index + 1}
+                {t('teamsPage.team')} {index + 1}
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">
-                ID: {team.team_id?.slice(-8) || 'N/A'}
-              </p>
             </div>
           </div>
           
@@ -154,7 +152,7 @@ export function TeamCard({ team, index }: TeamCardProps) {
         <div className="mb-6">
           <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
             <UsersIcon className="w-4 h-4" />
-            Jugadores
+            {t('teamsPage.players')}
           </h4>
           
           <div className="grid grid-cols-1 gap-3">
@@ -169,7 +167,7 @@ export function TeamCard({ team, index }: TeamCardProps) {
                   </div>
                 </div>
                 <Badge className="bg-blue-500 text-white text-xs px-2 py-1 font-medium">
-                  Jugador 1
+                  {t('teamsPage.player1')}
                 </Badge>
               </div>
             )}
@@ -185,7 +183,7 @@ export function TeamCard({ team, index }: TeamCardProps) {
                   </div>
                 </div>
                 <Badge className="bg-purple-500 text-white text-xs px-2 py-1 font-medium">
-                  Jugador 2
+                  {t('teamsPage.player2')}
                 </Badge>
               </div>
             )}
@@ -194,10 +192,10 @@ export function TeamCard({ team, index }: TeamCardProps) {
 
         {/* Talles de Remera */}
         {team.shirt_sizes && team.shirt_sizes.length > 0 && (
-          <div className="mb-6">
+          <div>
             <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
               <Shirt className="w-4 h-4 text-blue-500" />
-              Talles de Remera
+              {t('teamsPage.shirtSizes')}
             </h4>
             
             <div className="flex flex-wrap gap-2">
@@ -213,37 +211,12 @@ export function TeamCard({ team, index }: TeamCardProps) {
             
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
               {team.shirt_sizes.length === 1 
-                ? 'Un talle seleccionado' 
-                : `${team.shirt_sizes.length} talles seleccionados`
+                ? t('teamsPage.oneSizeSelected') 
+                : t('teamsPage.multipleSizesSelected').replace('{count}', `${team.shirt_sizes.length}`)
               }
             </p>
           </div>
         )}
-
-        {/* Información adicional */}
-        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="grid grid-cols-2 gap-6">
-            <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800/30">
-              <div className="text-xs text-green-600 dark:text-green-400 font-medium mb-1">Monto</div>
-              <div className="text-lg font-bold text-green-700 dark:text-green-300">
-                ${team.payment_amount || 0}
-              </div>
-            </div>
-            <div className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="text-xs text-gray-600 dark:text-gray-400 font-medium mb-1">Fecha de Inscripción</div>
-              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {team.created_at 
-                  ? new Date(team.created_at).toLocaleDateString('es-ES', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })
-                  : 'Sin fecha'
-                }
-              </div>
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
