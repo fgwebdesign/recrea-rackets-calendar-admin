@@ -79,6 +79,10 @@ export default function TournamentMatchesPage() {
   const unprogrammedMatches = Array.isArray(matches) ? 
     matches.filter(m => !m.match_day || !m.start_time || !m.court_id).length : 0;
   
+  // Verificar si hay partidos con día asignado pero sin programar (para auto-scheduling)
+  const unscheduledMatches = Array.isArray(matches) ? 
+    matches.filter(m => m.match_day && !m.start_time).length : 0;
+  
   // Detectar si ya existen partidos eliminatorios
   const hasEliminationMatches = Array.isArray(matches) ? 
     matches.some(match => match.round !== 'group') : false;
@@ -160,12 +164,11 @@ export default function TournamentMatchesPage() {
     setModalSuccess(null);
   };
 
-  // Guardar resultado desde el modal
+  // Guardar resultado desde el modal (usando el mismo endpoint que bracket)
   const handleSaveResult = async (matchId: string, result: any) => {
     setSavingResult(true);
     setModalError(null);
     setModalSuccess(null);
-    
     
     try {
       const token = localStorage.getItem('adminToken');
@@ -175,12 +178,29 @@ export default function TournamentMatchesPage() {
         return;
       }
       
-      await matchService.updateMatchResult(matchId, result, tournamentId, token);
+      // ✅ Usar el mismo endpoint que la página de bracket
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/matches/${matchId}/result`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(result)
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al guardar el resultado');
+      }
+
       setModalSuccess('¡Resultado guardado exitosamente!');
       
-      // Cerrar modal después de 1.5 segundos
+      // Cerrar modal después de 1.5 segundos y recargar datos
       setTimeout(async () => {
-        await refetch(); // Recargar datos
+        await refetch();
         handleCloseModal();
       }, 1500);
       
@@ -207,7 +227,7 @@ export default function TournamentMatchesPage() {
     }
   };
 
-  // Programar partidos (asignar horarios y canchas)
+  // Programar partidos automáticamente (usando auto-scheduling del backend)
   const handleScheduleMatches = async () => {
     if (!tournament) return;
     
@@ -219,7 +239,8 @@ export default function TournamentMatchesPage() {
         throw new Error('No hay token de autenticación disponible');
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/schedule-matches-by-group`, {
+      // ✅ Usar el endpoint de auto-scheduling del backend
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/auto-schedule`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -229,18 +250,22 @@ export default function TournamentMatchesPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al programar partidos');
+        throw new Error(errorData.message || 'Error al programar partidos automáticamente');
       }
 
       const result = await response.json();
-      console.log('✅ Partidos programados exitosamente:', result);
+      console.log('✅ Auto-scheduling completado:', result);
+      
+      // Mostrar resumen del auto-scheduling
+      const { scheduled, failed, total, success_rate } = result;
+      alert(`🎾 Auto-scheduling completado!\n\n✅ Partidos programados: ${scheduled}\n❌ Partidos sin programar: ${failed}\n📊 Total procesados: ${total}\n🎯 Tasa de éxito: ${success_rate}`);
       
       // Recargar datos para mostrar los horarios y canchas asignados
       await refetch();
       
     } catch (error: any) {
-      console.error('Error programando partidos:', error);
-      alert(`Error al programar partidos: ${error.message}`);
+      console.error('Error en auto-scheduling:', error);
+      alert(`❌ Error en auto-scheduling: ${error.message}`);
     } finally {
       setIsSchedulingMatches(false);
     }
@@ -389,6 +414,10 @@ export default function TournamentMatchesPage() {
               <p className="text-gray-600 dark:text-gray-400 mt-2">
                 Gestión de partidos y resultados del torneo
               </p>
+              <div className="flex items-center gap-2 mt-2 text-sm text-blue-600 dark:text-blue-400">
+                <Target className="h-4 w-4" />
+                <span>Haz clic en cualquier partido para ingresar o ver resultados</span>
+              </div>
             </div>
             
             <div className="flex gap-3">
@@ -416,18 +445,19 @@ export default function TournamentMatchesPage() {
                 </Button>
               )}
 
-              {totalMatches > 0 && unprogrammedMatches > 0 && (
+              {totalMatches > 0 && unscheduledMatches > 0 && (
                 <Button
                   onClick={handleScheduleMatches}
                   disabled={isSchedulingMatches}
                   className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                  title={`Programar automáticamente ${unscheduledMatches} partidos que tienen día asignado pero no tienen hora/cancha`}
                 >
                   {isSchedulingMatches ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
                   ) : (
                     <CalendarDays className="h-4 w-4" />
                   )}
-                  {isSchedulingMatches ? 'Programando...' : 'Programar Partidos'}
+                  {isSchedulingMatches ? 'Programando...' : `Programar Partidos (${unscheduledMatches})`}
                 </Button>
               )}
             </div>
@@ -501,6 +531,9 @@ export default function TournamentMatchesPage() {
                 <div>
                   <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Sin Programar</p>
                   <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{unprogrammedMatches}</p>
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                    {unscheduledMatches > 0 ? `${unscheduledMatches} listos para auto-scheduling` : 'Todos programados'}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -574,13 +607,21 @@ export default function TournamentMatchesPage() {
                         const result = matchResults[match.id];
                         
                         return (
-                          <Card key={match.id} className={`${getGroupColor(match.group_number || 0)} transition-all duration-200 hover:shadow-lg`}>
-                            <CardHeader className="pb-3">
+                          <Card 
+                            key={match.id} 
+                            className={`${getGroupColor(match.group_number || 0)} transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer border-2 hover:border-blue-300`}
+                            onClick={() => handleOpenResultModal(match)}
+                            title="Haz clic para ingresar/ver resultado del partido"
+                          >
+                            <CardHeader className="pb-3 relative">
                               <div className="flex items-center justify-between">
                                 <CardTitle className="text-lg">
                                   Partido #{match.match_number || 'N/A'}
                                 </CardTitle>
-                                {getMatchStatusBadge(match.status)}
+                                <div className="flex items-center gap-2">
+                                  {getMatchStatusBadge(match.status)}
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" title="Clickeable"></div>
+                                </div>
                               </div>
                               
                               {match.match_day && (
@@ -743,7 +784,10 @@ export default function TournamentMatchesPage() {
                               <div className="flex gap-2">
                                 {match.status === 'pending' && (
                                   <Button
-                                    onClick={() => handleOpenResultModal(match)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenResultModal(match);
+                                    }}
                                     className="flex-1 bg-green-600 hover:bg-green-700"
                                   >
                                     <Target className="h-4 w-4 mr-2" />
@@ -753,12 +797,28 @@ export default function TournamentMatchesPage() {
                                 
                                 {match.status === 'completed' && (
                                   <Button
-                                    onClick={() => initializeResultForm(match)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenResultModal(match);
+                                    }}
                                     variant="outline"
                                     className="flex-1"
                                   >
                                     <RefreshCw className="h-4 w-4 mr-2" />
-                                    Editar Resultado
+                                    Ver Resultado
+                                  </Button>
+                                )}
+
+                                {match.status === 'scheduled' && (
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenResultModal(match);
+                                    }}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                  >
+                                    <Target className="h-4 w-4 mr-2" />
+                                    Ingresar Resultado
                                   </Button>
                                 )}
                               </div>

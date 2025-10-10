@@ -69,7 +69,7 @@ export default function TournamentGroupsPage() {
     return '?';
   };
 
-  // Función para generar grupos automáticamente
+  // Función para generar grupos automáticamente usando auto-grouping
   const handleGenerateGroups = async () => {
     if (!canGenerateGroups) return;
 
@@ -81,6 +81,7 @@ export default function TournamentGroupsPage() {
         throw new Error('No estás autenticado');
       }
 
+      // ✅ Usar el endpoint de auto-grouping del backend
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/generate-groups`, {
         method: 'POST',
         headers: {
@@ -92,24 +93,25 @@ export default function TournamentGroupsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Error al generar grupos');
+        throw new Error(data.message || 'Error al generar grupos automáticamente');
       }
 
-      // Mostrar mensaje de éxito
+      // Mostrar mensaje de éxito con detalles del auto-grouping
+      const isRegenerating = totalGroups > 0;
       toast({
-        title: "¡Grupos generados exitosamente!",
-        description: `Se crearon ${data.groups_created?.length || 0} grupos para el torneo`,
+        title: `¡${isRegenerating ? 'Grupos regenerados' : 'Grupos generados'} exitosamente!`,
+        description: `Se ${isRegenerating ? 'reorganizaron' : 'crearon'} ${data.groups_created?.length || 0} grupos usando distribución inteligente por preferencias de día`,
         variant: "default",
       });
 
-      // Refrescar los datos para mostrar los grupos creados
+      // Refrescar los datos para mostrar los grupos creados/regenerados
       await refetch();
 
     } catch (error) {
-      console.error('Error generando grupos:', error);
+      console.error('Error en auto-grouping:', error);
       toast({
-        title: "Error al generar grupos",
-        description: error instanceof Error ? error.message : 'Error inesperado',
+        title: "Error en auto-grouping",
+        description: error instanceof Error ? error.message : 'Error inesperado al generar grupos',
         variant: "destructive",
       });
     } finally {
@@ -197,7 +199,7 @@ export default function TournamentGroupsPage() {
 
   const tournamentCapacity = tournament?.tournament_type ? getTournamentCapacity(tournament.tournament_type) : 9;
   const isTournamentFull = totalTeams >= tournamentCapacity;
-  const canGenerateGroups = isTournamentFull && totalGroups === 0;
+  const canGenerateGroups = isTournamentFull && totalGroups === 0; // ✅ Solo permitir generar si NO hay grupos existentes
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -246,11 +248,11 @@ export default function TournamentGroupsPage() {
                 }`}
                 disabled={!canGenerateGroups || isGeneratingGroups}
                 title={
-                  totalGroups > 0 
-                    ? 'Los grupos ya han sido generados' 
-                    : !isTournamentFull 
+                  !isTournamentFull 
                     ? `Faltan ${tournamentCapacity - totalTeams} equipos para completar el cupo`
-                    : 'Generar grupos para el torneo'
+                    : totalGroups > 0
+                    ? 'Los grupos ya han sido generados. No se pueden regenerar para evitar inconsistencias.'
+                    : 'Generar grupos automáticamente usando auto-grouping inteligente'
                 }
               >
                 {isGeneratingGroups ? (
@@ -259,11 +261,11 @@ export default function TournamentGroupsPage() {
                   <Plus className="h-4 w-4" />
                 )}
                 {isGeneratingGroups
-                  ? 'Generando...'
-                  : totalGroups > 0 
-                  ? 'Grupos Generados' 
+                  ? 'Procesando...'
                   : !isTournamentFull 
                   ? `Esperando ${tournamentCapacity - totalTeams} equipos`
+                  : totalGroups > 0 
+                  ? 'Grupos Generados'
                   : 'Generar Grupos'
                 }
               </Button>
@@ -460,7 +462,9 @@ export default function TournamentGroupsPage() {
                   title={
                     !isTournamentFull 
                       ? `Faltan ${tournamentCapacity - totalTeams} equipos para completar el cupo`
-                      : 'Generar grupos para organizar los equipos del torneo'
+                      : totalGroups > 0
+                      ? 'Los grupos ya han sido generados. No se pueden regenerar para evitar inconsistencias.'
+                      : 'Generar grupos automáticamente usando auto-grouping inteligente'
                   }
                 >
                   {isGeneratingGroups ? (
@@ -469,9 +473,11 @@ export default function TournamentGroupsPage() {
                     <Plus className="h-4 w-4 mr-2" />
                   )}
                   {isGeneratingGroups
-                    ? 'Generando...'
+                    ? 'Procesando...'
                     : !isTournamentFull 
                     ? `Esperando ${tournamentCapacity - totalTeams} equipos`
+                    : totalGroups > 0
+                    ? 'Grupos Generados'
                     : 'Generar Grupos'
                   }
                 </Button>

@@ -43,9 +43,9 @@ export class TournamentDetailsService {
     return handleApiResponse<any[]>(response)
   }
 
-  // ⏰ Obtener horarios disponibles para registro
+  // ⏰ Obtener horarios disponibles para registro (usando endpoint correcto)
   async getAvailableHours(tournamentId: string): Promise<any[]> {
-    const response = await fetch(`${this.baseUrl}/${tournamentId}/available-hours`, {
+    const response = await fetch(`${this.baseUrl}/${tournamentId}/available-group-hours`, {
       headers: getAuthHeaders()
     })
     return handleApiResponse<any[]>(response)

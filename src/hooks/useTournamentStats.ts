@@ -103,6 +103,7 @@ export function useTournamentPaymentStats(tournamentId: string) {
         setLoading(true);
         const token = localStorage.getItem('adminToken') || localStorage.getItem('userToken');
         
+        // ✅ Usar endpoint correcto del backend
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/stats/payments/${tournamentId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,

@@ -265,9 +265,7 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
         groupsData,
         statsData,
         standingsData,
-        availableHoursData,
-        availableTimeSlotsData,
-        scheduleValidationData,
+        availableHoursData,       
         sponsorsData
       ] = await Promise.all([
         tournamentService.getTournamentById(tournamentId),
@@ -276,9 +274,7 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
         groupService.getGroups(tournamentId),
         statsService.getTournamentStats(tournamentId),
         tournamentService.getTournamentStandings(tournamentId),
-        tournamentDetailsService.getAvailableHours(tournamentId),
-        tournamentDetailsService.getAvailableTimeSlots(tournamentId),
-        tournamentDetailsService.validateSchedule(tournamentId),
+        tournamentDetailsService.getAvailableHours(tournamentId),          
         fetchTournamentSponsors(tournamentId)
       ])
 
@@ -310,9 +306,10 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
       setGroups(Array.isArray(groupsData) ? groupsData : [])
       setStats(statsData)
       setStandings(Array.isArray(standingsData) ? standingsData : [])
+      // ✅ Procesar horarios disponibles
       setAvailableHours(Array.isArray(availableHoursData) ? availableHoursData : [])
-      setAvailableTimeSlots(Array.isArray(availableTimeSlotsData) ? availableTimeSlotsData : [])
-      setScheduleValidation(scheduleValidationData)
+      setAvailableTimeSlots([])
+      setScheduleValidation({})
       
       // ✅ Procesar sponsors del torneo
       const sponsorsArray = sponsorsData?.sponsors || []

@@ -1,32 +1,27 @@
 import { Router } from 'express'
-import { 
-    getTournaments, 
-    getTournamentById, 
-    createTournament, 
-    updateTournament, 
-    deleteTournament, 
+import {
+    getTournaments,
+    getTournamentById,
+    createTournament,
     changeTournamentType,
-    joinTournament, 
-    getMatchesByTournamentId, 
-    generateLeagueMatches,
+    joinTournament,
+    getMatchesByTournamentId,
     generateEliminationBracket,
     getTournamentTeams,
-    getAvailableHoursForRegistration,
-    getAvailableTimeSlotsForRegistration,
     getAvailablePlayersForTournament,
-    validateScheduleEndpoint,
     getTournamentsByUserId,
     generateGroupsPhase,
-    generateGroupsManual,
     getGroups,
     getTournamentPaymentStats,
     getTournamentPeriodStats,
     getTournamentOverviewStats,
-    validateGroupScheduleConflicts,
-    scheduleMatchesByGroupAndDayEndpoint,
     getGroupStandings,
     updateTeamPaymentStatus,
-    adminRegisterTeam
+    adminRegisterTeam,
+    getAvailableGroupHours,
+    scheduleMatchesController,
+    getSchedulingStatusController,
+    getSlotAvailabilityController
 } from '../controllers/tournament.controller.js'
 import { updateMatchResult } from '../controllers/match.controller.js'
 import { setTournamentRequiredInfo, setTournamentThumbnail, setTournamentPrize, setTournamentSponsors } from '../controllers/tournamentInfo.controller.js'
@@ -96,27 +91,8 @@ router.get('/:id', getTournamentById)
  */
 router.post('/create', verifyToken, verifyAdmin, createTournament)
 
-/**
- * @swagger
- * /tournaments/{id}:
- *   put:
- *     summary: Actualiza un torneo
- *     tags: [Torneos]
- *     security:
- *       - bearerAuth: []
- */
-router.put('/:id', verifyToken, verifyAdmin, updateTournament)
-
-/**
- * @swagger
- * /tournaments/{id}:
- *   delete:
- *     summary: Elimina un torneo
- *     tags: [Torneos]
- *     security:
- *       - bearerAuth: []
- */
-router.delete('/:id', verifyToken, verifyAdmin, deleteTournament)
+// RUTAS ELIMINADAS: updateTournament y deleteTournament ya no están disponibles
+// Los torneos se crean automáticamente y no se modifican/eliminan manualmente
 
 /**
  * @swagger
@@ -272,16 +248,8 @@ router.post('/:id/admin-register-team', verifyToken, verifyAdmin, adminRegisterT
 
 // RUTA ELIMINADA: Conflictaba con la nueva implementación de getGroupStandings
 
-/**
- * @swagger
- * /tournaments/{id}/generate-matches:
- *   post:
- *     summary: Genera los partidos de la liga
- *     tags: [Torneos]
- *     security:
- *       - bearerAuth: []
- */
-router.post('/:id/generate-matches', verifyToken, verifyAdmin, generateLeagueMatches)
+// ❌ RUTA ELIMINADA: generateLeagueMatches no existe
+// router.post('/:id/generate-matches', verifyToken, verifyAdmin, generateLeagueMatches)
 
 /**
  * @swagger
@@ -376,16 +344,8 @@ router.post('/:id/populate', verifyToken, verifyAdmin, async (req, res) => {
  */
 router.post('/:id/generate-groups', verifyToken, verifyAdmin, generateGroupsPhase)
 
-/**
- * @swagger
- * /tournaments/{id}/generate-groups-manual:
- *   post:
- *     summary: Genera grupos manualmente para un torneo
- *     tags: [Torneos]
- *     security:
- *       - bearerAuth: []
- */
-router.post('/:id/generate-groups-manual', verifyToken, verifyAdmin, generateGroupsManual)
+// RUTA ELIMINADA: generateGroupsManual ya no está disponible
+// Los grupos se generan automáticamente con generateGroupsPhase
 
 /**
  * @swagger
@@ -396,14 +356,8 @@ router.post('/:id/generate-groups-manual', verifyToken, verifyAdmin, generateGro
  */
 router.get('/:id/teams', getTournamentTeams)
 
-/**
- * @swagger
- * /tournaments/{id}/available-hours:
- *   get:
- *     summary: Obtiene las horas disponibles (LEGACY)
- *     tags: [Torneos]
- */
-router.get('/:id/available-hours', getAvailableHoursForRegistration)
+// ❌ RUTA ELIMINADA: getAvailableHoursForRegistration no existe
+// router.get('/:id/available-hours', getAvailableHoursForRegistration)
 
 /**
  * @swagger
@@ -450,7 +404,75 @@ router.get('/:id/available-hours', getAvailableHoursForRegistration)
  *                       percentage_full:
  *                         type: number
  */
-router.get('/:id/available-time-slots', getAvailableTimeSlotsForRegistration)
+// ❌ RUTAS ELIMINADAS: Funciones de time slots dinámicos eliminadas
+// router.get('/:id/available-time-slots', getAvailableTimeSlotsForRegistration)
+// router.get('/:id/time-slots', getTimeSlotsForRegistration)
+
+/**
+ * @swagger
+ * /tournaments/{id}/available-group-hours:
+ *   get:
+ *     summary: Obtiene horarios disponibles para fase de grupos
+ *     tags: [Torneos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del torneo
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Horarios disponibles con información de restricciones
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 tournament:
+ *                   type: object
+ *                 available_hours:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       label:
+ *                         type: string
+ *                       day:
+ *                         type: number
+ *                       start:
+ *                         type: string
+ *                       end:
+ *                         type: string
+ *                       date:
+ *                         type: string
+ *                       capacity:
+ *                         type: number
+ *                       current_restrictions:
+ *                         type: number
+ *                       is_heavily_restricted:
+ *                         type: boolean
+ *                 restrictions:
+ *                   type: object
+ *                   properties:
+ *                     min_selection:
+ *                       type: number
+ *                     max_selection:
+ *                       type: number
+ *                     recommended:
+ *                       type: number
+ *                     message:
+ *                       type: string
+ *       404:
+ *         description: Torneo no encontrado
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/:id/available-group-hours', getAvailableGroupHours)
 
 /**
  * @swagger
@@ -499,14 +521,8 @@ router.get('/:id/available-time-slots', getAvailableTimeSlotsForRegistration)
  */
 router.get('/:id/available-players', verifyToken, verifyAdmin, getAvailablePlayersForTournament)
 
-/**
- * @swagger
- * /tournaments/{id}/validate-schedule:
- *   get:
- *     summary: Valida el horario del torneo
- *     tags: [Torneos]
- */
-router.get('/:id/validate-schedule', validateScheduleEndpoint)
+// ❌ RUTA ELIMINADA: validateScheduleEndpoint no existe
+// router.get('/:id/validate-schedule', validateScheduleEndpoint)
 
 /**
  * @swagger
@@ -574,14 +590,15 @@ router.get('/:id/groups', getGroups)
  *                 validation_results:
  *                   type: array
  */
-router.post('/:id/validate-group-conflicts', verifyToken, verifyAdmin, validateGroupScheduleConflicts)
+// ❌ RUTA ELIMINADA: validateGroupScheduleConflicts no existe
+// router.post('/:id/validate-group-conflicts', verifyToken, verifyAdmin, validateGroupScheduleConflicts)
 
 
 /**
  * @swagger
- * /tournaments/{id}/schedule-matches-by-group:
+ * /tournaments/{id}/schedule-matches:
  *   post:
- *     summary: Programa automáticamente los partidos por grupo y día
+ *     summary: Asigna automáticamente hora + cancha a partidos con día asignado
  *     tags: [Torneos]
  *     security:
  *       - bearerAuth: []
@@ -594,7 +611,92 @@ router.post('/:id/validate-group-conflicts', verifyToken, verifyAdmin, validateG
  *           type: string
  *     responses:
  *       200:
- *         description: Partidos programados exitosamente por grupo y día
+ *         description: Auto-scheduling completado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 scheduled:
+ *                   type: number
+ *                 failed:
+ *                   type: number
+ *                 total:
+ *                   type: number
+ *                 success_rate:
+ *                   type: string
+ *                 scheduled_matches:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       match_id:
+ *                         type: string
+ *                       start_time:
+ *                         type: string
+ *                       court_id:
+ *                         type: string
+ *                       court_name:
+ *                         type: string
+ *                 failed_matches:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       match_id:
+ *                         type: string
+ *                       group:
+ *                         type: number
+ *                       match_number:
+ *                         type: number
+ *                       reason:
+ *                         type: string
+ *       404:
+ *         description: Torneo no encontrado
+ *       500:
+ *         description: Error en auto-scheduling
+ */
+router.post('/:id/schedule-matches', verifyToken, verifyAdmin, scheduleMatchesController)
+
+/**
+ * @swagger
+ * /tournaments/{id}/groups/{groupId}/assign-day:
+ *   patch:
+ *     summary: Asigna manualmente el día del torneo a un grupo mixto
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del torneo
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: groupId
+ *         required: true
+ *         description: ID del grupo
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tournament_day
+ *             properties:
+ *               tournament_day:
+ *                 type: number
+ *                 enum: [1, 2]
+ *                 description: Día del torneo (1 o 2)
+ *     responses:
+ *       200:
+ *         description: Día asignado exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -609,52 +711,183 @@ router.post('/:id/validate-group-conflicts', verifyToken, verifyAdmin, validateG
  *                       type: string
  *                     name:
  *                       type: string
- *                     type:
- *                       type: string
- *                 programming_summary:
+ *                 group:
  *                   type: object
  *                   properties:
- *                     total_matches:
+ *                     id:
+ *                       type: string
+ *                     group_number:
  *                       type: number
- *                     programming_period:
- *                       type: object
- *                     matches_by_day:
- *                       type: object
- *                     matches_by_court:
- *                       type: object
- *                     matches_by_group:
- *                       type: object
- *                     available_courts:
+ *                     teams_count:
  *                       type: number
- *                 scheduled_matches:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
+ *                     previous_day:
+ *                       type: string
+ *                     new_day:
+ *                       type: string
+ *                     is_homogeneous:
+ *                       type: boolean
+ *                 matches:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: number
+ *                     updated:
+ *                       type: number
+ *                     previously_scheduled:
+ *                       type: number
+ *                     ready_for_auto_scheduling:
+ *                       type: number
+ *                 restrictions:
+ *                   type: object
+ *                   properties:
+ *                     total_teams:
+ *                       type: number
+ *                     teams_with_restrictions:
+ *                       type: number
+ *                     total_restrictions:
+ *                       type: number
+ *                     restricted_times:
+ *                       type: array
+ *                       items:
  *                         type: string
- *                       group:
- *                         type: string
- *                       teams:
- *                         type: string
- *                       date:
- *                         type: string
- *                       time:
- *                         type: string
- *                       court:
- *                         type: number
- *                       conflicts_avoided:
- *                         type: array
- *                         items:
- *                           type: string
+ *                     warning:
+ *                       type: string
+ *                 next_steps:
+ *                   type: object
+ *                   properties:
+ *                     action:
+ *                       type: string
+ *                     endpoint:
+ *                       type: string
+ *                     description:
+ *                       type: string
  *       400:
- *         description: No hay partidos pendientes de programación
+ *         description: Parámetros inválidos
+ *       404:
+ *         description: Torneo o grupo no encontrado
+ *       500:
+ *         description: Error asignando día
+ */
+// router.patch('/:id/groups/:groupId/assign-day', verifyToken, verifyAdmin, assignDayToGroupController) // DEPRECATED - not needed
+
+/**
+ * @swagger
+ * /tournaments/{id}/scheduling-status:
+ *   get:
+ *     summary: Obtiene el estado completo del scheduling del torneo
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del torneo
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Estado del scheduling obtenido exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 tournament:
+ *                   type: object
+ *                 groups_summary:
+ *                   type: object
+ *                 matches_summary:
+ *                   type: object
+ *                 slots_capacity:
+ *                   type: object
+ *                 groups:
+ *                   type: array
+ *                 next_action:
+ *                   type: object
+ *                 warnings:
+ *                   type: array
  *       404:
  *         description: Torneo no encontrado
  *       500:
- *         description: Error en la programación por grupo y día
+ *         description: Error obteniendo estado
  */
-router.post('/:id/schedule-matches-by-group', verifyToken, verifyAdmin, scheduleMatchesByGroupAndDayEndpoint)
+router.get('/:id/scheduling-status', verifyToken, verifyAdmin, getSchedulingStatusController)
+
+/**
+ * @swagger
+ * /tournaments/{id}/slot-availability:
+ *   get:
+ *     summary: Obtiene la disponibilidad de slots del torneo considerando todas las categorías del evento
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del torneo
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Disponibilidad de slots obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 tournament_id:
+ *                   type: string
+ *                 tournament_name:
+ *                   type: string
+ *                 event_id:
+ *                   type: string
+ *                 courts_available:
+ *                   type: number
+ *                 total_capacity_per_slot:
+ *                   type: number
+ *                 statistics:
+ *                   type: object
+ *                   properties:
+ *                     day1:
+ *                       type: object
+ *                     day2:
+ *                       type: object
+ *                 days:
+ *                   type: object
+ *                   properties:
+ *                     1:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           slot_id:
+ *                             type: string
+ *                           start_time:
+ *                             type: string
+ *                           end_time:
+ *                             type: string
+ *                           capacity:
+ *                             type: number
+ *                           occupied:
+ *                             type: number
+ *                           available:
+ *                             type: number
+ *                           is_full:
+ *                             type: boolean
+ *                           is_available:
+ *                             type: boolean
+ *                           courts:
+ *                             type: array
+ *                     2:
+ *                       type: array
+ *       404:
+ *         description: Torneo no encontrado
+ *       500:
+ *         description: Error obteniendo disponibilidad
+ */
+router.get('/:id/slot-availability', verifyToken, verifyAdmin, getSlotAvailabilityController)
 
 /**
  * @swagger

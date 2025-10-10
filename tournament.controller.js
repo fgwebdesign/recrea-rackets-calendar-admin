@@ -1,9 +1,79 @@
+// ========================================
+// 📦 IMPORTS & DEPENDENCIES
+// ========================================
 import { supabase } from '../config/supabaseClient.js'
-import { validateTournamentSchedule } from '../helpers/tournament.helpers.js'
 import { Resend } from 'resend'
 import fs from 'fs'
 import handlebars from 'handlebars'
+import { distributeTeamsByDayPreference } from './tournament-intelligent-grouping.js'
+import { autoScheduleMatches } from './tournament-auto-scheduling.js'
+import { getSchedulingStatus } from './tournament-scheduling-status.js'
+import { getSlotAvailability } from './tournament-slot-availability.js'
 
+// ========================================
+// 🎯 CONSTANTS & CONFIGURATION
+// ========================================
+const TOURNAMENT_FORMATS = {
+  'SIX_PLAYERS': {
+    total_teams: 6,
+    groups_count: 2,
+    teams_per_group: 3,
+    teams_to_qualify: 2,  // 4 equipos clasifican (2 de cada grupo)
+    elimination_stages: {
+      first: 'SEMI_FINALS',
+      matches: ['SEMI_FINALS', 'FINAL'],
+      direct_to_semis: 0,  // Todos juegan semifinales
+      semifinals_teams: 4,  // Los 4 clasificados juegan semifinales
+      description: '4 clasifican: todos juegan semifinales → final'
+    }
+  },
+  'NINE_PLAYERS': {
+    total_teams: 9,
+    groups_count: 3,
+    teams_per_group: 3,
+    teams_to_qualify: 2,  // 6 equipos clasifican (2 de cada grupo)
+    elimination_stages: {
+      first: 'QUARTER_FINALS',
+      matches: ['QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'],
+      direct_to_semis: 2,  // Los 2 mejores primeros pasan directo a semis
+      quarter_finals_teams: 4,  // Los otros 4 juegan cuartos
+      description: '6 clasifican: 2 mejores 1ros → semis, otros 4 → cuartos'
+    }
+  },
+  'TWELVE_PLAYERS': {
+    total_teams: 12,
+    groups_count: 4,
+    teams_per_group: 3,
+    teams_to_qualify: 2,  // 8 equipos clasifican (2 de cada grupo)
+    elimination_stages: {
+      first: 'QUARTER_FINALS',
+      matches: ['QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'],
+      direct_to_semis: 0,  // Todos juegan cuartos
+      quarter_finals_teams: 8,  // Todos los 8 clasificados juegan cuartos
+      description: '8 clasifican: todos juegan cuartos → semis → final'
+    }
+  },
+  'SIXTEEN_PLAYERS': {
+    total_teams: 16,
+    groups_count: 4,
+    teams_per_group: 4,
+    teams_to_qualify: 2,  // 8 equipos clasifican (2 de cada grupo)
+    elimination_stages: {
+      first: 'OCTAVOS_DE_FINAL',
+      matches: ['OCTAVOS_DE_FINAL', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'],
+      direct_to_semis: 0,  // Todos juegan octavos
+      octavos_finals_teams: 8,  // Todos los 8 clasificados juegan octavos
+      description: '8 clasifican: todos juegan octavos → cuartos → semis → final'
+    }
+  }
+};
+
+// Límite de restricciones por slot por cancha (se multiplica por número de canchas)
+const MAX_RESTRICTIONS_PER_SLOT_PER_COURT = 2;
+
+// ========================================
+// 🔍 CONSULTAS (GET) - Obtener información
+// ========================================
 
 export async function getTournaments(req, res) {
   try {
@@ -111,14 +181,90 @@ export async function getTournamentById(req, res) {
   res.json(data)
 }
 
+// 🚀 ALGORITMO DE VALIDACIÓN DE CAPACIDAD
+async function validateTournamentCapacity(tournamentType, categories, courts, startDate, endDate) {
+  console.log(`🔍 [VALIDACIÓN] Verificando capacidad del torneo...`);
+  
+  // Calcular equipos por categoría según tipo
+  const teamsPerCategory = {
+    'SIX_PLAYERS': 6,
+    'NINE_PLAYERS': 9,
+    'TWELVE_PLAYERS': 12,
+    'SIXTEEN_PLAYERS': 16
+  };
+  
+  const teamsPerCat = teamsPerCategory[tournamentType] || 12;
+  const totalCategories = categories.length;
+  const totalCourts = courts.length;
+  
+  console.log(`📊 [CAPACIDAD] ${totalCategories} categorías × ${teamsPerCat} equipos = ${totalCategories * teamsPerCat} equipos`);
+  console.log(`🏟️ [CANCHAS] ${totalCourts} canchas disponibles`);
+  
+  // Calcular partidos necesarios
+  const totalTeams = totalCategories * teamsPerCat;
+  const totalMatches = totalTeams / 2; // Cada partido tiene 2 equipos
+  
+  console.log(`🎾 [PARTIDOS] ${totalMatches} partidos necesarios`);
+  
+  // Calcular slots disponibles con capacidad por cancha
+  const timeSlots = generateSimpleTimeSlots(startDate, endDate, totalCourts);
+  const day1Slots = timeSlots.filter(slot => slot.day === 1).length;
+  const day2Slots = timeSlots.filter(slot => slot.day === 2).length;
+  const totalSlots = (day1Slots + day2Slots) * totalCourts;
+  
+  console.log(`⏰ [SLOTS] Día 1: ${day1Slots} × ${totalCourts} = ${day1Slots * totalCourts} slots`);
+  console.log(`⏰ [SLOTS] Día 2: ${day2Slots} × ${totalCourts} = ${day2Slots * totalCourts} slots`);
+  console.log(`⏰ [SLOTS] Total: ${totalSlots} slots disponibles`);
+  
+  // Validar capacidad
+  const isValid = totalMatches <= totalSlots;
+  const utilization = ((totalMatches / totalSlots) * 100).toFixed(1);
+  
+  console.log(`📊 [UTILIZACIÓN] ${totalMatches}/${totalSlots} slots (${utilization}%)`);
+  
+  if (!isValid) {
+    const shortage = totalMatches - totalSlots;
+    console.log(`❌ [ERROR] Faltan ${shortage} slots para programar todos los partidos`);
+    return {
+      valid: false,
+      error: `Capacidad insuficiente: Se necesitan ${totalMatches} slots pero solo hay ${totalSlots} disponibles. Faltan ${shortage} slots.`,
+      details: {
+        totalMatches,
+        totalSlots,
+        shortage,
+        courts: totalCourts,
+        categories: totalCategories,
+        teamsPerCategory: teamsPerCat
+      }
+    };
+  }
+  
+  console.log(`✅ [VÁLIDO] El torneo se puede programar correctamente`);
+  return {
+    valid: true,
+    details: {
+      totalMatches,
+      totalSlots,
+      utilization: `${utilization}%`,
+      courts: totalCourts,
+      categories: totalCategories,
+      teamsPerCategory: teamsPerCat
+    }
+  };
+}
+
+// ========================================
+// ✨ CREACIÓN DE TORNEOS
+// ========================================
+
 export async function createTournament(req, res) {
   const { 
     name, 
-    categories, // Cambiado de category_id a categories (array)
+    categories, 
     start_date, 
     end_date, 
     courts_available, 
-    selectedCourts = [], // Array de IDs de canchas seleccionadas
+    selectedCourts = [], 
     time_slots,                
     group_time_slots,          
     tournament_type = 'NINE_PLAYERS',
@@ -371,6 +517,47 @@ export async function createTournament(req, res) {
 
     console.log(`✅ Validaciones de fechas, formato, lógica de negocio y compatibilidad de categorías pasadas: ${durationDays} días, formato ${tournament_type} (${currentFormat.description}), ${categories.length} categorías`);
 
+    // 🚀 VALIDACIÓN DE CAPACIDAD DEL SISTEMA
+    console.log(`🔍 [VALIDACIÓN CAPACIDAD] Iniciando validación de capacidad...`);
+    
+    // Obtener información de canchas para validación
+    const { data: courtsData, error: courtsError } = await supabase
+      .from('courts')
+      .select('id, name');
+      
+    if (courtsError) {
+      return res.status(500).json({ message: 'Error obteniendo información de canchas para validación', error: courtsError.message });
+    }
+    
+    console.log(`🏟️ [CANCHAS] ${courtsData.length} canchas disponibles en el sistema`);
+    
+    // Validar capacidad del torneo
+    const capacityValidation = await validateTournamentCapacity(
+      tournament_type, 
+      categories, 
+      courtsData, 
+      startDate, 
+      endDate
+    );
+    
+    if (!capacityValidation.valid) {
+      console.log(`❌ [CAPACIDAD] ${capacityValidation.error}`);
+      return res.status(400).json({ 
+        message: 'El torneo no se puede crear debido a limitaciones de capacidad',
+        error: capacityValidation.error,
+        details: capacityValidation.details,
+        recomendaciones: [
+          'Reduzca el número de categorías',
+          'Aumente el número de canchas disponibles',
+          'Cambie el tipo de torneo a uno con menos equipos',
+          'Extienda la duración del torneo (si es posible)'
+        ]
+      });
+    }
+    
+    console.log(`✅ [CAPACIDAD] Validación exitosa: ${capacityValidation.details.utilization} de utilización`);
+    console.log(`📊 [CAPACIDAD] ${capacityValidation.details.totalMatches} partidos programables en ${capacityValidation.details.totalSlots} slots disponibles`);
+
     // 🏟️ Validación de canchas seleccionadas (OPCIONAL)
     if (selectedCourts !== undefined && selectedCourts !== null) {
       // Si se proporciona selectedCourts, debe ser un array válido
@@ -434,20 +621,20 @@ export async function createTournament(req, res) {
       }
     }
 
-    // ---- generación dinámica de group slots basada en fechas del torneo ----
+    // ---- NUEVA LÓGICA: generación de group slots específicos por categoría ----
     const HHMM = /^\d{2}:\d{2}$/;
 
-    let finalGroupSlots = group_time_slots;
-    if (!Array.isArray(finalGroupSlots) || finalGroupSlots.length === 0) {
-      // Generar time slots dinámicamente basados en start_date y end_date
-      finalGroupSlots = generateDynamicTimeSlots(start_date, end_date);
+    // Obtener información de las categorías para generar time slots específicos
+    const { data: categoriesData, error: categoriesError } = await supabase
+      .from('categories')
+      .select('id, name, "order"')
+      .in('id', categories);
+
+    if (categoriesError) {
+      return res.status(500).json({ message: 'Error obteniendo información de categorías' });
     }
-    // Validar time slots (dinámicos o personalizados)
-    for (const s of finalGroupSlots) {
-      if (!validateDynamicTimeSlot(s)) {
-        return res.status(400).json({ message: `group_time_slots inválido en ${s.id}` });
-      }
-    }
+
+    console.log(`🎯 Categorías encontradas:`, categoriesData.map(c => `${c.name} (orden: ${c.order})`));
 
     // ---- compat time_slots (legacy) ----
     let finalTimeSlots = time_slots;
@@ -458,19 +645,29 @@ export async function createTournament(req, res) {
       ];
     }
 
-    // Crear un torneo por cada categoría
-    const tournamentsToCreate = categories.map(category_id => ({
-      name,
-      category_id,
-      start_date,
-      end_date,
-      status: 'upcoming',
-      courts_available,
-      time_slots: finalTimeSlots,
-      group_time_slots: finalGroupSlots,
-      tournament_type,
-      max_teams: tournament_type === 'SIX_PLAYERS' ? 6 : tournament_type === 'NINE_PLAYERS' ? 9 : tournament_type === 'TWELVE_PLAYERS' ? 12 : 16
-    }));
+    // NUEVA LÓGICA: Crear un torneo por cada categoría con time slots específicos
+    const tournamentsToCreate = categories.map(category_id => {
+      const categoryInfo = categoriesData.find(c => c.id === category_id);
+      
+      // Generar time slots para la fase de grupos (compartidos entre todas las categorías)
+      let categoryGroupSlots = group_time_slots;
+      if (!Array.isArray(categoryGroupSlots) || categoryGroupSlots.length === 0) {
+        categoryGroupSlots = generateGroupPhaseTimeSlots(start_date, end_date, courts_available);
+      }
+
+      return {
+        name,
+        category_id,
+        start_date,
+        end_date,
+        status: 'upcoming',
+        courts_available,
+        time_slots: finalTimeSlots,
+        group_time_slots: categoryGroupSlots,
+        tournament_type,
+        max_teams: tournament_type === 'SIX_PLAYERS' ? 6 : tournament_type === 'NINE_PLAYERS' ? 9 : tournament_type === 'TWELVE_PLAYERS' ? 12 : 16
+      };
+    });
 
     // Insertar múltiples torneos
     // 1. Crear los torneos primero
@@ -619,52 +816,6 @@ export async function createTournament(req, res) {
   }
 }
 
-export async function addTeamToTournament(req, res) {
-  const { tournament_id } = req.params
-  const { team_id } = req.body
-
-  const { data, error } = await supabase
-    .from('tournament_teams')
-    .insert({
-      tournament_id,
-      team_id
-    })
-    .select()
-
-  if (error) return res.status(500).json({ message: error.message })
-
-  res.status(201).json({
-    message: 'Team added to tournament',
-    data: data[0]
-  })
-}
-
-export async function updateTournament(req, res) {
-  const tournament = tournaments.find(t => t.id === req.params.id)
-  if (!tournament) return res.status(404).json({ message: 'Tournament not found' })
-  tournament.name = req.body.name || tournament.name
-  tournament.categoryId = req.body.categoryId || tournament.categoryId
-  res.json(tournament)
-}
-
-export async function deleteTournament(req, res) {
-  const { id } = req.params
-  const { data, error } = await supabase
-    .from('tournaments')
-    .delete()
-    .eq('id', id)
-    .select()
-
-  if (error) return res.status(500).json({ message: error.message })
-  res.json({ message: 'Tournament deleted' })
-}
-
-/**
- * 🔄 CAMBIAR TIPO DE TORNEO DINÁMICAMENTE
- * Permite cambiar entre NINE_PLAYERS y TWELVE_PLAYERS
- * Mantiene equipos inscritos y recalcula cupos automáticamente
- * Solo restricción: no debe tener grupos generados
- */
 export async function changeTournamentType(req, res) {
   const { id } = req.params;
   const { new_tournament_type } = req.body;
@@ -748,8 +899,15 @@ export async function changeTournamentType(req, res) {
 
     if (updateError) throw updateError;
 
-    // 8. Recalcular cupos compartidos para todos los torneos del mismo evento
-    await recalculateSharedSlotsForEvent(tournament.name);
+    // 8. ✨ NUEVA LÓGICA: Recalcular horarios para TODO el evento
+    console.log(`🔄 [RECALCULAR] Actualizando horarios para el evento "${tournament.name}"`);
+
+    await recalculateEventTimeSlots(
+      tournament.name,
+      tournament.start_date,
+      tournament.end_date,
+      updatedTournament.courts_available
+    );
 
     // Log del cambio exitoso
     console.log(`✅ Tipo de torneo cambiado exitosamente: ${tournament.tournament_type} → ${new_tournament_type}`);
@@ -807,53 +965,13 @@ export async function changeTournamentType(req, res) {
 }
 
 /**
- * 🔄 RECALCULAR CUPOS COMPARTIDOS PARA TODO EL EVENTO
- * Se ejecuta automáticamente después de cambiar el tipo de torneo
- */
-async function recalculateSharedSlotsForEvent(eventName) {
-  try {
-    console.log(`🔄 Recalculando cupos compartidos para evento: ${eventName}`);
-    
-    // Obtener todos los torneos del evento
-    const { data: eventTournaments, error: tournamentsError } = await supabase
-      .from('tournaments')
-      .select('id, name, tournament_type, max_teams, group_time_slots, courts_available')
-      .eq('name', eventName);
-
-    if (tournamentsError) throw tournamentsError;
-
-    if (!eventTournaments || eventTournaments.length === 0) {
-      console.log('⚠️ No se encontraron torneos del evento');
-      return;
-    }
-
-    // Calcular nuevo total de equipos considerando los tipos actualizados
-    const totalTeamsAcrossCategories = eventTournaments.reduce((sum, tournament) => {
-      return sum + tournament.max_teams;
-    }, 0);
-
-    console.log(`📊 Nuevo total de equipos para el evento: ${totalTeamsAcrossCategories}`);
-
-    // Recalcular capacidades para cada torneo del evento
-    for (const tournament of eventTournaments) {
-      const slotCapacities = calculateTimeSlotCapacity(tournament, eventTournaments.length);
-      
-      console.log(`✅ Cupos recalculados para torneo ${tournament.id}:`, 
-        slotCapacities.map(cap => `${cap.label}: ${cap.final_capacity} cupos`));
-    }
-
-    console.log(`✅ Cupos compartidos recalculados exitosamente para evento: ${eventName}`);
-
-  } catch (error) {
-    console.error('❌ Error recalculando cupos compartidos:', error);
-    // No lanzamos el error para no afectar la respuesta principal
-  }
-}
-
-/**
  * 📧 ENVIAR NOTIFICACIÓN DE NUEVO TORNEO
  * Envía emails a todos los usuarios con role 'user' notificando sobre el nuevo torneo
  */
+// ========================================
+// 📧 NOTIFICACIONES
+// ========================================
+
 async function sendTournamentNotification(tournamentData, tournamentInfo) {
   try {
     console.log(`📧 Enviando notificaciones de torneo: ${tournamentData.name}`);
@@ -1279,281 +1397,297 @@ function getEliminationPhaseName(eliminationRound) {
 }
 
 /**
- * 🔧 FUNCIÓN AUXILIAR: Formatear fecha
+ * 🔒 VALIDAR CAPACIDAD DE SLOTS
+ * Valida que los slots seleccionados no excedan el límite de equipos permitidos
+ * @param {string} tournamentId - ID del torneo
+ * @param {Array} selectedSlots - Array de slots seleccionados (formato "HH:MM")
+ * @param {string} currentTeamId - ID del equipo actual (opcional, para actualizaciones)
+ * @returns {Object} { valid: boolean, message: string, details: object }
  */
-function formatDate(dateString) {
-  // Crear fecha local para evitar problemas de timezone
-  const [year, month, day] = dateString.split('-');
-  const date = new Date(year, month - 1, day); // month es 0-indexed
-  
-  return date.toLocaleDateString('es-ES', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+async function validateSlotCapacity(tournamentId, selectedSlots, currentTeamId = null) {
+  try {
+    // 1. Obtener información del torneo (especialmente número de canchas)
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('group_time_slots')
+      .eq('id', tournamentId)
+      .single();
+
+    if (tournamentError || !tournament) {
+      console.error('❌ Error obteniendo torneo:', tournamentError);
+      return {
+        valid: false,
+        message: 'Error al validar capacidad de slots',
+        details: { error: tournamentError?.message }
+      };
+    }
+
+    // Obtener número de canchas desde el primer slot
+    const courts = tournament.group_time_slots?.[0]?.courts || 2;
+    const MAX_TEAMS_PER_SLOT = MAX_RESTRICTIONS_PER_SLOT_PER_COURT * courts;
+
+    // 2. Obtener todas las restricciones existentes del torneo (IMPORTANTE: buscar en todo el evento)
+    const { data: eventTournaments } = await supabase
+      .from('tournaments')
+      .select('id')
+      .eq('name', tournament.name || '');
+    
+    const eventTournamentIds = eventTournaments ? eventTournaments.map(t => t.id) : [tournamentId];
+
+    const { data: allTeamRestrictions, error } = await supabase
+      .from('tournament_teams')
+      .select('team_id, unavailable_times')
+      .in('tournament_id', eventTournamentIds);
+
+    if (error) {
+      console.error('❌ Error obteniendo restricciones de equipos:', error);
+      return {
+        valid: false,
+        message: 'Error al validar capacidad de slots',
+        details: { error: error.message }
+      };
+    }
+
+    // 3. Crear contador por slot ID completo (excluyendo el equipo actual si está actualizando)
+    const slotUsageCount = {};
+    
+    (allTeamRestrictions || []).forEach(team => {
+      // Si estamos actualizando, excluir el equipo actual del conteo
+      if (currentTeamId && team.team_id === currentTeamId) {
+        return;
+      }
+
+      if (team.unavailable_times && Array.isArray(team.unavailable_times)) {
+        team.unavailable_times.forEach(slotId => {
+          // slotId puede ser formato nuevo ("slot_day1_1700") o viejo ("17:00")
+          slotUsageCount[slotId] = (slotUsageCount[slotId] || 0) + 1;
+        });
+      }
+    });
+
+    // 4. Validar cada slot seleccionado
+    const oversaturatedSlots = [];
+    
+    for (const selectedSlot of selectedSlots) {
+      const currentUsage = slotUsageCount[selectedSlot] || 0;
+      
+      if (currentUsage >= MAX_TEAMS_PER_SLOT) {
+        oversaturatedSlots.push({
+          slot: selectedSlot,
+          current_usage: currentUsage,
+          max_allowed: MAX_TEAMS_PER_SLOT
+        });
+      }
+    }
+
+    // 5. Si hay slots sobresaturados, devolver error
+    if (oversaturatedSlots.length > 0) {
+      const slotsList = oversaturatedSlots.map(s => s.slot).join(', ');
+      
+      return {
+        valid: false,
+        message: `Los siguientes horarios ya alcanzaron el límite de restricciones: ${slotsList}`,
+        details: {
+          oversaturated_slots: oversaturatedSlots,
+          max_teams_per_slot: MAX_TEAMS_PER_SLOT,
+          courts: courts,
+          suggestion: 'Por favor selecciona otros horarios menos restrictivos'
+        }
+      };
+    }
+
+    // 6. Validación exitosa
+    return {
+      valid: true,
+      message: 'Slots disponibles para selección',
+      details: {
+        selected_slots: selectedSlots,
+        max_teams_per_slot: MAX_TEAMS_PER_SLOT,
+        courts: courts
+      }
+    };
+
+  } catch (error) {
+    console.error('❌ Error en validateSlotCapacity:', error);
+    return {
+      valid: false,
+      message: 'Error inesperado al validar capacidad de slots',
+      details: { error: error.message }
+    };
+  }
 }
+
+// ========================================
+// 📝 INSCRIPCIONES - Registration & Join
+// ========================================
 
 export async function joinTournament(req, res) {
   const tournament_id = req.params.id;
-  const { userId1, userId2, unavailable_time_slot, shirt_sizes } = req.body;
+  const { userId1, userId2, unavailable_time_slot, unavailable_times, shirt_sizes } = req.body; // Soporte para ambos formatos
 
   try {
-    // ---------- 0) Validaciones básicas de body ----------
-    if (!userId1 || !userId2) {
-      return res.status(400).json({ message: 'userId1 y userId2 son requeridos' });
-    }
-    if (userId1 === userId2) {
-      return res.status(400).json({ message: 'Los dos jugadores deben ser distintos' });
+    if (!userId1 || !userId2) return res.status(400).json({ message: 'userId1 y userId2 son requeridos' });
+    if (userId1 === userId2) return res.status(400).json({ message: 'Los dos jugadores deben ser distintos' });
+    
+    // NUEVA LÓGICA VOLA: Soporte para múltiples horarios no disponibles
+    let unavailableTimesArray = [];
+    
+    if (unavailable_times && Array.isArray(unavailable_times)) {
+      // Formato VOLA: ["17:01", "18:01", "19:01", "20:01", "21:01"]
+      unavailableTimesArray = unavailable_times;
+    } else if (unavailable_time_slot && typeof unavailable_time_slot === 'string') {
+      // Formato actual: "day1_evening"
+      unavailableTimesArray = [unavailable_time_slot];
+    } else {
+      return res.status(400).json({ 
+        message: 'Debe proporcionar horarios no disponibles',
+        formats_supported: {
+          vola_format: 'unavailable_times: ["17:01", "18:01", "19:01"]',
+          current_format: 'unavailable_time_slot: "day1_evening"'
+        }
+      });
     }
 
-    // Validar time slot seleccionado
-    if (!unavailable_time_slot || typeof unavailable_time_slot !== 'string') {
-      return res.status(400).json({ message: 'unavailable_time_slot es requerido y debe ser un string válido' });
-    }
+    // Permitir 0 horarios (sin restricciones) - comentado para testing
+    // if (unavailableTimesArray.length === 0) {
+    //   return res.status(400).json({ message: 'Debe seleccionar al menos un horario no disponible' });
+    // }
 
-    // ---------- 1) Torneo ----------
+    // 1) Torneo
     const { data: tournament, error: tErr } = await supabase
       .from('tournaments')
       .select(`
-        id, name, category_id, courts_available, time_slots, group_time_slots, tournament_type, max_teams,
-        tournament_info!inner (
-          requires_shirts
-        )
+        id, name, common_code, category_id, courts_available, time_slots, group_time_slots,
+        tournament_type, max_teams, match_duration_minutes,
+        tournament_info!inner ( requires_shirts )
       `)
       .eq('id', tournament_id)
       .single();
+    if (tErr || !tournament) return res.status(404).json({ message: 'Tournament not found' });
 
-    if (tErr || !tournament) {
-      return res.status(404).json({ message: 'Tournament not found' });
+    // 1.5) ✨ NUEVA VALIDACIÓN: Máximo 2 horarios no disponibles
+    const MAX_UNAVAILABLE_TIMES = 2;
+
+    if (unavailableTimesArray.length > MAX_UNAVAILABLE_TIMES) {
+      return res.status(400).json({
+        message: `Máximo ${MAX_UNAVAILABLE_TIMES} horarios no disponibles permitidos`,
+        current_selection: unavailableTimesArray.length,
+        max_allowed: MAX_UNAVAILABLE_TIMES,
+        note: 'Selecciona máximo 2 horarios en los que NO puedas jugar'
+      });
     }
 
-    // ---------- 1.5) Validación de talles de remera (CONDICIONAL) ----------
-    const VALID_SHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-    
-    // Solo validar si el torneo requiere remeras
+    console.log(`✅ [VALIDACIÓN] ${unavailableTimesArray.length} horarios no disponibles (máx ${MAX_UNAVAILABLE_TIMES})`);
+
+    // 1.5.1) ✨ VALIDACIÓN DE CAPACIDAD DE SLOTS
+    const slotValidation = await validateSlotCapacity(tournament_id, unavailableTimesArray);
+    if (!slotValidation.valid) {
+      return res.status(400).json({
+        message: slotValidation.message,
+        details: slotValidation.details
+      });
+    }
+
+    console.log(`✅ [VALIDACIÓN CAPACIDAD] Slots disponibles para selección`);
+
+    // 1.6) Validación de remeras
+    const VALID_SHIRT_SIZES = ['XS','S','M','L','XL','XXL'];
     if (tournament.tournament_info[0].requires_shirts) {
-      if (!shirt_sizes || !Array.isArray(shirt_sizes)) {
-        return res.status(400).json({ 
-          message: 'shirt_sizes es requerido y debe ser un array (este torneo incluye remeras)',
-          valid_sizes: VALID_SHIRT_SIZES,
-          example: ['M', 'L']
-        });
+      if (!Array.isArray(shirt_sizes) || shirt_sizes.length === 0 || shirt_sizes.length > 2) {
+        return res.status(400).json({ message: 'shirt_sizes es requerido (1–2 talles)', valid_sizes: VALID_SHIRT_SIZES });
       }
-      
-      if (shirt_sizes.length === 0 || shirt_sizes.length > 2) {
-        return res.status(400).json({ 
-          message: 'shirt_sizes debe contener entre 1 y 2 talles (uno por jugador)',
-          received: shirt_sizes.length,
-          valid_sizes: VALID_SHIRT_SIZES
-        });
-      }
-      
-      const invalidSizes = shirt_sizes.filter(size => !VALID_SHIRT_SIZES.includes(size));
-      if (invalidSizes.length > 0) {
-        return res.status(400).json({ 
-          message: `Talles inválidos: ${invalidSizes.join(', ')}`,
-          valid_sizes: VALID_SHIRT_SIZES,
-          received: shirt_sizes
-        });
-      }
-    } else {
-      // Si el torneo no requiere remeras, shirt_sizes debe ser null o undefined
-      if (shirt_sizes !== undefined && shirt_sizes !== null) {
-        return res.status(400).json({ 
-          message: 'shirt_sizes no es requerido para este torneo (no incluye remeras)',
-          tournament_requires_shirts: false
-        });
-      }
+      const bad = shirt_sizes.filter(s => !VALID_SHIRT_SIZES.includes(s));
+      if (bad.length) return res.status(400).json({ message: `Talles inválidos: ${bad.join(', ')}` });
+    } else if (shirt_sizes !== undefined && shirt_sizes !== null) {
+      return res.status(400).json({ message: 'Este torneo no incluye remeras' });
     }
 
-    // ---------- 2) Usuarios existen ----------
+    // 2) Usuarios existen
     const { data: users, error: uErr } = await supabase
-      .from('users')
-      .select('id')
-      .in('id', [userId1, userId2]);
+      .from('users').select('id').in('id', [userId1, userId2]);
+    if (uErr) return res.status(500).json({ message: uErr.message });
+    if (!users || users.length !== 2) return res.status(400).json({ message: 'Uno o ambos usuarios no existen' });
 
-    if (uErr) {
-      return res.status(500).json({ message: uErr.message });
-    }
-    if (!users || users.length !== 2) {
-      return res.status(400).json({ message: 'Uno o ambos usuarios no existen' });
-    }
-
-    // ---------- 3) Time slot válido dentro de group_time_slots ----------
+    // 3) Validar que los slots seleccionados sean válidos (usando start time)
     if (!Array.isArray(tournament.group_time_slots) || tournament.group_time_slots.length === 0) {
       return res.status(400).json({ message: 'Torneo sin time_slots configurados' });
     }
-    const validSlot = tournament.group_time_slots.find(slot => slot.id === unavailable_time_slot);
-    if (!validSlot) {
-      return res.status(400).json({ message: 'El time slot elegido no es válido para este torneo' });
+
+    // Validar cada slot ID seleccionado (soporta formato nuevo "slot_day1_1700" y viejo "17:00")
+    for (const unavailableTime of unavailableTimesArray) {
+      const validSlot = tournament.group_time_slots.find(s =>
+        s.id === unavailableTime || s.start === unavailableTime // Soportar ambos formatos
+      );
+      if (!validSlot) {
+        return res.status(400).json({
+          message: `Slot "${unavailableTime}" no es válido para fase de grupos`,
+          valid_slots: tournament.group_time_slots.map(s => ({ id: s.id, start: s.start, label: s.label, day: s.tournament_day }))
+        });
+      }
     }
 
-    // ---------- 4) Nadie de los dos ya está inscripto en este torneo ----------
+    // 4) Nadie de los dos ya está inscripto en este torneo
     const { data: existingPlayers, error: epErr } = await supabase
       .from('tournament_teams')
-      .select(`
-        team_id,
-        teams (
-          id,
-          player1_id,
-          player2_id
-        )
-      `)
+      .select('team_id, teams ( id, player1_id, player2_id )')
       .eq('tournament_id', tournament_id);
+    if (epErr) return res.status(500).json({ message: epErr.message });
 
-    if (epErr) {
-      return res.status(500).json({ message: epErr.message });
-    }
-
-    const someoneAlreadyInTournament = (existingPlayers || []).some(reg => {
-      const p1 = reg.teams?.player1_id;
-      const p2 = reg.teams?.player2_id;
+    const alreadyIn = (existingPlayers || []).some(reg => {
+      const p1 = reg.teams?.player1_id, p2 = reg.teams?.player2_id;
       return p1 === userId1 || p1 === userId2 || p2 === userId1 || p2 === userId2;
     });
+    if (alreadyIn) return res.status(400).json({ message: 'Uno o ambos jugadores ya están registrados en este torneo' });
 
-    if (someoneAlreadyInTournament) {
-      return res.status(400).json({ message: 'Uno o ambos jugadores ya están registrados en este torneo' });
-    }
-
-    // ---------- 5) Cupo del torneo ----------
+    // 5) Verificar cupo total del torneo
     const maxTeams = Number.isInteger(tournament.max_teams)
       ? tournament.max_teams
       : (tournament.tournament_type === 'NINE_PLAYERS' ? 9 : 12);
-
     if ((existingPlayers || []).length >= maxTeams) {
       return res.status(400).json({ message: `El torneo está completo (máximo ${maxTeams} equipos)` });
     }
 
-    // ---------- 6) Cupo por time slot ----------
-    // Obtener información de todas las categorías del mismo torneo (evento)
-    const { data: allTournaments, error: allTournamentsErr } = await supabase
-      .from('tournaments')
-      .select('id, category_id')
-      .eq('name', tournament.name);
-
-    if (allTournamentsErr) {
-      return res.status(500).json({ message: allTournamentsErr.message });
-    }
-
-    const totalCategoriesCount = allTournaments.length;
-    const slotCapacities = calculateTimeSlotCapacity(tournament, totalCategoriesCount);
-    const selectedSlotCapacity = slotCapacities.find(cap => cap.slot_id === unavailable_time_slot);
-    
-    if (!selectedSlotCapacity) {
-      return res.status(500).json({ message: 'Error calculando capacidad del time slot' });
-    }
-
-    // Contar equipos ya registrados en este time slot (TODAS las categorías del evento)
-    const allTournamentIds = allTournaments.map(t => t.id);
-    const { data: allRegisteredTeams, error: allTeamsErr } = await supabase
-      .from('tournament_teams')
-      .select('id, unavailable_times, tournament_id')
-      .in('tournament_id', allTournamentIds)
-      .eq('unavailable_times', unavailable_time_slot);
-
-    console.log(`📊 Verificando cupos en slot "${unavailable_time_slot}":`, {
-      current_usage: (allRegisteredTeams || []).length,
-      max_capacity: selectedSlotCapacity.final_capacity,
-      tournaments_checked: allTournamentIds
-    });
-
-    if (allTeamsErr) {
-      return res.status(500).json({ message: allTeamsErr.message });
-    }
-
-    const teamsInSelectedSlot = (allRegisteredTeams || []).length;
-    if (teamsInSelectedSlot >= selectedSlotCapacity.final_capacity) {
-      return res.status(400).json({
-        message: `El time slot "${validSlot.label}" está completo (${teamsInSelectedSlot}/${selectedSlotCapacity.final_capacity} equipos)`
-      });
-    }
-
-    // ---------- 7) Buscar o crear el equipo (reutiliza si existe en cualquier orden) ----------
+    // 7) Buscar/crear equipo
     const { data: existingTeam, error: findTeamErr } = await supabase
       .from('teams')
-      .select('id, player1_id, player2_id')
+      .select('id')
       .or(`and(player1_id.eq.${userId1},player2_id.eq.${userId2}),and(player1_id.eq.${userId2},player2_id.eq.${userId1})`)
-      .limit(1)
-      .single();
-
-    if (findTeamErr && findTeamErr.code !== 'PGRST116') {
-      // PGRST116 suele ser "no rows" en modo single(); la ignoramos
-      return res.status(500).json({ message: findTeamErr.message });
-    }
+      .limit(1).single();
+    if (findTeamErr && findTeamErr.code !== 'PGRST116') return res.status(500).json({ message: findTeamErr.message });
 
     let teamId = existingTeam?.id;
-
     if (!teamId) {
       const { data: createdTeam, error: teamErr } = await supabase
-        .from('teams')
-        .insert({ player1_id: userId1, player2_id: userId2 })
-        .select('id')
-        .single();
-
-      if (teamErr) {
-        return res.status(500).json({ message: teamErr.message });
-      }
+        .from('teams').insert({ player1_id: userId1, player2_id: userId2 }).select('id').single();
+      if (teamErr) return res.status(500).json({ message: teamErr.message });
       teamId = createdTeam.id;
     }
 
-    // ---------- 8) Registrar en tournament_teams ----------
-    const tournamentTeamData = {
+    // 8) Registrar inscripción con formato VOLA
+    const insertPayload = {
       tournament_id,
       team_id: teamId,
-      unavailable_times: unavailable_time_slot,  // guardamos el ID del time slot
-      payment_status: 'pending'                 // se actualizará cuando el admin confirme con switch
+      unavailable_times: unavailableTimesArray, // Array de horarios no disponibles (formato VOLA)
+      payment_status: 'pending',
+      created_at: new Date().toISOString()
     };
-    
-    // Solo agregar shirt_sizes si el torneo requiere remeras
-    if (tournament.tournament_info[0].requires_shirts) {
-      tournamentTeamData.shirt_sizes = shirt_sizes;
-    }
-    
-    const { error: joinErr } = await supabase
-      .from('tournament_teams')
-      .insert(tournamentTeamData);
+    if (tournament.tournament_info[0].requires_shirts) insertPayload.shirt_sizes = shirt_sizes;
 
-    if (joinErr) {
-      return res.status(500).json({ message: joinErr.message });
-    }
+    const { error: joinErr } = await supabase.from('tournament_teams').insert(insertPayload);
+    if (joinErr) return res.status(500).json({ message: joinErr.message });
 
-    // ---------- 9) Respuesta enriquecida ----------
-    const updatedSlotCount = teamsInSelectedSlot + 1;
-    const slotAvailability = {
-      slot_id: unavailable_time_slot,
-      slot_label: validSlot.label,
-      selected_count: updatedSlotCount,
-      total_capacity: selectedSlotCapacity.final_capacity,
-      remaining_slots: Math.max(0, selectedSlotCapacity.final_capacity - updatedSlotCount),
-      percentage_full: Math.round((updatedSlotCount / selectedSlotCapacity.final_capacity) * 100)
-    };
-
-    // nombre de categoría (opcional)
-    let categoryName = 'Sin categoría';
-    if (tournament.category_id) {
-      const { data: cat, error: catErr } = await supabase
-        .from('categories')
-        .select('name')
-        .eq('id', tournament.category_id)
-        .single();
-      if (!catErr && cat?.name) categoryName = cat.name;
-    }
-
+    // 9) Respuesta con formato VOLA
     return res.status(201).json({
       message: 'Inscripción realizada correctamente',
-      tournament_info: {
+      unavailable_times: unavailableTimesArray,
+      team_id: teamId,
+      tournament: {
         id: tournament.id,
         name: tournament.name,
-        category: categoryName,
-        tournament_type: tournament.tournament_type,
-        max_teams: maxTeams,
-        current_teams: (existingPlayers || []).length + 1
-      },
-      time_slot: {
-        slot_info: slotAvailability
-      },
-      team_id: teamId
+        category: tournament.category,
+        start_date: tournament.start_date,
+        end_date: tournament.end_date
+      }
     });
   } catch (error) {
     console.error('joinTournament error:', error);
@@ -1565,6 +1699,10 @@ export async function joinTournament(req, res) {
 /**
  * Actualizar estado de pago de un equipo en torneo
  */
+// ========================================
+// 💰 PAGOS
+// ========================================
+
 export async function updateTeamPaymentStatus(req, res) {
   const { tournamentId, teamId } = req.params;
   const { payment_status, payment_amount } = req.body;
@@ -1723,7 +1861,7 @@ export async function updateTeamPaymentStatus(req, res) {
  */
 export async function adminRegisterTeam(req, res) {
   const tournament_id = req.params.id;
-  const { userId1, userId2, unavailable_time_slot, shirt_sizes } = req.body;
+  const { userId1, userId2, unavailable_time_slot, unavailable_times, shirt_sizes } = req.body;
 
   try {
     // ---------- 0) Validaciones básicas de body (IDÉNTICAS A joinTournament) ----------
@@ -1738,11 +1876,28 @@ export async function adminRegisterTeam(req, res) {
       });
     }
 
-    // Validar time slot seleccionado
-    if (!unavailable_time_slot || typeof unavailable_time_slot !== 'string') {
+    // Validar horarios no disponibles (formato VOLA)
+    let unavailableTimesArray = [];
+    
+    if (unavailable_times && Array.isArray(unavailable_times)) {
+      // Formato VOLA: ["17:01", "18:01", "19:01", "20:01", "21:01"]
+      unavailableTimesArray = unavailable_times;
+    } else if (unavailable_time_slot && typeof unavailable_time_slot === 'string') {
+      // Formato actual: "day1_evening"
+      unavailableTimesArray = [unavailable_time_slot];
+    } else {
       return res.status(400).json({ 
-        message: 'unavailable_time_slot es requerido y debe ser un string válido' 
+        message: 'Debe proporcionar horarios no disponibles',
+        formats_supported: {
+          vola_format: 'unavailable_times: ["17:01", "18:01", "19:01"]',
+          current_format: 'unavailable_time_slot: "day1_evening"'
+        }
       });
+    }
+    
+    // Validar que al menos haya un horario no disponible
+    if (unavailableTimesArray.length === 0) {
+      return res.status(400).json({ message: 'Debe seleccionar al menos un horario no disponible' });
     }
 
     // ---------- 0.5) Validación de talles de remera (CONDICIONAL - se validará después de obtener el torneo) ----------
@@ -1766,7 +1921,32 @@ export async function adminRegisterTeam(req, res) {
       });
     }
 
-    // ---------- 1.5) Validación de talles de remera (CONDICIONAL) ----------
+    // ---------- 1.5) ✨ NUEVA VALIDACIÓN: Máximo 2 horarios no disponibles ----------
+    const MAX_UNAVAILABLE_TIMES = 2;
+
+    if (unavailableTimesArray.length > MAX_UNAVAILABLE_TIMES) {
+      return res.status(400).json({
+        message: `Máximo ${MAX_UNAVAILABLE_TIMES} horarios no disponibles permitidos`,
+        current_selection: unavailableTimesArray.length,
+        max_allowed: MAX_UNAVAILABLE_TIMES,
+        note: 'Selecciona máximo 2 horarios en los que NO puedas jugar'
+      });
+    }
+
+    console.log(`✅ [VALIDACIÓN ADMIN] ${unavailableTimesArray.length} horarios no disponibles (máx ${MAX_UNAVAILABLE_TIMES})`);
+
+    // ---------- 1.5.1) ✨ VALIDACIÓN DE CAPACIDAD DE SLOTS ----------
+    const slotValidation = await validateSlotCapacity(tournament_id, unavailableTimesArray);
+    if (!slotValidation.valid) {
+      return res.status(400).json({
+        message: slotValidation.message,
+        details: slotValidation.details
+      });
+    }
+
+    console.log(`✅ [VALIDACIÓN CAPACIDAD ADMIN] Slots disponibles para selección`);
+
+    // ---------- 1.6) Validación de talles de remera (CONDICIONAL) ----------
     const VALID_SHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
     
     // Solo validar si el torneo requiere remeras
@@ -1828,12 +2008,7 @@ export async function adminRegisterTeam(req, res) {
         message: 'Torneo sin time_slots configurados' 
       });
     }
-    const validSlot = tournament.group_time_slots.find(slot => slot.id === unavailable_time_slot);
-    if (!validSlot) {
-      return res.status(400).json({ 
-        message: `Time slot "${unavailable_time_slot}" no es válido para este torneo. Slots disponibles: ${tournament.group_time_slots.map(s => s.id).join(', ')}` 
-      });
-    }
+    // Validación de time slot eliminada - ahora usamos formato VOLA
 
     // ---------- 4) Nadie de los dos ya está inscripto en este torneo (IDÉNTICO A joinTournament) ----------
     const { data: existingPlayers, error: epErr } = await supabase
@@ -1877,57 +2052,7 @@ export async function adminRegisterTeam(req, res) {
       });
     }
 
-    // ---------- 6) Cupo por time slot (IDÉNTICO A joinTournament) ----------
-    // Obtener información de todas las categorías del mismo torneo (evento)
-    const { data: allTournaments, error: allTournamentsErr } = await supabase
-      .from('tournaments')
-      .select('id, category_id, max_teams, tournament_type')
-      .eq('name', tournament.name);
-
-    if (allTournamentsErr) {
-      return res.status(500).json({ 
-        message: allTournamentsErr.message 
-      });
-    }
-
-    const totalCategoriesCount = allTournaments.length;
-    const totalTeamsAcrossCategories = allTournaments.reduce((sum, t) => sum + t.max_teams, 0);
-    
-    const slotCapacities = calculateTimeSlotCapacity(tournament, totalCategoriesCount, totalTeamsAcrossCategories);
-    const selectedSlotCapacity = slotCapacities.find(cap => cap.slot_id === unavailable_time_slot);
-    
-    if (!selectedSlotCapacity) {
-      return res.status(500).json({ 
-        message: 'Error calculando capacidad del time slot' 
-      });
-    }
-
-    // Contar equipos ya registrados en este time slot (TODAS las categorías del evento)
-    const allTournamentIds = allTournaments.map(t => t.id);
-    const { data: allRegisteredTeams, error: allTeamsErr } = await supabase
-      .from('tournament_teams')
-      .select('id, unavailable_times, tournament_id')
-      .in('tournament_id', allTournamentIds)
-      .eq('unavailable_times', unavailable_time_slot);
-
-    console.log(`📊 Verificando cupos en slot "${unavailable_time_slot}":`, {
-      current_usage: (allRegisteredTeams || []).length,
-      max_capacity: selectedSlotCapacity.final_capacity,
-      tournaments_checked: allTournamentIds
-    });
-
-    if (allTeamsErr) {
-      return res.status(500).json({ 
-        message: allTeamsErr.message 
-      });
-    }
-
-    const teamsInSelectedSlot = (allRegisteredTeams || []).length;
-    if (teamsInSelectedSlot >= selectedSlotCapacity.final_capacity) {
-      return res.status(400).json({
-        message: `El time slot "${validSlot.label}" está completo (${teamsInSelectedSlot}/${selectedSlotCapacity.final_capacity} equipos)`
-      });
-    }
+    // Validación de cupos por slot eliminada - ahora usamos formato VOLA
 
     // ---------- 7) Buscar o crear el equipo (IDÉNTICO A joinTournament) ----------
     const { data: existingTeam, error: findTeamErr } = await supabase
@@ -1965,12 +2090,13 @@ export async function adminRegisterTeam(req, res) {
       teamId = createdTeam.id;
     }
 
-    // ---------- 8) Registrar en tournament_teams (IDÉNTICO A joinTournament) ----------
+    // ---------- 8) Registrar en tournament_teams con formato VOLA ----------
     const tournamentTeamData = {
       tournament_id,
       team_id: teamId,
-      unavailable_times: unavailable_time_slot,
-      payment_status: 'pending'
+      unavailable_times: unavailableTimesArray, // Array de horarios no disponibles (formato VOLA)
+      payment_status: 'pending',
+      created_at: new Date().toISOString()
     };
     
     // Solo agregar shirt_sizes si el torneo requiere remeras
@@ -2011,8 +2137,7 @@ export async function adminRegisterTeam(req, res) {
     // Log del registro (MEJORADO)
     console.log(`🎾 Equipo registrado por admin en torneo ${tournament_id}:`);
     console.log(`👥 Jugadores: ${users[0].first_name} ${users[0].last_name} & ${users[1].first_name} ${users[1].last_name}`);
-    console.log(`⏰ Slot no disponible: ${unavailable_time_slot} (${validSlot.label})`);
-    console.log(`📊 Capacidad del slot: ${teamsInSelectedSlot + 1}/${selectedSlotCapacity.final_capacity} equipos`);
+    console.log(`⏰ Horarios no disponibles: ${unavailableTimesArray.join(', ')}`);
 
     return res.json({
       message: 'Equipo registrado exitosamente por administrador',
@@ -2021,17 +2146,11 @@ export async function adminRegisterTeam(req, res) {
         tournament_id: tournamentTeam.tournament_id,
         team_id: tournamentTeam.team_id,
         payment_status: tournamentTeam.payment_status,
+        unavailable_times: unavailableTimesArray,
         players: {
           player1: tournamentTeam.teams?.player1 ? `${tournamentTeam.teams.player1.first_name} ${tournamentTeam.teams.player1.last_name}` : 'N/A',
           player2: tournamentTeam.teams?.player2 ? `${tournamentTeam.teams.player2.first_name} ${tournamentTeam.teams.player2.last_name}` : 'N/A'
         }
-      },
-      slot_info: {
-        slot_id: unavailable_time_slot,
-        slot_label: validSlot.label,
-        current_usage: teamsInSelectedSlot + 1,
-        max_capacity: selectedSlotCapacity.final_capacity,
-        remaining_slots: selectedSlotCapacity.final_capacity - (teamsInSelectedSlot + 1)
       }
     });
 
@@ -2042,64 +2161,6 @@ export async function adminRegisterTeam(req, res) {
       error: error.message 
     });
   }
-}
-
-export async function getStandings(req, res) {
-
-  const standings = [
-    { teamId: 'team1', points: 6, gamesDiff: 10 },
-    { teamId: 'team2', points: 4, gamesDiff: 5 }
-  ]
-  res.json(standings)
-}
-
-export async function generateLeagueMatches(req, res) {
-  const tournament_id = req.params.id
-
-  // Get all teams in tournament
-  const { data: tournamentTeams, error: teamsError } = await supabase
-    .from('tournament_teams')
-    .select(`
-      team_id,
-      teams (
-        player1_id,
-        player2_id
-      )
-    `)
-    .eq('tournament_id', tournament_id)
-
-  if (teamsError) return res.status(500).json({ message: teamsError.message })
-  if (!tournamentTeams.length) return res.status(400).json({ message: 'No teams in tournament' })
-
-  // Create matches for round-robin (everyone plays against everyone)
-  const matches = []
-  const teams = tournamentTeams.map(tt => tt.team_id)
-  
-  // Generate all possible combinations of teams
-  for (let i = 0; i < teams.length; i++) {
-    for (let j = i + 1; j < teams.length; j++) {
-      matches.push({
-        tournament_id,
-        home_team_id: teams[i],
-        away_team_id: teams[j],
-        status: 'pending'
-      })
-    }
-  }
-
-  // Insert matches into database
-  const { data: createdMatches, error: matchError } = await supabase
-    .from('matches')
-    .insert(matches)
-    .select()
-
-  if (matchError) return res.status(500).json({ message: matchError.message })
-
-  res.json({
-    message: `Generated ${matches.length} matches successfully`,
-    matches: createdMatches
-  })
-
 }
 
 export async function getMatchesByTournamentId(req, res) {
@@ -2140,78 +2201,19 @@ export async function getMatchesByTournamentId(req, res) {
   }
 }
 
-export async function getPlayersByTournamentId(req, res) {
-  const tournament_id = req.params.id
-  const { data, error } = await supabase
-    .from('tournament_teams')
-    .select('*')
-    .eq('tournament_id', tournament_id)
-
-  if (error) return res.status(500).json({ message: error.message })
-  res.json({message: 'Players fetched successfully', players: data})
-}
-
-// Configuración de formatos de torneo (ACTUALIZADA)
-const TOURNAMENT_FORMATS = {
-  'SIX_PLAYERS': {
-    total_teams: 6,
-    groups_count: 2,
-    teams_per_group: 3,
-    teams_to_qualify: 2,  // 4 equipos clasifican (2 de cada grupo)
-    elimination_stages: {
-      first: 'SEMI_FINALS',
-      matches: ['SEMI_FINALS', 'FINAL'],
-      direct_to_semis: 0,  // Todos juegan semifinales
-      semifinals_teams: 4,  // Los 4 clasificados juegan semifinales
-      description: '4 clasifican: todos juegan semifinales → final'
-    }
-  },
-  'NINE_PLAYERS': {
-    total_teams: 9,
-    groups_count: 3,
-    teams_per_group: 3,
-    teams_to_qualify: 2,  // 6 equipos clasifican (2 de cada grupo)
-    elimination_stages: {
-      first: 'QUARTER_FINALS',
-      matches: ['QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'],
-      direct_to_semis: 2,  // Los 2 mejores primeros pasan directo a semis
-      quarter_finals_teams: 4,  // Los otros 4 juegan cuartos
-      description: '6 clasifican: 2 mejores 1ros → semis, otros 4 → cuartos'
-    }
-  },
-  'TWELVE_PLAYERS': {
-    total_teams: 12,
-    groups_count: 4,
-    teams_per_group: 3,
-    teams_to_qualify: 2,  // 8 equipos clasifican (2 de cada grupo)
-    elimination_stages: {
-      first: 'QUARTER_FINALS',
-      matches: ['QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'],
-      direct_to_semis: 0,  // Todos juegan cuartos
-      quarter_finals_teams: 8,  // Todos los 8 clasificados juegan cuartos
-      description: '8 clasifican: todos juegan cuartos → semis → final'
-    }
-  },
-  'SIXTEEN_PLAYERS': {
-    total_teams: 16,
-    groups_count: 4,
-    teams_per_group: 4,
-    teams_to_qualify: 2,  // 8 equipos clasifican (2 de cada grupo)
-    elimination_stages: {
-      first: 'OCTAVOS_DE_FINAL',
-      matches: ['OCTAVOS_DE_FINAL', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'],
-      direct_to_semis: 0,  // Todos juegan octavos
-      octavos_finals_teams: 8,  // Todos los 8 clasificados juegan octavos
-      description: '8 clasifican: todos juegan octavos → cuartos → semis → final'
-    }
-  }
-};
+// ========================================
+// 👥 GESTIÓN DE EQUIPOS Y GRUPOS
+// ========================================
 
 // Función para generar grupos con distribución inteligente basada en restricciones horarias
-async function generateTournamentGroups(tournament, teams) {
+// MEJORADA: Ahora considera restricciones de todas las categorías del evento
+async function generateTournamentGroups(tournament, teams, eventRestrictions = null) {
   const format = TOURNAMENT_FORMATS[tournament.tournament_type];
   
-  // 1. Obtener las restricciones horarias de cada equipo
+  console.log(`🎯 [GENERAR GRUPOS] Iniciando para torneo ${tournament.id} (${tournament.tournament_type})`);
+  console.log(`📊 Equipos a distribuir: ${teams.length}`);
+  
+  // 1. Obtener las restricciones horarias de cada equipo del torneo actual
   const { data: teamConstraints, error: constraintsError } = await supabase
     .from('tournament_teams')
     .select('team_id, unavailable_times')
@@ -2220,30 +2222,106 @@ async function generateTournamentGroups(tournament, teams) {
 
   if (constraintsError) throw new Error(`Error obteniendo restricciones: ${constraintsError.message}`);
 
-  // 2. Crear mapa de equipos con sus restricciones
+  // 2. Crear mapa de equipos con sus restricciones (formato VOLA)
   const teamsWithConstraints = teams.map(team => {
     const constraint = teamConstraints.find(tc => tc.team_id === team.id);
     return {
       ...team,
-      unavailable_slot: constraint?.unavailable_times || null
+      unavailable_times: constraint?.unavailable_times || null
     };
   });
 
-  // 3. Algoritmo de distribución inteligente
-  const distributedGroups = distributeTeamsIntelligently(teamsWithConstraints, format);
+  console.log(`🔍 [RESTRICCIONES] Equipos con restricciones:`, 
+    teamsWithConstraints.filter(t => t.unavailable_times).map(t => ({
+      team_id: t.id,
+      unavailable_times: t.unavailable_times
+    })));
+
+  // NUEVA LÓGICA: 3. Considerar restricciones globales del evento si están disponibles
+  if (eventRestrictions) {
+    console.log(`🌍 [ANÁLISIS GLOBAL] Considerando restricciones de ${eventRestrictions.size} categorías del evento`);
+    
+    // Analizar conflictos potenciales entre categorías
+    const globalRestrictions = new Map();
+    for (const [categoryId, restrictions] of eventRestrictions) {
+      for (const restriction of restrictions) {
+        if (!globalRestrictions.has(restriction.unavailable_times)) {
+          globalRestrictions.set(restriction.unavailable_times, []);
+        }
+        globalRestrictions.get(restriction.unavailable_times).push({
+          category_id: categoryId,
+          team_id: restriction.team_id
+        });
+      }
+    }
+    
+    console.log(`⚠️ [CONFLICTOS POTENCIALES] Time slots con múltiples categorías:`,
+      Array.from(globalRestrictions.entries())
+        .filter(([slot, categories]) => categories.length > 1)
+        .map(([slot, categories]) => `${slot}: ${categories.map(c => `Cat${c.category_id}`).join(', ')}`));
+  }
+
+  // 3b. Calcular slots disponibles por día (solo si hay contexto multi-categoría)
+  let availableSlots = null;
+  if (eventRestrictions) {
+    console.log(`\n🏟️  [CÁLCULO DE CAPACIDAD] Analizando slots disponibles post otras categorías...`);
+
+    // Obtener partidos YA PROGRAMADOS de OTRAS categorías del evento
+    const { data: scheduledMatches, error: matchesErr } = await supabase
+      .from('tournament_matches')
+      .select('id, start_time, tournament_day, court_id')
+      .not('start_time', 'is', null)
+      .neq('tournament_id', tournament.id); // Solo otras categorías
+
+    if (matchesErr) {
+      console.error(`⚠️  Error obteniendo partidos programados:`, matchesErr);
+    } else {
+      // Contar slots ocupados por día
+      const day1Matches = (scheduledMatches || []).filter(m => m.tournament_day === 1);
+      const day2Matches = (scheduledMatches || []).filter(m => m.tournament_day === 2);
+
+      // Obtener información del torneo para saber total de slots
+      const totalSlotsDay1 = tournament.group_time_slots?.filter(s => s.tournament_day === 1).length || 16;
+      const totalSlotsDay2 = tournament.group_time_slots?.filter(s => s.tournament_day === 2).length || 40;
+
+      const occupiedDay1 = day1Matches.length;
+      const occupiedDay2 = day2Matches.length;
+
+      availableSlots = {
+        day1: totalSlotsDay1 - occupiedDay1,
+        day2: totalSlotsDay2 - occupiedDay2
+      };
+
+      console.log(`   DÍA 1: ${occupiedDay1} partidos programados → ${availableSlots.day1} slots libres`);
+      console.log(`   DÍA 2: ${occupiedDay2} partidos programados → ${availableSlots.day2} slots libres`);
+    }
+  }
+
+  // 4. Algoritmo de distribución inteligente por preferencia de día
+  const distributedGroups = distributeTeamsByDayPreference(teamsWithConstraints, format, availableSlots);
+
+  console.log(`✅ [DISTRIBUCIÓN] ${distributedGroups.length} grupos creados`);
   
   const groups = [];
 
-  // 4. Crear grupos en la base de datos
+  // 5. Crear grupos en la base de datos
   for (let i = 0; i < distributedGroups.length; i++) {
-    const groupTeams = distributedGroups[i];
-    
+    const groupData = distributedGroups[i];
+    const groupTeams = groupData.teams;
+    const preferredDay = groupData.preferred_day;
+    const isHomogeneous = groupData.is_homogeneous;
+
+    console.log(`📝 [GRUPO ${i + 1}] Creando grupo (${preferredDay}, ${isHomogeneous ? 'HOMOGÉNEO' : 'MIXTO'}) con ${groupTeams.length} equipos:`,
+      groupTeams.map(t => ({ id: t.id.substring(0, 8), pref: t.day_preference?.preference })));
+
     const { data: group, error } = await supabase
       .from('tournament_groups')
       .insert({
         tournament_id: tournament.id,
         group_number: i + 1,
         teams: groupTeams.map(t => t.id),
+        preferred_day: preferredDay,
+        is_homogeneous: isHomogeneous,
         status: 'IN_PROGRESS'
       })
       .select()
@@ -2252,100 +2330,14 @@ async function generateTournamentGroups(tournament, teams) {
     if (error) throw new Error(`Error creando grupo ${i + 1}: ${error.message}`);
     groups.push(group);
 
-    // Generar partidos del grupo
-    await generateGroupMatches(tournament.id, group.id, groupTeams, group.group_number);
+    // Generar partidos del grupo con asignación de día
+    await generateGroupMatches(tournament.id, group.id, groupTeams, group.group_number, preferredDay);
   }
 
+  console.log(`🎾 [PARTIDOS GENERADOS] Partidos de grupos creados para ${groups.length} grupos`);
   return groups;
 }
 
-// Función para calcular cupos disponibles por time slot (MEJORADA)
-function calculateTimeSlotCapacity(tournament, totalCategoriesCount, totalTeamsAcrossCategories = null) {
-  const groupSlots = tournament.group_time_slots || [];
-  // Si se proporciona el total real, usarlo; sino calcularlo (para compatibilidad)
-  const totalTeams = totalTeamsAcrossCategories || (totalCategoriesCount * tournament.max_teams);
-  
-  console.log(`📊 Calculando cupos para ${totalCategoriesCount} categorías × ${tournament.max_teams} equipos = ${totalTeams} parejas totales`);
-  
-  // NUEVA LÓGICA: cada equipo juega partidos según el formato del torneo
-  let matchesPerTeam;
-  if (tournament.tournament_type === 'SIXTEEN_PLAYERS') {
-    matchesPerTeam = 3; // En grupos de 4: A vs B, A vs C, A vs D, B vs C, B vs D, C vs D
-  } else {
-    matchesPerTeam = 2; // En grupos de 3: A vs B, A vs C, B vs C (SIX_PLAYERS, NINE_PLAYERS, TWELVE_PLAYERS)
-  }
-  const totalMatches = (totalTeams * matchesPerTeam) / 2; // /2 porque cada partido involucra 2 equipos
-  
-  console.log(`🎾 Total de partidos en fase de grupos: ${totalMatches}`);
-  
-  // CONFIGURACIÓN REAL DEL CLUB: partidos de 45 minutos
-  const matchDurationMinutes = 45;
-  const turnosPerHour = 60 / matchDurationMinutes; // 1.33 turnos por hora
-  
-  // Calcular capacidad total de programación entre todos los slots
-  let totalSlotCapacity = 0;
-  const slotDetails = groupSlots.map(slot => {
-    const slotDurationHours = calculateSlotDurationHours(slot.start, slot.end);
-    const maxConcurrentMatches = tournament.courts_available;
-    
-    // Capacidad real considerando partidos de 45 minutos
-    const turnosInSlot = Math.floor(slotDurationHours * turnosPerHour);
-    const maxMatchesInSlot = turnosInSlot * maxConcurrentMatches;
-    totalSlotCapacity += maxMatchesInSlot;
-    
-    return {
-      slot_id: slot.id,
-      label: slot.label,
-      duration_hours: slotDurationHours,
-      turnos_in_slot: turnosInSlot,
-      max_matches_in_slot: maxMatchesInSlot,
-      courts_available: maxConcurrentMatches
-    };
-  });
-  
-  console.log(`⏰ Capacidad total de programación: ${totalSlotCapacity} partidos entre todos los slots`);
-  
-  // Verificar si hay suficiente capacidad
-  if (totalSlotCapacity < totalMatches) {
-    console.warn(`⚠️ ADVERTENCIA: No hay suficiente capacidad de programación (${totalSlotCapacity} < ${totalMatches})`);
-  }
-  
-  // NUEVA LÓGICA: calcular cupos por slot basado en restricciones
-  // Un equipo que elige un slot como "no disponible" reduce la flexibilidad de programación
-  // El objetivo es distribuir estas restricciones de manera equilibrada
-  
-  const capacityPerSlot = slotDetails.map(slot => {
-    // Capacidad base: distribución equitativa de restricciones
-    const baseCapacityPerSlot = Math.floor(totalTeams / groupSlots.length);
-    
-    // Capacidad máxima: basada en la capacidad de programación del slot
-    // Si un slot tiene más horas/canchas, puede acomodar más restricciones
-    const slotWeight = slot.max_matches_in_slot / totalSlotCapacity;
-    const weightedCapacity = Math.floor(totalTeams * slotWeight * 1.5); // Factor 1.5 para flexibilidad
-    
-    // Capacidad final: el menor entre distribución equitativa y capacidad weighted
-    const finalCapacity = Math.min(baseCapacityPerSlot + 2, weightedCapacity); // +2 para flexibilidad mínima
-    
-    return {
-      slot_id: slot.slot_id,
-      label: slot.label,
-      duration_hours: slot.duration_hours,
-      max_matches_in_slot: slot.max_matches_in_slot,
-      base_capacity: baseCapacityPerSlot,
-      weighted_capacity: weightedCapacity,
-      final_capacity: finalCapacity,
-      slot_weight: Math.round(slotWeight * 100) // porcentaje
-    };
-  });
-  
-  console.log('🎯 Capacidades calculadas por time slot (MEJORADO):');
-  capacityPerSlot.forEach(cap => {
-    const slotDetail = slotDetails.find(s => s.slot_id === cap.slot_id);
-    console.log(`  ${cap.label}: ${cap.final_capacity} cupos (${cap.duration_hours}h, ${slotDetail?.turnos_in_slot}t, ${cap.max_matches_in_slot} partidos máx, ${cap.slot_weight}% peso)`);
-  });
-  
-  return capacityPerSlot;
-}
 
 // Helper para calcular duración de un slot en horas - MOVED TO LINE 3812
 
@@ -2455,101 +2447,6 @@ function calculateMaxCategoriesForOptimalDistribution(tournamentType, courtsAvai
   return Math.max(1, finalLimit); // Mínimo 1 categoría
 }
 
-// Función para generar time slots dinámicamente basados en fechas del torneo
-function generateDynamicTimeSlots(startDate, endDate) {
-  // Asegurar que las fechas se interpreten en zona horaria local
-  const start = new Date(startDate + 'T00:00:00');
-  const end = new Date(endDate + 'T00:00:00');
-  
-  // Calcular duración del torneo en días
-  const durationDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-  
-  console.log(`🗓️ Generando time slots dinámicos para torneo de ${durationDays} días (${start.toDateString()} - ${end.toDateString()})`);
-  
-  const slots = [];
-  
-  // DÍA 1: Primer día del torneo (después de las 18:00)
-  const day1 = new Date(start);
-  const day1Name = getDayName(day1);
-  
-  slots.push(
-    {
-      id: `day1_evening`,
-      day: day1Name.toLowerCase(),
-      start: '18:00',
-      end: '21:00',
-      label: `${day1Name} Tarde (18-21hs)`,
-      tournament_day: 1,
-      date: formatDateSafe(day1)
-    },
-    {
-      id: `day1_night`,
-      day: day1Name.toLowerCase(),
-      start: '22:00',
-      end: '00:00',
-      label: `${day1Name} Noche (22-24hs)`,
-      tournament_day: 1,
-      date: formatDateSafe(day1)
-    }
-  );
-  
-  // DÍA 2: Segundo día del torneo (todo el día, si hay al menos 2 días)
-  if (durationDays >= 2) {
-    const day2 = new Date(start);
-    day2.setDate(day2.getDate() + 1);
-    const day2Name = getDayName(day2);
-    
-    slots.push(
-      {
-        id: `day2_morning`,
-        day: day2Name.toLowerCase(),
-        start: '08:00',
-        end: '12:00',
-        label: `${day2Name} Mañana (8-12hs)`,
-        tournament_day: 2,
-        date: formatDateSafe(day2)
-      },
-      {
-        id: `day2_afternoon`,
-        day: day2Name.toLowerCase(),
-        start: '13:00',
-        end: '17:00',
-        label: `${day2Name} Tarde (13-17hs)`,
-        tournament_day: 2,
-        date: formatDateSafe(day2)
-      },
-      {
-        id: `day2_evening`,
-        day: day2Name.toLowerCase(),
-        start: '18:00',
-        end: '21:00',
-        label: `${day2Name} Noche (18-21hs)`,
-        tournament_day: 2,
-        date: formatDateSafe(day2)
-      },
-      {
-        id: `day2_late_night`,
-        day: day2Name.toLowerCase(),
-        start: '22:00',
-        end: '01:00',
-        label: `${day2Name} Noche Tardía (22-01hs)`,
-        tournament_day: 2,
-        date: formatDateSafe(day2)
-      }
-    );
-  }
-  
-  // DÍA 3: RESERVADO PARA ELIMINATORIAS (cuartos, semis, final)
-  // NO se generan slots para inscripción - solo para programación automática posterior
-  if (durationDays >= 3) {
-    console.log(`🏆 Día 3 (${getDayName(new Date(start.getTime() + 2 * 24 * 60 * 60 * 1000))}) reservado para fase eliminatoria`);
-    // Los slots del día 3 se generarán automáticamente cuando se programen las eliminatorias
-  }
-  
-  console.log('🎯 Time slots generados dinámicamente:', slots.map(s => `${s.label} (${s.id})`));
-  
-  return slots;
-}
 
 // Helper para obtener nombre del día en español
 function getDayName(date) {
@@ -2564,212 +2461,79 @@ function formatDateSafe(date) {
          String(date.getDate()).padStart(2, '0');
 }
 
-// Helper para validar time slots dinámicos
-function validateDynamicTimeSlot(slot) {
-  const HHMM = /^\d{2}:\d{2}$/;
-  const allowedDays = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+// Función auxiliar para agregar minutos a una hora
+function addMinutesToTime(timeStr, minutes) {
+  if (!timeStr || typeof timeStr !== 'string') {
+    console.error('❌ addMinutesToTime: timeStr inválido:', timeStr);
+    return '00:00';
+  }
   
-  return slot.id && 
-         allowedDays.includes(slot.day) && 
-         HHMM.test(slot.start) && 
-         HHMM.test(slot.end) &&
-         slot.tournament_day &&
-         slot.date;
+  const timeParts = timeStr.split(':');
+  if (timeParts.length !== 2) {
+    console.error('❌ addMinutesToTime: formato de tiempo inválido:', timeStr);
+    return '00:00';
+  }
+  
+  const [hours, mins] = timeParts.map(Number);
+  if (isNaN(hours) || isNaN(mins)) {
+    console.error('❌ addMinutesToTime: números inválidos:', timeStr);
+    return '00:00';
+  }
+  
+  const totalMinutes = hours * 60 + mins + minutes;
+  const newHours = Math.floor(totalMinutes / 60) % 24;
+  const newMins = totalMinutes % 60;
+  return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
 }
 
-// Función auxiliar para distribución inteligente de equipos basada en time slots
-function distributeTeamsIntelligently(teams, format) {
-  console.log('🎯 Iniciando distribución inteligente de equipos:', teams.map(t => ({
-    id: t.id,
-    unavailable_slot: t.unavailable_slot
-  })));
-
-  // 1. Agrupar equipos por time slot no disponible
-  const teamsByUnavailableSlot = {};
-  const teamsWithoutConstraints = [];
-
-  teams.forEach(team => {
-    if (team.unavailable_slot !== null && team.unavailable_slot !== undefined) {
-      const slot = team.unavailable_slot;
-      if (!teamsByUnavailableSlot[slot]) {
-        teamsByUnavailableSlot[slot] = [];
-      }
-      teamsByUnavailableSlot[slot].push(team);
-    } else {
-      teamsWithoutConstraints.push(team);
-    }
-  });
-
-  console.log('📊 Equipos agrupados por time slot:', teamsByUnavailableSlot);
-  console.log('🆓 Equipos sin restricciones:', teamsWithoutConstraints.length);
-
-  // 2. Estrategia de distribución inteligente
-  const groups = [];
-  const usedTeams = new Set();
-  
-  // 2a. Crear grupos con equipos de diferentes time slots (máxima compatibilidad)
-  const slotGroups = Object.keys(teamsByUnavailableSlot);
-  
-  if (slotGroups.length >= format.groups_count) {
-    // Caso ideal: tenemos suficientes slots diferentes para balancear
-    for (let groupIndex = 0; groupIndex < format.groups_count; groupIndex++) {
-      const group = [];
-      
-      // Tomar un equipo de cada slot diferente si es posible
-      for (let teamIndex = 0; teamIndex < format.teams_per_group; teamIndex++) {
-        let teamAdded = false;
-        
-        // Intentar tomar de slots diferentes
-        for (const slot of slotGroups) {
-          const availableTeams = teamsByUnavailableSlot[slot].filter(t => !usedTeams.has(t.id));
-          if (availableTeams.length > 0 && group.length < format.teams_per_group) {
-            const team = availableTeams[0];
-            group.push(team);
-            usedTeams.add(team.id);
-            teamAdded = true;
-            break;
-          }
-        }
-        
-        // Si no encontramos en slots diferentes, usar equipos sin restricciones
-        if (!teamAdded && teamsWithoutConstraints.length > 0) {
-          const availableTeams = teamsWithoutConstraints.filter(t => !usedTeams.has(t.id));
-          if (availableTeams.length > 0) {
-            const team = availableTeams[0];
-            group.push(team);
-            usedTeams.add(team.id);
-          }
-        }
-      }
-      
-      if (group.length === format.teams_per_group) {
-        groups.push(group);
-      }
-    }
-  }
-
-  // 2b. Llenar grupos restantes con cualquier equipo disponible
-  const remainingTeams = teams.filter(t => !usedTeams.has(t.id));
-  let teamIndex = 0;
-  
-  for (let groupIndex = groups.length; groupIndex < format.groups_count; groupIndex++) {
-    const group = [];
-    for (let i = 0; i < format.teams_per_group && teamIndex < remainingTeams.length; i++) {
-      group.push(remainingTeams[teamIndex]);
-      teamIndex++;
-    }
-    if (group.length === format.teams_per_group) {
-      groups.push(group);
-    }
-  }
-
-  // 3. Validación y logging
-  console.log('✅ Grupos formados:');
-  groups.forEach((group, index) => {
-    console.log(`Grupo ${index + 1}:`, group.map(t => ({
-      id: t.id,
-      unavailable_slot: t.unavailable_slot
-    })));
-    
-    // Calcular time slots disponibles para este grupo
-    const unavailableSlots = group
-      .map(t => t.unavailable_slot)
-      .filter(s => s !== null && s !== undefined);
-    console.log(`  Time slots NO disponibles para partidos: [${unavailableSlots.join(', ')}]`);
-  });
-
-  return groups;
-}
-
-// --- NUEVO: endpoint para generación manual de grupos ---
-export async function generateGroupsManual(req, res) {
-  const tournament_id = req.params.id;
-  const { groups } = req.body; // Array de { group_number, teams: [team_ids] }
+/**
+ * 🎯 GENERAR FASE DE GRUPOS CON ANÁLISIS GLOBAL DEL EVENTO
+ * Analiza restricciones de todas las categorías del evento antes de agrupar
+ */
+export async function generateGroupsPhase(req, res) {
+  const { id: tournament_id } = req.params;
 
   try {
-    // 1) Validar request
-    if (!Array.isArray(groups) || groups.length === 0) {
-      return res.status(400).json({ message: 'Se requiere array de grupos' });
-    }
-
-    // 2) Traer torneo
+    // 1) Obtener datos del torneo
     const { data: tournament, error: tErr } = await supabase
       .from('tournaments')
-      .select('id, name, tournament_type, max_teams')
+      .select('id, name, tournament_type, max_teams, category_id, status')
       .eq('id', tournament_id)
       .single();
+
     if (tErr || !tournament) return res.status(404).json({ message: 'Tournament not found' });
 
-    // 3) Validar cantidad de grupos
-    const expected = tournament.tournament_type === 'NINE_PLAYERS' ? 3 : 
-                    tournament.tournament_type === 'TWELVE_PLAYERS' ? 4 : 4;
-    if (groups.length !== expected) {
-      return res.status(400).json({
-        message: `Se esperaban ${expected} grupos y se recibieron ${groups.length}`
+    console.log(`📋 Torneo actual: ${tournament.name} (${tournament.tournament_type}) - Categoría: ${tournament.category_id}`);
+
+    // NUEVA LÓGICA: 2) Obtener TODOS los torneos del mismo evento
+    const { data: eventTournaments, error: eventErr } = await supabase
+      .from('tournaments')
+      .select('id, name, tournament_type, max_teams, category_id, status')
+      .eq('name', tournament.name); // Mismo nombre = mismo evento
+
+    if (eventErr) return res.status(500).json({ message: eventErr.message });
+
+    console.log(`🎯 [EVENTO COMPLETO] Encontrados ${eventTournaments.length} torneos del evento:`, 
+      eventTournaments.map(t => `${t.tournament_type} (Categoría: ${t.category_id})`));
+
+    // 3) Verificar que no haya grupos ya generados en ESTE torneo específico
+    const { data: existingGroups, error: groupsError } = await supabase
+      .from('tournament_groups')
+      .select('id, group_number')
+      .eq('tournament_id', tournament_id);
+
+    if (groupsError) return res.status(500).json({ message: groupsError.message });
+
+    if (existingGroups && existingGroups.length > 0) {
+      console.log(`⚠️ [CONFLICTO] Este torneo ya tiene ${existingGroups.length} grupos generados`);
+      return res.status(400).json({ 
+        message: `No se pueden generar grupos: este torneo ya tiene grupos generados. Primero elimine todos los grupos de este torneo.` 
       });
     }
 
-    // 4) Validar que cada grupo tenga el número correcto de equipos
-    const teamsPerGroup = tournament.tournament_type === 'SIXTEEN_PLAYERS' ? 4 : 3;
-    for (const group of groups) {
-      if (!Array.isArray(group.teams) || group.teams.length !== teamsPerGroup) {
-        return res.status(400).json({
-          message: `El grupo ${group.group_number} debe tener exactamente ${teamsPerGroup} equipos`
-        });
-      }
-    }
+    console.log(`✅ [VERIFICACIÓN] Este torneo no tiene grupos generados, procediendo con la generación...`);
 
-    // 5) Crear grupos en la BD
-    const createdGroups = [];
-    for (const groupConfig of groups) {
-      const { data: group, error } = await supabase
-        .from('tournament_groups')
-        .insert({
-          tournament_id,
-          group_number: groupConfig.group_number,
-          teams: groupConfig.teams,
-          status: 'IN_PROGRESS'
-        })
-        .select()
-        .single();
-
-      if (error) throw new Error(`Error creando grupo ${groupConfig.group_number}: ${error.message}`);
-      createdGroups.push(group);
-
-      // 6) Generar partidos del grupo
-      const groupTeams = groupConfig.teams.map(team_id => ({ id: team_id }));
-      await generateGroupMatches(tournament_id, group.id, groupTeams, group.group_number);
-    }
-
-    return res.status(201).json({
-      message: 'Grupos generados manualmente con éxito',
-      tournament_id,
-      groups_created: createdGroups.map(g => ({ 
-        id: g.id, 
-        group_number: g.group_number, 
-        teams: g.teams 
-      }))
-    });
-  } catch (err) {
-    console.error('generateGroupsManual error:', err);
-    return res.status(500).json({ message: err.message });
-  }
-}
-
-// --- NUEVO: wrapper HTTP para generar grupos automáticos ---
-export async function generateGroupsPhase(req, res) {
-  const tournament_id = req.params.id;
-
-  try {
-    // 1) Traer torneo
-    const { data: tournament, error: tErr } = await supabase
-      .from('tournaments')
-      .select('id, name, tournament_type, max_teams')
-      .eq('id', tournament_id)
-      .single();
-    if (tErr || !tournament) return res.status(404).json({ message: 'Tournament not found' });
-
-    // 2) Traer equipos inscriptos
+    // 4) Traer equipos inscriptos del torneo actual
     const { data: tteams, error: teamsErr } = await supabase
       .from('tournament_teams')
       .select('team_id')
@@ -2779,8 +2543,9 @@ export async function generateGroupsPhase(req, res) {
     const teams = (tteams || []).map(x => ({ id: x.team_id }));
     if (!teams.length) return res.status(400).json({ message: 'No hay equipos inscriptos' });
 
-    // Validación rápida contra el tipo (9, 12 o 16)
-    const expected = tournament.tournament_type === 'NINE_PLAYERS' ? 9 : 
+    // 5) Validación rápida contra el tipo (6, 9, 12 o 16)
+    const expected = tournament.tournament_type === 'SIX_PLAYERS' ? 6 :
+                    tournament.tournament_type === 'NINE_PLAYERS' ? 9 : 
                     tournament.tournament_type === 'TWELVE_PLAYERS' ? 12 : 16;
     if (teams.length !== expected) {
       return res.status(400).json({
@@ -2788,16 +2553,63 @@ export async function generateGroupsPhase(req, res) {
       });
     }
 
-    // 3) Generar grupos (usa tu helper ya definido arriba)
-    const groups = await generateTournamentGroups(tournament, teams); // <-- ya lo tienes como helper interno
+    console.log(`✅ [VALIDACIÓN] ${teams.length} equipos confirmados para ${tournament.tournament_type}`);
+
+    // NUEVA LÓGICA: 6) Analizar restricciones de TODAS las categorías del evento
+    console.log(`🔍 [ANÁLISIS GLOBAL] Analizando restricciones de todas las categorías...`);
+    
+    const eventRestrictions = new Map();
+    for (const eventTournament of eventTournaments) {
+      const { data: categoryTeams, error: catTeamsErr } = await supabase
+        .from('tournament_teams')
+        .select('team_id, unavailable_times')
+        .eq('tournament_id', eventTournament.id);
+
+      if (catTeamsErr) {
+        console.error(`❌ Error obteniendo equipos de categoría ${eventTournament.category_id}:`, catTeamsErr);
+        continue;
+      }
+
+      const categoryRestrictions = categoryTeams
+        .filter(team => team.unavailable_times)
+        .map(team => ({
+          team_id: team.team_id,
+          unavailable_times: team.unavailable_times,
+          category_id: eventTournament.category_id,
+          tournament_type: eventTournament.tournament_type
+        }));
+
+      eventRestrictions.set(eventTournament.category_id, categoryRestrictions);
+      console.log(`📊 Categoría ${eventTournament.category_id}: ${categoryRestrictions.length} equipos con restricciones`);
+    }
+
+    // 7) Generar grupos del torneo actual con análisis global
+    const groups = await generateTournamentGroups(tournament, teams, eventRestrictions);
+
+    console.log(`✅ [GRUPOS GENERADOS] ${groups.length} grupos creados exitosamente`);
 
     return res.status(201).json({
-      message: 'Grupos generados correctamente',
+      message: 'Grupos generados correctamente con análisis global de restricciones',
       tournament_id,
-      groups_created: groups.map(g => ({ id: g.id, group_number: g.group_number, teams: g.teams }))
+      tournament_name: tournament.name,
+      tournament_type: tournament.tournament_type,
+      category_id: tournament.category_id,
+      event_analysis: {
+        total_categories: eventTournaments.length,
+        categories_analyzed: Array.from(eventRestrictions.keys()),
+        total_restrictions_found: Array.from(eventRestrictions.values()).reduce((sum, arr) => sum + arr.length, 0)
+      },
+      groups_created: groups.map(g => ({
+        id: g.id,
+        group_number: g.group_number,
+        teams: g.teams,
+        teams_count: g.teams.length,
+        preferred_day: g.preferred_day,
+        is_homogeneous: g.is_homogeneous
+      }))
     });
   } catch (err) {
-    console.error('generateGroupsPhase error:', err);
+    console.error('❌ generateGroupsPhase error:', err);
     return res.status(500).json({ message: err.message });
   }
 }
@@ -2817,130 +2629,20 @@ export async function getGroups(req, res) {
   }
 }
 
-// Nueva función para validar conflictos horarios en grupos
-export async function validateGroupScheduleConflicts(req, res) {
-  const tournament_id = req.params.id;
-  const { groups } = req.body; // Array de grupos propuestos por el admin
-  
-  try {
-    // 1. Obtener time slots del torneo
-    const { data: tournament, error: tournamentError } = await supabase
-      .from('tournaments')
-      .select('group_time_slots, tournament_type')
-      .eq('id', tournament_id)
-      .single();
-      
-    if (tournamentError) return res.status(500).json({ message: tournamentError.message });
-    
-    // 2. Obtener restricciones de todos los equipos
-    const { data: teamConstraints, error: constraintsError } = await supabase
-      .from('tournament_teams')
-      .select(`
-        team_id, 
-        unavailable_times,
-        teams (
-          player1:users!teams_player1_id_fkey (first_name, last_name),
-          player2:users!teams_player2_id_fkey (first_name, last_name)
-        )
-      `)
-      .eq('tournament_id', tournament_id);
-      
-    if (constraintsError) return res.status(500).json({ message: constraintsError.message });
-    
-    // 3. Validar cada grupo propuesto
-    const validationResults = [];
-    
-    for (const group of groups) {
-      const groupValidation = {
-        group_number: group.group_number,
-        teams: group.teams,
-        conflicts: [],
-        available_slots: [],
-        recommended_slots: []
-      };
-      
-      // Obtener restricciones de los equipos en este grupo
-      const groupTeamConstraints = group.teams.map(teamId => {
-        const constraint = teamConstraints.find(tc => tc.team_id === teamId);
-        return {
-          team_id: teamId,
-          unavailable_slot: constraint?.unavailable_times,
-          team_name: constraint ? 
-            `${constraint.teams.player1.first_name} ${constraint.teams.player1.last_name} / ${constraint.teams.player2.first_name} ${constraint.teams.player2.last_name}` :
-            `Equipo ${teamId}`
-        };
-      });
-      
-      // Identificar conflictos horarios
-      const unavailableSlots = groupTeamConstraints
-        .map(tc => tc.unavailable_slot)
-        .filter(slot => slot !== null && slot !== undefined);
-      
-      const availableSlots = tournament.group_time_slots.filter(slot => 
-        !unavailableSlots.includes(slot.id) && 
-        (slot.tournament_day === 1 || slot.tournament_day === 2) // Solo días 1-2
-      );
-      
-      // Detectar conflictos específicos
-      groupTeamConstraints.forEach(team => {
-        if (team.unavailable_slot) {
-          const conflictSlot = tournament.group_time_slots.find(s => s.id === team.unavailable_slot);
-          if (conflictSlot) {
-            groupValidation.conflicts.push({
-              team_id: team.team_id,
-              team_name: team.team_name,
-              unavailable_slot: team.unavailable_slot,
-              unavailable_label: conflictSlot.label,
-              message: `${team.team_name} NO puede jugar en ${conflictSlot.label}`
-            });
-          }
-        }
-      });
-      
-      groupValidation.available_slots = availableSlots.map(slot => ({
-        slot_id: slot.id,
-        label: slot.label,
-        day: slot.tournament_day,
-        start: slot.start,
-        end: slot.end
-      }));
-      
-      // Recomendar mejores horarios (más opciones disponibles)
-      groupValidation.recommended_slots = availableSlots
-        .slice(0, 3) // Top 3 recomendados
-        .map(slot => slot.label);
-        
-      groupValidation.has_conflicts = groupValidation.conflicts.length > 0;
-      groupValidation.schedule_flexibility = availableSlots.length;
-      
-      validationResults.push(groupValidation);
-    }
-    
-    // 4. Resumen general
-    const totalConflicts = validationResults.reduce((sum, g) => sum + g.conflicts.length, 0);
-    const groupsWithConflicts = validationResults.filter(g => g.has_conflicts).length;
-    
-    res.json({
-      message: 'Validación de conflictos horarios completada',
-      tournament_id,
-      summary: {
-        total_groups: groups.length,
-        groups_with_conflicts: groupsWithConflicts,
-        total_conflicts: totalConflicts,
-        overall_status: totalConflicts === 0 ? 'SIN_CONFLICTOS' : 'CONFLICTOS_DETECTADOS'
-      },
-      validation_results: validationResults
-    });
-    
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-}
-
-
-async function generateGroupMatches(tournament_id, group_id, groupTeams, group_number) {
+async function generateGroupMatches(tournament_id, group_id, groupTeams, group_number, preferredDay = null) {
   const matches = [];
   let matchCounter = 1;
+
+  // Determinar el día de torneo según la preferencia del grupo
+  let tournamentDay = null;
+  if (preferredDay === 'DAY_1') {
+    tournamentDay = 1;
+  } else if (preferredDay === 'DAY_2') {
+    tournamentDay = 2;
+  }
+  // Si es MIXED, dejamos tournamentDay null para que se asigne manualmente
+
+  console.log(`🎾 Generando partidos para grupo ${group_number} (${preferredDay || 'SIN PREFERENCIA'}) - Día asignado: ${tournamentDay || 'POR DEFINIR'}`);
 
   // Todos contra todos (round-robin)
   // Para grupos de 3: 3 partidos (A vs B, A vs C, B vs C)
@@ -2950,217 +2652,27 @@ async function generateGroupMatches(tournament_id, group_id, groupTeams, group_n
       matches.push({
         tournament_id,
         group_id,
-        group_number,               
+        group_number,
         home_team_id: groupTeams[i].id,
         away_team_id: groupTeams[j].id,
-        round: 'group',              
-        stage: 'group',              
-        match_number: matchCounter,  
-        status: 'pending'            
-        // match_day, start_time y court_id se asignan después desde la UI/admin
+        round: 'group',
+        stage: 'group',
+        match_number: matchCounter,
+        tournament_day: tournamentDay, // ✨ NUEVO: Asignación automática de día del torneo
+        status: 'pending'
+        // start_time y court_id se asignan después desde la UI/admin o algoritmo de scheduling
       });
       matchCounter++;
     }
   }
 
-  console.log(`🎾 Generando ${matches.length} partidos para grupo ${group_number} con ${groupTeams.length} equipos`);
+  console.log(`✅ ${matches.length} partidos creados${tournamentDay ? ` para el día ${tournamentDay}` : ' (día por asignar manualmente)'}`);
 
   const { error } = await supabase
     .from('tournament_matches')
     .insert(matches);
 
   if (error) throw new Error(`Error creando partidos de grupo: ${error.message}`);
-}
-
-// First, get available courts for the tournament
-async function getTournamentCourts(tournament_id) {
-  const { data: courts, error } = await supabase
-    .from('courts')
-    .select('id')
-    .eq('status', 'active')  // Assuming you have a status field
-
-  if (error) throw new Error(`Failed to get courts: ${error.message}`)
-  return courts.map(court => court.id)
-}
-
-// FUNCIÓN VIEJA ELIMINADA - Reemplazada por nueva implementación más avanzada
-
-function generateAvailableTimeSlots(timeSlots, startDate, endDate) {
-  const slots = []
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-
-  for (let date = start; date <= end; date.setDate(date.getDate() + 1)) {
-    for (const [startHour, endHour] of timeSlots) {
-      for (let hour = startHour; hour < endHour; hour++) {
-        slots.push({
-          date: new Date(date),
-          hour
-        })
-      }
-    }
-  }
-  return slots
-}
-
-// FUNCIÓN VIEJA ELIMINADA - Reemplazada por nueva implementación avanzada
-
-function isSlotValidForTeams(slot, homeTeamId, awayTeamId, teams) {
-  const hour = parseInt(slot.hour)
-  
-  // For semifinal/final matches where teams aren't known yet
-  if (!homeTeamId || !awayTeamId) return true
-
-  // Find team constraints
-  const homeTeamData = teams.find(t => t.team_id === homeTeamId)
-  const awayTeamData = teams.find(t => t.team_id === awayTeamId)
-
-  if (!homeTeamData || !awayTeamData) {
-    return false
-  }
-
-  // Check if either team is unavailable at this hour
-  const isHomeTeamUnavailable = homeTeamData.unavailable_times === hour
-  const isAwayTeamUnavailable = awayTeamData.unavailable_times === hour
-
-  return !isHomeTeamUnavailable && !isAwayTeamUnavailable
-}
-
-function validateSchedule(matches, teams, maxConcurrentMatches) {
-  const errors = []
-  const matchesBySlot = new Map()
-
-  // Group matches by time slot
-  for (const match of matches) {
-    const hour = parseInt(match.start_time.split(':')[0])
-    const slotKey = `${match.match_day}_${hour}`
-    const currentSlotMatches = matchesBySlot.get(slotKey) || []
-    currentSlotMatches.push(match)
-    matchesBySlot.set(slotKey, currentSlotMatches)
-
-    // Validate team availability
-    if (match.home_team_id) {
-      const homeTeam = teams.find(t => t.team_id === match.home_team_id)
-      if (homeTeam && homeTeam.unavailable_times === hour) {
-        errors.push(`Team ${match.home_team_id} is scheduled at ${hour}:00 but is unavailable`)
-      }
-    }
-    if (match.away_team_id) {
-      const awayTeam = teams.find(t => t.team_id === match.away_team_id)
-      if (awayTeam && awayTeam.unavailable_times === hour) {
-        errors.push(`Team ${match.away_team_id} is scheduled at ${hour}:00 but is unavailable`)
-      }
-    }
-  }
-
-  // Check concurrent matches limit
-  for (const [slotKey, slotMatches] of matchesBySlot) {
-    if (slotMatches.length > maxConcurrentMatches) {
-      errors.push(`Time slot ${slotKey} has ${slotMatches.length} matches, exceeding limit of ${maxConcurrentMatches}`)
-    }
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors
-  }
-}
-
-function scheduleMatches(matches, availableSlots, maxConcurrentMatches, teams) {
-  const scheduledMatches = []
-  const unscheduledMatches = []
-  const usedSlots = new Map()
-  
-  // Group matches by round
-  const matchesByRound = {}
-  for (const match of matches) {
-    if (!matchesByRound[match.round]) matchesByRound[match.round] = []
-    matchesByRound[match.round].push(match)
-  }
-  
-  // Find earliest possible start date for each round
-  const earliestRoundDates = {}
-  for (let round = 1; round <= 3; round++) {
-    if (round === 1) {
-      // First round can start immediately
-      earliestRoundDates[round] = new Date(Math.min(...availableSlots.map(s => s.date.getTime())))
-    } else {
-      // Later rounds must wait for earlier rounds to complete
-      earliestRoundDates[round] = null // Will be set after scheduling previous round
-    }
-  }
-  
-  // Schedule round by round
-  for (let round = 1; round <= 3; round++) {
-    const roundMatches = matchesByRound[round] || []
-    
-    // Schedule each match in this round
-    for (const match of roundMatches) {
-      let scheduled = false
-      
-      // Try to find a valid slot
-      for (const slot of availableSlots) {
-        // Skip slots before the earliest allowed date for this round
-        if (earliestRoundDates[round] && slot.date < earliestRoundDates[round]) {
-          continue
-        }
-        
-        const slotKey = `${slot.date.toISOString().split('T')[0]}_${slot.hour}`
-        const currentSlotMatches = usedSlots.get(slotKey) || 0
-        
-        // Skip if slot is already at max capacity
-        if (currentSlotMatches >= maxConcurrentMatches) {
-          continue
-        }
-        
-        // Skip if either team is unavailable (only for first round where teams are known)
-        if (match.home_team_id && match.away_team_id) {
-          if (!isSlotValidForTeams(slot, match.home_team_id, match.away_team_id, teams)) {
-            continue
-          }
-        }
-        
-        // Schedule the match
-        const matchDateTime = new Date(slot.date)
-        matchDateTime.setHours(slot.hour)
-        
-        scheduledMatches.push({
-          tournament_id: match.tournament_id,
-          home_team_id: match.home_team_id,
-          away_team_id: match.away_team_id,
-          match_day: matchDateTime.toISOString().split('T')[0],
-          start_time: `${slot.hour}:00:00`,
-          status: 'pending',
-          round: match.round
-        })
-        
-        // Update used slots
-        usedSlots.set(slotKey, currentSlotMatches + 1)
-        scheduled = true
-        break
-      }
-      
-      if (!scheduled) {
-        unscheduledMatches.push(match)
-      }
-    }
-    
-    // Update earliest date for next round if we scheduled anything
-    if (round < 3 && scheduledMatches.filter(m => m.round === round).length > 0) {
-      // Get the last match day for this round
-      const roundMatchDays = scheduledMatches
-        .filter(m => m.round === round)
-        .map(m => new Date(m.match_day + 'T' + m.start_time).getTime())
-      
-      const lastMatchDate = new Date(Math.max(...roundMatchDays))
-      // Next round can start the next day
-      const nextRoundDate = new Date(lastMatchDate)
-      nextRoundDate.setDate(nextRoundDate.getDate() + 1)
-      earliestRoundDates[round + 1] = nextRoundDate
-    }
-  }
-  
-  return { scheduledMatches, unscheduledMatches }
 }
 
 export async function getTournamentTeams(req, res) {
@@ -3200,234 +2712,289 @@ export async function getTournamentTeams(req, res) {
   }
 }
 
-// Nueva función para obtener time slots disponibles para inscripción (SOLO DÍAS 1-2)
-export async function getAvailableTimeSlotsForRegistration(req, res) {
+
+/**
+ * 🕐 GENERAR HORARIOS PARA FASE DE GRUPOS
+ *
+ * Genera slots de 45 minutos para los días 1 y 2 (fase de grupos).
+ * - Día 1: 17:00 - 23:00 (8 slots)
+ * - Día 2: 08:00 - 23:00 (20 slots)
+ *
+ * @param {string} startDate - Fecha de inicio del torneo (YYYY-MM-DD)
+ * @param {string} endDate - Fecha de fin del torneo (YYYY-MM-DD)
+ * @param {number} courtsAvailable - Número de canchas disponibles
+ * @returns {Array} Array de slots con capacidad calculada
+ */
+function generateGroupPhaseTimeSlots(startDate, endDate, courtsAvailable) {
+  const slots = [];
+  const slotDuration = 45; // minutos
+
+  // Calcular capacidad por slot: canchas × 2 equipos por partido
+  // Ejemplo: 2 canchas = 4 equipos pueden jugar simultáneamente (2 partidos en paralelo)
+  const capacityPerSlot = courtsAvailable * 2;
+
+  console.log(`⏰ [GENERAR HORARIOS] Inicio: ${startDate}, Fin: ${endDate}, Canchas: ${courtsAvailable}`);
+  console.log(`📊 [CAPACIDAD] ${capacityPerSlot} equipos por slot (${courtsAvailable} canchas × 2 equipos/partido)`);
+
+  // Crear objeto Date para día 1 (fecha de inicio)
+  const day1Date = new Date(startDate + 'T00:00:00');
+  const day1DateStr = formatDateSafe(day1Date);
+  const day1Name = getDayName(day1Date);
+
+  // DÍA 1: 17:00 - 23:00 (8 slots de 45 min)
+  console.log(`📅 [DÍA 1] ${day1Name} ${day1DateStr}: 17:00 - 23:00`);
+
+  const day1StartHour = 17;
+  const day1StartMinute = 0;
+
+  for (let i = 0; i < 8; i++) {
+    const totalMinutes = day1StartHour * 60 + day1StartMinute + (i * slotDuration);
+    const hour = Math.floor(totalMinutes / 60);
+    const minute = totalMinutes % 60;
+
+    const startTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+
+    const endTotalMinutes = totalMinutes + slotDuration;
+    const endHour = Math.floor(endTotalMinutes / 60);
+    const endMinute = endTotalMinutes % 60;
+    const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+
+    slots.push({
+      id: `slot_day1_${startTime.replace(':', '')}`,
+      label: `${day1Name} ${startTime} - ${endTime}`,
+      day: 1,
+      start: startTime,
+      end: endTime,
+      date: day1DateStr,
+      tournament_day: 1,
+      duration_minutes: slotDuration,
+      capacity: capacityPerSlot,
+      courts: courtsAvailable
+    });
+  }
+
+  // DÍA 2: 08:00 - 23:00 (20 slots de 45 min)
+  const day2Date = new Date(day1Date);
+  day2Date.setDate(day2Date.getDate() + 1);
+  const day2DateStr = formatDateSafe(day2Date);
+  const day2Name = getDayName(day2Date);
+
+  console.log(`📅 [DÍA 2] ${day2Name} ${day2DateStr}: 08:00 - 23:00`);
+
+  const day2StartHour = 8;
+  const day2StartMinute = 0;
+
+  for (let i = 0; i < 20; i++) {
+    const totalMinutes = day2StartHour * 60 + day2StartMinute + (i * slotDuration);
+    const hour = Math.floor(totalMinutes / 60);
+    const minute = totalMinutes % 60;
+
+    const startTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+
+    const endTotalMinutes = totalMinutes + slotDuration;
+    const endHour = Math.floor(endTotalMinutes / 60);
+    const endMinute = endTotalMinutes % 60;
+    const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+
+    slots.push({
+      id: `slot_day2_${startTime.replace(':', '')}`,
+      label: `${day2Name} ${startTime} - ${endTime}`,
+      day: 2,
+      start: startTime,
+      end: endTime,
+      date: day2DateStr,
+      tournament_day: 2,
+      duration_minutes: slotDuration,
+      capacity: capacityPerSlot,
+      courts: courtsAvailable
+    });
+  }
+
+  console.log(`✅ [HORARIOS GENERADOS] Total: ${slots.length} slots (Día 1: 8, Día 2: 20)`);
+  console.log(`   Capacidad total: ${slots.length} slots × ${capacityPerSlot} cupos = ${slots.length * capacityPerSlot} cupos`);
+
+  return slots;
+}
+
+/**
+ * 📊 RECALCULAR HORARIOS PARA TODO EL EVENTO
+ *
+ * Cuando el admin cambia el tipo de un torneo (ej: de 9 a 12 jugadores),
+ * se deben recalcular los horarios para TODO el evento.
+ *
+ * @param {string} eventName - Nombre del evento (común a todas las categorías)
+ * @param {string} startDate - Fecha de inicio
+ * @param {string} endDate - Fecha de fin
+ * @param {number} courtsAvailable - Número de canchas
+ */
+async function recalculateEventTimeSlots(eventName, startDate, endDate, courtsAvailable) {
+  console.log(`🔄 [RECALCULAR HORARIOS] Evento: ${eventName}`);
+
+  // Generar nuevos horarios
+  const newSlots = generateGroupPhaseTimeSlots(startDate, endDate, courtsAvailable);
+
+  // Obtener todos los torneos del evento
+  const { data: eventTournaments, error } = await supabase
+    .from('tournaments')
+    .select('id, name, category_id')
+    .eq('name', eventName);
+
+  if (error) {
+    console.error('❌ Error obteniendo torneos del evento:', error);
+    throw error;
+  }
+
+  console.log(`📋 [ACTUALIZAR] ${eventTournaments.length} torneos del evento "${eventName}"`);
+
+  // Actualizar group_time_slots en todos los torneos del evento
+  for (const tournament of eventTournaments) {
+    const { error: updateError } = await supabase
+      .from('tournaments')
+      .update({ group_time_slots: newSlots })
+      .eq('id', tournament.id);
+
+    if (updateError) {
+      console.error(`❌ Error actualizando torneo ${tournament.id}:`, updateError);
+    } else {
+      console.log(`   ✅ Torneo ${tournament.id} actualizado`);
+    }
+  }
+
+  console.log(`✅ [RECALCULACIÓN COMPLETA] Horarios actualizados para ${eventTournaments.length} torneos`);
+
+  return newSlots;
+}
+
+/**
+ * 🎯 OBTENER HORARIOS DISPONIBLES PARA INSCRIPCIÓN
+ *
+ * Muestra los horarios de fase de grupos con información de cuántos equipos
+ * ya los marcaron como NO disponibles.
+ *
+ * GET /tournaments/:id/available-group-hours
+ */
+export async function getAvailableGroupHours(req, res) {
   const { id } = req.params;
-  
+
   try {
     // 1. Obtener información del torneo
-    const { data: tournament, error } = await supabase
+    const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('name, group_time_slots, courts_available, category_id, tournament_type, max_teams, start_date, end_date')
+      .select('id, name, category_id, group_time_slots, start_date, end_date, max_teams, tournament_type')
       .eq('id', id)
       .single();
 
-    if (error) throw new Error(`Failed to get tournament: ${error.message}`);
-    if (!tournament) throw new Error('Tournament not found');
+    if (tournamentError) throw tournamentError;
+    if (!tournament) {
+      return res.status(404).json({ message: 'Torneo no encontrado' });
+    }
 
-    // 2. Obtener todos los torneos del mismo evento para calcular cupos compartidos
-    const { data: allTournaments, error: tournamentsError } = await supabase
+    // 2. Obtener categoría
+    const { data: category } = await supabase
+      .from('categories')
+      .select('name')
+      .eq('id', tournament.category_id)
+      .single();
+
+    // 3. Obtener todos los torneos del evento (mismo nombre)
+    const { data: eventTournaments } = await supabase
       .from('tournaments')
-      .select('id, category_id, max_teams, tournament_type')
-      .eq('name', tournament.name); // Todos los torneos con el mismo nombre son del mismo evento
+      .select('id, tournament_type, max_teams')
+      .eq('name', tournament.name);
 
-    if (tournamentsError) throw new Error(`Failed to get tournaments: ${tournamentsError.message}`);
-    const totalCategoriesCount = allTournaments.length;
-    
-    // 3. Calcular el total REAL de equipos del evento (sumando max_teams de cada torneo)
-    const totalTeamsAcrossCategories = allTournaments.reduce((sum, t) => sum + t.max_teams, 0);
+    const totalCategories = eventTournaments ? eventTournaments.length : 1;
 
-    // 3. Filtrar solo time slots de DÍAS 1-2 (Viernes y Sábado para fase de grupos)
-    const groupPhaseSlots = tournament.group_time_slots.filter(slot => 
-      slot.tournament_day === 1 || slot.tournament_day === 2
-    );
-    
-    console.log(`🎯 Slots disponibles para jugadores (solo días 1-2):`, groupPhaseSlots.map(s => s.label));
+    // Calcular total de equipos en el evento
+    const totalTeams = eventTournaments
+      ? eventTournaments.reduce((sum, t) => sum + (t.max_teams || 0), 0)
+      : tournament.max_teams;
 
-    // 4. Calcular capacidades solo para slots de fase de grupos usando el total REAL
-    const tournamentWithFilteredSlots = { ...tournament, group_time_slots: groupPhaseSlots };
-    const slotCapacities = calculateTimeSlotCapacity(tournamentWithFilteredSlots, totalCategoriesCount, totalTeamsAcrossCategories);
+    // 4. Obtener todas las restricciones del evento
+    const eventTournamentIds = eventTournaments.map(t => t.id);
 
-    // 5. Obtener equipos ya registrados de TODAS las categorías del mismo evento
-    const allTournamentIds = allTournaments.map(t => t.id);
-    const { data: allRegisteredTeams, error: teamsError } = await supabase
+    const { data: allTeamsInEvent } = await supabase
       .from('tournament_teams')
-      .select('unavailable_times, tournament_id')
-      .in('tournament_id', allTournamentIds);
+      .select('unavailable_times')
+      .in('tournament_id', eventTournamentIds);
 
-    if (teamsError) throw new Error(`Failed to get registered teams: ${teamsError.message}`);
+    // Contar restricciones por horario
+    const restrictionCounts = {};
 
-    console.log(`📊 Equipos registrados en TODAS las categorías:`, allRegisteredTeams?.length || 0);
+    if (allTeamsInEvent) {
+      allTeamsInEvent.forEach(team => {
+        if (team.unavailable_times && Array.isArray(team.unavailable_times)) {
+          team.unavailable_times.forEach(timeSlot => {
+            restrictionCounts[timeSlot] = (restrictionCounts[timeSlot] || 0) + 1;
+          });
+        }
+      });
+    }
 
-    // 6. Contar equipos por time slot (COMPARTIDO entre todas las categorías)
-    const slotUsage = {};
-    (allRegisteredTeams || []).forEach(team => {
-      const slotId = team.unavailable_times;
-      if (slotId && groupPhaseSlots.find(s => s.id === slotId)) {
-        slotUsage[slotId] = (slotUsage[slotId] || 0) + 1;
-      }
-    });
+    // 5. Enriquecer slots con información de restricciones y capacidad
+    const slots = tournament.group_time_slots || [];
+    const courts = slots[0]?.courts || 2;
+    const MAX_TEAMS_PER_SLOT = MAX_RESTRICTIONS_PER_SLOT_PER_COURT * courts;
+    
+    const enrichedSlots = slots.map(slot => {
+      const slotKey = slot.start; // Usar start time como key
+      const currentRestrictions = restrictionCounts[slotKey] || 0;
+      const isHeavilyRestricted = currentRestrictions > (totalTeams * 0.5); // Más del 50% lo marcaron
+      const slotsRemaining = Math.max(0, MAX_TEAMS_PER_SLOT - currentRestrictions);
+      const isFull = currentRestrictions >= MAX_TEAMS_PER_SLOT;
 
-    console.log(`🎯 Uso actual de slots (compartido):`, slotUsage);
-
-    // 7. Construir respuesta con disponibilidad
-    const availableSlots = slotCapacities.map(capacity => {
-      const currentUsage = slotUsage[capacity.slot_id] || 0;
-      const remainingSlots = Math.max(0, capacity.final_capacity - currentUsage);
-      
       return {
-        slot_id: capacity.slot_id,
-        label: capacity.label,
-        total_capacity: capacity.final_capacity,
-        current_usage: currentUsage,
-        remaining_slots: remainingSlots,
-        is_available: remainingSlots > 0,
-        percentage_full: Math.round((currentUsage / capacity.final_capacity) * 100),
-        duration_hours: capacity.duration_hours
+        ...slot,
+        current_restrictions: currentRestrictions,
+        max_restrictions: MAX_TEAMS_PER_SLOT,
+        slots_remaining: slotsRemaining,
+        is_full: isFull,
+        is_heavily_restricted: isHeavilyRestricted,
+        restriction_percentage: totalTeams > 0
+          ? Math.round((currentRestrictions / totalTeams) * 100)
+          : 0
       };
     });
 
+    // 6. Responder
     res.json({
-      message: 'Available time slots retrieved successfully (GROUP PHASE ONLY)',
-      tournament_info: {
-        category_id: tournament.category_id,
-        tournament_type: tournament.tournament_type,
+      message: 'Horarios disponibles para fase de grupos',
+      tournament: {
+        id: tournament.id,
+        name: tournament.name,
+        category: category?.name || 'Sin categoría',
+        type: tournament.tournament_type,
         max_teams: tournament.max_teams,
-        courts_available: tournament.courts_available,
-        total_categories: totalCategoriesCount,
-        total_teams_across_categories: totalTeamsAcrossCategories,
-        start_date: tournament.start_date,
-        end_date: tournament.end_date,
-        group_phase_days: `${getDayName(new Date(tournament.start_date))} y ${getDayName(new Date(new Date(tournament.start_date).setDate(new Date(tournament.start_date).getDate() + 1)))}`
+        total_categories: totalCategories,
+        total_teams_in_event: totalTeams
       },
-      available_slots: availableSlots,
-      note: "🔄 CUPOS COMPARTIDOS: Los time slots son compartidos entre TODAS las categorías del evento. Si una pareja de Sexta elige un slot, afecta la disponibilidad para Cuarta, Quinta, etc.",
-      debug_info: {
-        all_tournament_ids: allTournamentIds,
-        total_registered_teams: (allRegisteredTeams || []).length,
-        slot_usage_breakdown: slotUsage
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-}
-
-export async function getAvailableHoursForRegistration(req, res) {
-  const { id } = req.params;
-  
-  try {
-    const { data: tournament, error } = await supabase
-      .from('tournaments')
-      .select('time_slots, courts_available, category_id, tournament_type, start_date, end_date, max_teams')
-      .eq('id', id)
-      .single();
-
-    if (error) throw new Error(`Failed to get tournament: ${error.message}`);
-    if (!tournament) throw new Error('Tournament not found');
-
-    // Datos de categoría
-    const { data: category, error: categoryError } = await supabase
-      .from('categories')
-      .select('name, max_teams')
-      .eq('id', tournament.category_id)
-      .single();
-    if (categoryError) throw new Error(`Failed to get category: ${categoryError.message}`);
-
-    // Equipos inscriptos
-    const { data: existingTeams, error: teamsError } = await supabase
-      .from('tournament_teams')
-      .select(`
-        unavailable_times, 
-        team_id,
-        teams (
-          player1_id,
-          player2_id,
-          player1:users!teams_player1_id_fkey (
-            first_name,
-            last_name
-          ),
-          player2:users!teams_player2_id_fkey (
-            first_name,
-            last_name
-          )
-        )
-      `)
-      .eq('tournament_id', id);
-    if (teamsError) throw new Error(`Failed to get teams: ${teamsError.message}`);
-
-    // ---- NUEVA LÓGICA: cálculo de capacidad ----
-    const totalTeams = category.max_teams;   // en el futuro puede ser sumatoria si torneo admite varias cat.
-    const totalMatches = Math.ceil(totalTeams / 2);
-    
-    // horas disponibles entre start_date y end_date
-    const start = new Date(tournament.start_date);
-    const end = new Date(tournament.end_date);
-    const days = Math.ceil((end - start) / (1000*60*60*24)) + 1;
-
-    let horasPorDia = 0;
-    tournament.time_slots.forEach(([st, en]) => { horasPorDia += (en - st); });
-
-    const slotsDisponibles = horasPorDia * days * tournament.courts_available;
-    const partidosPorSlot = Math.max(1, Math.ceil(totalMatches / slotsDisponibles));
-    const cupoPorSlot = partidosPorSlot * 2;  // 2 equipos por partido
-
-    // ---- Conteo de equipos que ya eligieron un horario ----
-    const hourCounts = {};
-    existingTeams.forEach(team => {
-      const hour = team.unavailable_times;
-      if (hour !== null && hour !== undefined) {
-        hourCounts[hour] = hourCounts[hour] || { count: 0, teams: [] };
-        hourCounts[hour].count++;
-        hourCounts[hour].teams.push({
-          team_id: team.team_id,
-          player1: {
-            id: team.teams.player1_id,
-            first_name: team.teams.player1.first_name,
-            last_name: team.teams.player1.last_name
-          },
-          player2: {
-            id: team.teams.player2_id,
-            first_name: team.teams.player2.first_name,
-            last_name: team.teams.player2.last_name
-          }
-        });
-      }
-    });
-
-    const availabilityMap = {};
-    tournament.time_slots.forEach(([start, end]) => {
-      for (let hour = start; hour < end; hour++) {
-        const hourData = hourCounts[hour] || { count: 0, teams: [] };
-        availabilityMap[hour] = {
-          total_capacity: cupoPorSlot,
-          selected_count: hourData.count,
-          available: hourData.count < cupoPorSlot,
-          remaining_slots: Math.max(0, cupoPorSlot - hourData.count),
-          teams: hourData.teams,
-          percentage_full: Math.round((hourData.count / cupoPorSlot) * 100)
-        };
-      }
-    });
-
-    res.json({
-      message: 'Available hours retrieved successfully',
-      tournament_info: {
-        category: category.name,
-        tournament_type: tournament.tournament_type,
-        max_teams: category.max_teams,
-        courts_available: tournament.courts_available,
-        days,
-        horasPorDia,
-        totalMatches,
-        slotsDisponibles,
-        cupoPorSlot
+      available_hours: enrichedSlots,
+      restrictions: {
+        min_selection: 0,
+        max_selection: 2,
+        recommended: 1,
+        message: 'Selecciona máximo 2 horarios en los que NO puedas jugar (día 1 o día 2)'
       },
-      availability: availabilityMap
+      info: {
+        phase: 'Fase de Grupos (Días 1 y 2)',
+        day1_hours: '17:00 - 23:00',
+        day2_hours: '08:00 - 23:00',
+        match_duration: '45 minutos',
+        note: 'Los horarios son compartidos entre todas las categorías del evento'
+      }
     });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('❌ Error obteniendo horarios disponibles:', error);
+    res.status(500).json({
+      message: 'Error al obtener horarios disponibles',
+      error: error.message
+    });
   }
 }
 
-export async function validateScheduleEndpoint(req, res) {
-  try {
-    const result = await validateTournamentSchedule(req.params.id);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-}
+// ============================================
+// FIN NUEVA LÓGICA DE HORARIOS
+// ============================================
 
 export async function getTournamentsByUserId(req, res) {
   const user_id = req.params.userId
@@ -3481,617 +3048,15 @@ export async function getTournamentsByUserId(req, res) {
 // PROGRAMACIÓN AUTOMÁTICA DE PARTIDOS
 // ===================================================================
 
-/**
- * 🎯 PROGRAMAR PARTIDOS POR GRUPO Y DÍA
- * Endpoint específico para programar partidos asegurando que cada grupo juegue en el mismo día
- */
-export const scheduleMatchesByGroupAndDayEndpoint = async (req, res) => {
-  try {
-    const { id: tournamentId } = req.params;
-    
-    console.log(`🎯 [PROGRAMACIÓN POR GRUPO] Iniciando programación por grupo y día para torneo: ${tournamentId}`);
-    
-    // 1. Verificar que el torneo existe y obtener información
-    const { data: tournament, error: tournamentError } = await supabase
-      .from('tournaments')
-      .select(`
-        id, name, start_date, end_date, courts_available, 
-        tournament_type, group_time_slots, category_id
-      `)
-      .eq('id', tournamentId)
-      .single();
-
-    if (tournamentError || !tournament) {
-      return res.status(404).json({ 
-        message: 'Torneo no encontrado',
-        error: tournamentError?.message 
-      });
-    }
-
-    // 2. Obtener todos los partidos pendientes de programación
-    const { data: matches, error: matchesError } = await supabase
-      .from('tournament_matches')
-      .select(`
-        id, home_team_id, away_team_id, group_id, group_number
-      `)
-      .eq('tournament_id', tournamentId)
-      .is('match_day', null)      // Solo partidos sin programar
-      .is('start_time', null)
-      .is('court_id', null);
-
-    if (matchesError) {
-      throw new Error(`Error obteniendo partidos: ${matchesError.message}`);
-    }
-
-    if (!matches || matches.length === 0) {
-      return res.status(400).json({ 
-        message: 'No hay partidos pendientes de programación para este torneo' 
-      });
-    }
-
-    console.log(`📊 [PARTIDOS] Encontrados ${matches.length} partidos pendientes`);
-
-    // 3. Obtener restricciones de todos los equipos participantes
-    const teamIds = [...new Set([
-      ...matches.map(m => m.home_team_id),
-      ...matches.map(m => m.away_team_id)
-    ])];
-
-    const { data: teamRestrictions, error: restrictionsError } = await supabase
-      .from('tournament_teams')
-      .select('team_id, unavailable_times')
-      .eq('tournament_id', tournamentId)
-      .in('team_id', teamIds);
-
-    if (restrictionsError) {
-      throw new Error(`Error obteniendo restricciones: ${restrictionsError.message}`);
-    }
-
-    // 4. Crear mapa de restricciones para acceso rápido
-    const restrictionsMap = new Map();
-    teamRestrictions.forEach(tr => {
-      restrictionsMap.set(tr.team_id, tr.unavailable_times);
-    });
-
-    // 5. Obtener time slots disponibles (solo días 1-2 para fase de grupos)
-    const availableTimeSlots = tournament.group_time_slots.filter(slot => 
-      slot.tournament_day === 1 || slot.tournament_day === 2
-    );
-
-    console.log(`⏰ [TIME SLOTS] ${availableTimeSlots.length} slots disponibles para programación`);
-
-    // 6. Obtener UUIDs reales de las canchas disponibles
-    const { data: courts, error: courtsError } = await supabase
-      .from('courts')
-      .select('id, name')
-      .limit(tournament.courts_available);
-    
-    if (courtsError) {
-      throw new Error(`Error obteniendo canchas: ${courtsError.message}`);
-    }
-    
-    if (!courts || courts.length < tournament.courts_available) {
-      throw new Error(`No hay suficientes canchas disponibles. Se requieren ${tournament.courts_available}, pero solo hay ${courts?.length || 0}`);
-    }
-
-    console.log(`🏟️ [CANCHAS] Usando ${courts.length} canchas: ${courts.map(c => c.name).join(', ')}`);
-
-    // 7. Ejecutar algoritmo de programación POR GRUPO Y DÍA
-    const scheduledMatches = await scheduleMatchesByGroupAndDay(
-      matches,
-      restrictionsMap,
-      availableTimeSlots,
-      courts,
-      tournament.start_date
-    );
-
-    // 8. Actualizar partidos en la base de datos
-    const updatePromises = scheduledMatches.map(match => 
-      supabase
-        .from('tournament_matches')
-        .update({
-          match_day: match.scheduled_date,
-          start_time: match.scheduled_time,
-          court_id: match.assigned_court
-        })
-        .eq('id', match.id)
-    );
-
-    const updateResults = await Promise.all(updatePromises);
-    
-    // Verificar errores en actualizaciones
-    const updateErrors = updateResults.filter(result => result.error);
-    if (updateErrors.length > 0) {
-      console.error('❌ [ERROR] Errores al actualizar partidos:', updateErrors.map(e => e.error));
-      throw new Error(`Error actualizando ${updateErrors.length} partidos: ${updateErrors[0].error.message}`);
-    }
-
-    console.log(`✅ [ÉXITO] ${scheduledMatches.length} partidos programados exitosamente`);
-
-    // 9. Respuesta con estadísticas detalladas
-    const programmedByDay = scheduledMatches.reduce((acc, match) => {
-      const day = match.scheduled_date;
-      acc[day] = (acc[day] || 0) + 1;
-      return acc;
-    }, {});
-
-    const programmedByCourt = scheduledMatches.reduce((acc, match) => {
-      const court = match.assigned_court;
-      acc[court] = (acc[court] || 0) + 1;
-      return acc;
-    }, {});
-
-    const programmedByGroup = scheduledMatches.reduce((acc, match) => {
-      const group = match.group_name;
-      acc[group] = (acc[group] || 0) + 1;
-      return acc;
-    }, {});
-
-    res.json({
-      message: 'Partidos programados exitosamente por grupo y día',
-      tournament: {
-        id: tournament.id,
-        name: tournament.name,
-        type: tournament.tournament_type
-      },
-      programming_summary: {
-        total_matches: scheduledMatches.length,
-        programming_period: {
-          start_date: tournament.start_date,
-          end_date: tournament.end_date
-        },
-        matches_by_day: programmedByDay,
-        matches_by_court: programmedByCourt,
-        matches_by_group: programmedByGroup,
-        available_courts: tournament.courts_available
-      },
-      scheduled_matches: scheduledMatches.map(match => ({
-        id: match.id,
-        group: match.group_name,
-        teams: `${match.home_team_name} vs ${match.away_team_name}`,
-        date: match.scheduled_date,
-        time: match.scheduled_time,
-        court: match.assigned_court,
-        conflicts_avoided: match.conflicts_avoided || []
-      }))
-    });
-
-  } catch (error) {
-    console.error('❌ [ERROR PROGRAMACIÓN POR GRUPO]:', error);
-    res.status(500).json({ 
-      message: 'Error en la programación por grupo y día',
-      error: error.message 
-    });
-  }
-};
-
-
-/**
- * 🎯 PROGRAMACIÓN POR GRUPO Y DÍA
- * Asegura que todos los partidos del mismo grupo se jueguen en el mismo día/time slot
- * 
- * @param {Array} matches - Partidos a programar
- * @param {Map} restrictionsMap - Mapa de restricciones por equipo
- * @param {Array} timeSlots - Time slots disponibles
- * @param {Array} courts - Array de objetos cancha con {id, name}
- * @param {string} startDate - Fecha inicio del torneo
- * @returns {Array} Partidos con programación asignada
- */
-const scheduleMatchesByGroupAndDay = async (matches, restrictionsMap, timeSlots, courts, startDate) => {
-  const scheduledMatches = [];
-  const courtSchedule = new Map(); // Tracking de ocupación por cancha/horario
-  
-  console.log(`🎯 [PROGRAMACIÓN POR GRUPO] Iniciando programación inteligente por grupo y día:`);
-  console.log(`   📋 Partidos a programar: ${matches.length}`);
-  console.log(`   🏟️  Canchas disponibles: ${courts.length}`);
-  console.log(`   ⏰ Time slots: ${timeSlots.length}`);
-
-  // 1. AGRUPAR PARTIDOS POR GRUPO
-  const matchesByGroup = new Map();
-  matches.forEach(match => {
-    const groupKey = `${match.group_number}`;
-    if (!matchesByGroup.has(groupKey)) {
-      matchesByGroup.set(groupKey, []);
-    }
-    matchesByGroup.get(groupKey).push(match);
-  });
-
-  console.log(`📊 [GRUPOS] Encontrados ${matchesByGroup.size} grupos:`);
-  matchesByGroup.forEach((groupMatches, groupNumber) => {
-    console.log(`   Grupo ${groupNumber}: ${groupMatches.length} partidos`);
-  });
-
-  // 2. OBTENER RESTRICCIONES POR GRUPO
-  const groupRestrictions = new Map();
-  matchesByGroup.forEach((groupMatches, groupNumber) => {
-    const groupTeamIds = [...new Set([
-      ...groupMatches.map(m => m.home_team_id),
-      ...groupMatches.map(m => m.away_team_id)
-    ])];
-    
-    const groupRestrictionSlots = groupTeamIds.map(teamId => {
-      const restriction = restrictionsMap.get(teamId);
-      return restriction;
-    }).filter(Boolean);
-    
-    // El grupo debe jugar en un time slot que NO esté restringido por NINGÚN equipo del grupo
-    const availableSlots = timeSlots.filter(slot => 
-      !groupRestrictionSlots.includes(slot.id)
-    );
-    
-    groupRestrictions.set(groupNumber, {
-      teamIds: groupTeamIds,
-      restrictionSlots: groupRestrictionSlots,
-      availableSlots: availableSlots
-    });
-    
-    console.log(`   Grupo ${groupNumber}: ${availableSlots.length} time slots disponibles`);
-  });
-
-  // 3. PROGRAMAR CADA GRUPO EN SU TIME SLOT DISPONIBLE
-  for (const [groupNumber, groupMatches] of matchesByGroup) {
-    const groupInfo = groupRestrictions.get(groupNumber);
-    
-    console.log(`⚽ [GRUPO ${groupNumber}] Programando ${groupMatches.length} partidos`);
-    console.log(`   🚫 Time slots restringidos: [${groupInfo.restrictionSlots.join(', ')}]`);
-    console.log(`   ✅ Time slots disponibles: [${groupInfo.availableSlots.map(s => s.id).join(', ')}]`);
-
-    // Verificar que el grupo tenga time slots disponibles
-    if (groupInfo.availableSlots.length === 0) {
-      console.warn(`⚠️  [ADVERTENCIA] Grupo ${groupNumber} no tiene time slots disponibles - todos están restringidos`);
-      continue;
-    }
-
-    // Encontrar el mejor time slot para este grupo
-    let bestSlot = null;
-    let assignedCourt = null;
-    let conflictsAvoided = [];
-
-    // Priorizar time slots con más horas disponibles
-    const sortedSlots = groupInfo.availableSlots.sort((a, b) => {
-      const aDuration = calculateSlotDurationHours(a.start, a.end);
-      const bDuration = calculateSlotDurationHours(b.start, b.end);
-      return bDuration - aDuration; // Más horas primero
-    });
-
-    for (const slot of sortedSlots) {
-      // Verificar disponibilidad de canchas en este horario
-      const availableCourt = findAvailableCourt(slot, courtSchedule, courts);
-      
-      if (availableCourt) {
-        bestSlot = slot;
-        assignedCourt = availableCourt;
-        
-        // Registrar conflictos evitados
-        groupInfo.restrictionSlots.forEach(restrictedSlot => {
-          conflictsAvoided.push(`Evitado conflicto grupo ${groupNumber}: ${restrictedSlot}`);
-        });
-        
-        break;
-      }
-    }
-
-    if (!bestSlot || !assignedCourt) {
-      console.warn(`⚠️  [ADVERTENCIA] No se pudo programar grupo ${groupNumber} - sin canchas disponibles`);
-      continue;
-    }
-
-    console.log(`   ✅ Grupo ${groupNumber} programado en: ${bestSlot.label} - Cancha ${assignedCourt.name}`);
-
-    // 4. PROGRAMAR TODOS LOS PARTIDOS DEL GRUPO EN EL MISMO TIME SLOT
-    const groupStartTime = bestSlot.start;
-    const groupEndTime = bestSlot.end;
-    const matchDurationMinutes = 45;
-    
-    // Calcular horarios específicos para cada partido del grupo
-    const groupTimeSlots = generateGroupTimeSlots(groupStartTime, groupEndTime, groupMatches.length, matchDurationMinutes);
-    
-    groupMatches.forEach((match, index) => {
-      const matchTimeSlot = groupTimeSlots[index];
-      
-      // Marcar horario/cancha como ocupado
-      const scheduleKey = `${bestSlot.date}_${matchTimeSlot.time}_${assignedCourt.id}`;
-      courtSchedule.set(scheduleKey, {
-        match_id: match.id,
-        date: bestSlot.date,
-        time: matchTimeSlot.time,
-        court: assignedCourt
-      });
-
-      // Agregar a resultados
-      scheduledMatches.push({
-        id: match.id,
-        group_name: `Grupo ${match.group_number}`,
-        home_team_name: `Equipo ${match.home_team_id.slice(-6)}`,
-        away_team_name: `Equipo ${match.away_team_id.slice(-6)}`,
-        scheduled_date: bestSlot.date,
-        scheduled_time: matchTimeSlot.time,
-        assigned_court: assignedCourt.id,
-        assigned_court_name: assignedCourt.name,
-        slot_info: {
-          ...bestSlot,
-          group_time_slot: matchTimeSlot
-        },
-        conflicts_avoided: conflictsAvoided
-      });
-
-      console.log(`     📅 Partido ${index + 1}: ${bestSlot.date} ${matchTimeSlot.time} - Cancha ${assignedCourt.name}`);
-    });
-  }
-
-  console.log(`🎉 [RESULTADO] ${scheduledMatches.length}/${matches.length} partidos programados exitosamente`);
-  
-  return scheduledMatches;
-};
-
-/**
- * Genera horarios específicos para todos los partidos de un grupo en el mismo time slot
- */
-const generateGroupTimeSlots = (startTime, endTime, matchCount, matchDurationMinutes) => {
-  const slots = [];
-  const startHour = parseInt(startTime.split(':')[0]);
-  const startMinute = parseInt(startTime.split(':')[1]);
-  const endHour = parseInt(endTime.split(':')[0]);
-  const endMinute = parseInt(endTime.split(':')[1]);
-  
-  // Calcular tiempo total disponible en minutos
-  const totalStartMinutes = startHour * 60 + startMinute;
-  const totalEndMinutes = endHour * 60 + endMinute;
-  const totalAvailableMinutes = totalEndMinutes - totalStartMinutes;
-  
-  // Calcular tiempo necesario para todos los partidos
-  const totalMatchTime = matchCount * matchDurationMinutes;
-  
-  if (totalMatchTime > totalAvailableMinutes) {
-    console.warn(`⚠️  No hay suficiente tiempo para ${matchCount} partidos de ${matchDurationMinutes}min en ${startTime}-${endTime}`);
-    return [];
-  }
-  
-  // Distribuir partidos uniformemente en el tiempo disponible
-  const timeBetweenMatches = Math.floor((totalAvailableMinutes - totalMatchTime) / (matchCount - 1));
-  
-  for (let i = 0; i < matchCount; i++) {
-    const matchStartMinutes = totalStartMinutes + (i * (matchDurationMinutes + timeBetweenMatches));
-    const matchHour = Math.floor(matchStartMinutes / 60);
-    const matchMinute = matchStartMinutes % 60;
-    
-    slots.push({
-      time: `${matchHour.toString().padStart(2, '0')}:${matchMinute.toString().padStart(2, '0')}`,
-      duration: matchDurationMinutes,
-      match_number: i + 1
-    });
-  }
-  
-  return slots;
-};
-
-/**
- * Algoritmo inteligente de programación de partidos
- * Asigna horarios y canchas evitando conflictos
- * 
- * @param {Array} matches - Partidos a programar
- * @param {Map} restrictionsMap - Mapa de restricciones por equipo
- * @param {Array} timeSlots - Time slots disponibles
- * @param {Array} courts - Array de objetos cancha con {id, name}
- * @param {string} startDate - Fecha inicio del torneo
- * @returns {Array} Partidos con programación asignada
- */
-const scheduleMatchesIntelligently = async (matches, restrictionsMap, timeSlots, courts, startDate) => {
-  const scheduledMatches = [];
-  const courtSchedule = new Map(); // Tracking de ocupación por cancha/horario
-  
-  console.log(`🧠 [ALGORITMO] Iniciando programación inteligente:`);
-  console.log(`   📋 Partidos a programar: ${matches.length}`);
-  console.log(`   🏟️  Canchas disponibles: ${courts.length}`);
-  console.log(`   ⏰ Time slots: ${timeSlots.length}`);
-
-  // Generar horarios específicos para cada time slot
-  const specificTimeSlots = generateSpecificTimeSlots(timeSlots, startDate);
-  
-  console.log(`   🕐 Horarios específicos generados: ${specificTimeSlots.length}`);
-
-  // Ordenar partidos por prioridad (grupos más restringidos primero)
-  const prioritizedMatches = prioritizeMatchesByRestrictions(matches, restrictionsMap);
-
-  for (const match of prioritizedMatches) {
-    const homeRestriction = restrictionsMap.get(match.home_team_id);
-    const awayRestriction = restrictionsMap.get(match.away_team_id);
-    
-    console.log(`⚽ [PARTIDO] Programando ${match.id} (Grupo: ${match.group_number})`);
-    console.log(`   🏠 Equipo local restricción: ${homeRestriction || 'Ninguna'}`);
-    console.log(`   🏃 Equipo visitante restricción: ${awayRestriction || 'Ninguna'}`);
-
-    // Encontrar horarios compatibles para ambos equipos
-    const compatibleSlots = findCompatibleTimeSlots(
-      specificTimeSlots, 
-      homeRestriction, 
-      awayRestriction
-    );
-
-    console.log(`   ✅ Horarios compatibles encontrados: ${compatibleSlots.length}`);
-
-    // Buscar el mejor slot disponible considerando canchas
-    let bestSlot = null;
-    let assignedCourt = null;
-    let conflictsAvoided = [];
-
-    for (const slot of compatibleSlots) {
-      // Verificar disponibilidad de canchas en este horario
-      const availableCourt = findAvailableCourt(slot, courtSchedule, courts);
-      
-      if (availableCourt) {
-        bestSlot = slot;
-        assignedCourt = availableCourt;
-        
-        // Registrar conflictos evitados
-        if (homeRestriction && slot.slot_id === homeRestriction) {
-          conflictsAvoided.push(`Evitado conflicto equipo local: ${homeRestriction}`);
-        }
-        if (awayRestriction && slot.slot_id === awayRestriction) {
-          conflictsAvoided.push(`Evitado conflicto equipo visitante: ${awayRestriction}`);
-        }
-        
-        break;
-      }
-    }
-
-    if (!bestSlot || !assignedCourt) {
-      console.warn(`⚠️  [ADVERTENCIA] No se pudo programar partido ${match.id} - sin horarios/canchas disponibles`);
-      continue;
-    }
-
-    // Marcar horario/cancha como ocupado
-    const scheduleKey = `${bestSlot.date}_${bestSlot.time}_${assignedCourt.id}`;
-    courtSchedule.set(scheduleKey, {
-      match_id: match.id,
-      date: bestSlot.date,
-      time: bestSlot.time,
-      court: assignedCourt
-    });
-
-    // Agregar a resultados
-    scheduledMatches.push({
-      id: match.id,
-      group_name: `Grupo ${match.group_number}`,
-      home_team_name: `Equipo ${match.home_team_id.slice(-6)}`, // Últimos 6 chars del UUID
-      away_team_name: `Equipo ${match.away_team_id.slice(-6)}`,
-      scheduled_date: bestSlot.date,
-      scheduled_time: bestSlot.time,
-      assigned_court: assignedCourt.id, // UUID de la cancha
-      assigned_court_name: assignedCourt.name,
-      slot_info: bestSlot,
-      conflicts_avoided: conflictsAvoided
-    });
-
-    console.log(`   ✅ Programado: ${bestSlot.date} ${bestSlot.time} - Cancha ${assignedCourt.name}`);
-  }
-
-  console.log(`🎉 [RESULTADO] ${scheduledMatches.length}/${matches.length} partidos programados exitosamente`);
-  
-  return scheduledMatches;
-};
-
-/**
- * Calcula la duración en horas de un time slot
- */
-const calculateSlotDurationHours = (startTime, endTime) => {
-  const start = startTime.split(':').map(Number);
-  const end = endTime.split(':').map(Number);
-  
-  let startMinutes = start[0] * 60 + start[1];
-  let endMinutes = end[0] * 60 + end[1];
-  
-  // Manejar slots que cruzan medianoche
-  if (endMinutes < startMinutes) {
-    endMinutes += 24 * 60;
-  }
-  
-  return (endMinutes - startMinutes) / 60;
-};
-
-/**
- * Encuentra una cancha disponible para un time slot específico
- */
-const findAvailableCourt = (slot, courtSchedule, courts) => {
-  for (const court of courts) {
-    // Verificar si la cancha está ocupada en este horario
-    const scheduleKey = `${slot.date}_${slot.start}_${court.id}`;
-    if (!courtSchedule.has(scheduleKey)) {
-      return court;
-    }
-  }
-  return null;
-};
-
-/**
- * Genera horarios específicos (fecha + hora) para cada time slot
- */
-const generateSpecificTimeSlots = (timeSlots, startDate) => {
-  const specificSlots = [];
-  const matchDurationMinutes = 45;
-  
-  for (const slot of timeSlots) {
-    const slotDate = slot.date;
-    const startHour = parseInt(slot.start.split(':')[0]);
-    const endHour = parseInt(slot.end.split(':')[0]);
-    
-    // Manejar slots que cruzan medianoche
-    const actualEndHour = endHour === 0 ? 24 : endHour;
-    
-    // Generar horarios cada 45 minutos
-    for (let hour = startHour; hour < actualEndHour; hour++) {
-      for (let minutes = 0; minutes < 60; minutes += matchDurationMinutes) {
-        const timeStr = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-        
-        // Verificar que no se salga del time slot
-        const slotEndTime = actualEndHour * 60 + (slot.end.includes(':') ? parseInt(slot.end.split(':')[1]) : 0);
-        const currentTime = hour * 60 + minutes;
-        
-        if (currentTime + matchDurationMinutes <= slotEndTime) {
-          specificSlots.push({
-            slot_id: slot.id,
-            slot_label: slot.label,
-            date: slotDate,
-            time: timeStr,
-            tournament_day: slot.tournament_day,
-            priority: slot.tournament_day === 1 ? 1 : 2 // Priorizar día 1
-          });
-        }
-      }
-    }
-  }
-  
-  // Ordenar por prioridad (día 1 primero) y luego por hora
-  return specificSlots.sort((a, b) => {
-    if (a.priority !== b.priority) return a.priority - b.priority;
-    if (a.date !== b.date) return a.date.localeCompare(b.date);
-    return a.time.localeCompare(b.time);
-  });
-};
-
-/**
- * Prioriza partidos por restricciones (más restringidos primero)
- */
-const prioritizeMatchesByRestrictions = (matches, restrictionsMap) => {
-  return matches.sort((a, b) => {
-    const aRestrictions = [
-      restrictionsMap.get(a.home_team_id),
-      restrictionsMap.get(a.away_team_id)
-    ].filter(Boolean).length;
-    
-    const bRestrictions = [
-      restrictionsMap.get(b.home_team_id),
-      restrictionsMap.get(b.away_team_id)
-    ].filter(Boolean).length;
-    
-    return bRestrictions - aRestrictions; // Más restricciones primero
-  });
-};
-
-/**
- * Encuentra time slots compatibles para ambos equipos
- */
-const findCompatibleTimeSlots = (specificSlots, homeRestriction, awayRestriction) => {
-  return specificSlots.filter(slot => {
-    // Verificar que no conflicte con restricción de equipo local
-    if (homeRestriction && slot.slot_id === homeRestriction) {
-      return false;
-    }
-    
-    // Verificar que no conflicte con restricción de equipo visitante
-    if (awayRestriction && slot.slot_id === awayRestriction) {
-      return false;
-    }
-    
-    return true;
-  });
-};
-
 
 /**
  * 🏆 OBTENER TABLA DE POSICIONES POR GRUPO (Sistema Híbrido)
  * Lee desde tournament_standings para máxima performance
  */
+// ========================================
+// 📊 ESTADÍSTICAS Y STANDINGS
+// ========================================
+
 export async function getGroupStandings(req, res) {
   const { id: tournamentId } = req.params;
   
@@ -4334,6 +3299,10 @@ function generateClassificationSummaryFromStandings(standingsByGroup, tournament
  * 🏆 GENERAR CUADRO ELIMINATORIO AUTOMÁTICAMENTE
  * Crea la fase eliminatoria basada en equipos clasificados
  */
+// ========================================
+// 🎾 GENERACIÓN Y SCHEDULING DE PARTIDOS
+// ========================================
+
 export async function generateEliminationBracket(req, res) {
   const { id: tournamentId } = req.params;
   
@@ -5225,7 +4194,7 @@ function generateClassificationSummary(standingsByGroup, tournamentType) {
 }
 
 // ========================================
-// 📊 ESTADÍSTICAS DE TORNEOS
+// 📊 ESTADÍSTICAS DE PAGOS
 // ========================================
 
 export async function getTournamentPaymentStats(req, res) {
@@ -5360,6 +4329,7 @@ async function getCategoryPaymentStats(tournament, categoryId, inscriptionCost, 
     // Obtener equipos de la categoría específica
     const { data: teams, error: teamsError } = await supabase
       .from('tournament_teams')
+
       .select(`
         id,
         payment_status,
@@ -5611,6 +4581,10 @@ export async function getAvailablePlayersForTournament(req, res) {
   }
 }
 
+// ========================================
+// 📈 ESTADÍSTICAS GENERALES DE TORNEOS
+// ========================================
+
 export async function getTournamentOverviewStats(req, res) {
   try {
     // Obtener estadísticas generales
@@ -5686,4 +4660,123 @@ export async function getTournamentOverviewStats(req, res) {
     console.error('Error en getTournamentOverviewStats:', error);
     return res.status(500).json({ message: 'Error interno del servidor', error: error.message });
   }
-} 
+}
+
+function generateSimpleTimeSlots(startDate, endDate, courtsAvailable = 2) {
+  const slots = [];
+  const start = new Date(startDate + 'T00:00:00');
+
+  console.log(`📅 [GENERAR SLOTS] Generando slots para ${courtsAvailable} canchas`);
+
+  // DÍA 1: 17:00-23:00 (8 bloques de 45 min hasta 23:00)
+  for (let i = 0; i < 8; i++) {
+    const hour = 17 + Math.floor(i * 45 / 60);
+    const minute = (i * 45) % 60;
+    const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+
+    slots.push({
+      day: 1,
+      start: timeStr,
+      end: addMinutesToTime(timeStr, 45),
+      date: formatDateSafe(start),
+      tournament_day: 1,
+      id: `day1_${i}`,
+      label: `Día 1 - ${timeStr}`,
+      courts: courtsAvailable, // ✅ Capacidad por slot = número de canchas
+      max_capacity: courtsAvailable
+    });
+  }
+
+  // DÍA 2: 8:00-23:00 (20 bloques de 45 min hasta 23:00)
+  const day2Date = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  for (let i = 0; i < 20; i++) {
+    const hour = 8 + Math.floor(i * 45 / 60);
+    const minute = (i * 45) % 60;
+    const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+
+    slots.push({
+      day: 2,
+      start: timeStr,
+      end: addMinutesToTime(timeStr, 45),
+      date: formatDateSafe(day2Date),
+      tournament_day: 2,
+      id: `day2_${i}`,
+      label: `Día 2 - ${timeStr}`,
+      courts: courtsAvailable, // ✅ Capacidad por slot = número de canchas
+      max_capacity: courtsAvailable
+    });
+  }
+
+  console.log(`✅ [SLOTS GENERADOS] Total: ${slots.length} slots × ${courtsAvailable} canchas = ${slots.length * courtsAvailable} capacidades`);
+
+  return slots;
+}
+
+/**
+ * 🎾 AUTO-SCHEDULING: Asigna automáticamente hora + cancha a partidos con día asignado
+ * Endpoint: POST /tournaments/:id/schedule-matches
+ */
+export async function scheduleMatchesController(req, res) {
+  const tournament_id = req.params.id;
+
+  console.log(`\n🎾 [AUTO-SCHEDULING] Endpoint llamado para torneo: ${tournament_id}`);
+
+  try {
+    const result = await autoScheduleMatches(tournament_id);
+
+    return res.status(200).json({
+      message: 'Auto-scheduling completado exitosamente',
+      ...result
+    });
+  } catch (err) {
+    console.error('❌ [AUTO-SCHEDULING] Error:', err);
+    return res.status(500).json({
+      message: 'Error en auto-scheduling',
+      error: err.message
+    });
+  }
+}
+
+/**
+ * 📊 DASHBOARD DE SCHEDULING: Muestra estado completo del scheduling
+ * Endpoint: GET /tournaments/:id/scheduling-status
+ */
+export async function getSchedulingStatusController(req, res) {
+  const tournament_id = req.params.id;
+
+  console.log(`\n📊 [SCHEDULING STATUS] Endpoint llamado para torneo: ${tournament_id}`);
+
+  try {
+    const status = await getSchedulingStatus(tournament_id);
+
+    return res.status(200).json(status);
+  } catch (err) {
+    console.error('❌ [SCHEDULING STATUS] Error:', err);
+    return res.status(500).json({
+      message: 'Error obteniendo estado de scheduling',
+      error: err.message
+    });
+  }
+}
+
+/**
+ * 🕐 GET SLOT AVAILABILITY (Post-Scheduling)
+ * Obtiene la disponibilidad de slots después de programar partidos
+ */
+export async function getSlotAvailabilityController(req, res) {
+  const tournament_id = req.params.id;
+
+  console.log(`\n🕐 [SLOT AVAILABILITY] Endpoint llamado para torneo: ${tournament_id}`);
+
+  try {
+    const availability = await getSlotAvailability(tournament_id);
+
+    return res.status(200).json(availability);
+  } catch (err) {
+    console.error('❌ [SLOT AVAILABILITY] Error:', err);
+    return res.status(500).json({
+      message: 'Error obteniendo disponibilidad de slots',
+      error: err.message
+    });
+  }
+}
