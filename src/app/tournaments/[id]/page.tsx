@@ -221,7 +221,7 @@ export default function TournamentPage({ params }: PageProps) {
       title: t('detail.navigation.standings'),
       description: t('detail.navigation.standingsDescription'),
       icon: ChartBarIcon,
-      href: `/tournaments/${id}/admin-groups`,
+      href: `/tournaments/${id}/standings`,
       color: 'bg-orange-500'
     },
     {
