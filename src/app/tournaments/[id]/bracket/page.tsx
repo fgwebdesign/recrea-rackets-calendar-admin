@@ -150,6 +150,7 @@ export default function TournamentBracketPage() {
                 <EliminationBracketViewer 
                   tournamentId={tournamentId}
                   bracketData={bracketData}
+                  tournament={tournament}
                 />
               </div>
             </div>

@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Trophy, Calendar, Clock, ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
 import { TournamentMatchModal } from './TournamentMatchModal';
+import { PdfBracketGenerator } from './PdfBracketGenerator';
 
 interface EliminationBracketViewerProps {
   tournamentId: string;
   bracketData?: any;
+  tournament?: any; // Agregar tournament para el PDF
 }
 
 // Usar el tipo Match de la librería con el formato correcto
@@ -50,7 +52,8 @@ const customTheme = createTheme({
 
 const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({ 
   tournamentId, 
-  bracketData 
+  bracketData,
+  tournament 
 }) => {
   // Estados del componente
   const [matches, setMatches] = useState<any[]>([]);
@@ -564,46 +567,8 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
     setZoomLevel(0.9);
   };
 
-  // Función para generar PDF del bracket
-  const handleDownloadPDF = async () => {
-    try {
-      // Importar html2pdf dinámicamente
-      const html2pdf = (await import('html2pdf.js')).default;
-      
-      // Seleccionar el elemento del bracket
-      const element = document.querySelector('.bracket-container') as HTMLElement;
-      
-      if (!element) {
-        console.error('No se encontró el elemento del bracket');
-        return;
-      }
-
-      // Configuración del PDF
-      const options = {
-        margin: 0.5,
-        filename: `bracket-torneo-${tournamentId}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff'
-        },
-        jsPDF: { 
-          unit: 'in', 
-          format: 'a4', 
-          orientation: 'landscape' 
-        }
-      };
-
-      // Generar y descargar el PDF
-      await html2pdf().set(options).from(element).save();
-      
-      console.log('✅ PDF generado exitosamente');
-    } catch (error) {
-      console.error('❌ Error generando PDF:', error);
-    }
-  };
+  // Ref para el bracket container (para captura de PDF)
+  const bracketRef = useRef<HTMLDivElement>(null);
 
   // Manejar clic en partido para abrir modal de resultados
   const handleMatchClick = (match: any) => {
@@ -915,13 +880,11 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
 
       {/* Botones de acción */}
       <div className="mb-4 flex justify-center gap-4">
-        <Button 
-          onClick={handleDownloadPDF}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg shadow-md transition-colors duration-200 flex items-center gap-2"
-        >
-          <Download className="h-4 w-4" />
-          Descargar PDF del Bracket
-        </Button>
+        <PdfBracketGenerator 
+          bracketRef={bracketRef}
+          tournament={tournament}
+          className="px-6 py-2"
+        />
         
       </div>
       
@@ -930,7 +893,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
           
           {/* Columna Izquierda: Bracket (70%) */}
-          <div className="lg:col-span-7 bracket-container bg-white rounded-xl shadow-lg w-full min-h-[800px]">
+          <div id="elimination-bracket-content" ref={bracketRef} className="lg:col-span-7 bracket-container bg-white rounded-xl shadow-lg w-full min-h-[800px]">
             <div 
               className="bracket-wrapper w-full h-full"
               style={{
