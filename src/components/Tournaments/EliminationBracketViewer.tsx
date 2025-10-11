@@ -923,21 +923,6 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
           Descargar PDF del Bracket
         </Button>
         
-        <Button 
-          onClick={fetchEliminationMatches}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md transition-colors duration-200 flex items-center gap-2"
-        >
-          <RotateCcw className="h-4 w-4" />
-          Refrescar Bracket
-        </Button>
-        
-        <Button 
-          onClick={forceRefresh}
-          className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-md transition-colors duration-200 flex items-center gap-2"
-        >
-          <RotateCcw className="h-4 w-4" />
-          Forzar Actualización
-        </Button>
       </div>
       
       {/* Layout Horizontal: Bracket (70%) + Gestión de Resultados (30%) */}

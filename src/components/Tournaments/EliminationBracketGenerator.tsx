@@ -147,21 +147,11 @@ const EliminationBracketGenerator: React.FC<EliminationBracketGeneratorProps> = 
       )}
 
       {hasEliminationMatches ? (
-        <div className="space-y-4">
-          <Alert className="border-green-200 bg-green-50">
-            <AlertDescription className="text-green-800">
-              <strong>✅ Fase Eliminatoria Generada:</strong> El bracket eliminatorio ya ha sido creado para este torneo.
-            </AlertDescription>
-          </Alert>
-          <Button 
-            disabled
-            size="lg"
-            className="bg-gray-400 text-white px-8 py-3 text-lg font-semibold cursor-not-allowed"
-          >
-            <Trophy className="mr-2 h-5 w-5" />
-            🎾 Bracket Ya Generado
-          </Button>
-        </div>
+        <Alert className="border-green-200 bg-green-50">
+          <AlertDescription className="text-green-800">
+            <strong>✅ Fase Eliminatoria Generada:</strong> El bracket eliminatorio ya ha sido creado para este torneo.
+          </AlertDescription>
+        </Alert>
       ) : !canGenerateElimination() ? (
         <div className="space-y-4">
           <Alert className="border-yellow-200 bg-yellow-50">

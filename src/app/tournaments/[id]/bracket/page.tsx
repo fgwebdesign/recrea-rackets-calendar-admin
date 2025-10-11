@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTournament } from '@/hooks/useTournaments';
+import { useCategories } from '@/hooks/useCategories';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -15,6 +16,7 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
+import { getCategoryName } from '@/utils/category';
 import EliminationBracketViewer from '@/components/Tournaments/EliminationBracketViewer';
 
 export default function TournamentBracketPage() {
@@ -23,6 +25,7 @@ export default function TournamentBracketPage() {
   const tournamentId = params.id as string;
   
   const { tournament, matches, loading, error, refetch } = useTournament(tournamentId);
+  const { categories } = useCategories();
   const [bracketData, setBracketData] = useState<any>(null);
 
   // Detectar si existen partidos eliminatorios
@@ -62,29 +65,34 @@ export default function TournamentBracketPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
+      {/* Header Profesional */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <Button
                 variant="ghost"
                 onClick={() => router.push(`/tournaments/${tournamentId}/matches`)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Volver a Partidos
               </Button>
               
-              <div className="flex items-center gap-3">
-                <Trophy className="h-8 w-8 text-yellow-600" />
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    Fase eliminatoria
-                  </h1>
-                  <p className="text-gray-600 dark:text-gray-400 mt-1">
-                    {tournament?.name} - Visualización Completa
-                  </p>
+              <div className="h-8 w-px bg-gray-300 dark:bg-gray-600"></div>
+              
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {tournament?.name}
+                </h1>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Cuadro Eliminatorio
+                  </span>
+                  <div className="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
+                  <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                    {getCategoryName(tournament?.category_id || '', categories)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -135,54 +143,9 @@ export default function TournamentBracketPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-6">
-            {/* Información del Torneo */}
-            <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200 dark:border-blue-800">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-500 rounded-lg">
-                      <Trophy className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                        {tournament?.name}
-                      </h2>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>{tournament?.start_date && new Date(tournament.start_date).toLocaleDateString('es-ES')}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          <span>{tournament?.start_date && new Date(tournament.start_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="text-right">
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Estado del Bracket</div>
-                    <div className="text-lg font-semibold text-green-600 dark:text-green-400">
-                      ✅ Generado
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
+          <div className="space-y-4">
             {/* Bracket en Pantalla Completa */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden w-full">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-yellow-600" />
-                  Cuadro Eliminatorio Completo
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  Visualización interactiva del bracket con todas las rondas
-                </p>
-              </div>
-              
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden w-full">
               <div className="p-6 w-full overflow-hidden">
                 <EliminationBracketViewer 
                   tournamentId={tournamentId}
