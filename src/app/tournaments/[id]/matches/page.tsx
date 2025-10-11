@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Calendar, 
   Clock, 
@@ -68,6 +69,9 @@ export default function TournamentMatchesPage() {
   // Estado para la fase eliminatoria
   const [bracketData, setBracketData] = useState<any>(null);
   const [showBracket, setShowBracket] = useState(false);
+  
+  // Estado para el tab activo
+  const [activeTab, setActiveTab] = useState('groups');
 
   // Calcular estadísticas
   const totalMatches = Array.isArray(matches) ? matches.length : 0;
@@ -420,17 +424,7 @@ export default function TournamentMatchesPage() {
               </div>
             </div>
             
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={refetch}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Actualizar
-              </Button>
-              
-              {totalMatches === 0 && (
+            {totalMatches === 0 && (
                 <Button
                   onClick={handleGenerateMatches}
                   disabled={isGeneratingMatches}
@@ -464,8 +458,71 @@ export default function TournamentMatchesPage() {
           </div>
         </div>
 
-        {/* Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        {/* Sistema de Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <TabsList className="grid w-full grid-cols-2 lg:w-auto">
+              <TabsTrigger value="groups" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Partidos de Grupos
+              </TabsTrigger>
+              <TabsTrigger value="bracket" className="flex items-center gap-2">
+                <Trophy className="h-4 w-4" />
+                Bracket Eliminatorio
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={refetch}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Actualizar
+              </Button>
+              
+              {activeTab === 'groups' && (
+                <>
+                  {totalMatches === 0 && (
+                    <Button
+                      onClick={handleGenerateMatches}
+                      disabled={isGeneratingMatches}
+                      className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                    >
+                      {isGeneratingMatches ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4" />
+                      )}
+                      {isGeneratingMatches ? 'Generando...' : 'Generar Partidos'}
+                    </Button>
+                  )}
+
+                  {totalMatches > 0 && unscheduledMatches > 0 && (
+                    <Button
+                      onClick={handleScheduleMatches}
+                      disabled={isSchedulingMatches}
+                      className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                      title={`Programar automáticamente ${unscheduledMatches} partidos que tienen día asignado pero no tienen hora/cancha`}
+                    >
+                      {isSchedulingMatches ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CalendarDays className="h-4 w-4" />
+                      )}
+                      {isSchedulingMatches ? 'Programando...' : `Programar Partidos (${unscheduledMatches})`}
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Tab Content: Partidos de Grupos */}
+          <TabsContent value="groups" className="space-y-6">
+            {/* Estadísticas - Solo para tab de grupos */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
@@ -538,10 +595,10 @@ export default function TournamentMatchesPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
+            </div>
 
-        {/* Contenido principal */}
-        {totalMatches === 0 ? (
+            {/* Contenido principal de grupos */}
+            {totalMatches === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
               <div className="flex flex-col items-center gap-6">
@@ -583,20 +640,22 @@ export default function TournamentMatchesPage() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {/* Agrupar partidos por grupo */}
+            {/* Agrupar partidos por grupo - Solo partidos de grupos */}
             {Array.isArray(matches) && matches.length > 0 && (
               <div className="space-y-6">
                 {Object.entries(
-                  matches.reduce((groups, match) => {
-                    const groupKey = match.group_number || 'elimination';
-                    if (!groups[groupKey]) groups[groupKey] = [];
-                    groups[groupKey].push(match);
-                    return groups;
-                  }, {} as Record<string, TournamentMatch[]>)
+                  matches
+                    .filter(match => match.round === 'group' || match.group_number) // Solo partidos de grupos
+                    .reduce((groups, match) => {
+                      const groupKey = match.group_number || 'sin_grupo';
+                      if (!groups[groupKey]) groups[groupKey] = [];
+                      groups[groupKey].push(match);
+                      return groups;
+                    }, {} as Record<string, TournamentMatch[]>)
                 ).map(([groupKey, groupMatches]) => (
                   <div key={groupKey}>
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                      {groupKey === 'elimination' ? 'Fase de Eliminación' : `Grupo ${groupKey}`}
+                      {groupKey === 'sin_grupo' ? 'Partidos Sin Grupo' : `Grupo ${groupKey}`}
                     </h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -935,81 +994,282 @@ export default function TournamentMatchesPage() {
                 ))}
               </div>
             )}
-          </div>
-        )}
-
-        {/* Separador Visual */}
-        <div className="my-12">
-          <div className="flex items-center">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-            <div className="px-6 py-2 bg-gradient-to-r from-yellow-100 to-yellow-200 rounded-full border border-yellow-300">
-              <Trophy className="h-6 w-6 text-yellow-600 mx-auto" />
             </div>
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-          </div>
-        </div>
+            )}
+          </TabsContent>
 
-        {/* Sección de Fase Eliminatoria */}
-        <div className="mt-8">
-          <div className="flex items-center gap-3 mb-6">
-            <Trophy className="h-8 w-8 text-yellow-600" />
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">🏆 Fase Eliminatoria</h2>
-          </div>
-          
-          <EliminationBracketGenerator 
-            tournamentId={tournamentId}
-            onBracketGenerated={handleBracketGenerated}
-            hasEliminationMatches={hasEliminationMatches}
-            matches={matches}
-          />
-          
-          {hasEliminationMatches && (
-            <div className="mt-6">
-              <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-800">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-yellow-500 rounded-lg">
-                        <Trophy className="h-6 w-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          🏆 Bracket Eliminatorio Disponible
-                        </h3>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">
-                          Visualiza el cuadro completo con todas las rondas
-                        </p>
-                      </div>
-                    </div>
+          {/* Tab Content: Bracket Eliminatorio */}
+          <TabsContent value="bracket" className="space-y-6">
+            <EliminationBracketGenerator 
+              tournamentId={tournamentId}
+              onBracketGenerated={handleBracketGenerated}
+              hasEliminationMatches={hasEliminationMatches}
+              matches={matches}
+            />
+            
+            {/* Mostrar partidos de eliminación organizados por rondas */}
+            {Array.isArray(matches) && matches.filter(match => match.round !== 'group' && !match.group_number).length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+                  📋 Partidos de Eliminación por Ronda
+                </h3>
+                
+                {/* Organizar partidos por rondas */}
+                {(() => {
+                  const eliminationMatches = matches.filter(match => match.round !== 'group' && !match.group_number);
+                  
+                  // Agrupar por rondas
+                  const matchesByRound = eliminationMatches.reduce((acc, match) => {
+                    const round = match.round || 'unknown';
+                    if (!acc[round]) acc[round] = [];
+                    acc[round].push(match);
+                    return acc;
+                  }, {} as Record<string, any[]>);
+                  
+                  // Ordenar rondas
+                  const roundOrder = ['quarter_finals', 'semi_finals', 'finals'];
+                  const sortedRounds = Object.entries(matchesByRound).sort(([a], [b]) => {
+                    const aIndex = roundOrder.indexOf(a) !== -1 ? roundOrder.indexOf(a) : 999;
+                    const bIndex = roundOrder.indexOf(b) !== -1 ? roundOrder.indexOf(b) : 999;
+                    return aIndex - bIndex;
+                  });
+                  
+                  return sortedRounds.map(([round, roundMatches]) => {
+                    const roundNames: Record<string, string> = {
+                      'quarter_finals': 'Cuartos de Final',
+                      'semi_finals': 'Semi-Final',
+                      'finals': 'Final',
+                      'unknown': 'Ronda Desconocida'
+                    };
                     
-                    <Button
-                      onClick={() => router.push(`/tournaments/${tournamentId}/bracket`)}
-                      className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white px-6 py-3"
-                    >
-                      <Trophy className="h-5 w-5 mr-2" />
-                      Ver Bracket Completo
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-      </div>
+                    return (
+                      <div key={round} className="mb-8">
+                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                          <Trophy className="h-5 w-5 text-yellow-600" />
+                          {roundNames[round]} ({roundMatches.length} partidos)
+                        </h4>
+                        
+                        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead className="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Partido
+                                  </th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Equipos
+                                  </th>
+                                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Resultado
+                                  </th>
+                                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Fecha/Hora
+                                  </th>
+                                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Cancha
+                                  </th>
+                                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Estado
+                                  </th>
+                                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Acción
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                                {roundMatches.map((match) => {
+                                  const homeTeam = getTeamById(match.home_team_id);
+                                  const awayTeam = getTeamById(match.away_team_id);
+                                  const winner = getMatchWinner(match);
+                                  
+                                  return (
+                                    <tr 
+                                      key={match.id} 
+                                      className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                                      onClick={() => handleOpenResultModal(match)}
+                                      title="Haz clic para ingresar/ver resultado del partido"
+                                    >
+                                      <td className="px-4 py-4 whitespace-nowrap">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-8 h-8 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center">
+                                            <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-300">
+                                              {match.match_number || 'N/A'}
+                                            </span>
+                                          </div>
+                                          <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                                        </div>
+                                      </td>
+                                      
+                                      <td className="px-4 py-4">
+                                        <div className="space-y-2">
+                                          <div className={`flex items-center gap-2 ${winner === 'home' ? 'font-semibold text-green-700 dark:text-green-400' : ''}`}>
+                                            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                              {formatPlayerNames(homeTeam).charAt(0)}
+                                            </div>
+                                            <span className="text-sm truncate">
+                                              {formatPlayerNames(homeTeam)}
+                                            </span>
+                                            {winner === 'home' && <Trophy className="h-4 w-4 text-green-600" />}
+                                          </div>
+                                          
+                                          <div className="text-gray-400 text-center">vs</div>
+                                          
+                                          <div className={`flex items-center gap-2 ${winner === 'away' ? 'font-semibold text-green-700 dark:text-green-400' : ''}`}>
+                                            <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                              {formatPlayerNames(awayTeam).charAt(0)}
+                                            </div>
+                                            <span className="text-sm truncate">
+                                              {formatPlayerNames(awayTeam)}
+                                            </span>
+                                            {winner === 'away' && <Trophy className="h-4 w-4 text-green-600" />}
+                                          </div>
+                                        </div>
+                                      </td>
+                                      
+                                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                                        {match.status === 'completed' ? (
+                                          <div className="space-y-1">
+                                            <div className="text-sm font-semibold">
+                                              {match.team1_sets1_won || 0}-{match.team2_sets1_won || 0}
+                                            </div>
+                                            <div className="text-sm font-semibold">
+                                              {match.team1_sets2_won || 0}-{match.team2_sets2_won || 0}
+                                            </div>
+                                            {(match.team1_tie3_won ?? 0) > 0 && (
+                                              <div className="text-xs text-yellow-600 dark:text-yellow-400">
+                                                ST: {match.team1_tie3_won}-{match.team2_tie3_won}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <span className="text-gray-400 text-sm">-</span>
+                                        )}
+                                      </td>
+                                      
+                                      <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-600 dark:text-gray-400">
+                                        {match.match_day && match.start_time ? (
+                                          <div>
+                                            <div>{match.match_day}</div>
+                                            <div>{match.start_time.substring(0, 5)}</div>
+                                          </div>
+                                        ) : (
+                                          <span className="text-gray-400">-</span>
+                                        )}
+                                      </td>
+                                      
+                                      <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-600 dark:text-gray-400">
+                                        {match.court_name || '-'}
+                                      </td>
+                                      
+                                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                                        {getMatchStatusBadge(match.status)}
+                                      </td>
+                                      
+                                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                                        {match.status === 'pending' && (
+                                          <Button
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleOpenResultModal(match);
+                                            }}
+                                            className="bg-green-600 hover:bg-green-700 text-white"
+                                          >
+                                            <Target className="h-3 w-3 mr-1" />
+                                            Resultado
+                                          </Button>
+                                        )}
+                                        
+                                        {match.status === 'completed' && (
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleOpenResultModal(match);
+                                            }}
+                                          >
+                                            <RefreshCw className="h-3 w-3 mr-1" />
+                                            Ver
+                                          </Button>
+                                        )}
 
-      {/* Modal para setear resultados */}
-      {selectedMatch && (
-        <TournamentMatchModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          match={selectedMatch}
-          teams={teams}
-          onSubmit={handleSaveResult}
-          isLoading={savingResult}
-          error={modalError}
-          success={modalSuccess}
-        />
-      )}
-    </div>
+                                        {match.status === 'scheduled' && (
+                                          <Button
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleOpenResultModal(match);
+                                            }}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                                          >
+                                            <Target className="h-3 w-3 mr-1" />
+                                            Resultado
+                                          </Button>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            )}
+            
+            {hasEliminationMatches && (
+              <div className="mt-6">
+                <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-800">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-yellow-500 rounded-lg">
+                          <Trophy className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            🏆 Bracket Eliminatorio Disponible
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-400 text-sm">
+                            Visualiza el cuadro completo con todas las rondas
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <Button
+                        onClick={() => router.push(`/tournaments/${tournamentId}/bracket`)}
+                        className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white px-6 py-3"
+                      >
+                        <Trophy className="h-5 w-5 mr-2" />
+                        Ver Bracket Completo
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Modal para setear resultados */}
+        {selectedMatch && (
+          <TournamentMatchModal
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            match={selectedMatch!}
+            teams={teams}
+            onSubmit={handleSaveResult}
+            isLoading={savingResult}
+            error={modalError}
+            success={modalSuccess}
+          />
+        )}
+      </div>
   );
 }
