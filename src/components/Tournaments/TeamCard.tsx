@@ -11,6 +11,9 @@ interface Team {
   payment_status: 'pending' | 'paid' | 'failed';
   unavailable_times?: string;
   shirt_sizes?: string[];
+  slot_id?: string; // Campo para el slot seleccionado
+  selected_slot?: string; // Otro posible campo
+  time_slot?: string; // Otro posible campo
   teams?: {
     player1?: {
       first_name: string;
@@ -67,37 +70,72 @@ export function TeamCard({ team, index }: TeamCardProps) {
   };
 
   const formatUnavailableTimes = (unavailableTimes?: string) => {
-    if (!unavailableTimes) return t('teamsPage.noRestrictions');
+    console.log('🔍 formatUnavailableTimes called with:', unavailableTimes, typeof unavailableTimes);
+    console.log('🔍 Full team object:', team);
     
-    // Mapear los valores del backend a texto legible
-    const timeSlotMap: Record<string, string> = {
-      // Día 1
-      'day1_morning': t('teamsPage.timeSlots.day1Morning'),
-      'day1_afternoon': t('teamsPage.timeSlots.day1Afternoon'), 
-      'day1_evening': t('teamsPage.timeSlots.day1Evening'),
-      'day1_night': t('teamsPage.timeSlots.day1Night'),
-      'dayl_night': t('teamsPage.timeSlots.day1Night'),
+    // Buscar el slot en diferentes campos posibles
+    const slotValue = unavailableTimes || team.slot_id || team.selected_slot || team.time_slot;
+    console.log('🔍 Slot value found:', slotValue);
+    
+    if (!slotValue) return t('teamsPage.noRestrictions');
+    
+    // Función para formatear slots del tipo "slot_day1_1700"
+    const formatSlotTime = (slotId: any) => {
+      console.log('🔍 formatSlotTime called with:', slotId, typeof slotId);
       
-      // Día 2
-      'day2_morning': t('teamsPage.timeSlots.day2Morning'),
-      'day2_afternoon': t('teamsPage.timeSlots.day2Afternoon'),
-      'day2_evening': t('teamsPage.timeSlots.day2Evening'),
-      'day2_night': t('teamsPage.timeSlots.day2Night'),
+      // Validar que slotId sea una string antes de usar .match()
+      if (typeof slotId !== 'string') {
+        console.warn('slotId is not a string:', slotId, typeof slotId);
+        return slotId?.toString() || t('teamsPage.noRestrictions');
+      }
       
-      // Día 3
-      'day3_morning': t('teamsPage.timeSlots.day3Morning'),
-      'day3_afternoon': t('teamsPage.timeSlots.day3Afternoon'),
-      'day3_evening': t('teamsPage.timeSlots.day3Evening'),
-      'day3_night': t('teamsPage.timeSlots.day3Night'),
+      // Extraer día y hora del formato "slot_day1_1700"
+      const slotMatch = slotId.match(/slot_day(\d+)_(\d+)/);
+      if (slotMatch) {
+        const day = slotMatch[1];
+        const time = slotMatch[2];
+        
+        // Formatear la hora (1700 -> 17:00)
+        const formattedTime = `${time.slice(0, 2)}:${time.slice(2, 4)}`;
+        
+        // Mapear el día
+        const dayText = day === '1' ? 'Día 1' : day === '2' ? 'Día 2' : `Día ${day}`;
+        
+        return `${dayText} - ${formattedTime}`;
+      }
       
-      // Posibles variaciones adicionales
-      'morning': t('teamsPage.timeSlots.morning'),
-      'afternoon': t('teamsPage.timeSlots.afternoon'),
-      'evening': t('teamsPage.timeSlots.evening'),
-      'night': t('teamsPage.timeSlots.night')
+      // Si no coincide con el formato esperado, intentar con el mapeo anterior
+      const timeSlotMap: Record<string, string> = {
+        // Día 1
+        'day1_morning': t('teamsPage.timeSlots.day1Morning'),
+        'day1_afternoon': t('teamsPage.timeSlots.day1Afternoon'), 
+        'day1_evening': t('teamsPage.timeSlots.day1Evening'),
+        'day1_night': t('teamsPage.timeSlots.day1Night'),
+        'dayl_night': t('teamsPage.timeSlots.day1Night'),
+        
+        // Día 2
+        'day2_morning': t('teamsPage.timeSlots.day2Morning'),
+        'day2_afternoon': t('teamsPage.timeSlots.day2Afternoon'),
+        'day2_evening': t('teamsPage.timeSlots.day2Evening'),
+        'day2_night': t('teamsPage.timeSlots.day2Night'),
+        
+        // Día 3
+        'day3_morning': t('teamsPage.timeSlots.day3Morning'),
+        'day3_afternoon': t('teamsPage.timeSlots.day3Afternoon'),
+        'day3_evening': t('teamsPage.timeSlots.day3Evening'),
+        'day3_night': t('teamsPage.timeSlots.day3Night'),
+        
+        // Posibles variaciones adicionales
+        'morning': t('teamsPage.timeSlots.morning'),
+        'afternoon': t('teamsPage.timeSlots.afternoon'),
+        'evening': t('teamsPage.timeSlots.evening'),
+        'night': t('teamsPage.timeSlots.night')
+      };
+
+      return timeSlotMap[slotId] || slotId;
     };
 
-    return timeSlotMap[unavailableTimes] || unavailableTimes;
+    return formatSlotTime(slotValue);
   };
 
   const formatPlayerNames = (team: Team) => {

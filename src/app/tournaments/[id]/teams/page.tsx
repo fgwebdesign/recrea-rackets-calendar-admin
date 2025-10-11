@@ -114,6 +114,19 @@ export default function TournamentTeamsPage() {
   const pendingTeams = Array.isArray(teams) ? teams.filter(team => team.payment_status === 'pending').length : 0;
   const totalRevenue = Array.isArray(teams) ? teams.reduce((sum, team) => sum + (team.payment_amount || 0), 0) : 0;
 
+  // Calcular cupo según tipo de torneo
+  const getTournamentCapacity = (tournamentType: string) => {
+    switch (tournamentType) {
+      case 'NINE_PLAYERS': return 9;
+      case 'TWELVE_PLAYERS': return 12;
+      case 'SIXTEEN_PLAYERS': return 16;
+      default: return 9;
+    }
+  };
+
+  const tournamentCapacity = tournament?.tournament_type ? getTournamentCapacity(tournament.tournament_type) : 9;
+  const isTournamentFull = totalTeams >= tournamentCapacity;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
@@ -146,10 +159,16 @@ export default function TournamentTeamsPage() {
             {isAdmin && (
               <Button 
                 onClick={() => router.push(`/tournaments/${tournamentId}/admin-register-team`)}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                disabled={isTournamentFull}
+                className={`${
+                  isTournamentFull 
+                    ? 'bg-gray-400 cursor-not-allowed opacity-60' 
+                    : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl'
+                } text-white transition-all duration-200`}
+                title={isTournamentFull ? `Cupo completo (${totalTeams}/${tournamentCapacity})` : 'Registrar nuevo equipo'}
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
-                {t('teamsPage.registerTeam')}
+                {isTournamentFull ? 'Cupo Completo' : t('teamsPage.registerTeam')}
               </Button>
             )}
           </div>
