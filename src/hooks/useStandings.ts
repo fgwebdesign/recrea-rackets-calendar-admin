@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-interface TeamStanding {
+export interface TeamStanding {
   team_id: string;
   team_info: {
     player1: string; 
@@ -14,6 +14,29 @@ interface TeamStanding {
   sets_lost: number;
   games_won: number;
   games_lost: number;
+  points: number;
+}
+
+// Tipo para compatibilidad con CategoryStandings
+export interface Standing {
+  id: string;
+  team: {
+    player1: {
+      first_name: string;
+      last_name: string;
+    };
+    player2: {
+      first_name: string;
+      last_name: string;
+    };
+  };
+  games_played: number;
+  wins: number;
+  losses: number;
+  games_won: number;
+  games_lost: number;
+  sets_won: number;
+  sets_lost: number;
   points: number;
 }
 

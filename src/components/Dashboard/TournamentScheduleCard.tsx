@@ -1,23 +1,37 @@
 import { CalendarDays, Clock, ChevronLeft, ChevronRight, ListFilter, MapPin } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
 import { EmptySchedule } from "./EmptySchedule";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCategories } from "@/hooks/useCategories";
 import { useTournaments } from "@/hooks/useTournaments";
+import { matchService, tournamentService } from '@/services/tournamentService';
 import { useTranslations } from '@/contexts/TranslationContext';
 
 interface TournamentMatch {
   id: string;
   tournament_id: string;
-  team1_name: string;
-  team2_name: string;
-  match_date: string;
+  tournament_name?: string;
+  team1_name?: string;
+  team2_name?: string;
+  team1?: any;
+  team2?: any;
+  home_team_id?: string;
+  away_team_id?: string;
+  home_team_data?: any;
+  away_team_data?: any;
+  match_day?: string;
+  start_time?: string;
+  match_date?: string;
   court_name?: string;
-  status: "SCHEDULED" | "COMPLETED" | "WALKOVER";
+  court_id?: string;
+  status: "pending" | "scheduled" | "completed" | "in_progress";
   group_name?: string;
+  group_number?: number;
   category_name?: string;
+  category_id?: string;
+  round?: string;
 }
 
 interface TournamentScheduleCardProps {
@@ -34,7 +48,20 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const { categories, isLoading: isLoadingCategories } = useCategories();
+  const { categories: allCategories, isLoading: isLoadingCategories } = useCategories();
+  
+  // Solo mostrar categorías que tienen partidos programados
+  const availableCategories = useMemo(() => {
+    if (!matches || matches.length === 0) return [];
+    
+    const categoriesWithMatches = [...new Set(matches.map(match => match.category_name).filter(Boolean))];
+    return categoriesWithMatches.map(categoryName => ({
+      id: categoryName,
+      name: categoryName
+    }));
+  }, [matches]);
+  
+  const categories = availableCategories;
   const { tournaments } = useTournaments();
   const sliderRef = useRef<HTMLDivElement>(null);
 
@@ -44,66 +71,100 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
         setIsLoading(true);
         setError(null);
         
-        // Por ahora, vamos a simular que no hay partidos hasta que la API esté lista
-        // Esto evita el error y muestra un mensaje amigable
-        setMatches([]);
-        
-        // Notificar al componente padre que no hay partidos
-        if (onMatchesLoaded) {
-          onMatchesLoaded(false);
-        }
-        
-        // TODO: Implementar cuando la API esté lista
-        /*
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        let url = `${baseUrl}/tournaments/matches`;
-        
-        if (tournamentId) {
-          url = `${baseUrl}/tournaments/${tournamentId}/matches`;
-        }
-
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-          throw new Error('No authentication token found');
-        }
-
-        const response = await fetch(url, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+        // Obtener todos los torneos activos para mostrar sus partidos
+        if (!tournaments || tournaments.length === 0) {
+          setMatches([]);
+          if (onMatchesLoaded) {
+            onMatchesLoaded(false);
           }
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          throw new Error(
-            errorData?.message || 
-            `Error al cargar los partidos: ${response.status} ${response.statusText}`
-          );
-        }
-        
-        const data = await response.json();
-        
-        if (!data) {
-          throw new Error('No se recibieron datos del servidor');
+          setIsLoading(false);
+          return;
         }
 
-        // El backend devuelve un array de partidos
-        const allMatches = Array.isArray(data) ? data : data.matches || [];
+        // Obtener partidos de todos los torneos activos usando el servicio existente
+        const allMatches: TournamentMatch[] = [];
         
+        for (const tournament of tournaments) {
+          try {
+            // Usar el servicio existente que ya funciona
+            const matchesData = await matchService.getTournamentMatches(tournament.id);
+            const tournamentMatches = Array.isArray(matchesData) ? matchesData : (matchesData as any)?.matches || [];
+            
+            console.log(`🔍 Matches for tournament ${tournament.name}:`, tournamentMatches);
+            console.log(`🔍 Sample match structure:`, tournamentMatches[0]);
+            
+            // Obtener información de equipos para este torneo
+            const teamsData = await tournamentService.getTournamentTeams(tournament.id);
+            const tournamentTeams = Array.isArray(teamsData) ? teamsData : (teamsData as any)?.teams || [];
+            
+            console.log(`🔍 Teams for tournament ${tournament.name}:`, tournamentTeams);
+            
+            // Crear un mapa de equipos para acceso rápido
+            const teamsMap = new Map();
+            tournamentTeams.forEach((team: any) => {
+              if (team.teams) {
+                teamsMap.set(team.teams.id, team.teams);
+              }
+            });
+            
+            // Agregar información del torneo y equipos a cada partido
+            const matchesWithTournamentInfo = tournamentMatches.map((match: any) => {
+              const homeTeam = teamsMap.get(match.home_team_id);
+              const awayTeam = teamsMap.get(match.away_team_id);
+              
+              return {
+                ...match,
+                tournament_name: tournament.name,
+                tournament_id: tournament.id,
+                category_name: tournament.category?.name || (tournament as any).categories?.name || 'Sin categoría',
+                home_team_data: homeTeam,
+                away_team_data: awayTeam
+              };
+            });
+            
+            allMatches.push(...matchesWithTournamentInfo);
+          } catch (error) {
+            console.warn(`Error fetching matches for tournament ${tournament.id}:`, error);
+            // Continuar con otros torneos si uno falla
+          }
+        }
+        
+        console.log('🔍 All matches found:', allMatches);
+        
+        // Filtrar solo partidos programados y próximos
+        const now = new Date();
         const scheduledMatches = allMatches
-          .filter((match: TournamentMatch) => match.status === "SCHEDULED")
-          .sort((a: TournamentMatch, b: TournamentMatch) => 
-            new Date(a.match_date).getTime() - new Date(b.match_date).getTime()
-          );
+          .filter((match: TournamentMatch) => {
+            // Mostrar partidos que tienen fecha y hora programada
+            if (!match.match_day || !match.start_time) return false;
+            
+            // Verificar si el partido está programado (no completado)
+            if (match.status === 'completed') return false;
+            
+            // Crear fecha completa del partido
+            const matchDate = new Date(`${match.match_day} ${match.start_time}`);
+            
+            // Mostrar partidos de hoy y futuros
+            return matchDate >= now;
+          })
+          .sort((a: TournamentMatch, b: TournamentMatch) => {
+            // Ordenar por fecha más cercana primero
+            const dateA = new Date(`${a.match_day} ${a.start_time}`).getTime();
+            const dateB = new Date(`${b.match_day} ${b.start_time}`).getTime();
+            return dateA - dateB;
+          })
+          .slice(0, 20); // Limitar a los 20 partidos más cercanos
+        
+        console.log('🔍 Scheduled matches:', scheduledMatches);
+        console.log('🔍 Categories from hook:', categories);
+        console.log('🔍 Available categories in matches:', [...new Set(scheduledMatches.map(m => m.category_name))]);
         
         setMatches(scheduledMatches);
         
         // Notificar al componente padre si hay partidos
         if (onMatchesLoaded) {
-          onMatchesLoaded(allMatches.length > 0);
+          onMatchesLoaded(scheduledMatches.length > 0);
         }
-        */
       } catch (err) {
         console.error('Error fetching tournament matches:', err);
         setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -114,14 +175,27 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
     };
 
     fetchTournamentMatches();
-  }, [tournamentId, onMatchesLoaded]);
+  }, [tournaments, onMatchesLoaded]);
 
   // Efecto para filtrar los partidos cuando cambia la categoría seleccionada
   useEffect(() => {
     if (selectedCategory === 'all') {
-      setFilteredMatches(matches);
+      // Mostrar todos los partidos ordenados por fecha
+      const sortedMatches = [...matches].sort((a, b) => {
+        const dateA = new Date(`${a.match_day} ${a.start_time}`).getTime();
+        const dateB = new Date(`${b.match_day} ${b.start_time}`).getTime();
+        return dateA - dateB;
+      });
+      setFilteredMatches(sortedMatches);
     } else {
-      const filtered = matches.filter(match => match.category_name === selectedCategory);
+      // Filtrar por categoría y ordenar por fecha
+      const filtered = matches
+        .filter(match => match.category_name === selectedCategory)
+        .sort((a, b) => {
+          const dateA = new Date(`${a.match_day} ${a.start_time}`).getTime();
+          const dateB = new Date(`${b.match_day} ${b.start_time}`).getTime();
+          return dateA - dateB;
+        });
       setFilteredMatches(filtered);
     }
     setCurrentPage(0); // Reset page when changing category
@@ -130,20 +204,82 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
     }
   }, [selectedCategory, matches]);
 
-  const formatDateTime = (dateTime: string) => {
+  const getTeamName = (team: any, teamId?: string): string => {
+    // Si es un string directo, usarlo
+    if (typeof team === 'string') return team;
+    
+    // Si es un objeto con nombre
+    if (team?.name) return team.name;
+    if (team?.team_name) return team.team_name;
+    
+    // Si tiene jugadores con estructura completa (de tournament_teams)
+    if (team?.player1 && team?.player2) {
+      const player1Name = typeof team.player1 === 'string' ? 
+        team.player1 : 
+        `${team.player1.first_name} ${team.player1.last_name}`;
+      const player2Name = typeof team.player2 === 'string' ? 
+        team.player2 : 
+        `${team.player2.first_name} ${team.player2.last_name}`;
+      return `${player1Name} / ${player2Name}`;
+    }
+    
+    // Si solo tiene un player
+    if (team?.player1) {
+      const player1Name = typeof team.player1 === 'string' ? 
+        team.player1 : 
+        `${team.player1.first_name} ${team.player1.last_name}`;
+      return player1Name;
+    }
+    
+    // Fallback con team_id si está disponible
+    if (teamId) {
+      return `Equipo ${teamId.slice(0, 8)}...`;
+    }
+    
+    return 'Equipo desconocido';
+  };
+
+  const formatDateTime = (match: TournamentMatch) => {
+    // Usar match_day y start_time si están disponibles, sino match_date
+    const dateTime = match.match_day && match.start_time 
+      ? `${match.match_day} ${match.start_time}` 
+      : match.match_date || '';
+    
     const date = new Date(dateTime);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const matchDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    const diffTime = matchDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    let relativeDate = '';
+    if (diffDays === 0) {
+      relativeDate = 'Hoy';
+    } else if (diffDays === 1) {
+      relativeDate = 'Mañana';
+    } else if (diffDays === 2) {
+      relativeDate = 'Pasado mañana';
+    } else if (diffDays > 2 && diffDays <= 7) {
+      relativeDate = `En ${diffDays} días`;
+    } else {
+      relativeDate = new Intl.DateTimeFormat('es', {
+        day: 'numeric',
+        month: 'short'
+      }).format(date);
+    }
+
     return {
       time: new Intl.DateTimeFormat('es', {  
         hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'UTC'
+        minute: '2-digit'
       }).format(date),
       date: new Intl.DateTimeFormat('es', {
         day: 'numeric',
         month: 'numeric',
-        year: 'numeric',
-        timeZone: 'UTC'
-      }).format(date)
+        year: 'numeric'
+      }).format(date),
+      relativeDate
     };
   };
 
@@ -228,7 +364,7 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
                 {categories.map((category) => (
                   <TabsTrigger
                     key={category.id}
-                    value={category.name}
+                    value={category.name || ''}
                     className="text-sm"
                   >
                     {category.name}
@@ -244,12 +380,12 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
             <CalendarDays className="w-12 h-12 text-purple-500 dark:text-purple-400" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            {t('noMatchesScheduled')}
+            ¡No hay partidos programados aún!
           </h3>
           <p className="text-gray-600 dark:text-gray-400 max-w-sm">
             {selectedCategory === 'all' 
-              ? t('noMatchesForAllCategories')
-              : t('noMatchesForCategory').replace('{category}', selectedCategory)}
+              ? 'Los partidos de torneos aparecerán aquí cuando estén programados. ¡Mantente atento a las próximas competencias!'
+              : `No hay partidos programados para la categoría "${selectedCategory}". Los partidos aparecerán aquí cuando estén programados.`}
           </p>
         </div>
       </div>
@@ -264,7 +400,7 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
           <Tabs defaultValue="all" value={selectedCategory} onValueChange={setSelectedCategory}>
             <TabsList>
               <TabsTrigger value="all" className="text-sm">
-                Todos los torneos
+                Todas las categorías
               </TabsTrigger>
               {categories.map((category) => (
                 <TabsTrigger
@@ -278,17 +414,22 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
             </TabsList>
           </Tabs>
           {filteredMatches.length > 0 && (
-            <button
-              onClick={() => router.push('/tournaments')}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white
-                       bg-gradient-to-r from-purple-500 to-purple-600 
-                       hover:from-purple-600 hover:to-purple-700
-                       rounded-lg transition-all duration-200
-                       shadow-lg shadow-purple-500/20 dark:shadow-purple-900/30"
-            >
-              <ListFilter className="w-4 h-4" />
-              Ver todos los torneos
-            </button>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {filteredMatches.length} partido{filteredMatches.length !== 1 ? 's' : ''} próximos
+              </span>
+              <button
+                onClick={() => router.push('/tournaments')}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white
+                         bg-gradient-to-r from-purple-500 to-purple-600 
+                         hover:from-purple-600 hover:to-purple-700
+                         rounded-lg transition-all duration-200
+                         shadow-lg shadow-purple-500/20 dark:shadow-purple-900/30"
+              >
+                <ListFilter className="w-4 h-4" />
+                Ver todos los torneos
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -345,10 +486,23 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
                            border border-gray-200/50 dark:border-gray-700/30
                            backdrop-blur-sm"
                 >
+                  {/* Torneo Badge */}
+                  {match.tournament_name && (
+                    <div className="absolute -top-3 left-4">
+                      <span className="px-3 py-1 rounded-full text-xs font-medium
+                                   bg-gradient-to-r from-blue-500 to-blue-600 
+                                   text-white shadow-lg shadow-blue-500/30
+                                   dark:from-blue-600 dark:to-blue-700
+                                   dark:shadow-blue-900/30">
+                        {match.tournament_name}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Categoría Badge */}
                   {match.category_name && (
-                    <div className="absolute -top-3 left-4">
-                      <span className="px-3 py-1 rounded-full text-sm font-medium
+                    <div className="absolute -top-3 right-4">
+                      <span className="px-3 py-1 rounded-full text-xs font-medium
                                    bg-gradient-to-r from-purple-500 to-purple-600 
                                    text-white shadow-lg shadow-purple-500/30
                                    dark:from-purple-600 dark:to-purple-700
@@ -359,13 +513,13 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
                   )}
 
                   {/* Grupo Badge */}
-                  {match.group_name && (
-                    <div className="absolute -top-3 right-4">
+                  {(match.group_name || match.group_number) && (
+                    <div className="absolute top-2 right-4">
                       <span className="px-3 py-1 rounded-full text-xs font-medium
                                    bg-gray-900/5 dark:bg-white/5 
                                    text-gray-700 dark:text-gray-300
                                    border border-gray-200/50 dark:border-gray-700/30">
-                        {match.group_name}
+                        {match.group_name || `Grupo ${match.group_number}`}
                       </span>
                     </div>
                   )}
@@ -377,8 +531,8 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
                       {/* Team 1 */}
                       <div className="flex items-center justify-between space-x-2">
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={match.team1_name}>
-                            {match.team1_name}
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={getTeamName(match.home_team_data || match.team1 || match.team1_name, match.home_team_id)}>
+                            {getTeamName(match.home_team_data || match.team1 || match.team1_name, match.home_team_id)}
                           </p>
                         </div>
                       </div>
@@ -402,26 +556,41 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
                       {/* Team 2 */}
                       <div className="flex items-center justify-between space-x-2">
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={match.team2_name}>
-                            {match.team2_name}
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={getTeamName(match.away_team_data || match.team2 || match.team2_name, match.away_team_id)}>
+                            {getTeamName(match.away_team_data || match.team2 || match.team2_name, match.away_team_id)}
                           </p>
                         </div>
                       </div>
                     </div>
 
                     {/* Date and Time */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200/50 dark:border-gray-700/30">
-                      <div className="flex items-center space-x-2">
-                        <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                        <span className="text-sm text-gray-600 dark:text-gray-300">
-                          {formatDateTime(match.match_date).time}h
+                    <div className="space-y-3 pt-4 border-t border-gray-200/50 dark:border-gray-700/30">
+                      {/* Fecha relativa destacada */}
+                      <div className="flex justify-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          formatDateTime(match).relativeDate === 'Hoy' 
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                            : formatDateTime(match).relativeDate === 'Mañana'
+                            ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400'
+                            : 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                        }`}>
+                          {formatDateTime(match).relativeDate}
                         </span>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <CalendarDays className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                        <span className="text-sm text-gray-600 dark:text-gray-300">
-                          {formatDateTime(match.match_date).date}
-                        </span>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                            {formatDateTime(match).time}h
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <CalendarDays className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
+                            {formatDateTime(match).date}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>

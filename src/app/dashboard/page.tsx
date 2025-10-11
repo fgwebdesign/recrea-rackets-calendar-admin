@@ -12,6 +12,7 @@ import { TournamentStatsCard } from '@/components/Dashboard/TournamentStatsCard'
 import { TournamentScheduleCard } from '@/components/Dashboard/TournamentScheduleCard';
 import { TournamentRegistrationProgress } from '@/components/Dashboard/TournamentRegistrationProgress';
 import { TournamentStandings } from '@/components/Dashboard/TournamentStandings';
+import { ActiveTournamentsWidget } from '@/components/Dashboard/ActiveTournamentsWidget';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import * as Collapsible from "@radix-ui/react-collapsible";
@@ -36,7 +37,10 @@ export default function Dashboard() {
   const { users, isLoading: isLoadingUsers } = useUsers();
   const { leagues, isLoading: isLoadingLeagues } = useLeagues();
   const { categories, isLoading: isLoadingCategories } = useCategories();
-  const { standings, isLoading: isLoadingStandings } = useStandings(selectedCategory);
+  // Removemos useStandings por ahora ya que no tenemos un tournamentId específico
+  // const { standings, loading: isLoadingStandings } = useStandings(selectedCategory);
+  const standings = null;
+  const isLoadingStandings = false;
   const { tournaments, loading: isLoadingTournaments } = useTournaments();
 
   const totalUsers = useMemo(() => {
@@ -242,7 +246,7 @@ export default function Dashboard() {
                         categories={categories}
                         selectedCategory={selectedCategory}
                         onCategoryChange={setSelectedCategory}
-                        standings={standings}
+                        standings={[]} 
                         isLoading={isLoadingStandings}
                       />
                     </CardContent>
@@ -301,6 +305,9 @@ export default function Dashboard() {
                   </Collapsible.Content>
                 </Card>
               </Collapsible.Root>
+
+              {/* Widget de Torneos Activos */}
+              <ActiveTournamentsWidget />
 
               {/* Próximos Partidos - Torneos */}
               <Collapsible.Root
