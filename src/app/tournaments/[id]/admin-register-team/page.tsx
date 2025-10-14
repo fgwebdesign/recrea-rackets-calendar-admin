@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeftIcon, UsersIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, UsersIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,6 @@ import { useCategories } from '@/hooks/useCategories';
 import { Badge } from '@/components/ui/badge';
 import { getCategoryName } from '@/utils/category';
 import { PlayerSelector } from '@/components/Tournaments/PlayerSelector';
-import { TimeSlotSelector } from '@/components/Tournaments/TimeSlotSelector';
 import { TeamSummary } from '@/components/Tournaments/TeamSummary';
 import { FormStatus } from '@/components/Tournaments/FormStatus';
 import { ShirtSizesSelector } from '@/components/Tournaments/ShirtSizesSelector';
@@ -30,13 +29,16 @@ interface Player {
 }
 
 interface TimeSlot {
-  slot_id: string;
+  id: string;
   label: string;
-  is_available: boolean;
-  remaining_slots: number;
-  percentage_full: number;
-  total_capacity: number;
-  current_usage: number;
+  day: number;
+  start: string;
+  end?: string;
+  date?: string;
+  capacity: number;
+  current_restrictions: number;
+  is_heavily_restricted: boolean;
+  available: boolean;
 }
 
 export default function AdminRegisterTeamPage() {
@@ -50,6 +52,8 @@ export default function AdminRegisterTeamPage() {
   const [selectedPlayer1, setSelectedPlayer1] = useState<string>('');
   const [selectedPlayer2, setSelectedPlayer2] = useState<string>('');
   const [selectedSlot, setSelectedSlot] = useState<string>('');
+  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
+  const [slotsByDay, setSlotsByDay] = useState<{day1: TimeSlot[], day2: TimeSlot[]}>({day1: [], day2: []});
   const [selectedShirtSizes, setSelectedShirtSizes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -116,13 +120,19 @@ export default function AdminRegisterTeamPage() {
       errors.player2 = t('adminRegister.validation.playersMustBeDifferent');
     }
 
-    // Validar time slot
-    if (!selectedSlot) {
+    // Validar time slots (máximo 2 según la guía)
+    if (selectedSlots.length === 0) {
       errors.slot = t('adminRegister.validation.slotRequired');
+    } else if (selectedSlots.length > 2) {
+      errors.slot = 'Máximo 2 slots por equipo';
     } else {
-      const slot = availableSlots.find(s => s.slot_id === selectedSlot);
-      if (slot && !slot.is_available) {
-        errors.slot = t('adminRegister.validation.slotFull');
+      // Validar que todos los slots seleccionados existan
+      for (const slotId of selectedSlots) {
+        const slot = availableSlots.find(s => s.id === slotId);
+        if (!slot) {
+          errors.slot = `Slot ${slotId} no encontrado`;
+          break;
+        }
       }
     }
 
@@ -146,10 +156,10 @@ export default function AdminRegisterTeamPage() {
 
   // Validar cuando cambian las selecciones
   useEffect(() => {
-    if (selectedPlayer1 || selectedPlayer2 || selectedSlot || selectedShirtSizes.length > 0) {
+    if (selectedPlayer1 || selectedPlayer2 || selectedSlots.length > 0 || selectedShirtSizes.length > 0) {
       clearValidationErrors();
     }
-  }, [selectedPlayer1, selectedPlayer2, selectedSlot, selectedShirtSizes]);
+  }, [selectedPlayer1, selectedPlayer2, selectedSlots, selectedShirtSizes]);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -186,7 +196,7 @@ export default function AdminRegisterTeamPage() {
 
   const loadAvailableSlots = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/available-time-slots`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/available-group-hours`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         }
@@ -197,7 +207,17 @@ export default function AdminRegisterTeamPage() {
       }
       
       const data = await response.json();
-      setAvailableSlots(data.available_slots || []);
+      const slots = data.available_hours || [];
+      console.log('🔍 Slots recibidos del backend:', slots);
+      console.log('🔍 Primer slot:', slots[0]);
+      setAvailableSlots(slots);
+      
+      // Organizar por días según la guía
+      const organizedSlots = {
+        day1: slots.filter((slot: TimeSlot) => slot.day === 1), // Sábado 17:00-23:00
+        day2: slots.filter((slot: TimeSlot) => slot.day === 2)  // Domingo 08:00-23:00
+      };
+      setSlotsByDay(organizedSlots);
     } catch (err) {
       console.error('Error cargando slots:', err);
       toast({
@@ -225,7 +245,7 @@ export default function AdminRegisterTeamPage() {
       const requestBody = {
         userId1: selectedPlayer1,
         userId2: selectedPlayer2,
-        unavailable_time_slot: selectedSlot,
+        unavailable_times: selectedSlots, // Array de IDs según la guía
         ...(getRequiresShirts() && selectedShirtSizes.length > 0 && {
           shirt_sizes: selectedShirtSizes
         })
@@ -299,17 +319,19 @@ export default function AdminRegisterTeamPage() {
       // Éxito - mostrar toast y limpiar formulario
       const player1Name = players.find(p => p.id === selectedPlayer1);
       const player2Name = players.find(p => p.id === selectedPlayer2);
-      const slotInfo = availableSlots.find(s => s.slot_id === selectedSlot);
+      const selectedSlotsInfo = selectedSlots.map(slotId => 
+        availableSlots.find(s => s.id === slotId)?.label
+      ).join(', ');
       
       console.log('✅ Mostrando toast de éxito:', {
         player1: player1Name?.first_name,
         player2: player2Name?.first_name,
-        slot: slotInfo?.label
+        slots: selectedSlotsInfo
       });
-      
+
       toast({
         title: t('adminRegister.success.title'),
-        description: `${player1Name?.first_name} ${player1Name?.last_name} & ${player2Name?.first_name} ${player2Name?.last_name} ${t('adminRegister.success.registeredIn')} ${slotInfo?.label}`,
+        description: `${player1Name?.first_name} ${player1Name?.last_name} & ${player2Name?.first_name} ${player2Name?.last_name} registrados con horarios: ${selectedSlotsInfo}`,
         variant: "default",
       });
       
@@ -317,6 +339,7 @@ export default function AdminRegisterTeamPage() {
       setSelectedPlayer1('');
       setSelectedPlayer2('');
       setSelectedSlot('');
+      setSelectedSlots([]);
       setSelectedShirtSizes([]);
       
       // Recargar slots disponibles
@@ -446,14 +469,103 @@ export default function AdminRegisterTeamPage() {
                 )}
               </div>
 
-              {/* Selección de Time Slot */}
+              {/* Selección de Time Slots - Máximo 2 slots por equipo */}
               <div>
-                <TimeSlotSelector
-                  slots={availableSlots}
-                  selectedSlot={selectedSlot}
-                  onSlotSelect={setSelectedSlot}
-                  disabled={!selectedPlayer1 || !selectedPlayer2}
-                />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Horarios Disponibles (Máximo 2)
+                    </label>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {selectedSlots.length}/2 seleccionados
+                    </span>
+                  </div>
+                  
+                  {(!selectedPlayer1 || !selectedPlayer2) && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        💡 Selecciona ambos jugadores para habilitar los horarios
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Día 1 - Sábado */}
+                  {slotsByDay.day1.length > 0 && (
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4 text-blue-600" />
+                        Día 1 - Sábado
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {slotsByDay.day1.map((slot) => (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            onClick={() => {
+                              if (selectedSlots.includes(slot.id)) {
+                                setSelectedSlots(selectedSlots.filter(id => id !== slot.id));
+                              } else if (selectedSlots.length < 2) {
+                                setSelectedSlots([...selectedSlots, slot.id]);
+                              }
+                            }}
+                            disabled={!selectedPlayer1 || !selectedPlayer2}
+                            className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                              selectedSlots.includes(slot.id)
+                                ? 'bg-blue-100 border-blue-300 text-blue-900 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-100'
+                                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            <div className="text-center">
+                              <div className="font-medium">{slot.start}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {slot.capacity - slot.current_restrictions} disponibles
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Día 2 - Domingo */}
+                  {slotsByDay.day2.length > 0 && (
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4 text-green-600" />
+                        Día 2 - Domingo
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {slotsByDay.day2.map((slot) => (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            onClick={() => {
+                              if (selectedSlots.includes(slot.id)) {
+                                setSelectedSlots(selectedSlots.filter(id => id !== slot.id));
+                              } else if (selectedSlots.length < 2) {
+                                setSelectedSlots([...selectedSlots, slot.id]);
+                              }
+                            }}
+                            disabled={!selectedPlayer1 || !selectedPlayer2}
+                            className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                              selectedSlots.includes(slot.id)
+                                ? 'bg-green-100 border-green-300 text-green-900 dark:bg-green-900/30 dark:border-green-700 dark:text-green-100'
+                                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            <div className="text-center">
+                              <div className="font-medium">{slot.start}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {slot.capacity - slot.current_restrictions} disponibles
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
                 {validationErrors.slot && (
                   <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
                     <AlertCircle className="h-4 w-4" />
@@ -478,17 +590,23 @@ export default function AdminRegisterTeamPage() {
               <FormStatus
                 player1={selectedPlayer1}
                 player2={selectedPlayer2}
-                slot={selectedSlot}
+                slot={selectedSlots.length > 0 ? selectedSlots[0] : ''}
                 validationErrors={validationErrors}
               />
 
               {/* Resumen del Equipo */}
-              {selectedPlayer1 && selectedPlayer2 && selectedSlot && (
+              {selectedPlayer1 && selectedPlayer2 && selectedSlots.length > 0 && (
                 <TeamSummary
                   player1={players.find(p => p.id === selectedPlayer1) || null}
                   player2={players.find(p => p.id === selectedPlayer2) || null}
-                  slotLabel={availableSlots.find(s => s.slot_id === selectedSlot)?.label}
-                  slotInfo={availableSlots.find(s => s.slot_id === selectedSlot)}
+                  slotLabel={selectedSlots.map(slotId => 
+                    availableSlots.find(s => s.id === slotId)?.label
+                  ).join(', ')}
+                  slotInfo={availableSlots.find(s => s.id === selectedSlots[0]) ? {
+                    remaining_slots: availableSlots.find(s => s.id === selectedSlots[0])!.capacity - availableSlots.find(s => s.id === selectedSlots[0])!.current_restrictions,
+                    percentage_full: Math.round((availableSlots.find(s => s.id === selectedSlots[0])!.current_restrictions / availableSlots.find(s => s.id === selectedSlots[0])!.capacity) * 100),
+                    total_capacity: availableSlots.find(s => s.id === selectedSlots[0])!.capacity
+                  } : undefined}
                 />
               )}
 
@@ -501,7 +619,7 @@ export default function AdminRegisterTeamPage() {
                     loading || 
                     !selectedPlayer1 || 
                     !selectedPlayer2 || 
-                    !selectedSlot ||
+                    selectedSlots.length === 0 ||
                     (getRequiresShirts() && selectedShirtSizes.length === 0)
                   }
                   className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-4 px-6 rounded-lg focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl text-lg font-semibold"

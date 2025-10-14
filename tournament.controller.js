@@ -411,6 +411,90 @@ export async function createTournament(req, res) {
       });
     }
 
+    // ===== ✨ VALIDACIÓN DE CAPACIDAD DE SLOTS =====
+    console.log(`🔍 Validando capacidad para crear ${categories.length} categorías de tipo ${tournament_type}...`);
+    
+    // Calcular partidos por tipo de torneo
+    const getMatchesForType = (type) => {
+      switch(type) {
+        case 'SIX_PLAYERS': return 6;      // 2 grupos × 3 partidos
+        case 'NINE_PLAYERS': return 9;     // 3 grupos × 3 partidos
+        case 'TWELVE_PLAYERS': return 12;  // 4 grupos × 3 partidos
+        case 'SIXTEEN_PLAYERS': return 24; // 4 grupos × 6 partidos (4 equipos por grupo)
+        default: return 0;
+      }
+    };
+    
+    const matchesPerCategory = getMatchesForType(tournament_type);
+    const totalMatchesNeeded = categories.length * matchesPerCategory;
+    
+    // Calcular slots disponibles
+    const DAY_1_SLOTS = 8;  // 17:00-23:00
+    const DAY_2_SLOTS = 20; // 08:00-23:00
+    const TOTAL_SLOTS_PER_COURT = DAY_1_SLOTS + DAY_2_SLOTS; // 28
+    
+    const totalAvailableSlots = TOTAL_SLOTS_PER_COURT * courts_available;
+    const utilizationPercentage = ((totalMatchesNeeded / totalAvailableSlots) * 100).toFixed(1);
+    const surplus = totalAvailableSlots - totalMatchesNeeded;
+    
+    console.log(`📊 Análisis de capacidad para creación:`);
+    console.log(`   - Categorías: ${categories.length}`);
+    console.log(`   - Tipo: ${tournament_type}`);
+    console.log(`   - Partidos por categoría: ${matchesPerCategory}`);
+    console.log(`   - Partidos totales necesarios: ${totalMatchesNeeded}`);
+    console.log(`   - Slots disponibles: ${totalAvailableSlots} (${TOTAL_SLOTS_PER_COURT} × ${courts_available} canchas)`);
+    console.log(`   - Utilización: ${utilizationPercentage}%`);
+    console.log(`   - Sobra/Falta: ${surplus > 0 ? '+' : ''}${surplus} slots`);
+    
+    // VALIDACIÓN: Rechazar si no hay capacidad
+    if (totalMatchesNeeded > totalAvailableSlots) {
+      const minCourtsNeeded = Math.ceil(totalMatchesNeeded / TOTAL_SLOTS_PER_COURT);
+      
+      console.log(`❌ Capacidad insuficiente: ${totalMatchesNeeded} partidos > ${totalAvailableSlots} slots`);
+      
+      return res.status(400).json({
+        message: 'Capacidad insuficiente para crear este torneo',
+        error: 'INSUFFICIENT_CAPACITY',
+        details: {
+          event_configuration: {
+            categories: categories.length,
+            tournament_type: tournament_type,
+            courts_available: courts_available
+          },
+          capacity_analysis: {
+            matches_per_category: matchesPerCategory,
+            total_matches_needed: totalMatchesNeeded,
+            slots_available: totalAvailableSlots,
+            deficit: Math.abs(surplus),
+            utilization_percentage: `${utilizationPercentage}%`
+          },
+          slots_breakdown: {
+            slots_per_court: TOTAL_SLOTS_PER_COURT,
+            day_1_slots: DAY_1_SLOTS,
+            day_2_slots: DAY_2_SLOTS,
+            courts_available: courts_available
+          },
+          suggestion: {
+            message: `Se requieren al menos ${minCourtsNeeded} canchas para este evento`,
+            min_courts_needed: minCourtsNeeded,
+            alternatives: [
+              'Aumenta el número de canchas disponibles',
+              `Reduce el número de categorías (máximo ${Math.floor(totalAvailableSlots / matchesPerCategory)} categorías con ${courts_available} canchas)`,
+              'Elige un tipo de torneo con menos equipos (ej: TWELVE en lugar de SIXTEEN)'
+            ]
+          }
+        }
+      });
+    }
+    
+    // ADVERTENCIA: Si la utilización es muy alta (> 90%)
+    if (utilizationPercentage > 90 && surplus < 10) {
+      console.log(`⚠️ Advertencia: Utilización muy alta (${utilizationPercentage}%) - ${surplus} slots libres`);
+      console.log(`   Recomendación: Considera agregar una cancha adicional para mayor flexibilidad`);
+    }
+    
+    console.log(`✅ Capacidad validada: El torneo es viable`);
+
     // ===== VALIDACIONES ADICIONALES DE LÓGICA DE NEGOCIO =====
     
     // Validar fecha límite de inscripción
@@ -884,6 +968,104 @@ export async function changeTournamentType(req, res) {
     const newMaxTeams = new_tournament_type === 'SIX_PLAYERS' ? 6 :
                        new_tournament_type === 'NINE_PLAYERS' ? 9 : 
                        new_tournament_type === 'TWELVE_PLAYERS' ? 12 : 16;
+
+    // 6.5. ✨ VALIDACIÓN DE CAPACIDAD: Verificar viabilidad del cambio
+    console.log(`🔍 Validando capacidad para cambio a ${new_tournament_type}...`);
+    
+    // Obtener TODAS las categorías del mismo evento
+    const { data: allEventCategories, error: eventCategoriesError } = await supabase
+      .from('tournaments')
+      .select('id, name, tournament_type, category_id, courts_available, start_date, end_date')
+      .eq('name', tournament.name)
+      .eq('start_date', tournament.start_date)
+      .eq('end_date', tournament.end_date);
+    
+    if (eventCategoriesError) throw eventCategoriesError;
+    
+    // Calcular partidos por tipo de torneo
+    const getMatchesForType = (type) => {
+      switch(type) {
+        case 'SIX_PLAYERS': return 6;      // 2 grupos × 3 partidos
+        case 'NINE_PLAYERS': return 9;     // 3 grupos × 3 partidos
+        case 'TWELVE_PLAYERS': return 12;  // 4 grupos × 3 partidos
+        case 'SIXTEEN_PLAYERS': return 24; // 4 grupos × 6 partidos (4 equipos por grupo)
+        default: return 0;
+      }
+    };
+    
+    // Calcular total de partidos considerando el cambio
+    let totalMatchesNeeded = 0;
+    allEventCategories.forEach(cat => {
+      if (cat.id === id) {
+        // Esta categoría cambiará al nuevo tipo
+        totalMatchesNeeded += getMatchesForType(new_tournament_type);
+      } else {
+        // Otras categorías mantienen su tipo actual
+        totalMatchesNeeded += getMatchesForType(cat.tournament_type);
+      }
+    });
+    
+    // Calcular slots disponibles
+    const DAY_1_SLOTS = 8;  // 17:00-23:00
+    const DAY_2_SLOTS = 20; // 08:00-23:00
+    const TOTAL_SLOTS_PER_COURT = DAY_1_SLOTS + DAY_2_SLOTS; // 28
+    
+    // Obtener courts_available del evento
+    const courtsAvailable = allEventCategories[0]?.courts_available || tournament.courts_available || 1;
+    const totalAvailableSlots = TOTAL_SLOTS_PER_COURT * courtsAvailable;
+    
+    const utilizationPercentage = ((totalMatchesNeeded / totalAvailableSlots) * 100).toFixed(1);
+    const surplus = totalAvailableSlots - totalMatchesNeeded;
+    
+    console.log(`📊 Análisis de capacidad:`);
+    console.log(`   - Categorías del evento: ${allEventCategories.length}`);
+    console.log(`   - Partidos necesarios: ${totalMatchesNeeded}`);
+    console.log(`   - Slots disponibles: ${totalAvailableSlots} (${TOTAL_SLOTS_PER_COURT} × ${courtsAvailable} canchas)`);
+    console.log(`   - Utilización: ${utilizationPercentage}%`);
+    console.log(`   - Sobra/Falta: ${surplus > 0 ? '+' : ''}${surplus} slots`);
+    
+    // VALIDACIÓN: Rechazar si no hay capacidad
+    if (totalMatchesNeeded > totalAvailableSlots) {
+      const minCourtsNeeded = Math.ceil(totalMatchesNeeded / TOTAL_SLOTS_PER_COURT);
+      
+      console.log(`❌ Capacidad insuficiente: ${totalMatchesNeeded} partidos > ${totalAvailableSlots} slots`);
+      
+      return res.status(400).json({
+        message: 'Capacidad insuficiente para este cambio de tipo',
+        error: 'INSUFFICIENT_CAPACITY',
+        details: {
+          tournament_type_change: {
+            from: tournament.tournament_type,
+            to: new_tournament_type
+          },
+          capacity_analysis: {
+            total_categories: allEventCategories.length,
+            matches_needed: totalMatchesNeeded,
+            slots_available: totalAvailableSlots,
+            deficit: Math.abs(surplus),
+            utilization_percentage: `${utilizationPercentage}%`
+          },
+          current_configuration: {
+            courts_available: courtsAvailable,
+            slots_per_court: TOTAL_SLOTS_PER_COURT,
+            day_1_slots: DAY_1_SLOTS,
+            day_2_slots: DAY_2_SLOTS
+          },
+          suggestion: {
+            message: `Se requieren al menos ${minCourtsNeeded} canchas para este evento con el nuevo tipo`,
+            min_courts_needed: minCourtsNeeded,
+            alternative: 'Reduce el número de categorías o elige un tipo de torneo con menos equipos'
+          }
+        }
+      });
+    }
+    
+    // ADVERTENCIA: Si la utilización es muy alta (> 95%)
+    if (utilizationPercentage > 95 && surplus < 5) {
+      console.log(`⚠️ Advertencia: Utilización muy alta (${utilizationPercentage}%)`);
+    }
+    
+    console.log(`✅ Capacidad validada: El cambio es viable`);
 
     // 7. Actualizar el torneo
     const { data: updatedTournament, error: updateError } = await supabase

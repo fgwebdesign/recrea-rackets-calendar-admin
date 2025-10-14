@@ -134,7 +134,10 @@ export default function Dashboard() {
                   <Collapsible.Trigger asChild>
                     <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${isStatsOpen ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+                        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
+                          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                            <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                          </div>
                           {t('leagueStats')}
                         </CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isStatsOpen ? 'transform rotate-180' : ''}`} />
