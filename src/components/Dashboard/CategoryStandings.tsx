@@ -2,7 +2,6 @@ import { Standing } from '@/hooks/useStandings';
 import React from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Spinner } from '@/components/ui/Spinner';
-import { EmptyStandings } from './EmptyStandings';
 import { CategoryFilterTabs } from './CategoryFilterTabs';
 import { Category } from '@/types/category';
 
@@ -55,6 +54,9 @@ export function CategoryStandings({
     );
   }
 
+  // Validar que standings sea un array válido
+  const validStandings = Array.isArray(standings) ? standings : [];
+
   return (
     <div className="space-y-4">
       <CategoryFilterTabs
@@ -65,7 +67,7 @@ export function CategoryStandings({
         className="px-0"
       />
 
-      {!standings.length ? (
+      {!validStandings.length ? (
         <div className="text-center p-8 bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="text-red-500 dark:text-red-400 mb-2">
             <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,7 +84,7 @@ export function CategoryStandings({
             <p><strong>Debug Info:</strong></p>
             <p>• Categoría seleccionada: {selectedCategory}</p>
             <p>• Nombre de categoría: {currentCategory}</p>
-            <p>• Total de standings: {standings?.length || 0}</p>
+            <p>• Total de standings: {validStandings.length}</p>
             <p>• Estado de carga: {isLoading ? 'Cargando...' : 'Completado'}</p>
           </div>
         </div>
@@ -105,7 +107,7 @@ export function CategoryStandings({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {standings.map((standing, index) => (
+              {validStandings.map((standing, index) => (
                 <tr 
                   key={standing.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"

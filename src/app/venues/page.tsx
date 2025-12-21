@@ -78,7 +78,7 @@ export default function VenuesPage() {
     }
   };
 
-  const handleEditCourt = (court: { id: string; name: string; photo_url: string }) => {
+  const handleEditCourt = (court: { id: string; name: string; photo_url: string; venue_id?: string }) => {
     setEditingCourt(court);
   };
 
@@ -92,7 +92,7 @@ export default function VenuesPage() {
     }
   };
 
-  const handleEditCourtSubmit = async (courtData: { id: string; name: string; photo: File | null }) => {
+  const handleEditCourtSubmit = async (courtData: { id: string; name: string; photo: File | null; venue_id?: string }) => {
     const success = await updateCourt(courtData.id, courtData);
     if (success) {
       setEditingCourt(null);
@@ -202,6 +202,7 @@ export default function VenuesPage() {
                     id={court.id}
                     name={court.name}
                     photo_url={court.photo_url}
+                    venue_id={court.venue_id}
                     onDelete={court => setDeleteCourtModal({
                       isOpen: true,
                       courtId: court.id,

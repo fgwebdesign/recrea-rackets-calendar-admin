@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ImageIcon } from "lucide-react";
 import { useTranslations } from '@/contexts/TranslationContext';
 import { useVenues } from "@/hooks/useVenues";
+import Image from 'next/image';
 
 interface EditCourtModalProps {
   isOpen: boolean;
@@ -27,14 +28,14 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
   const [name, setName] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [venueId, setVenueId] = useState<string>('');
+  const [venueId, setVenueId] = useState<string>('none');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (court) {
       setName(court.name);
       setPreviewUrl(court.photo_url);
-      setVenueId(court.venue_id || '');
+      setVenueId(court.venue_id || 'none');
     }
   }, [court]);
 
@@ -42,7 +43,7 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
     setName('');
     setPhoto(null);
     setPreviewUrl('');
-    setVenueId('');
+    setVenueId('none');
     onClose();
   };
 
@@ -56,7 +57,7 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
         id: court.id,
         name,
         photo,
-        venue_id: venueId || undefined
+        venue_id: venueId && venueId !== 'none' ? venueId : undefined
       });
       handleClose();
     } finally {
@@ -83,6 +84,9 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
           <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             {t('editCourt')}
           </DialogTitle>
+          <DialogDescription>
+            {t('editCourtDescription') || 'Edita los detalles de la cancha'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -111,10 +115,10 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
               disabled={isSubmitting || loadingVenues}
             >
               <SelectTrigger className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700">
-                <SelectValue placeholder={tVenues('countryPlaceholder')} />
+                <SelectValue placeholder={tVenues('selectVenue')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">{tVenues('allVenues')}</SelectItem>
+                <SelectItem value="none">{tVenues('allVenues')}</SelectItem>
                 {venues.map((venue) => (
                   <SelectItem key={venue.id} value={venue.id}>
                     {venue.name}
@@ -132,10 +136,12 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
               <div className="space-y-1 text-center">
                 {previewUrl ? (
                   <div className="relative w-full h-40 mb-4">
-                    <img
+                    <Image
                       src={previewUrl}
                       alt="Preview"
-                      className="w-full h-full object-cover rounded-md"
+                      fill
+                      className="object-cover rounded-md"
+                      unoptimized
                     />
                   </div>
                 ) : (

@@ -194,12 +194,6 @@ const Sidebar = () => {
       ]
     },
     { 
-      name: t('categories'), 
-      href: '/categories', 
-      icon: TrophyIcon,
-      iconColor: 'text-blue-500'
-    },
-    { 
       name: 'SEDES', 
       href: '/venues', 
       icon: TrophyIcon,
@@ -220,6 +214,12 @@ const Sidebar = () => {
           textColor: 'text-purple-600 font-medium'
         },
       ]
+    },
+    { 
+      name: t('categories'), 
+      href: '/categories', 
+      icon: TrophyIcon,
+      iconColor: 'text-blue-500'
     },
     { 
       name: t('professors'), 

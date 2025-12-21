@@ -258,6 +258,23 @@ export function useLeagueForm() {
         venues?: VenueConfig[];
       }
 
+      // Normalizar frequency a minúsculas y validar tipo
+      const frequencyValue = formData.frequency ? formData.frequency.toLowerCase() : 'quincenal';
+      const normalizedFrequency: 'semanal' | 'quincenal' | 'mensual' = 
+        (frequencyValue === 'semanal' || frequencyValue === 'quincenal' || frequencyValue === 'mensual')
+          ? frequencyValue
+          : 'quincenal';
+      
+      console.log('📤 Creating league payload:', {
+        name: formData.name,
+        categories: formData.categories.length,
+        frequency: normalizedFrequency,
+        venues: formData.venues?.length || 0,
+        match_times: formData.match_times,
+        courts_per_time_slot: formData.courts_per_time_slot,
+        courts_available
+      });
+
       const payload: CreateLeaguePayload = {
         name: formData.name,
         categories: formData.categories,
@@ -265,7 +282,7 @@ export function useLeagueForm() {
         inscription_cost: formData.inscription_cost,
         start_date: formData.start_date,
         end_date: formData.end_date,
-        frequency: formData.frequency,
+        frequency: normalizedFrequency,
         time_slots,
         courts_available,
         team_size: formData.team_size,
@@ -277,6 +294,8 @@ export function useLeagueForm() {
         ...(formData.courts_per_time_slot && { courts_per_time_slot: formData.courts_per_time_slot }),
         ...(formData.venues && formData.venues.length > 0 && { venues: formData.venues })
       };
+      
+      console.log('📦 Final payload:', JSON.stringify(payload, null, 2));
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leagues/createLeague`, {
         method: 'POST',

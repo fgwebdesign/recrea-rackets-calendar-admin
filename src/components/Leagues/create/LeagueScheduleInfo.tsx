@@ -1,29 +1,30 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CalendarIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { CategoryDayAssignment } from './CategoryDayAssignment';
 import { Category } from '@/hooks/useCategories';
 import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useCourts } from '@/hooks/useCourts';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { LeagueFormData } from '@/hooks/useLeagueForm';
 
-const FREQUENCIES = ['Semanal', 'Quincenal', 'Mensual'];
+const FREQUENCIES = [
+  { value: 'semanal', label: 'Semanal' },
+  { value: 'quincenal', label: 'Quincenal' },
+  { value: 'mensual', label: 'Mensual' }
+];
 
 interface LeagueScheduleInfoProps {
-  formData: {
-    start_date: string;
-    end_date: string;
-    frequency: string;
-    days_of_week: string[];
-    categories: string[];
-    team_size: number;
-    category_days: Record<string, string>;
-  };
-  setFormData: (data: any) => void;
-  onSubmit: (data: any) => void;
+  formData: LeagueFormData;
+  setFormData: (data: LeagueFormData) => void;
+  onSubmit: (data: LeagueFormData) => void;
   onBack: () => void;
   categories: Category[];
 }
@@ -64,7 +65,21 @@ function calculateMinimumDays(teamSize: number, frequency: string): number {
   }
 }
 
-// Agregar función helper para manejar fechas
+// Funciones helper para manejar fechas sin problemas de zona horaria
+function parseDateString(dateStr: string): Date {
+  // Parsear fecha en formato YYYY-MM-DD sin problemas de zona horaria
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function formatDateToString(date: Date): string {
+  // Formatear fecha a YYYY-MM-DD sin problemas de zona horaria
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function adjustDateToUruguay(date: Date): Date {
   // Crear fecha en timezone Uruguay (UTC-3)
   const uruguayOffset = -3 * 60; // offset en minutos
@@ -76,7 +91,7 @@ function adjustDateToUruguay(date: Date): Date {
 }
 
 function formatDateForInput(date: Date): string {
-  return date.toISOString().split('T')[0];
+  return formatDateToString(date);
 }
 
 export function LeagueScheduleInfo({
@@ -92,12 +107,13 @@ export function LeagueScheduleInfo({
 
   useEffect(() => {
     fetchCourts();
-  }, []);
+  }, [fetchCourts]);
 
   const handleDaysAssigned = (categoryDays: Record<string, string[]>) => {
     // Convertir el objeto de días por categoría a un formato más simple
     const categoryPlayDays = Object.entries(categoryDays).reduce((acc, [categoryId, days]) => {
       if (days && days.length > 0) {
+        
         acc[categoryId] = days[0];
       }
       return acc;
@@ -140,6 +156,7 @@ export function LeagueScheduleInfo({
         });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.start_date, formData.team_size, formData.frequency]);
 
   // Validar el formulario antes de enviar
@@ -240,7 +257,13 @@ export function LeagueScheduleInfo({
             />
             <Select
               value={formData.frequency}
-              onValueChange={(value) => setFormData({ ...formData, frequency: value })}
+              onValueChange={(value) => {
+                const validFrequency: 'semanal' | 'quincenal' | 'mensual' = 
+                  (value === 'semanal' || value === 'quincenal' || value === 'mensual')
+                    ? value
+                    : 'quincenal';
+                setFormData({ ...formData, frequency: validFrequency });
+              }}
             >
               <SelectTrigger
                 id="frequency"
@@ -250,8 +273,8 @@ export function LeagueScheduleInfo({
               </SelectTrigger>
               <SelectContent className="dark:bg-slate-800 border-slate-200 dark:border-slate-700">
                 {FREQUENCIES.map((freq) => (
-                  <SelectItem key={freq} value={freq} className="dark:hover:bg-slate-700">
-                    {freq}
+                  <SelectItem key={freq.value} value={freq.value} className="dark:hover:bg-slate-700">
+                    {freq.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -266,13 +289,43 @@ export function LeagueScheduleInfo({
                 label="Fecha de Inicio"
                 tooltip="Selecciona la fecha de inicio de la liga"
               />
-              <Input
-                type="date"
-                id="start_date"
-                value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                className="bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:border-primary"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600",
+                      !formData.start_date && "text-muted-foreground"
+                    )}
+                  >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.start_date ? (
+                        format(parseDateString(formData.start_date), "PPP", { locale: es })
+                      ) : (
+                        <span>Selecciona una fecha</span>
+                      )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.start_date ? parseDateString(formData.start_date) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        const dateStr = formatDateToString(date);
+                        setFormData({ ...formData, start_date: dateStr });
+                      }
+                    }}
+                    disabled={(date) => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      return date < today;
+                    }}
+                    initialFocus
+                    locale={es}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div>
@@ -284,22 +337,51 @@ export function LeagueScheduleInfo({
                   'Selecciona primero la fecha de inicio'
                 }
               />
-              <div className="relative">
-                <Input
-                  type="date"
-                  id="end_date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                  className={`
-                    bg-transparent dark:bg-slate-800/50 
-                    border-slate-200 dark:border-slate-700 
-                    hover:border-slate-300 dark:hover:border-slate-600 
-                    focus:border-primary
-                    ${suggestedEndDate && formData.end_date !== suggestedEndDate ? 'border-yellow-400' : ''}
-                  `}
-                />
+              <div className="space-y-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600",
+                        !formData.end_date && "text-muted-foreground",
+                        suggestedEndDate && formData.end_date !== suggestedEndDate && "border-yellow-400"
+                      )}
+                      disabled={!formData.start_date}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.end_date ? (
+                        format(parseDateString(formData.end_date), "PPP", { locale: es })
+                      ) : (
+                        <span>Selecciona una fecha</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.end_date ? parseDateString(formData.end_date) : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          const dateStr = formatDateToString(date);
+                          setFormData({ ...formData, end_date: dateStr });
+                        }
+                      }}
+                      disabled={(date) => {
+                        if (!formData.start_date) return true;
+                        const startDate = parseDateString(formData.start_date);
+                        startDate.setHours(0, 0, 0, 0);
+                        const compareDate = new Date(date);
+                        compareDate.setHours(0, 0, 0, 0);
+                        return compareDate < startDate;
+                      }}
+                      initialFocus
+                      locale={es}
+                    />
+                  </PopoverContent>
+                </Popover>
                 {suggestedEndDate && formData.end_date !== suggestedEndDate && (
-                  <div className="absolute -bottom-6 left-0 text-xs text-yellow-600 dark:text-yellow-400">
+                  <div className="text-xs text-yellow-600 dark:text-yellow-400">
                     Fecha sugerida: {formatDisplayDate(suggestedEndDate)}
                   </div>
                 )}

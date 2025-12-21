@@ -267,6 +267,7 @@ const translations: Record<Locale, Record<string, any>> = {
     // Modal de agregar
     addNewCourt: 'Añadir nueva cancha',
     editCourt: 'Editar cancha',
+    editCourtDescription: 'Modifica el nombre, la sede y la foto de la cancha',
     // Campos del formulario
     courtName: 'Nombre de la cancha',
     courtNamePlaceholder: 'Ingresa el nombre de la cancha',
@@ -364,6 +365,7 @@ const translations: Record<Locale, Record<string, any>> = {
     courtsSelectedSummary: 'cancha(s) seleccionadas',
     // Court modal
     createVenueFirst: 'Primero debes crear una sede en la pestaña "Sedes"',
+    selectVenue: 'Selecciona una sede',
     // Form sections
     basicInfo: 'Información Básica',
     location: 'Ubicación',
@@ -1053,6 +1055,7 @@ const translations: Record<Locale, Record<string, any>> = {
     // Modal de agregar
     addNewCourt: 'Add new court',
     editCourt: 'Edit court',
+    editCourtDescription: 'Modify the name, venue and photo of the court',
     // Campos del formulario
     courtName: 'Court name',
     courtNamePlaceholder: 'Enter court name',
@@ -1150,6 +1153,7 @@ const translations: Record<Locale, Record<string, any>> = {
     courtsSelectedSummary: 'court(s) selected',
     // Court modal
     createVenueFirst: 'You must first create a venue in the "Venues" tab',
+    selectVenue: 'Select a venue',
     // Form sections
     basicInfo: 'Basic Information',
     location: 'Location',

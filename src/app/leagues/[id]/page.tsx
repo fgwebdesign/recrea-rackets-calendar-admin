@@ -1,32 +1,27 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { LeagueScheduleCard } from "@/components/Dashboard/LeagueScheduleCard"
 import { useCategories } from "@/hooks/useCategories"
 import { useLeague } from "@/hooks/useLeague"
-import { useStandings } from "@/hooks/useStandings"
+import { useLeagueStandings } from "@/hooks/useLeagueStandings"
 import { useGallery } from "@/hooks/useGallery"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import * as Collapsible from "@radix-ui/react-collapsible"
 import { GalleryUploadForm } from "@/components/Leagues/Gallery/GalleryUploadForm"
 import { GalleryGrid } from "@/components/Leagues/Gallery/GalleryGrid"
 import { 
-  ArrowLeft, 
   CalendarDays, 
   Clock, 
   DollarSign, 
   FileText, 
   Trophy,
-  Users2,
   ChevronDown,
   Image as ImageIcon
 } from 'lucide-react'
-import { CategoryStandings } from "@/components/Dashboard/CategoryStandings"
 import { useToast } from "@/components/ui/use-toast"
 import { LeagueTeams } from '@/components/Leagues/LeagueTeams'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { LeagueHeader } from "@/components/Leagues/LeagueHeader"
 
 // Definir la interfaz Team con la estructura exacta del backend
@@ -45,24 +40,6 @@ interface RegisteredTeam {
   };
 }
 
-interface League {
-  id: string;
-  name: string;
-  description?: string;
-  category_id: string;
-  status: string;
-  team_size: number;
-  start_date: string;
-  end_date: string;
-  inscription_cost: number;
-  points_for_win: number;
-  points_for_loss: number;
-  points_for_loss_with_set: number;
-  points_for_walkover?: number;
-  teams: RegisteredTeam[];
-  matches?: any[];
-}
-
 export default function LeagueDetailsPage() {
   const params = useParams()
   const router = useRouter()
@@ -74,9 +51,7 @@ export default function LeagueDetailsPage() {
 
   const { league, isLoading: isLoadingLeague, error: leagueError } = useLeague(leagueId)
   const { categories, isLoading: isLoadingCategories } = useCategories()
-  const { standings, isLoading: isLoadingStandings, error: standingsError } = useStandings(
-    league?.category_id // Usar el category_id de la liga
-  )
+  const { standings, isLoading: isLoadingStandings, error: standingsError } = useLeagueStandings(leagueId)
 
   const [isTeamsOpen, setIsTeamsOpen] = useState(true)
   const [isInfoOpen, setIsInfoOpen] = useState(true)
@@ -94,7 +69,7 @@ export default function LeagueDetailsPage() {
     total
   } = useGallery(leagueId)
 
-  if (isLoadingLeague || isLoadingCategories || isLoadingStandings) {
+  if (isLoadingLeague || isLoadingCategories) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-[#0B1120] flex justify-center items-center">
         <Card className="w-[300px] bg-white dark:bg-[#0E1629] border-gray-200 dark:border-gray-700/50">
@@ -145,7 +120,6 @@ export default function LeagueDetailsPage() {
     )
   }
 
-  const category = categories?.find(cat => cat.id === league.category_id)
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0B1120]">
@@ -181,7 +155,7 @@ export default function LeagueDetailsPage() {
                   <LeagueTeams
                     teams={(league.teams || []).map(team => ({
                       ...team,
-                      alternate_player: (team as any).alternate_player || ''
+                      alternate_player: (team as RegisteredTeam).alternate_player || ''
                     }))}
                     maxTeams={league.team_size}
                     status={league.status}
@@ -207,7 +181,7 @@ export default function LeagueDetailsPage() {
 
                             setIsGeneratingLeague(true);
                             // Mostrar toast de estado "generando"
-                            const loadingToast = toast({
+                            toast({
                               title: "Generando liga...",
                               description: "Por favor espera mientras se generan los partidos y se envían las notificaciones",
                               variant: "default",
@@ -456,13 +430,94 @@ export default function LeagueDetailsPage() {
               </Collapsible.Trigger>
               <Collapsible.Content>
                 <CardContent className="p-6">
-                  <CategoryStandings
-                    categories={categories}
-                    selectedCategory={category?.id || ''}
-                    onCategoryChange={() => {}}
-                    standings={standings}
-                    isLoading={isLoadingStandings}
-                  />
+                  {isLoadingStandings ? (
+                    <div className="flex flex-col items-center justify-center p-8 space-y-4 bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">
+                        Cargando tabla de posiciones...
+                      </p>
+                    </div>
+                  ) : standingsError ? (
+                    <div className="text-center p-8 bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                      <p className="text-red-500 dark:text-red-400">
+                        Error al cargar las posiciones: {standingsError}
+                      </p>
+                    </div>
+                  ) : !standings || standings.length === 0 ? (
+                    <div className="text-center p-8 bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                      <div className="text-red-500 dark:text-red-400 mb-2">
+                        <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                        Sin posiciones disponibles
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                        No hay datos disponibles para esta liga. Genera los partidos para ver las posiciones.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="w-full overflow-x-auto rounded-lg bg-white dark:bg-gray-900 p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pos</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Equipo</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PJ</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PG</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PP</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">JG</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">JP</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">DJ</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {standings.map((standing, index) => (
+                            <tr 
+                              key={standing.id}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                            >
+                              <td className="px-4 py-4 whitespace-nowrap text-2xl font-bold font-orbitron text-green-600 dark:text-green-400">
+                                {index + 1}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
+                                {standing.team ? 
+                                  `${standing.team.player1.first_name} ${standing.team.player1.last_name} - 
+                                   ${standing.team.player2.first_name} ${standing.team.player2.last_name}` : 
+                                  'Equipo no disponible'}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-green-600 dark:text-green-400">
+                                {standing.games_played}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-green-600 dark:text-green-400">
+                                {standing.wins}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-red-600 dark:text-red-500">
+                                {standing.losses}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-green-600 dark:text-green-400">
+                                {standing.games_won}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-red-600 dark:text-red-500">
+                                {standing.games_lost}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-green-600 dark:text-green-400">
+                                {(() => {
+                                  const gamesDifference = standing.games_won - standing.games_lost;
+                                  return gamesDifference > 0 ? `+${gamesDifference}` : gamesDifference;
+                                })()}
+                              </td>
+                              <td className="px-4 py-4 whitespace-nowrap text-3xl text-center font-orbitron font-bold text-green-600 dark:text-green-400">
+                                {standing.points}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </CardContent>
               </Collapsible.Content>
             </Card>

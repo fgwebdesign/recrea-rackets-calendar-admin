@@ -16,7 +16,7 @@ export default function CourtsPage() {
   const t = useTranslations('courts');
   const { courts, isLoading, fetchCourts, createCourt, deleteCourt, updateCourt } = useCourts();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingCourt, setEditingCourt] = useState<{ id: string; name: string; photo_url: string } | null>(null);
+  const [editingCourt, setEditingCourt] = useState<{ id: string; name: string; photo_url: string; venue_id?: string } | null>(null);
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     courtId: null as string | null,
@@ -34,7 +34,7 @@ export default function CourtsPage() {
     }
   };
 
-  const handleEdit = (court: { id: string; name: string; photo_url: string }) => {
+  const handleEdit = (court: { id: string; name: string; photo_url: string; venue_id?: string }) => {
     setEditingCourt(court); 
   };
 
@@ -47,7 +47,7 @@ export default function CourtsPage() {
     }
   };
 
-  const handleEditSubmit = async (courtData: { id: string; name: string; photo: File | null }) => {
+  const handleEditSubmit = async (courtData: { id: string; name: string; photo: File | null; venue_id?: string }) => {
     const success = await updateCourt(courtData.id, courtData);
     if (success) {
       setEditingCourt(null);
@@ -85,6 +85,7 @@ export default function CourtsPage() {
                   id={court.id}
                   name={court.name}
                   photo_url={court.photo_url}
+                  venue_id={court.venue_id}
                   onDelete={court => setDeleteModal({
                     isOpen: true,
                     courtId: court.id,

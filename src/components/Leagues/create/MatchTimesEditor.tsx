@@ -136,7 +136,7 @@ export function MatchTimesEditor({
       {matchTimes.length > 0 && (
         <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <p className="font-medium text-blue-800 dark:text-blue-300">
-            📊 Capacidad: {matchTimes.length} horarios × {courtsPerSlot} canchas 
+            Capacidad: {matchTimes.length} horarios × {courtsPerSlot} canchas 
             = <strong>{matchesPerDate} partidos por fecha</strong>
           </p>
         </div>

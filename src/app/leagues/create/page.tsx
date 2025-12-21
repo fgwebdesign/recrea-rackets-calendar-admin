@@ -112,14 +112,16 @@ export default function CreateLeaguePage() {
                   onCourtsChange={(courts) => setFormData({ ...formData, courts_per_time_slot: courts })}
                 />
                 <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
-                  <h3 className="font-bold mb-4">📊 Resumen de la Liga</h3>
+                  <h3 className="font-bold mb-4">Resumen de la Liga</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div><strong>Nombre:</strong> {formData.name}</div>
                     <div><strong>Tipo:</strong> {formData.league_type || 'round_robin'}</div>
                     <div><strong>Categorías:</strong> {formData.categories.length}</div>
                     <div><strong>Sedes:</strong> {formData.venues?.length || 0}</div>
-                    <div><strong>Canchas:</strong> {formData.venues?.reduce((s, v) => s + v.court_ids.length, 0) || 0}</div>
+                    <div><strong>Canchas totales:</strong> {formData.venues?.reduce((s, v) => s + (v.court_ids?.length || 0), 0) || formData.courts_available || 0}</div>
+                    <div><strong>Canchas por horario:</strong> {formData.courts_per_time_slot || 2}</div>
                     <div><strong>Horarios:</strong> {formData.match_times?.join(', ') || 'N/A'}</div>
+                    <div><strong>Frecuencia:</strong> {formData.frequency || 'quincenal'}</div>
                   </div>
                 </div>
                 <div className="flex justify-between mt-6">

@@ -1,11 +1,11 @@
 import { supabase } from '../config/supabaseClient.js'
-import { LEAGUE_STATUS, FIRST_SLOT, SECOND_SLOT, COURTS_PER_TIME } from '../config/index.config.js'
+import { LEAGUE_STATUS } from '../config/index.config.js'
 import { sendLeagueConfirmation, sendMatchesGeneratedNotification } from './invitation.controller.js'
 
-const TIME_INCREMENT_MINUTES = 45;
-
 export async function createLeague(req, res) {
-  console.log('🚀 Starting createLeague with body:', req.body);
+  console.log('🚀 Starting createLeague with body:', JSON.stringify(req.body, null, 2));
+  console.log('📋 Raw frequency value:', req.body.frequency, 'Type:', typeof req.body.frequency);
+  
   const { 
     name, 
     categories, 
@@ -33,8 +33,16 @@ export async function createLeague(req, res) {
     // frequency: 'semanal' | 'quincenal' | 'mensual'
     frequency = 'quincenal'
   } = req.body;
+  
+  // Normalizar frequency a minúsculas
+  const normalizedFrequency = frequency ? frequency.toLowerCase() : 'quincenal';
+  console.log('🔄 Normalized frequency:', normalizedFrequency, 'from:', frequency);
 
   console.log('📅 Category days received:', category_days);
+  console.log('🏢 Venues received:', venues?.length || 0, venues);
+  console.log('⏰ Match times received:', match_times);
+  console.log('🎾 Courts per time slot:', courts_per_time_slot);
+  console.log('🏆 League type:', league_type, 'Rounds:', rounds);
 
   // Validaciones
   if (!name || !Array.isArray(categories) || categories.length === 0) {
@@ -108,11 +116,13 @@ export async function createLeague(req, res) {
   }
 
   const validFrequencies = ['semanal', 'quincenal', 'mensual'];
-  if (!validFrequencies.includes(frequency)) {
-    return res.status(400).json({ message: `frequency inválida. Opciones: ${validFrequencies.join(', ')}` });
+  console.log('🔍 Validating frequency:', { received: normalizedFrequency, valid: validFrequencies });
+  if (!validFrequencies.includes(normalizedFrequency)) {
+    console.error('❌ Invalid frequency:', normalizedFrequency, 'Valid options:', validFrequencies);
+    return res.status(400).json({ message: `frequency inválida. Opciones: ${validFrequencies.join(', ')}. Recibido: ${normalizedFrequency}` });
   }
 
-  console.log('⏰ Configuración de horarios:', { match_times, courts_per_time_slot, league_type, rounds, frequency });
+  console.log('⏰ Configuración de horarios:', { match_times, courts_per_time_slot, league_type, rounds, frequency: normalizedFrequency });
 
   // ===== VALIDACIÓN DE MULTI-SEDE =====
   let validatedVenues = [];
@@ -256,6 +266,7 @@ export async function createLeague(req, res) {
   }
 
   // Crear una liga por cada categoría
+  console.log('📝 Creating leagues for categories:', categories.length, 'categories');
   const leaguesToCreate = categories.map(category_id => ({
     name,
     category_id,
@@ -273,9 +284,10 @@ export async function createLeague(req, res) {
     courts_per_time_slot,  // Canchas por horario: 2
     league_type,           // Tipo: 'round_robin'
     rounds,                // Vueltas: 1 o 2
-    frequency              // Frecuencia: 'quincenal'
+    frequency: normalizedFrequency  // Frecuencia: 'quincenal' (normalizada)
   }));
 
+  console.log('💾 Inserting leagues into database:', leaguesToCreate.length, 'leagues');
   const { data, error } = await supabase
     .from('leagues')
     .insert(leaguesToCreate)
@@ -283,10 +295,12 @@ export async function createLeague(req, res) {
 
   if (error) {
     console.error('❌ Error creating leagues:', error);
+    console.error('❌ Error details:', JSON.stringify(error, null, 2));
     return res.status(500).json({ message: error.message });
   }
 
-  console.log('✅ Leagues created successfully:', data);
+  console.log('✅ Leagues created successfully:', data?.length || 0, 'leagues');
+  console.log('✅ League IDs:', data?.map(l => l.id) || []);
 
   // 🏢 CREAR RELACIONES DE SEDES (MULTI-SEDE)
   if (validatedVenues && validatedVenues.length > 0) {
@@ -334,6 +348,13 @@ export async function createLeague(req, res) {
     
     console.log('✅ Sedes asignadas exitosamente a todas las ligas');
   }
+
+  console.log('🎉 League creation completed successfully!');
+  console.log('📊 Summary:', {
+    leaguesCreated: data?.length || 0,
+    venuesAssigned: validatedVenues.length,
+    totalCourts: totalCourtsFromVenues || courts_available
+  });
 
   res.status(201).json({
     message: 'Ligas creadas exitosamente',
@@ -1003,10 +1024,29 @@ export async function generateStandings(req, res) {
   const playDay = league.category.play_day;
 
   // ====== NUEVO: Usar horarios de la liga (no hardcodeados) ======
-  // Obtener match_times de la liga o usar defaults
-  const matchTimes = league.match_times || ['22:30', '23:15'];
+  let matchTimes = ['21:45','22:30', '23:15', '23:55']; // Default
+  if (league.match_times) {
+    if (typeof league.match_times === 'string') {
+      try {
+        matchTimes = JSON.parse(league.match_times);
+      } catch (e) {
+        console.error('Error parsing match_times JSON:', e);
+        matchTimes = ['21:45','22:30', '23:15', '23:55'];
+      }
+    } else if (Array.isArray(league.match_times)) {
+      matchTimes = league.match_times;
+    }
+  }
+  
+  // Validar que matchTimes sea un array válido
+  if (!Array.isArray(matchTimes) || matchTimes.length === 0) {
+    console.warn('⚠️ match_times inválido, usando defaults');
+    matchTimes = ['21:45','22:30', '23:15', '23:55'];
+  }
+  
   const courtsPerTimeSlot = league.courts_per_time_slot || 2;
-  const leagueFrequency = league.frequency || 'quincenal';
+  // Normalizar frequency a minúsculas para consistencia
+  const leagueFrequency = (league.frequency || 'quincenal').toLowerCase();
   
   console.log('⏰ Configuración de horarios de la liga:', { 
     matchTimes, 
@@ -1015,12 +1055,52 @@ export async function generateStandings(req, res) {
     totalCourts: courts.length
   });
 
+  // ====== NUEVO: Obtener todas las ligas del mismo evento para rotación global de horarios ======
+  // Buscar todas las ligas con el mismo nombre (mismo evento, diferentes categorías)
+  console.log('🔍 Buscando ligas del mismo evento para rotación global de horarios...');
+  const { data: allLeaguesInEvent, error: allLeaguesError } = await supabase
+    .from('leagues')
+    .select('id, name, category_id, created_at')
+    .eq('name', league.name)
+    .order('created_at', { ascending: true }); // Ordenar por fecha de creación para consistencia
+
+  if (allLeaguesError) {
+    console.error('⚠️ Error obteniendo ligas del mismo evento:', allLeaguesError);
+  }
+
+  // Determinar el índice de esta liga en el evento (para rotación de horarios)
+  const leagueIndexInEvent = allLeaguesInEvent?.findIndex(l => l.id === league_id) || 0;
+  const totalLeaguesInEvent = allLeaguesInEvent?.length || 1;
+  
+  console.log(`📊 Liga actual: ${leagueIndexInEvent + 1}/${totalLeaguesInEvent} en el evento "${league.name}"`);
+
+  // ====== NUEVO: Contar partidos ya generados en otras ligas del mismo evento ======
+  // Esto nos permite mantener la rotación global de horarios entre todas las categorías
+  let globalMatchCounter = 0;
+  if (allLeaguesInEvent && allLeaguesInEvent.length > 1) {
+    // Obtener IDs de las ligas que se generaron ANTES que esta (para mantener orden)
+    const previousLeagues = allLeaguesInEvent.slice(0, leagueIndexInEvent);
+    
+    if (previousLeagues.length > 0) {
+      const previousLeagueIds = previousLeagues.map(l => l.id);
+      const { count: previousMatchesCount, error: countError } = await supabase
+        .from('league_matches')
+        .select('id', { count: 'exact', head: true })
+        .in('league_id', previousLeagueIds);
+      
+      if (!countError && previousMatchesCount) {
+        globalMatchCounter = previousMatchesCount;
+        console.log(`📊 Partidos ya generados en otras categorías del evento: ${globalMatchCounter}`);
+      } else if (countError) {
+        console.error('⚠️ Error contando partidos previos:', countError);
+      }
+    }
+  }
+
   // Preparar las fechas y horarios
   let currentMatchDate = getNextDayOccurrence(league.start_date, league.category.play_day, false);
   const matches = [];
   let matchNumber = 1;
-  let courtIndex = 0;
-  let timeSlotIndex = 0; // Índice del horario actual en matchTimes
 
   // Calcular cuántos partidos caben por fecha (horarios × canchas por horario)
   const matchesPerDate = matchTimes.length * courtsPerTimeSlot;
@@ -1031,14 +1111,26 @@ export async function generateStandings(req, res) {
   // Limitar canchas si hay menos disponibles que courts_per_time_slot
   const effectiveCourtsPerSlot = Math.min(courtsPerTimeSlot, courts.length);
 
+  // ====== NUEVO: Rastrear distribución de horarios por equipo para equidad ======
+  // Mapa: teamId -> { '22:30': count, '23:15': count, ... }
+  const teamTimeDistribution = {};
+  teamIds.forEach(teamId => {
+    teamTimeDistribution[teamId] = {};
+    matchTimes.forEach(time => {
+      teamTimeDistribution[teamId][time] = 0;
+    });
+  });
+
   // Generar los partidos para cada ronda
   schedule.forEach((round, roundIndex) => {
     console.log(`Processing round ${roundIndex + 1}`);
     let matchesInCurrentDate = 0;
-    timeSlotIndex = 0;
-    courtIndex = 0;
+    // Contador de partidos por horario dentro de la fecha actual
+    const matchesPerTimeSlot = {}; // { '22:30': 0, '23:15': 0, ... }
+    // Contador de horarios usados en la fecha actual para rotación dentro de la fecha
+    let timeSlotRotationIndex = 0;
 
-    round.forEach(([team1Id, team2Id], matchIndex) => {
+    round.forEach(([team1Id, team2Id]) => {
       const leagueTeam1Id = leagueTeamIdMap.get(team1Id);
       const leagueTeam2Id = leagueTeamIdMap.get(team2Id);
 
@@ -1051,29 +1143,103 @@ export async function generateStandings(req, res) {
           leagueFrequency
         );
         matchesInCurrentDate = 0;
-        timeSlotIndex = 0;
-        courtIndex = 0;
+        timeSlotRotationIndex = 0;
+        // Reiniciar contadores por horario al cambiar de fecha
+        matchTimes.forEach(time => {
+          matchesPerTimeSlot[time] = 0;
+        });
       }
 
-      // ====== NUEVA LÓGICA: Usar horarios de la liga ======
-      // Calcular el horario basado en matchTimes de la liga
-      timeSlotIndex = Math.floor(matchesInCurrentDate / effectiveCourtsPerSlot) % matchTimes.length;
-      const matchTime = matchTimes[timeSlotIndex];
+      // ====== NUEVA LÓGICA: Distribución equitativa de horarios dentro de la liga ======
+      // Priorizar el horario que minimiza la diferencia de distribución para cada equipo individualmente
+      // Esto asegura que cada equipo tenga distribución equitativa (3-4 partidos a cada horario)
       
-      // Calcular índice de cancha dentro del slot de tiempo actual
-      courtIndex = matchesInCurrentDate % effectiveCourtsPerSlot;
-      const court = courts[courtIndex % courts.length];
+      let bestTime = matchTimes[0];
+      let bestScore = Infinity;
+
+      matchTimes.forEach(time => {
+        const team1Count = teamTimeDistribution[team1Id][time] || 0;
+        const team2Count = teamTimeDistribution[team2Id][time] || 0;
+        
+        // Obtener el otro horario
+        const otherTime = time === matchTimes[0] ? matchTimes[1] : matchTimes[0];
+        const team1OtherCount = teamTimeDistribution[team1Id][otherTime] || 0;
+        const team2OtherCount = teamTimeDistribution[team2Id][otherTime] || 0;
+        
+        // Calcular distribución después de asignar este horario
+        const team1After = team1Count + 1;
+        const team2After = team2Count + 1;
+        
+        // Calcular la diferencia de distribución para cada equipo después de esta asignación
+        // Queremos minimizar esta diferencia (idealmente 0 o 1)
+        const team1DiffAfter = Math.abs(team1After - team1OtherCount);
+        const team2DiffAfter = Math.abs(team2After - team2OtherCount);
+        
+        // Score: priorizar horarios que minimizan la diferencia de distribución
+        // Penalizar más las diferencias grandes (elevar al cuadrado)
+        const score = (team1DiffAfter * team1DiffAfter) + (team2DiffAfter * team2DiffAfter);
+        
+        if (score < bestScore) {
+          bestScore = score;
+          bestTime = time;
+        }
+      });
+
+      // 3. Si hay empate, usar rotación dentro de la fecha para alternar
+      const candidatesWithBestScore = matchTimes.filter(time => {
+        const team1Count = teamTimeDistribution[team1Id][time] || 0;
+        const team2Count = teamTimeDistribution[team2Id][time] || 0;
+        const otherTime = time === matchTimes[0] ? matchTimes[1] : matchTimes[0];
+        const team1OtherCount = teamTimeDistribution[team1Id][otherTime] || 0;
+        const team2OtherCount = teamTimeDistribution[team2Id][otherTime] || 0;
+        const team1DiffAfter = Math.abs((team1Count + 1) - team1OtherCount);
+        const team2DiffAfter = Math.abs((team2Count + 1) - team2OtherCount);
+        const score = (team1DiffAfter * team1DiffAfter) + (team2DiffAfter * team2DiffAfter);
+        return score === bestScore;
+      });
+
+      // Si hay múltiples candidatos con el mismo score, usar rotación dentro de la fecha
+      if (candidatesWithBestScore.length > 1) {
+        bestTime = candidatesWithBestScore[timeSlotRotationIndex % candidatesWithBestScore.length];
+        timeSlotRotationIndex++;
+      }
+
+      const matchTime = bestTime;
+      
+      // 4. Actualizar distribución de horarios para ambos equipos
+      teamTimeDistribution[team1Id][matchTime] = (teamTimeDistribution[team1Id][matchTime] || 0) + 1;
+      teamTimeDistribution[team2Id][matchTime] = (teamTimeDistribution[team2Id][matchTime] || 0) + 1;
+      
+      // 5. Mantener contador global para referencia (pero no usarlo para asignación)
+      globalMatchCounter++;
+      
+      // ====== CORRECCIÓN: Calcular índice de cancha dentro del horario específico ======
+      // Inicializar contador para este horario si no existe
+      if (matchesPerTimeSlot[matchTime] === undefined) {
+        matchesPerTimeSlot[matchTime] = 0;
+      }
+      
+      // Asignar cancha basándose en cuántos partidos ya hay en este horario específico
+      // Esto evita conflictos: cada horario tiene sus propias canchas asignadas secuencialmente
+      const courtIndexForTimeSlot = matchesPerTimeSlot[matchTime] % effectiveCourtsPerSlot;
+      const court = courts[courtIndexForTimeSlot % courts.length];
+      
+      // Incrementar contador para este horario
+      matchesPerTimeSlot[matchTime]++;
       
       // ====== NUEVO: Obtener venue_id de la cancha ======
       const venueId = venueCourtMap.get(court.id) || null;
       
-      console.log(`🏸 Match scheduling details:
+      console.log(`🏸 Match scheduling details (DISTRIBUCIÓN EQUITATIVA):
         - Round: ${roundIndex + 1}
         - Date: ${currentMatchDate}
-        - Time: ${matchTime} (slot ${timeSlotIndex + 1}/${matchTimes.length})
-        - Court: ${court.name} (index ${courtIndex})
+        - Time: ${matchTime} (asignado para equidad entre equipos)
+        - Team1 (${team1Id}): ${teamTimeDistribution[team1Id][matchTime]} partidos a ${matchTime}
+        - Team2 (${team2Id}): ${teamTimeDistribution[team2Id][matchTime]} partidos a ${matchTime}
+        - Court: ${court.name} (index ${courtIndexForTimeSlot} para horario ${matchTime}, total en este horario: ${matchesPerTimeSlot[matchTime]})
         - Venue: ${venueId || 'N/A'}
         - Teams: ${team1Id} vs ${team2Id}
+        - Category: ${league.category?.name || league.category_id}
       `);
 
       matches.push({
@@ -1113,6 +1279,8 @@ export async function generateStandings(req, res) {
     );
     matchNumber++;
   });
+  
+  console.log(`🔄 Contador global de partidos después de esta liga: ${globalMatchCounter}`);
 
   console.log(`✅ Total matches generated: ${matches.length}`);
   console.log('📊 Court assignment summary:');
@@ -1121,6 +1289,18 @@ export async function generateStandings(req, res) {
     return acc;
   }, {});
   console.log(courtUsage);
+
+  // ====== NUEVO: Mostrar distribución de horarios por equipo ======
+  console.log('\n📊 Distribución de horarios por equipo (EQUIDAD):');
+  teamIds.forEach(teamId => {
+    const totalMatches = Object.values(teamTimeDistribution[teamId]).reduce((sum, count) => sum + count, 0);
+    const distribution = matchTimes.map(time => {
+      const count = teamTimeDistribution[teamId][time] || 0;
+      const percentage = totalMatches > 0 ? ((count / totalMatches) * 100).toFixed(1) : '0.0';
+      return `${time}: ${count} (${percentage}%)`;
+    }).join(', ');
+    console.log(`   Equipo ${teamId}: ${distribution} | Total: ${totalMatches} partidos`);
+  });
 
   console.log('Inserting matches into database...');
   const { error: matchesError } = await supabase
@@ -2288,33 +2468,6 @@ export async function updateLeague(req, res) {
     message: 'Liga actualizada exitosamente',
     league: updatedLeague
   });
-}
-
-// Función para formatear la hora
-function formatTime(timeStr) {
-  // Siempre empezar con el primer turno (22:30)
-  return FIRST_SLOT;
-}
-
-function addHoursToTime(timeStr, matchIndex, roundIndex) {
-  // NUEVA LÓGICA: Alternar horarios dentro de cada fecha
-  // y cambiar horarios de equipos entre fechas
-  
-  // Determinar el slot basado en el índice del partido dentro de la fecha
-  const isEvenMatch = matchIndex % 2 === 0;
-  const isEvenRound = roundIndex % 2 === 0;
-  
-  // LÓGICA MEJORADA:
-  // - Dentro de cada fecha: alternar entre 22:30 y 23:15
-  // - Entre fechas: invertir el patrón para que los equipos cambien de horario
-  
-  if (isEvenRound) {
-    // Fechas pares (0, 2, 4...): Partido 0 = 22:30, Partido 1 = 23:15, etc.
-    return isEvenMatch ? FIRST_SLOT : SECOND_SLOT;
-  } else {
-    // Fechas impares (1, 3, 5...): Partido 0 = 23:15, Partido 1 = 22:30, etc.
-    return isEvenMatch ? SECOND_SLOT : FIRST_SLOT;
-  }
 }
 
 // Implementación del algoritmo Round Robin
