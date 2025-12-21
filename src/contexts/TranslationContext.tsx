@@ -363,7 +363,13 @@ const translations: Record<Locale, Record<string, any>> = {
     venuesSelected: 'sede(s)',
     courtsSelectedSummary: 'cancha(s) seleccionadas',
     // Court modal
-    createVenueFirst: 'Primero debes crear una sede en la pestaña "Sedes"'
+    createVenueFirst: 'Primero debes crear una sede en la pestaña "Sedes"',
+    // Form sections
+    basicInfo: 'Información Básica',
+    location: 'Ubicación',
+    contactInfo: 'Información de Contacto',
+    descriptionSection: 'Descripción',
+    options: 'Opciones'
   },
   // Tournaments
   tournaments: {
@@ -1143,7 +1149,13 @@ const translations: Record<Locale, Record<string, any>> = {
     venuesSelected: 'venue(s)',
     courtsSelectedSummary: 'court(s) selected',
     // Court modal
-    createVenueFirst: 'You must first create a venue in the "Venues" tab'
+    createVenueFirst: 'You must first create a venue in the "Venues" tab',
+    // Form sections
+    basicInfo: 'Basic Information',
+    location: 'Location',
+    contactInfo: 'Contact Information',
+    descriptionSection: 'Description',
+    options: 'Options'
   },
   // Tournaments
   tournaments: {

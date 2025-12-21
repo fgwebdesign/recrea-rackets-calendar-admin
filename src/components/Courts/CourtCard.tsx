@@ -7,8 +7,9 @@ interface CourtCardProps {
   id: string;
   name: string;
   photo_url: string;
+  venue_id?: string;
   onDelete: (court: { id: string; name: string }) => void;
-  onEdit: (court: { id: string; name: string; photo_url: string }) => void;
+  onEdit: (court: { id: string; name: string; photo_url: string; venue_id?: string }) => void;
 }
 
 const DEFAULT_COURT_IMAGE = '/assets/default-court.jpg';
@@ -23,7 +24,7 @@ function getImageUrl(photoUrl: string | null) {
   }
 }
 
-export default function CourtCard({ id, name, photo_url, onDelete, onEdit }: CourtCardProps) {
+export default function CourtCard({ id, name, photo_url, venue_id, onDelete, onEdit }: CourtCardProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-200 dark:border-gray-700">
       <div className="relative h-48">
@@ -46,7 +47,7 @@ export default function CourtCard({ id, name, photo_url, onDelete, onEdit }: Cou
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{name}</h3>
           <div className="flex space-x-2">
             <button
-              onClick={() => onEdit({ id, name, photo_url })}
+              onClick={() => onEdit({ id, name, photo_url, venue_id })}
               className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             >
               <Pencil className="h-5 w-5" />

@@ -3,31 +3,38 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageIcon } from "lucide-react";
 import { useTranslations } from '@/contexts/TranslationContext';
+import { useVenues } from "@/hooks/useVenues";
 
 interface EditCourtModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { id: string; name: string; photo: File | null }) => Promise<void>;
+  onSubmit: (data: { id: string; name: string; photo: File | null; venue_id?: string }) => Promise<void>;
   court: {
     id: string;
     name: string;
     photo_url: string;
+    venue_id?: string;
   } | null;
 }
 
 export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: EditCourtModalProps) {
   const t = useTranslations('courts');
+  const tVenues = useTranslations('venues');
+  const { venues, loading: loadingVenues } = useVenues({ includeCourts: false });
   const [name, setName] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [venueId, setVenueId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (court) {
       setName(court.name);
       setPreviewUrl(court.photo_url);
+      setVenueId(court.venue_id || '');
     }
   }, [court]);
 
@@ -35,6 +42,7 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
     setName('');
     setPhoto(null);
     setPreviewUrl('');
+    setVenueId('');
     onClose();
   };
 
@@ -47,7 +55,8 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
       await onSubmit({
         id: court.id,
         name,
-        photo
+        photo,
+        venue_id: venueId || undefined
       });
       handleClose();
     } finally {
@@ -90,6 +99,29 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
               required
               className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="venue" className="text-gray-700 dark:text-gray-300">
+              {tVenues('venueName')}
+            </Label>
+            <Select
+              value={venueId}
+              onValueChange={setVenueId}
+              disabled={isSubmitting || loadingVenues}
+            >
+              <SelectTrigger className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700">
+                <SelectValue placeholder={tVenues('countryPlaceholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">{tVenues('allVenues')}</SelectItem>
+                {venues.map((venue) => (
+                  <SelectItem key={venue.id} value={venue.id}>
+                    {venue.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

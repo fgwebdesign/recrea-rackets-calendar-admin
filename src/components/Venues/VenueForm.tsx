@@ -279,7 +279,7 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
           <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-xl p-5 border border-blue-100 dark:border-blue-800/50">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <span className="h-1 w-1 rounded-full bg-blue-500"></span>
-              Información Básica
+              {t('basicInfo')}
             </h3>
             
             <div className="space-y-5">
@@ -319,7 +319,7 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
           <div className="bg-green-50/50 dark:bg-green-900/10 rounded-xl p-5 border border-green-100 dark:border-green-800/50">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <span className="h-1 w-1 rounded-full bg-green-500"></span>
-              Ubicación
+              {t('location')}
             </h3>
             
             <div className="space-y-5">
@@ -505,7 +505,7 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
           <div className="bg-purple-50/50 dark:bg-purple-900/10 rounded-xl p-5 border border-purple-100 dark:border-purple-800/50">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <span className="h-1 w-1 rounded-full bg-purple-500"></span>
-              Información de Contacto
+              {t('contactInfo')}
             </h3>
             
             <div className="grid grid-cols-2 gap-4">
@@ -541,7 +541,7 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
           <div className="bg-amber-50/50 dark:bg-amber-900/10 rounded-xl p-5 border border-amber-100 dark:border-amber-800/50">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <span className="h-1 w-1 rounded-full bg-amber-500"></span>
-              Descripción
+              {t('descriptionSection')}
             </h3>
             
             <div>

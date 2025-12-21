@@ -113,6 +113,9 @@ export function useCourts() {
 
       const formData = new FormData();
       formData.append('name', courtData.name);
+      if (courtData.venue_id) {
+        formData.append('venue_id', courtData.venue_id);
+      }
       if (courtData.photo) {
         formData.append('file', courtData.photo);
       }
