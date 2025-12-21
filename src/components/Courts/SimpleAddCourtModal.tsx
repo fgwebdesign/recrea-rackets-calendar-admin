@@ -1,25 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ImageIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 import { useTranslations } from '@/contexts/TranslationContext';
+import { useVenues } from "@/hooks/useVenues";
 
 interface SimpleAddCourtModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { name: string; photo: File | null }) => void;
+  onSubmit: (data: { name: string; photo: File | null; venue_id?: string }) => void;
 }
 
 export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: SimpleAddCourtModalProps) {
   const t = useTranslations('courts');
+  const { venues, loading: loadingVenues } = useVenues({ includeCourts: false });
   const [formData, setFormData] = useState({
     name: "",
-    photo: null as File | null
+    photo: null as File | null,
+    venue_id: ""
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,7 +56,11 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
         throw new Error(t('nameAndPhotoRequired'));
       }
 
-      await onSubmit(formData);
+      await onSubmit({
+        name: formData.name,
+        photo: formData.photo,
+        venue_id: formData.venue_id || undefined
+      });
       handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('errorCreatingCourt'));
@@ -67,7 +75,7 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
   };
 
   const handleClose = () => {
-    setFormData({ name: "", photo: null });
+    setFormData({ name: "", photo: null, venue_id: "" });
     setPreviewUrl(null);
     setError("");
     onClose();
@@ -90,6 +98,36 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
               placeholder={t('courtNamePlaceholder')}
               className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
             />
+          </div>
+
+          <div>
+            <Label htmlFor="venue_id" className="text-gray-700 dark:text-gray-300">Sede *</Label>
+            <Select
+              value={formData.venue_id}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, venue_id: value }))}
+            >
+              <SelectTrigger className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600">
+                <SelectValue placeholder="Selecciona una sede" />
+              </SelectTrigger>
+              <SelectContent>
+                {loadingVenues ? (
+                  <SelectItem value="loading" disabled>Cargando sedes...</SelectItem>
+                ) : venues.length === 0 ? (
+                  <SelectItem value="none" disabled>No hay sedes disponibles</SelectItem>
+                ) : (
+                  venues.map((venue) => (
+                    <SelectItem key={venue.id} value={venue.id}>
+                      {venue.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {venues.length === 0 && !loadingVenues && (
+              <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">
+                ⚠️ Primero debes crear una sede en la pestaña "Sedes"
+              </p>
+            )}
           </div>
 
           <div>

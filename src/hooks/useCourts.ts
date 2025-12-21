@@ -5,6 +5,7 @@ import { Court } from '@/types/court';
 interface CreateCourtData {
   name: string;
   photo: File | null;
+  venue_id?: string;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -60,6 +61,9 @@ export function useCourts() {
 
       const formData = new FormData();
       formData.append('name', courtData.name);
+      if (courtData.venue_id) {
+        formData.append('venue_id', courtData.venue_id);
+      }
       
       const sanitizedFile = new File(
         [courtData.photo],

@@ -314,6 +314,70 @@ export function LeagueBasicInfo({ formData, setFormData, categories = [], onSubm
             </div>
           </div>
 
+          {/* Nuevos campos: Tipo de liga y vueltas */}
+          <div className="space-y-5 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div>
+              <LabelWithTooltip
+                label="Tipo de Competencia"
+                tooltip="Selecciona el formato de competencia para la liga"
+              />
+              <div className="grid grid-cols-1 gap-3 mt-2">
+                {[
+                  { value: 'round_robin', label: 'Todos contra todos (Round Robin)', desc: 'Cada equipo juega contra todos los demás' },
+                  { value: 'knockout', label: 'Eliminación directa', desc: 'El perdedor queda eliminado' },
+                  { value: 'groups', label: 'Fase de grupos + Playoffs', desc: 'Grupos clasificatorios y luego eliminatorias' },
+                  { value: 'custom', label: 'Personalizado', desc: 'Configuración manual de partidos' }
+                ].map(type => (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, league_type: type.value as any })}
+                    className={`p-3 rounded-lg border-2 text-left transition-all ${
+                      formData.league_type === type.value
+                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/20'
+                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="font-medium text-slate-700 dark:text-slate-300">{type.label}</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">{type.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {formData.league_type === 'round_robin' && (
+              <div>
+                <LabelWithTooltip
+                  label="Vueltas"
+                  tooltip="Define si se juega solo ida o ida y vuelta"
+                />
+                <div className="flex gap-4 mt-2">
+                  {[1, 2].map(rounds => (
+                    <button
+                      key={rounds}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, rounds: rounds as 1 | 2 })}
+                      className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                        formData.rounds === rounds
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/20'
+                          : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="font-medium text-slate-700 dark:text-slate-300">
+                        {rounds === 1 ? 'Solo Ida' : 'Ida y Vuelta'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  ℹ️ Con {formData.team_size} equipos: {formData.rounds === 1 
+                    ? `${formData.team_size - 1} fechas` 
+                    : `${(formData.team_size - 1) * 2} fechas`}
+                </p>
+              </div>
+            )}
+          </div>
+
           <div className="pt-4 flex justify-end">
             <Button onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
               Continuar

@@ -21,7 +21,9 @@ CREATE TABLE public.courts (
   photo_url text,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
-  CONSTRAINT courts_pkey PRIMARY KEY (id)
+  venue_id uuid,
+  CONSTRAINT courts_pkey PRIMARY KEY (id),
+  CONSTRAINT courts_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id)
 );
 CREATE TABLE public.league_gallery (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -61,6 +63,7 @@ CREATE TABLE public.league_matches (
   team1_tie3_won integer,
   team2_tie3_won integer,
   court_id uuid,
+  venue_id uuid,
   CONSTRAINT league_matches_pkey PRIMARY KEY (id),
   CONSTRAINT league_matches_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id),
   CONSTRAINT league_matches_walkover_team_id_fkey FOREIGN KEY (walkover_team_id) REFERENCES public.teams(id),
@@ -68,7 +71,8 @@ CREATE TABLE public.league_matches (
   CONSTRAINT league_matches_league_team2_id_fkey FOREIGN KEY (league_team2_id) REFERENCES public.league_teams(id),
   CONSTRAINT league_matches_league_team1_id_fkey FOREIGN KEY (league_team1_id) REFERENCES public.league_teams(id),
   CONSTRAINT league_matches_league_id_fkey FOREIGN KEY (league_id) REFERENCES public.leagues(id),
-  CONSTRAINT league_matches_court_id_fkey FOREIGN KEY (court_id) REFERENCES public.courts(id)
+  CONSTRAINT league_matches_court_id_fkey FOREIGN KEY (court_id) REFERENCES public.courts(id),
+  CONSTRAINT league_matches_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id)
 );
 CREATE TABLE public.league_schedule (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -115,6 +119,30 @@ CREATE TABLE public.league_teams (
   CONSTRAINT league_teams_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id),
   CONSTRAINT league_teams_league_id_fkey FOREIGN KEY (league_id) REFERENCES public.leagues(id)
 );
+CREATE TABLE public.league_venue_courts (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  league_venue_id uuid NOT NULL,
+  court_id uuid NOT NULL,
+  is_available boolean DEFAULT true,
+  priority integer DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT league_venue_courts_pkey PRIMARY KEY (id),
+  CONSTRAINT league_venue_courts_league_venue_id_fkey FOREIGN KEY (league_venue_id) REFERENCES public.league_venues(id),
+  CONSTRAINT league_venue_courts_court_id_fkey FOREIGN KEY (court_id) REFERENCES public.courts(id)
+);
+CREATE TABLE public.league_venues (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  league_id uuid NOT NULL,
+  venue_id uuid NOT NULL,
+  courts_count integer DEFAULT 0,
+  is_primary boolean DEFAULT false,
+  notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT league_venues_pkey PRIMARY KEY (id),
+  CONSTRAINT league_venues_league_id_fkey FOREIGN KEY (league_id) REFERENCES public.leagues(id),
+  CONSTRAINT league_venues_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id)
+);
 CREATE TABLE public.leagues (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   name text NOT NULL,
@@ -137,8 +165,14 @@ CREATE TABLE public.leagues (
   status text,
   team_size integer,
   common_code text,
+  venue_id uuid,
+  match_times jsonb DEFAULT '["22:30", "23:15"]'::jsonb,
+  courts_per_time_slot integer DEFAULT 2,
+  league_type text DEFAULT 'round_robin'::text CHECK (league_type = ANY (ARRAY['round_robin'::text, 'knockout'::text, 'groups'::text, 'custom'::text])),
+  rounds integer DEFAULT 1 CHECK (rounds >= 1 AND rounds <= 2),
   CONSTRAINT leagues_pkey PRIMARY KEY (id),
-  CONSTRAINT leagues_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
+  CONSTRAINT leagues_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id),
+  CONSTRAINT leagues_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id)
 );
 CREATE TABLE public.matches (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -224,6 +258,8 @@ CREATE TABLE public.tournament_groups (
   status text DEFAULT 'IN_PROGRESS'::text CHECK (status = ANY (ARRAY['IN_PROGRESS'::text, 'COMPLETED'::text])),
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  preferred_day text CHECK (preferred_day = ANY (ARRAY['DAY_1'::text, 'DAY_2'::text, 'MIXED'::text])),
+  is_homogeneous boolean DEFAULT false,
   CONSTRAINT tournament_groups_pkey PRIMARY KEY (id),
   CONSTRAINT tournament_groups_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id)
 );
@@ -280,13 +316,18 @@ CREATE TABLE public.tournament_matches (
   elimination_round character varying,
   walkover boolean DEFAULT false,
   walkover_team_id uuid,
+  needs_manual boolean DEFAULT false,
+  slot_label text,
+  tournament_day integer CHECK (tournament_day = ANY (ARRAY[1, 2, 3])),
+  venue_id uuid,
   CONSTRAINT tournament_matches_pkey PRIMARY KEY (id),
   CONSTRAINT tournament_matches_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id),
   CONSTRAINT tournament_matches_winner_team_id_fkey FOREIGN KEY (winner_team_id) REFERENCES public.teams(id),
   CONSTRAINT tournament_matches_court_id_fkey FOREIGN KEY (court_id) REFERENCES public.courts(id),
   CONSTRAINT tournament_matches_away_team_id_fkey FOREIGN KEY (away_team_id) REFERENCES public.teams(id),
   CONSTRAINT tournament_matches_home_team_id_fkey FOREIGN KEY (home_team_id) REFERENCES public.teams(id),
-  CONSTRAINT tournament_matches_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.tournament_groups(id)
+  CONSTRAINT tournament_matches_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.tournament_groups(id),
+  CONSTRAINT tournament_matches_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id)
 );
 CREATE TABLE public.tournament_sponsors (
   tournament_id uuid NOT NULL,
@@ -324,11 +365,36 @@ CREATE TABLE public.tournament_teams (
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   payment_status text DEFAULT 'pending'::text CHECK (payment_status = ANY (ARRAY['pending'::text, 'paid'::text, 'failed'::text])),
   payment_date timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  unavailable_times text,
   shirt_sizes jsonb DEFAULT '[]'::jsonb CHECK (jsonb_typeof(shirt_sizes) = 'array'::text AND jsonb_array_length(shirt_sizes) >= 0),
+  selected_group_slot text,
+  unavailable_times jsonb DEFAULT '[]'::jsonb CHECK (jsonb_typeof(unavailable_times) = 'array'::text),
   CONSTRAINT tournament_teams_pkey PRIMARY KEY (id),
   CONSTRAINT tournament_teams_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id),
   CONSTRAINT tournament_teams_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id)
+);
+CREATE TABLE public.tournament_venue_courts (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  tournament_venue_id uuid NOT NULL,
+  court_id uuid NOT NULL,
+  is_available boolean DEFAULT true,
+  priority integer DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT tournament_venue_courts_pkey PRIMARY KEY (id),
+  CONSTRAINT tournament_venue_courts_tournament_venue_id_fkey FOREIGN KEY (tournament_venue_id) REFERENCES public.tournament_venues(id),
+  CONSTRAINT tournament_venue_courts_court_id_fkey FOREIGN KEY (court_id) REFERENCES public.courts(id)
+);
+CREATE TABLE public.tournament_venues (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  tournament_id uuid NOT NULL,
+  venue_id uuid NOT NULL,
+  courts_count integer DEFAULT 0,
+  is_primary boolean DEFAULT false,
+  notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT tournament_venues_pkey PRIMARY KEY (id),
+  CONSTRAINT tournament_venues_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id),
+  CONSTRAINT tournament_venues_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id)
 );
 CREATE TABLE public.tournaments (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -340,12 +406,16 @@ CREATE TABLE public.tournaments (
   end_date date NOT NULL,
   start_date date NOT NULL,
   courts_available integer CHECK (courts_available IS NULL OR courts_available > 0),
-  time_slots jsonb,
+  time_slots jsonb CHECK (time_slots IS NULL OR jsonb_typeof(time_slots) = 'array'::text),
   max_teams integer NOT NULL DEFAULT 9 CHECK (max_teams = ANY (ARRAY[6, 9, 12, 16])),
   tournament_type text NOT NULL DEFAULT 'NINE_PLAYERS'::text,
   group_time_slots jsonb DEFAULT '[]'::jsonb CHECK (jsonb_typeof(group_time_slots) = 'array'::text),
+  common_code text,
+  match_duration_minutes integer DEFAULT 75,
+  venue_id uuid,
   CONSTRAINT tournaments_pkey PRIMARY KEY (id),
-  CONSTRAINT tournaments_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
+  CONSTRAINT tournaments_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id),
+  CONSTRAINT tournaments_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id)
 );
 CREATE TABLE public.users (
   id uuid NOT NULL,
@@ -360,4 +430,30 @@ CREATE TABLE public.users (
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   onboarding_completed boolean DEFAULT false,
   CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.venues (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name text NOT NULL,
+  slug text UNIQUE,
+  address text,
+  city text,
+  state text,
+  country text DEFAULT 'Uruguay'::text,
+  postal_code text,
+  phone text,
+  email text,
+  description text,
+  logo_url text,
+  photo_url text,
+  latitude numeric,
+  longitude numeric,
+  timezone text DEFAULT 'America/Montevideo'::text,
+  opening_hours jsonb DEFAULT '{}'::jsonb,
+  amenities jsonb DEFAULT '[]'::jsonb,
+  social_links jsonb DEFAULT '{}'::jsonb,
+  is_active boolean DEFAULT true,
+  is_default boolean DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT venues_pkey PRIMARY KEY (id)
 );

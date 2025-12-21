@@ -25,13 +25,13 @@ import { useTranslations } from '@/contexts/TranslationContext';
 interface MenuItem {
   name: string;
   href: string;
-  icon: React.ForwardRefExoticComponent<any>;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   iconColor?: string;
   hoverColor?: string;
   submenu?: {
     name: string;
     href: string;
-    icon: React.ForwardRefExoticComponent<any>;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     iconColor?: string;
     textColor?: string;
   }[];
@@ -86,9 +86,9 @@ const MenuItem = ({
         <div className={`ml-3 space-y-0.5 overflow-hidden transition-all duration-200
           ${isSubmenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
         >
-          {item.submenu.map((subItem) => (
+          {item.submenu.map((subItem, index) => (
             <Link 
-              key={subItem.href} 
+              key={`${item.href}-${subItem.name}-${index}`} 
               href={subItem.href}
               className="flex items-center p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
@@ -132,16 +132,11 @@ const LogoCard = ({ t }: { t: (key: string) => string }) => (
   </div>
 );
 
-interface SidebarProps {
-  username?: string;
-}
-
-const Sidebar = ({ username }: SidebarProps) => {
+const Sidebar = () => {
   const t = useTranslations('sidebar');
   const router = useRouter();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
@@ -205,10 +200,26 @@ const Sidebar = ({ username }: SidebarProps) => {
       iconColor: 'text-blue-500'
     },
     { 
-      name: t('courts'), 
-      href: '/courts', 
+      name: 'SEDES', 
+      href: '/venues', 
       icon: TrophyIcon,
-      iconColor: 'text-purple-500'
+      iconColor: 'text-purple-500',
+      hoverColor: 'hover:bg-purple-50',
+      submenu: [
+        { 
+          name: 'Ver Sedes', 
+          href: '/venues', 
+          icon: TrophyIcon,
+          iconColor: 'text-purple-500' 
+        },
+        { 
+          name: t('courts'), 
+          href: '/venues', 
+          icon: TrophyIcon,
+          iconColor: 'text-purple-600',
+          textColor: 'text-purple-600 font-medium'
+        },
+      ]
     },
     { 
       name: t('professors'), 
@@ -242,7 +253,6 @@ const Sidebar = ({ username }: SidebarProps) => {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
       if (window.innerWidth >= 768) {
         setIsMobileMenuOpen(false);
       }
@@ -281,8 +291,6 @@ const Sidebar = ({ username }: SidebarProps) => {
       router.push('/');
     }
   };
-
-  const userName = localStorage.getItem('userName');
 
   const handleSubmenuToggle = (itemName: string) => {
     setOpenSubmenu(openSubmenu === itemName ? null : itemName);

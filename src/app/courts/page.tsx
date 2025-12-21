@@ -27,7 +27,7 @@ export default function CourtsPage() {
     fetchCourts();
   }, []);
 
-  const handleSubmit = async (courtData: { name: string; photo: File | null }) => {
+  const handleSubmit = async (courtData: { name: string; photo: File | null; venue_id?: string }) => {
     const success = await createCourt(courtData);
     if (success) {
       setIsAddModalOpen(false);

@@ -3,6 +3,8 @@ import { toast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
+import { VenueConfig } from '@/types/venue';
+
 export interface LeagueFormData {
   name: string;
   categories: string[];
@@ -10,7 +12,7 @@ export interface LeagueFormData {
   inscription_cost: number;
   start_date: string;
   end_date: string;
-  frequency: string;
+  frequency: 'semanal' | 'quincenal' | 'mensual';
   days_of_week: string[];
   category_days: Record<string, string>;
   courts_available: number;
@@ -22,6 +24,12 @@ export interface LeagueFormData {
   team_size: number;
   image?: File | null;
   image_url?: string | null;
+  // Nuevos campos
+  league_type?: 'round_robin' | 'knockout' | 'groups' | 'custom';
+  rounds?: 1 | 2;
+  match_times?: string[];
+  courts_per_time_slot?: number;
+  venues?: VenueConfig[];
 }
 
 const INITIAL_FORM_DATA: LeagueFormData = {
@@ -31,7 +39,7 @@ const INITIAL_FORM_DATA: LeagueFormData = {
   inscription_cost: 0,
   start_date: '',
   end_date: '',
-  frequency: 'Quincenal',
+  frequency: 'quincenal',
   days_of_week: [],
   category_days: {},
   courts_available: 2,
@@ -42,7 +50,13 @@ const INITIAL_FORM_DATA: LeagueFormData = {
   status: 'Inscribiendo',
   team_size: 8,
   image: null,
-  image_url: null
+  image_url: null,
+  // Nuevos campos
+  league_type: 'round_robin',
+  rounds: 1,
+  match_times: ['21:30', '22:15'],
+  courts_per_time_slot: 2,
+  venues: []
 };
 
 export function useLeagueForm() {
@@ -146,7 +160,7 @@ export function useLeagueForm() {
           const fileExt = file.name.split('.').pop();
           const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
           
-          const { error: uploadError, data: uploadData } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from('tournament-thumbnails')
             .upload(fileName, file);
 
@@ -182,6 +196,30 @@ export function useLeagueForm() {
     }
   };
 
+  const handleThirdStep = () => {
+    // Validar que haya al menos una sede con canchas
+    if (!formData.venues || formData.venues.length === 0) {
+      toast({
+        title: "Error de validación",
+        description: "Debes seleccionar al menos una sede",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (!formData.venues.every(v => v.court_ids.length > 0)) {
+      toast({
+        title: "Error de validación",
+        description: "Cada sede seleccionada debe tener al menos una cancha",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    setStep(4);
+    return true;
+  };
+
   const handleBack = () => {
     setStep(step - 1);
   };
@@ -192,8 +230,53 @@ export function useLeagueForm() {
       const token = localStorage.getItem('adminToken');
       if (!token) throw new Error('No estás autenticado');
 
-      // Generar time_slots para cada categoría
-      const time_slots = formData.categories.map(() => [22, 24]);
+      // Generar time_slots para cada categoría (mantener compatibilidad)
+      const time_slots = formData.categories.map(() => [21, 24]);
+
+      // Calcular courts_available desde venues si están definidos
+      const courts_available = formData.venues && formData.venues.length > 0
+        ? formData.venues.reduce((sum, v) => sum + v.court_ids.length, 0)
+        : formData.courts_available;
+
+      interface CreateLeaguePayload {
+        name: string;
+        categories: string[];
+        description: string;
+        inscription_cost: number;
+        start_date: string;
+        end_date: string;
+        frequency: 'semanal' | 'quincenal' | 'mensual';
+        time_slots: number[][];
+        courts_available: number;
+        team_size: number;
+        image_url?: string | null;
+        category_days: Record<string, string>;
+        league_type?: 'round_robin' | 'knockout' | 'groups' | 'custom';
+        rounds?: 1 | 2;
+        match_times?: string[];
+        courts_per_time_slot?: number;
+        venues?: VenueConfig[];
+      }
+
+      const payload: CreateLeaguePayload = {
+        name: formData.name,
+        categories: formData.categories,
+        description: formData.description,
+        inscription_cost: formData.inscription_cost,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        frequency: formData.frequency,
+        time_slots,
+        courts_available,
+        team_size: formData.team_size,
+        image_url: formData.image_url,
+        category_days: formData.category_days,
+        ...(formData.league_type && { league_type: formData.league_type }),
+        ...(formData.rounds && { rounds: formData.rounds }),
+        ...(formData.match_times && formData.match_times.length > 0 && { match_times: formData.match_times }),
+        ...(formData.courts_per_time_slot && { courts_per_time_slot: formData.courts_per_time_slot }),
+        ...(formData.venues && formData.venues.length > 0 && { venues: formData.venues })
+      };
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leagues/createLeague`, {
         method: 'POST',
@@ -201,20 +284,7 @@ export function useLeagueForm() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          name: formData.name,
-          categories: formData.categories,
-          description: formData.description,
-          inscription_cost: formData.inscription_cost,
-          start_date: formData.start_date,
-          end_date: formData.end_date,
-          frequency: formData.frequency,
-          time_slots,
-          courts_available: formData.courts_available,
-          team_size: formData.team_size,
-          image_url: formData.image_url,
-          category_days: formData.category_days
-        })
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
@@ -247,6 +317,7 @@ export function useLeagueForm() {
     isSubmitting,
     handleFirstStep,
     handleSecondStep,
+    handleThirdStep,
     handleBack,
     handleCreateLeague
   };
