@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import Image from "next/image";
 import { ImageIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ interface SimpleAddCourtModalProps {
 
 export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: SimpleAddCourtModalProps) {
   const t = useTranslations('courts');
+  const tVenues = useTranslations('venues');
   const { venues, loading: loadingVenues } = useVenues({ includeCourts: false });
   const [formData, setFormData] = useState({
     name: "",
@@ -125,7 +127,7 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
             </Select>
             {venues.length === 0 && !loadingVenues && (
               <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">
-                ⚠️ Primero debes crear una sede en la pestaña "Sedes"
+                {tVenues('createVenueFirst')}
               </p>
             )}
           </div>
@@ -156,11 +158,13 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
             <div className="mt-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
               <div className="flex flex-col items-center">
                 {previewUrl ? (
-                  <div className="relative group">
-                    <img
+                  <div className="relative group h-40 w-40">
+                    <Image
                       src={previewUrl}
                       alt="Preview"
-                      className="h-40 w-40 object-contain rounded-lg"
+                      fill
+                      className="object-contain rounded-lg"
+                      unoptimized
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                       <button

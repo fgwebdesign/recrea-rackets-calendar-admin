@@ -6,6 +6,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 export type Locale = 'es' | 'en';
 
 // Traducciones hardcodeadas temporalmente para debugging
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const translations: Record<Locale, Record<string, any>> = {
   es: {
     auth: {
@@ -294,6 +295,75 @@ const translations: Record<Locale, Record<string, any>> = {
     imageTooLarge: 'La imagen no debe superar los 5MB',
     errorCreatingCourt: 'Error al crear la cancha',
     error: 'Error'
+  },
+  // Venues
+  venues: {
+    title: 'Gestión de Sedes y Canchas',
+    description: 'Administra las sedes del club y sus canchas.',
+    venues: 'Sedes',
+    courts: 'Canchas',
+    newVenue: 'Nueva Sede',
+    editVenue: 'Editar Sede',
+    addCourt: 'Añadir Cancha',
+    loadingVenues: 'Cargando sedes...',
+    loadingCourts: 'Cargando canchas...',
+    // Form fields
+    venueName: 'Nombre de la Sede',
+    venueNamePlaceholder: 'Ej: Sede Centro',
+    address: 'Dirección',
+    addressPlaceholder: 'Av. Principal 1234',
+    country: 'País',
+    countryPlaceholder: 'Selecciona un país',
+    state: 'Estado/Departamento',
+    statePlaceholder: 'Selecciona un estado',
+    stateManualPlaceholder: 'Ingresa el estado/departamento',
+    city: 'Ciudad',
+    cityPlaceholder: 'Selecciona una ciudad',
+    cityManualPlaceholder: 'Ingresa la ciudad',
+    phone: 'Teléfono',
+    phonePlaceholder: '+598 99 123 456',
+    email: 'Email',
+    emailPlaceholder: 'sede@club.com',
+    descriptionField: 'Descripción',
+    descriptionPlaceholder: 'Nuestra sede ubicada en el centro de la ciudad...',
+    setAsDefault: 'Establecer como sede por defecto',
+    // Search placeholders
+    searchCountry: 'Buscar país...',
+    searchState: 'Buscar estado...',
+    searchCity: 'Buscar ciudad...',
+    // Messages
+    courtsInfo: 'Canchas de esta sede:',
+    courtsInfoDescription: 'Las canchas se asignan desde la sección Canchas.',
+    noCountriesAvailable: 'Instala country-state-city para ver países',
+    noStatesFound: 'No se encontraron estados',
+    noCitiesFound: 'No se encontraron ciudades',
+    // Buttons
+    cancel: 'Cancelar',
+    save: 'Guardar Sede',
+    saving: 'Guardando...',
+    update: 'Actualizar Sede',
+    // Errors
+    nameRequired: 'El nombre de la sede es requerido',
+    // Venue Card
+    defaultVenue: 'Por defecto',
+    addressNotConfigured: 'Dirección por configurar',
+    courtsCount: 'cancha',
+    courtsCountPlural: 'canchas',
+    // Filter
+    filterByVenue: 'Filtrar por sede',
+    allVenues: 'Todas las sedes',
+    // Venue Selector (for leagues)
+    selectVenuesAndCourts: 'Seleccionar Sedes y Canchas',
+    selectVenuesDescription: 'Selecciona las sedes donde se jugará la liga y las canchas disponibles de cada sede.',
+    noVenuesAvailable: 'No hay sedes disponibles. Primero debes crear una sede en la sección "Sedes".',
+    primaryVenue: 'Sede Primaria',
+    courtsLabel: 'Canchas:',
+    courtsSelected: 'de {total} canchas seleccionadas',
+    summary: 'Resumen:',
+    venuesSelected: 'sede(s)',
+    courtsSelectedSummary: 'cancha(s) seleccionadas',
+    // Court modal
+    createVenueFirst: 'Primero debes crear una sede en la pestaña "Sedes"'
   },
   // Tournaments
   tournaments: {
@@ -1006,6 +1076,75 @@ const translations: Record<Locale, Record<string, any>> = {
     errorCreatingCourt: 'Error creating court',
     error: 'Error'
   },
+  // Venues
+  venues: {
+    title: 'Venue and Court Management',
+    description: 'Manage the club venues and their courts.',
+    venues: 'Venues',
+    courts: 'Courts',
+    newVenue: 'New Venue',
+    editVenue: 'Edit Venue',
+    addCourt: 'Add Court',
+    loadingVenues: 'Loading venues...',
+    loadingCourts: 'Loading courts...',
+    // Form fields
+    venueName: 'Venue Name',
+    venueNamePlaceholder: 'Ex: Central Venue',
+    address: 'Address',
+    addressPlaceholder: 'Main Ave 1234',
+    country: 'Country',
+    countryPlaceholder: 'Select a country',
+    state: 'State/Department',
+    statePlaceholder: 'Select a state',
+    stateManualPlaceholder: 'Enter state/department',
+    city: 'City',
+    cityPlaceholder: 'Select a city',
+    cityManualPlaceholder: 'Enter city',
+    phone: 'Phone',
+    phonePlaceholder: '+1 234 567 8900',
+    email: 'Email',
+    emailPlaceholder: 'venue@club.com',
+    descriptionField: 'Description',
+    descriptionPlaceholder: 'Our venue located in the city center...',
+    setAsDefault: 'Set as default venue',
+    // Search placeholders
+    searchCountry: 'Search country...',
+    searchState: 'Search state...',
+    searchCity: 'Search city...',
+    // Messages
+    courtsInfo: 'Courts for this venue:',
+    courtsInfoDescription: 'Courts are assigned from the Courts section.',
+    noCountriesAvailable: 'Install country-state-city to see countries',
+    noStatesFound: 'No states found',
+    noCitiesFound: 'No cities found',
+    // Buttons
+    cancel: 'Cancel',
+    save: 'Save Venue',
+    saving: 'Saving...',
+    update: 'Update Venue',
+    // Errors
+    nameRequired: 'Venue name is required',
+    // Venue Card
+    defaultVenue: 'Default',
+    addressNotConfigured: 'Address to configure',
+    courtsCount: 'court',
+    courtsCountPlural: 'courts',
+    // Filter
+    filterByVenue: 'Filter by venue',
+    allVenues: 'All venues',
+    // Venue Selector (for leagues)
+    selectVenuesAndCourts: 'Select Venues and Courts',
+    selectVenuesDescription: 'Select the venues where the league will be played and the available courts for each venue.',
+    noVenuesAvailable: 'No venues available. You must first create a venue in the "Venues" section.',
+    primaryVenue: 'Primary Venue',
+    courtsLabel: 'Courts:',
+    courtsSelected: 'of {total} courts selected',
+    summary: 'Summary:',
+    venuesSelected: 'venue(s)',
+    courtsSelectedSummary: 'court(s) selected',
+    // Court modal
+    createVenueFirst: 'You must first create a venue in the "Venues" tab'
+  },
   // Tournaments
   tournaments: {
     title: 'Tournaments',
@@ -1507,6 +1646,7 @@ export function TranslationProvider({ children }: { children: React.ReactNode })
     }
 
     const keys = key.split('.');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let value: any = namespaceTranslations;
     
     for (const k of keys) {

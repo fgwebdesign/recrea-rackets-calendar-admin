@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { VenueConfig } from '@/types/venue';
 import { useVenues } from '@/hooks/useVenues';
 import { Building2, MapPin, Star } from 'lucide-react';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface VenueSelectorProps {
   selectedVenues: VenueConfig[];
@@ -14,8 +14,8 @@ interface VenueSelectorProps {
 }
 
 export function VenueSelector({ selectedVenues, onChange }: VenueSelectorProps) {
+  const t = useTranslations('venues');
   const { venues, loading } = useVenues({ includeCourts: true });
-  const [expandedVenues, setExpandedVenues] = useState<Set<string>>(new Set());
 
   const isVenueSelected = (venueId: string) => 
     selectedVenues.some(v => v.venue_id === venueId);
@@ -36,7 +36,6 @@ export function VenueSelector({ selectedVenues, onChange }: VenueSelectorProps) 
       }
       onChange(newVenues);
     } else {
-      setExpandedVenues(prev => new Set([...prev, venueId]));
       onChange([...selectedVenues, {
         venue_id: venueId,
         court_ids: [],
@@ -87,10 +86,10 @@ export function VenueSelector({ selectedVenues, onChange }: VenueSelectorProps) 
     <div className="p-6 space-y-6">
       <div>
         <h2 className="text-2xl font-semibold mb-2 text-foreground dark:text-foreground">
-          Seleccionar Sedes y Canchas
+          {t('selectVenuesAndCourts')}
         </h2>
         <p className="text-muted-foreground">
-          Selecciona las sedes donde se jugará la liga y las canchas disponibles de cada sede.
+          {t('selectVenuesDescription')}
         </p>
       </div>
 
@@ -134,7 +133,7 @@ export function VenueSelector({ selectedVenues, onChange }: VenueSelectorProps) 
                       <RadioGroupItem value={venue.id} id={`primary-${venue.id}`} />
                       <Label htmlFor={`primary-${venue.id}`} className="text-sm cursor-pointer flex items-center gap-1">
                         <Star className="h-4 w-4 text-yellow-500" />
-                        Sede Primaria
+                        {t('primaryVenue')}
                       </Label>
                     </div>
                   </RadioGroup>
@@ -144,7 +143,7 @@ export function VenueSelector({ selectedVenues, onChange }: VenueSelectorProps) 
 
             {isVenueSelected(venue.id) && venue.courts && venue.courts.length > 0 && (
               <div className="mt-4 ml-8 space-y-2">
-                <p className="text-sm font-medium text-foreground">Canchas:</p>
+                <p className="text-sm font-medium text-foreground">{t('courtsLabel')}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {venue.courts.map(court => (
                     <label
@@ -159,13 +158,13 @@ export function VenueSelector({ selectedVenues, onChange }: VenueSelectorProps) 
                         checked={isCourtSelected(venue.id, court.id)}
                         onCheckedChange={() => toggleCourt(venue.id, court.id)}
                       />
-                      <span className="text-sm">🎾 {court.name}</span>
+                      <span className="text-sm">{court.name}</span>
                     </label>
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {selectedVenues.find(v => v.venue_id === venue.id)?.court_ids.length || 0} 
-                  {' '}de {venue.courts.length} canchas seleccionadas
+                  {' '}{t('courtsSelected').replace('{total}', venue.courts.length.toString())}
                 </p>
               </div>
             )}
@@ -176,14 +175,14 @@ export function VenueSelector({ selectedVenues, onChange }: VenueSelectorProps) 
       {venues.length === 0 && (
         <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
           <p className="text-sm text-yellow-800 dark:text-yellow-300">
-            ⚠️ No hay sedes disponibles. Primero debes crear una sede en la sección "Sedes".
+            {t('noVenuesAvailable')}
           </p>
         </div>
       )}
 
       <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
         <p className="font-medium text-foreground">
-          📊 Resumen: {selectedVenues.length} sede(s), {totalCourts} cancha(s) seleccionadas
+          {t('summary')} {selectedVenues.length} {t('venuesSelected')}, {totalCourts} {t('courtsSelectedSummary')}
         </p>
       </div>
     </div>

@@ -108,20 +108,20 @@ export default function VenuesPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
         <Header 
-          title="Gestión de Sedes y Canchas"
+          title={t('title')}
           icon={<Building2 className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
-          description="Administra las sedes del club y sus canchas."
+          description={t('description')}
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="venues">Sedes</TabsTrigger>
-            <TabsTrigger value="courts">Canchas</TabsTrigger>
+            <TabsTrigger value="venues">{t('venues')}</TabsTrigger>
+            <TabsTrigger value="courts">{t('courts')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="venues" className="mt-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Sedes</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t('venues')}</h2>
               <Button 
                 onClick={() => {
                   setEditingVenue(null);
@@ -130,7 +130,7 @@ export default function VenuesPage() {
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
                 <PlusCircle className="mr-2 h-5 w-5" />
-                Nueva Sede
+                {t('newVenue')}
               </Button>
             </div>
 
@@ -138,7 +138,7 @@ export default function VenuesPage() {
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto"></div>
-                  <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando sedes...</p>
+                  <p className="mt-4 text-gray-600 dark:text-gray-400">{t('loadingVenues')}</p>
                 </div>
               </div>
             ) : venues.length === 0 ? (
@@ -159,23 +159,23 @@ export default function VenuesPage() {
 
           <TabsContent value="courts" className="mt-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Canchas</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t('courts')}</h2>
               <Button 
                 onClick={() => setIsAddCourtModalOpen(true)}
                 className="bg-[#6B8AFF] text-white hover:bg-[#5A75E6] dark:bg-blue-600 dark:hover:bg-blue-700"
               >
                 <PlusCircle className="mr-2 h-5 w-5" />
-                Añadir Cancha
+                {t('addCourt')}
               </Button>
             </div>
 
             <div className="mb-4">
               <Select value={selectedVenueFilter} onValueChange={setSelectedVenueFilter}>
                 <SelectTrigger className="w-64">
-                  <SelectValue placeholder="Filtrar por sede" />
+                  <SelectValue placeholder={t('filterByVenue')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas las sedes</SelectItem>
+                  <SelectItem value="all">{t('allVenues')}</SelectItem>
                   {venues.map((venue) => (
                     <SelectItem key={venue.id} value={venue.id}>
                       {venue.name}
@@ -189,7 +189,7 @@ export default function VenuesPage() {
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto"></div>
-                  <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando canchas...</p>
+                  <p className="mt-4 text-gray-600 dark:text-gray-400">{t('loadingCourts')}</p>
                 </div>
               </div>
             ) : filteredCourts.length === 0 ? (

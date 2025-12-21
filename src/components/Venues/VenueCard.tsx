@@ -3,6 +3,7 @@
 import { MapPin, Phone, Mail, Building2, Star, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Venue } from "@/types/venue";
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface VenueCardProps {
   venue: Venue;
@@ -11,9 +12,10 @@ interface VenueCardProps {
 }
 
 export default function VenueCard({ venue, onEdit, onDelete }: VenueCardProps) {
+  const t = useTranslations('venues');
   const location = [venue.address, venue.city, venue.state]
     .filter(Boolean)
-    .join(', ') || 'Dirección por configurar';
+    .join(', ') || t('addressNotConfigured');
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow">
@@ -27,7 +29,7 @@ export default function VenueCard({ venue, onEdit, onDelete }: VenueCardProps) {
             {venue.is_default && (
               <span className="flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-md text-xs font-medium">
                 <Star className="h-3 w-3" />
-                Por defecto
+                {t('defaultVenue')}
               </span>
             )}
           </div>
@@ -72,9 +74,9 @@ export default function VenueCard({ venue, onEdit, onDelete }: VenueCardProps) {
 
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500 dark:text-gray-400">🎾</span>
+          <span className="h-4 w-4 text-gray-500 dark:text-gray-400 flex items-center justify-center">•</span>
           <span className="text-gray-700 dark:text-gray-300">
-            {venue.courts_count || venue.courts?.length || 0} cancha{(venue.courts_count || venue.courts?.length || 0) !== 1 ? 's' : ''}
+            {venue.courts_count || venue.courts?.length || 0} {(venue.courts_count || venue.courts?.length || 0) !== 1 ? t('courtsCountPlural') : t('courtsCount')}
           </span>
           {venue.courts && venue.courts.length > 0 && (
             <span className="text-gray-500 dark:text-gray-400">
