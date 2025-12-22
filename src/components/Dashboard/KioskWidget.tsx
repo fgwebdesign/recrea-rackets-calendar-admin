@@ -134,7 +134,7 @@ export function KioskWidget() {
             <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
               <ShoppingCart className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Kiosco</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('title')}</h3>
           </div>
         </div>
 
@@ -143,7 +143,7 @@ export function KioskWidget() {
           <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-              <p className="text-xs text-gray-600 dark:text-gray-400">Stock Bajo</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{t('lowStock')}</p>
             </div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{lowStockProducts}</p>
           </div>
@@ -151,7 +151,7 @@ export function KioskWidget() {
           <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
             <div className="flex items-center gap-2 mb-2">
               <Receipt className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <p className="text-xs text-gray-600 dark:text-gray-400">Total Ventas</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{t('totalSales')}</p>
             </div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {isLoadingSales ? '...' : totalSales}

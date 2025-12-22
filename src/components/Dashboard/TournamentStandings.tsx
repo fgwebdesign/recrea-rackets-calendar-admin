@@ -75,7 +75,7 @@ export function TournamentStandings({ selectedTournament, onTournamentChange }: 
           const errorData = await response.json().catch(() => null);
           throw new Error(
             errorData?.message || 
-            `Error al cargar las posiciones: ${response.status} ${response.statusText}`
+            t('errorLoadingStandings', { status: response.status, statusText: response.statusText })
           );
         }
         
@@ -88,7 +88,7 @@ export function TournamentStandings({ selectedTournament, onTournamentChange }: 
         
       } catch (err) {
         console.error('Error fetching tournament standings:', err);
-        setError(err instanceof Error ? err.message : 'Error desconocido');
+        setError(err instanceof Error ? err.message : t('unknownError'));
         setStandings([]);
       } finally {
         setIsLoading(false);

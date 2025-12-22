@@ -30,7 +30,7 @@ interface LeagueScheduleCardProps {
 
 export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueScheduleCardProps) {
   const router = useRouter();
-  const t = useTranslations('emptyStates');
+  const t = useTranslations('dashboard');
   const [matches, setMatches] = useState<Match[]>([]);
   const [filteredMatches, setFilteredMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,14 +65,14 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
           const errorData = await response.json().catch(() => null);
           throw new Error(
             errorData?.message || 
-            `Error al cargar los partidos: ${response.status} ${response.statusText}`
+            t('errorLoadingMatches', { status: response.status, statusText: response.statusText })
           );
         }
         
         const data = await response.json();
         
         if (!data) {
-          throw new Error('No se recibieron datos del servidor');
+          throw new Error(t('noDataReceived'));
         }
 
         // El backend devuelve { completed: [], pending: [] }
@@ -91,7 +91,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
           onMatchesLoaded(allMatches.length > 0);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido');
+        setError(err instanceof Error ? err.message : t('unknownError'));
       } finally {
         setIsLoading(false);
       }

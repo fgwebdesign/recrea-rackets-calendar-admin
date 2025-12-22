@@ -104,7 +104,44 @@ const translations: Record<Locale, Record<string, any>> = {
       noTournaments: 'Sin torneos disponibles',
       noTournamentsDescription: 'No hay torneos disponibles en este momento. Los torneos aparecerán aquí cuando estén creados.',
       noTournamentsForCategory: 'Sin torneos en esta categoría',
-      noTournamentsForCategoryDescription: 'No hay torneos disponibles para la categoría seleccionada.'
+      noTournamentsForCategoryDescription: 'No hay torneos disponibles para la categoría seleccionada.',
+      // Active Tournaments Widget
+      activeTournaments: 'Torneos Activos',
+      activeTournamentsTitle: 'Torneos Activos ({count})',
+      noActiveTournaments: 'No hay torneos activos',
+      noActiveTournamentsDescription: 'Los torneos activos aparecerán aquí cuando estén en progreso.',
+      viewAllTournaments: 'Ver Todos los Torneos',
+      // Tournament Phases
+      phaseRegistrations: 'Inscripciones',
+      phaseGroups: 'Fase de Grupos',
+      phaseStandings: 'Clasificaciones',
+      phaseBracket: 'Bracket Eliminatorio',
+      // Phase Descriptions
+      teamsRegistered: '{count}/{max} equipos inscritos',
+      groupsGenerated: 'Grupos generados',
+      viewMatchesAndGroups: 'Ver partidos y grupos',
+      viewStandingsTable: 'Ver tabla de posiciones',
+      viewStandings: 'Ver clasificaciones',
+      bracketGenerated: 'Bracket generado',
+      viewBracket: 'Ver bracket',
+      // Phase Actions
+      viewPayments: 'Ver Pagos',
+      viewMatches: 'Ver Partidos',
+      viewStandingsButton: 'Ver Clasificaciones',
+      viewBracketButton: 'Ver Bracket',
+      teams: 'equipos',
+      noCategory: 'Sin categoría',
+      // Dashboard Stats
+      totalUsers: 'Usuarios Totales',
+      totalSponsors: 'Patrocinadores Totales',
+      monthlyIncome: 'Ingresos del Mes',
+      // Status and errors
+      noStatus: 'Sin estado',
+      noDate: 'Sin fecha',
+      unknownError: 'Error desconocido',
+      errorLoadingMatches: 'Error al cargar los partidos: {status} {statusText}',
+      noDataReceived: 'No se recibieron datos del servidor',
+      errorLoadingStandings: 'Error al cargar las posiciones: {status} {statusText}'
     },
     datetime: {
       monday: 'Lunes',
@@ -220,6 +257,9 @@ const translations: Record<Locale, Record<string, any>> = {
     kiosk: {
       title: 'Kiosco',
       description: 'Sistema de ventas y gestión de productos',
+      // Dashboard Widget
+      lowStock: 'Stock Bajo',
+      totalSales: 'Total Ventas',
       pos: {
         title: 'Registrar Venta',
         description: 'Registra ventas y gestiona el inventario',
@@ -1248,7 +1288,45 @@ const translations: Record<Locale, Record<string, any>> = {
       noTournaments: 'No tournaments available',
       noTournamentsDescription: 'No tournaments are available at this time. Tournaments will appear here when they are created.',
       noTournamentsForCategory: 'No tournaments in this category',
-      noTournamentsForCategoryDescription: 'No tournaments available for the selected category.'
+      noTournamentsForCategoryDescription: 'No tournaments available for the selected category.',
+      // Active Tournaments Widget
+      activeTournaments: 'Active Tournaments',
+      activeTournamentsTitle: 'Active Tournaments ({count})',
+      noActiveTournaments: 'No active tournaments',
+      noActiveTournamentsDescription: 'Active tournaments will appear here when they are in progress.',
+      viewAllTournaments: 'View All Tournaments',
+      // Tournament Phases
+      phaseRegistrations: 'Registrations',
+      phaseGroups: 'Group Stage',
+      phaseStandings: 'Standings',
+      phaseBracket: 'Elimination Bracket',
+      // Phase Descriptions
+      teamsRegistered: '{count}/{max} teams registered',
+      groupsGenerated: 'Groups generated',
+      viewMatchesAndGroups: 'View matches and groups',
+      viewStandingsTable: 'View standings table',
+      viewStandings: 'View standings',
+      bracketGenerated: 'Bracket generated',
+      viewBracket: 'View bracket',
+      // Phase Actions
+      viewPayments: 'View Payments',
+      viewMatches: 'View Matches',
+      viewStandingsButton: 'View Standings',
+      viewBracketButton: 'View Bracket',
+      teams: 'teams',
+      noCategory: 'No category',
+      // Dashboard Stats
+      totalUsers: 'Total Users',
+      totalSponsors: 'Total Sponsors',
+      activeTournaments: 'Active Tournaments',
+      monthlyIncome: 'Monthly Income',
+      // Status and errors
+      noStatus: 'No status',
+      noDate: 'No date',
+      unknownError: 'Unknown error',
+      errorLoadingMatches: 'Error loading matches: {status} {statusText}',
+      noDataReceived: 'No data received from server',
+      errorLoadingStandings: 'Error loading standings: {status} {statusText}'
     },
     datetime: {
       monday: 'Monday',
@@ -1364,6 +1442,9 @@ const translations: Record<Locale, Record<string, any>> = {
     kiosk: {
       title: 'Kiosk',
       description: 'Sales system and product management',
+      // Dashboard Widget
+      lowStock: 'Low Stock',
+      totalSales: 'Total Sales',
       pos: {
         title: 'Register Sale',
         description: 'Register sales and manage inventory',

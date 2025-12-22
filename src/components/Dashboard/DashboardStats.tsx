@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { UsersIcon, BuildingOfficeIcon, TrophyIcon, BanknotesIcon } from '@heroicons/react/24/outline';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface Stats {
   totalUsers: number;
@@ -13,9 +14,10 @@ interface DashboardStatsProps {
 }
 
 export function DashboardStats({ stats }: DashboardStatsProps) {
+  const t = useTranslations('dashboard');
   const statCards = [
     {
-      title: "Usuarios Totales",
+      title: t('totalUsers'),
       value: stats.totalUsers,
       icon: <UsersIcon className="w-5 h-5" />,
       bgColor: "bg-gradient-to-br from-blue-600 to-blue-400 dark:from-blue-700 dark:to-blue-500",
@@ -23,7 +25,7 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
       href: "/users"
     },
     {
-      title: "Patrocinadores Totales",
+      title: t('totalSponsors'),
       value: stats.totalSponsors,
       icon: <BuildingOfficeIcon className="w-5 h-5" />,
       bgColor: "bg-gradient-to-br from-purple-600 to-purple-400 dark:from-purple-700 dark:to-purple-500",
@@ -31,7 +33,7 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
       href: "/sponsors"
     },
     {
-      title: "Torneos Activos",
+      title: t('activeTournaments'),
       value: stats.activeTournaments,
       icon: <TrophyIcon className="w-5 h-5" />,
       bgColor: "bg-gradient-to-br from-amber-600 to-amber-400 dark:from-amber-700 dark:to-amber-500",
@@ -39,7 +41,7 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
       href: "/tournaments"
     },
     {
-      title: "Ingresos del Mes",
+      title: t('monthlyIncome'),
       value: `$${stats.monthlyIncome}`,
       icon: <BanknotesIcon className="w-5 h-5" />,
       bgColor: "bg-gradient-to-br from-emerald-600 to-emerald-400 dark:from-emerald-700 dark:to-emerald-500",

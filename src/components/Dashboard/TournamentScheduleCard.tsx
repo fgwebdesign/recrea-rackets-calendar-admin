@@ -252,7 +252,7 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
         }
       } catch (err) {
         console.error('Error fetching tournament matches:', err);
-        setError(err instanceof Error ? err.message : 'Error desconocido');
+        setError(err instanceof Error ? err.message : t('unknownError'));
         setMatches([]);
       } finally {
         setIsLoading(false);

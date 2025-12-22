@@ -4,19 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { 
   Trophy, 
   Users, 
-  Calendar, 
-  Play, 
-  Settings, 
   CheckCircle, 
   Clock, 
   AlertCircle,
-  ChevronRight,
   Target,
-  Zap,
   BarChart3,
   ChevronDown
 } from 'lucide-react';
@@ -24,6 +18,7 @@ import * as Collapsible from "@radix-ui/react-collapsible";
 import { useTournaments } from '@/hooks/useTournaments';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from '@/contexts/TranslationContext';
+import type { Tournament } from '@/types/tournament';
 
 interface TournamentPhase {
   id: string;
@@ -44,10 +39,11 @@ interface ActiveTournament {
   start_date: string;
   end_date: string;
   status: string;
-  tournament_teams?: any[];
-  tournament_type?: string;
-  categories?: any[];
-  category?: string;
+  tournament_teams?: Tournament['tournament_teams'];
+  tournament_type?: Tournament['tournament_type'];
+  category?: Tournament['category'];
+  tournament_groups?: unknown[];
+  tournament_matches?: Array<{ round?: string; group_number?: number | null }>;
   current_phase: string;
   progress_percentage: number;
   phases: TournamentPhase[];
@@ -56,6 +52,7 @@ interface ActiveTournament {
   has_matches?: boolean;
   teams_count: number;
   max_teams: number;
+  categoryName?: string;
 }
 
 export function ActiveTournamentsWidget() {
@@ -66,12 +63,12 @@ export function ActiveTournamentsWidget() {
   const [isOpen, setIsOpen] = useState(true);
 
   // Determinar la fase actual y progreso de un torneo
-  const determineTournamentPhase = (tournament: any): ActiveTournament => {
+  const determineTournamentPhase = (tournament: Tournament & { tournament_groups?: unknown[]; tournament_matches?: Array<{ round?: string; group_number?: number | null }> }): ActiveTournament => {
     const teamsCount = tournament.tournament_teams?.length || 0;
     const maxTeams = getMaxTeams(tournament.tournament_type);
-    const hasGroups = tournament.tournament_groups?.length > 0;
-    const hasMatches = tournament.tournament_matches?.length > 0;
-    const hasEliminationBracket = tournament.tournament_matches?.some((match: any) => 
+    const hasGroups = (tournament.tournament_groups?.length ?? 0) > 0;
+    const hasMatches = (tournament.tournament_matches?.length ?? 0) > 0;
+    const hasEliminationBracket = tournament.tournament_matches?.some((match) => 
       match.round !== 'group' && !match.group_number
     );
 
@@ -82,11 +79,11 @@ export function ActiveTournamentsWidget() {
     // Fase 1: Inscripciones (Payments)
     const inscriptionPhase: TournamentPhase = {
       id: 'inscripciones',
-      name: 'Inscripciones',
+      name: t('phaseRegistrations'),
       status: teamsCount >= maxTeams ? 'completed' : teamsCount > 0 ? 'current' : 'pending',
-      description: `${teamsCount}/${maxTeams} equipos inscritos`,
+      description: t('teamsRegistered').replace('{count}', teamsCount.toString()).replace('{max}', maxTeams.toString()),
       action: {
-        label: 'Ver Pagos',
+        label: t('viewPayments'),
         href: `/tournaments/${tournament.id}/payments`,
         icon: <Users className="h-4 w-4" />,
         variant: 'outline'
@@ -96,11 +93,11 @@ export function ActiveTournamentsWidget() {
     // Fase 2: Grupos (Matches)
     const groupsPhase: TournamentPhase = {
       id: 'grupos',
-      name: 'Fase de Grupos',
+      name: t('phaseGroups'),
       status: hasGroups ? 'completed' : teamsCount >= maxTeams ? 'current' : 'pending',
-      description: hasGroups ? 'Grupos generados' : 'Ver partidos y grupos',
+      description: hasGroups ? t('groupsGenerated') : t('viewMatchesAndGroups'),
       action: {
-        label: 'Ver Partidos',
+        label: t('viewMatches'),
         href: `/tournaments/${tournament.id}/matches`,
         icon: <Target className="h-4 w-4" />,
         variant: 'outline'
@@ -110,11 +107,11 @@ export function ActiveTournamentsWidget() {
     // Fase 3: Clasificaciones (Standings)
     const standingsPhase: TournamentPhase = {
       id: 'clasificaciones',
-      name: 'Clasificaciones',
+      name: t('phaseStandings'),
       status: hasGroups ? 'current' : 'pending',
-      description: hasGroups ? 'Ver tabla de posiciones' : 'Ver clasificaciones',
+      description: hasGroups ? t('viewStandingsTable') : t('viewStandings'),
       action: {
-        label: 'Ver Clasificaciones',
+        label: t('viewStandingsButton'),
         href: `/tournaments/${tournament.id}/standings`,
         icon: <BarChart3 className="h-4 w-4" />,
         variant: 'outline'
@@ -124,11 +121,11 @@ export function ActiveTournamentsWidget() {
     // Fase 4: Bracket Eliminatorio
     const bracketPhase: TournamentPhase = {
       id: 'bracket',
-      name: 'Bracket Eliminatorio',
+      name: t('phaseBracket'),
       status: hasEliminationBracket ? 'completed' : 'pending',
-      description: hasEliminationBracket ? 'Bracket generado' : 'Ver bracket',
+      description: hasEliminationBracket ? t('bracketGenerated') : t('viewBracket'),
       action: {
-        label: 'Ver Bracket',
+        label: t('viewBracketButton'),
         href: `/tournaments/${tournament.id}/bracket`,
         icon: <Trophy className="h-4 w-4" />,
         variant: 'outline'
@@ -165,7 +162,7 @@ export function ActiveTournamentsWidget() {
       has_matches: hasMatches,
       teams_count: teamsCount,
       max_teams: maxTeams,
-      category: tournament.category?.name || (tournament as any).categories?.name || 'Sin categoría'
+      categoryName: tournament.category?.name || t('noCategory')
     };
   };
 
@@ -198,14 +195,6 @@ export function ActiveTournamentsWidget() {
     }
   };
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'current': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'pending': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
 
   useEffect(() => {
     if (tournaments) {
@@ -219,6 +208,7 @@ export function ActiveTournamentsWidget() {
 
       setActiveTournaments(activeTournaments);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tournaments]);
 
   if (loading) {
@@ -227,7 +217,7 @@ export function ActiveTournamentsWidget() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-blue-600" />
-            Torneos Activos
+            {t('activeTournaments')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -250,24 +240,24 @@ export function ActiveTournamentsWidget() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-blue-600" />
-            Torneos Activos
+            {t('activeTournaments')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <Trophy className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              No hay torneos activos
+              {t('noActiveTournaments')}
             </h3>
             <p className="text-gray-500 dark:text-gray-400 mb-4">
-              Los torneos activos aparecerán aquí cuando estén en progreso.
+              {t('noActiveTournamentsDescription')}
             </p>
             <Button 
               onClick={() => router.push('/tournaments')}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Trophy className="h-4 w-4 mr-2" />
-              Ver Todos los Torneos
+              {t('viewAllTournaments')}
             </Button>
           </div>
         </CardContent>
@@ -289,7 +279,7 @@ export function ActiveTournamentsWidget() {
                 <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                   <Trophy className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
-                Torneos Activos ({activeTournaments.length})
+                {t('activeTournamentsTitle').replace('{count}', activeTournaments.length.toString())}
               </CardTitle>
               <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'transform rotate-180' : ''}`} />
             </div>
@@ -306,16 +296,16 @@ export function ActiveTournamentsWidget() {
                   <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
                     {tournament.name}
                   </h3>
-                  {tournament.category && (
+                  {tournament.categoryName && (
                     <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800">
-                      {tournament.category}
+                      {tournament.categoryName}
                     </Badge>
                   )}
                 </div>
                 <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
-                    {tournament.teams_count}/{tournament.max_teams} equipos
+                    {tournament.teams_count}/{tournament.max_teams} {t('teams')}
                   </div>
                 </div>
               </div>

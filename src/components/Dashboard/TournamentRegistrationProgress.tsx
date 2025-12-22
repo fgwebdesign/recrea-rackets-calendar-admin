@@ -245,20 +245,20 @@ function TournamentCard({ tournament, categories }: { tournament: any; categorie
     switch (status?.toLowerCase()) {
       case 'inscripciones_abiertas':
       case 'upcoming':
-        return 'Inscripciones abiertas';
+        return t('registrationsOpen');
       case 'en_curso':
       case 'active':
-        return 'En Curso';
+        return t('inProgressStatus');
       case 'finalizado':
       case 'completed':
-        return 'Finalizado';
+        return t('finished');
       default:
-        return status || 'Sin estado';
+        return status || t('noStatus');
     }
   };
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Sin fecha';
+    if (!dateString) return t('noDate');
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', {
       day: 'numeric',
