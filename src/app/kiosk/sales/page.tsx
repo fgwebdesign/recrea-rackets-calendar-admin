@@ -158,7 +158,7 @@ export default function SalesPage() {
                     {t('sales.saleNumber')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Producto
+                    {t('sales.product')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {t('sales.date')}
@@ -198,7 +198,7 @@ export default function SalesPage() {
                         <div className="relative w-12 h-12 rounded-md overflow-hidden">
                           <Image
                             src={productImage}
-                            alt={firstItem?.product_name || 'Producto'}
+                            alt={firstItem?.product_name || t('sales.product')}
                             fill
                             className="object-cover"
                             sizes="48px"
@@ -246,7 +246,7 @@ export default function SalesPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleViewSale(sale.id)}
-                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold"
                       >
                         {t('sales.view')}
                       </Button>
@@ -341,13 +341,13 @@ export default function SalesPage() {
                               </p>
                               {item.size && (
                                 <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full font-medium">
-                                  Talle: {item.size}
+                                  {t('sales.size')}: {item.size}
                                 </span>
                               )}
                             </div>
                             {item.product_sku && (
                               <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                                SKU: {item.product_sku}
+                                {t('sales.sku')}: {item.product_sku}
                               </p>
                             )}
                           </div>

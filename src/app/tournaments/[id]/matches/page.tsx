@@ -32,6 +32,7 @@ import { TournamentMatch } from '@/types/tournament';
 import { TournamentMatchModal } from '@/components/Tournaments/TournamentMatchModal';
 import { getCategoryName } from '@/utils/category';
 import EliminationBracketGenerator from '@/components/Tournaments/EliminationBracketGenerator';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface MatchResult {
   matchId: string;
@@ -51,6 +52,8 @@ export default function TournamentMatchesPage() {
   const params = useParams();
   const router = useRouter();
   const tournamentId = params.id as string;
+  const t = useTranslations('tournaments');
+  const tCommon = useTranslations('common');
   
   const { tournament, matches, teams, loading, error, refetch } = useTournament(tournamentId);
   const { categories } = useCategories();
@@ -984,7 +987,7 @@ export default function TournamentMatchesPage() {
                                       ) : (
                                         <CheckCircle className="h-4 w-4 mr-2" />
                                       )}
-                                      {isUpdatingResult === match.id ? 'Guardando...' : 'Guardar Resultado'}
+                                      {isUpdatingResult === match.id ? tCommon('saving') : t('detail.navigation.saveResult')}
                                     </Button>
                                     
                                     <Button
@@ -999,7 +1002,7 @@ export default function TournamentMatchesPage() {
                                       variant="outline"
                                     >
                                       <XCircle className="h-4 w-4 mr-2" />
-                                      Cancelar
+                                      {tCommon('cancel')}
                                     </Button>
                                   </div>
                                 </div>

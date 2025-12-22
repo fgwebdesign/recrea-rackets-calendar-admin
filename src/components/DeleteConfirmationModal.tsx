@@ -17,7 +17,25 @@ export default function DeleteConfirmationModal({
   itemName,
   itemType = 'elemento'
 }: DeleteConfirmationModalProps) {
-  const t = useTranslations('sponsors');
+  const t = useTranslations('common');
+  
+  // Mapeo de tipos de items a traducciones
+  const getItemTypeTranslation = (type: string): string => {
+    const typeMap: Record<string, string> = {
+      'producto': t('product'),
+      'categoría': t('category'),
+      'categoria': t('category'),
+      'elemento': t('item'),
+      'sponsor': t('sponsor'),
+      'patrocinador': t('sponsor'),
+      'profesor': t('professor'),
+      'professor': t('professor'),
+      'sede': t('venue'),
+      'cancha': t('court'),
+      'el': t('item') // Fallback para casos donde se use "el"
+    };
+    return typeMap[type.toLowerCase()] || type;
+  };
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -29,21 +47,21 @@ export default function DeleteConfirmationModal({
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-gray-700 dark:text-gray-300">
-            {t('deleteConfirmation')} {itemType} "<span className="font-medium">{itemName}</span>"?
-            {t('cannotUndo')}
+            {t('deleteConfirmation')} {getItemTypeTranslation(itemType)} &quot;<span className="font-medium">{itemName}</span>&quot;?
+            {' '}{t('cannotUndo')}
           </p>
           <div className="flex justify-end space-x-2">
             <Button 
               variant="outline" 
               onClick={onClose}
-              className="bg-transparent dark:bg-transparent dark:text-gray-300 dark:hover:bg-gray-700"
+              className="bg-transparent dark:bg-transparent dark:text-gray-300 dark:hover:bg-gray-700 font-bold"
             >
               {t('cancel')}
             </Button>
             <Button
               variant="destructive"
               onClick={onConfirm}
-              className="bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700"
+              className="bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 font-bold"
             >
               {t('delete')}
             </Button>

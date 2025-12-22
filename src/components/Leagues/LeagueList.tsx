@@ -3,6 +3,7 @@ import { LeagueCard } from './LeagueCard';
 import { League } from '@/types/league';
 import { Category } from '@/hooks/useCategories';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface LeagueListProps {
   leagues: League[];
@@ -12,6 +13,8 @@ interface LeagueListProps {
 const LEAGUES_PER_PAGE = 6; // Mostrar 6 ligas por página (2 filas de 3 en desktop)
 
 export function LeagueList({ leagues, categories }: LeagueListProps) {
+  const t = useTranslations('leagues');
+  const tCommon = useTranslations('common');
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.ceil(leagues.length / LEAGUES_PER_PAGE);
 
@@ -43,11 +46,11 @@ export function LeagueList({ leagues, categories }: LeagueListProps) {
         <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg sm:px-6">
           <div className="flex justify-between w-full">
             <div className="text-sm text-gray-700 dark:text-gray-300">
-              Mostrando <span className="font-medium">{((currentPage - 1) * LEAGUES_PER_PAGE) + 1}</span> a{' '}
+              {t('showing')} <span className="font-medium">{((currentPage - 1) * LEAGUES_PER_PAGE) + 1}</span> {t('to')}{' '}
               <span className="font-medium">
                 {Math.min(currentPage * LEAGUES_PER_PAGE, leagues.length)}
               </span>{' '}
-              de <span className="font-medium">{leagues.length}</span> ligas
+              {tCommon('of')} <span className="font-medium">{leagues.length}</span> {t('leagues')}
             </div>
             <div className="flex space-x-2">
               <button

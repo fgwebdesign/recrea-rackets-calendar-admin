@@ -9,15 +9,17 @@ import {
   Square3Stack3DIcon, 
   CreditCardIcon 
 } from '@heroicons/react/24/outline';
-
-const tabs = [
-  { id: 'profile', label: 'Perfil', icon: UserIcon },
-  { id: 'integrations', label: 'Integraciones', icon: Square3Stack3DIcon },
-  { id: 'subscription', label: 'Suscripción', icon: CreditCardIcon },
-];
+import { useTranslations } from '@/contexts/TranslationContext';
 
 export default function SettingsContent() {
+  const t = useTranslations('settings');
   const [activeTab, setActiveTab] = useState('profile');
+  
+  const tabs = [
+    { id: 'profile', label: t('tabs.profile'), icon: UserIcon },
+    { id: 'integrations', label: t('tabs.integrations'), icon: Square3Stack3DIcon },
+    { id: 'subscription', label: t('tabs.subscription'), icon: CreditCardIcon },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 w-full">

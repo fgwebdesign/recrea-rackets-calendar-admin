@@ -42,6 +42,7 @@ interface CartItem {
 
 export default function KioskPOSPage() {
   const t = useTranslations('kiosk');
+  const tCommon = useTranslations('common');
   const { products, fetchProducts } = useProducts({ is_active: true });
   const { categories } = useProductCategories();
   const { createSale } = useSales();
@@ -119,16 +120,16 @@ export default function KioskPOSPage() {
       if (product.sizes && product.sizes.length > 0 && selectedSize) {
         if (selectedSize.stock_quantity <= 0) {
           toast({
-            title: "Error",
-            description: `No hay stock disponible para el talle ${selectedSize.size}`,
+            title: t('common.error'),
+            description: t('pos.noStockForSize').replace('{size}', selectedSize.size),
             variant: "destructive",
           });
           return;
         }
       } else if (product.stock_quantity <= 0) {
         toast({
-          title: "Error",
-          description: "No hay stock disponible",
+          title: t('common.error'),
+          description: t('pos.noStockAvailable'),
           variant: "destructive",
         });
         return;
@@ -148,8 +149,8 @@ export default function KioskPOSPage() {
           const newQuantity = existingItem.quantity + 1;
           if (selectedSize.stock_quantity < newQuantity) {
             toast({
-              title: "Error",
-              description: `Stock insuficiente para el talle ${selectedSize.size}. Disponible: ${selectedSize.stock_quantity}`,
+              title: t('common.error'),
+              description: t('pos.insufficientStockForSize').replace('{size}', selectedSize.size).replace('{available}', selectedSize.stock_quantity.toString()),
               variant: "destructive",
             });
             return prev;
@@ -225,8 +226,8 @@ export default function KioskPOSPage() {
           // Verificar stock del talle
           if (newQuantity > item.selectedSize.stock_quantity) {
             toast({
-              title: "Error",
-              description: `Stock insuficiente para el talle ${item.selectedSize.size}. Disponible: ${item.selectedSize.stock_quantity}`,
+              title: t('common.error'),
+              description: t('pos.insufficientStockForSize').replace('{size}', item.selectedSize.size).replace('{available}', item.selectedSize.stock_quantity.toString()),
               variant: "destructive",
             });
             return prev;
@@ -267,8 +268,8 @@ export default function KioskPOSPage() {
     
     if (!selectedVenue) {
       toast({
-        title: "Error",
-        description: "Debes seleccionar una sede para continuar",
+        title: t('common.error'),
+        description: t('pos.mustSelectVenue'),
         variant: "destructive",
       });
       return;
@@ -479,7 +480,7 @@ export default function KioskPOSPage() {
 
                     {product.track_inventory && (
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Stock: {product.stock_quantity}
+                        {tCommon('available')}: {product.stock_quantity}
                       </div>
                     )}
                   </button>
@@ -624,7 +625,7 @@ export default function KioskPOSPage() {
                       setShowPaymentModal(true);
                     }}
                     disabled={cart.length === 0}
-                    className="w-full bg-green-600 text-white hover:bg-green-700 h-12 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-green-600 text-white hover:bg-green-700 h-12 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {t('pos.checkout')}
                   </Button>
@@ -658,7 +659,7 @@ export default function KioskPOSPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {venues.filter(v => v.is_active).length === 0 ? (
-                    <SelectItem value="none" disabled>No hay sedes disponibles</SelectItem>
+                    <SelectItem value="none" disabled>{t('pos.noVenuesAvailable')}</SelectItem>
                   ) : (
                     venues.filter(v => v.is_active).map((venue) => (
                       <SelectItem key={venue.id} value={venue.id}>
@@ -669,7 +670,7 @@ export default function KioskPOSPage() {
                 </SelectContent>
               </Select>
               {!selectedVenue && venues.filter(v => v.is_active).length > 0 && (
-                <p className="text-sm text-red-500">Debes seleccionar una sede para continuar</p>
+                <p className="text-sm text-red-500">{t('pos.mustSelectVenue')}</p>
               )}
             </div>
 
@@ -690,7 +691,7 @@ export default function KioskPOSPage() {
                   type="button"
                   variant={paymentMethod === 'cash' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('cash')}
-                  className={paymentMethod === 'cash' ? 'bg-green-600' : ''}
+                  className={`${paymentMethod === 'cash' ? 'bg-green-600' : ''} font-bold`}
                 >
                   <Banknote className="w-4 h-4 mr-2" />
                   {t('pos.cash')}
@@ -699,7 +700,7 @@ export default function KioskPOSPage() {
                   type="button"
                   variant={paymentMethod === 'transfer' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('transfer')}
-                  className={paymentMethod === 'transfer' ? 'bg-green-600' : ''}
+                  className={`${paymentMethod === 'transfer' ? 'bg-green-600' : ''} font-bold`}
                 >
                   <Wallet className="w-4 h-4 mr-2" />
                   {t('pos.transfer')}
@@ -708,7 +709,7 @@ export default function KioskPOSPage() {
                   type="button"
                   variant={paymentMethod === 'card' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('card')}
-                  className={paymentMethod === 'card' ? 'bg-green-600' : ''}
+                  className={`${paymentMethod === 'card' ? 'bg-green-600' : ''} font-bold`}
                 >
                   <CreditCard className="w-4 h-4 mr-2" />
                   {t('pos.card')}
@@ -717,9 +718,9 @@ export default function KioskPOSPage() {
                   type="button"
                   variant={paymentMethod === 'mercadopago' ? 'default' : 'outline'}
                   onClick={() => setPaymentMethod('mercadopago')}
-                  className={paymentMethod === 'mercadopago' ? 'bg-green-600' : ''}
+                  className={`${paymentMethod === 'mercadopago' ? 'bg-green-600' : ''} font-bold`}
                 >
-                  Mercado Pago
+                  {t('pos.mercadopago')}
                 </Button>
               </div>
             </div>
@@ -750,7 +751,7 @@ export default function KioskPOSPage() {
               <Button
                 onClick={handleCheckout}
                 disabled={isProcessing || !selectedVenue}
-                className="w-full bg-green-600 text-white hover:bg-green-700 h-12"
+                className="w-full bg-green-600 text-white hover:bg-green-700 h-12 font-bold"
               >
                 {isProcessing ? t('pos.processing') : t('pos.confirmSale')}
               </Button>
@@ -764,7 +765,7 @@ export default function KioskPOSPage() {
         <DialogContent className="bg-white dark:bg-gray-800 max-w-md">
           <DialogHeader>
             <DialogTitle className="text-gray-900 dark:text-white">
-              Seleccionar Talle
+              {t('pos.selectSize')}
             </DialogTitle>
             <DialogDescription className="text-gray-600 dark:text-gray-400">
               {productToAdd?.name}
@@ -775,7 +776,7 @@ export default function KioskPOSPage() {
             {productToAdd?.sizes && productToAdd.sizes.length > 0 ? (
               <>
                 <div className="space-y-2">
-                  <Label className="text-gray-700 dark:text-gray-300">Selecciona un talle:</Label>
+                  <Label className="text-gray-700 dark:text-gray-300">{t('pos.selectSizeLabel')}</Label>
                   <div className="grid grid-cols-4 gap-2">
                     {productToAdd.sizes.map((size) => (
                       <button
@@ -801,7 +802,7 @@ export default function KioskPOSPage() {
                         <div className="text-center">
                           <div className="font-semibold text-lg">{size.size}</div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Stock: {size.stock_quantity}
+                            {tCommon('available')}: {size.stock_quantity}
                           </div>
                         </div>
                       </button>
@@ -811,9 +812,9 @@ export default function KioskPOSPage() {
                 {selectedSizeForAdd && (
                   <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                     <p className="text-sm text-green-700 dark:text-green-400">
-                      Talle seleccionado: <span className="font-semibold">{selectedSizeForAdd.size}</span>
+                      {t('pos.selectedSize')} <span className="font-semibold">{selectedSizeForAdd.size}</span>
                       {selectedSizeForAdd.stock_quantity > 0 && (
-                        <span className="ml-2">(Stock disponible: {selectedSizeForAdd.stock_quantity})</span>
+                        <span className="ml-2">({tCommon('available')}: {selectedSizeForAdd.stock_quantity})</span>
                       )}
                     </p>
                   </div>
@@ -821,7 +822,7 @@ export default function KioskPOSPage() {
               </>
             ) : (
               <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                No hay talles disponibles para este producto
+                {t('pos.noSizesAvailable')}
               </p>
             )}
           </div>

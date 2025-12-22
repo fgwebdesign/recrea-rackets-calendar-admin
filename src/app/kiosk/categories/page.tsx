@@ -75,7 +75,7 @@ export default function ProductCategoriesPage() {
             setEditingCategory(null);
             setIsModalOpen(true);
           }}
-          className="bg-green-600 text-white hover:bg-green-700"
+          className="bg-green-600 text-white hover:bg-green-700 font-bold"
         >
           <PlusCircle className="w-5 h-5 mr-2" />
           {t('categories.addCategory')}
@@ -99,7 +99,7 @@ export default function ProductCategoriesPage() {
               setEditingCategory(null);
               setIsModalOpen(true);
             }}
-            className="bg-green-600 text-white hover:bg-green-700"
+            className="bg-green-600 text-white hover:bg-green-700 font-bold"
           >
             {t('categories.addCategory')}
           </Button>

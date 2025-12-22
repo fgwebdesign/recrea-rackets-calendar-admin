@@ -12,8 +12,11 @@ import { useCategories } from '@/hooks/useCategories';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { useLeagueForm } from '@/hooks/useLeagueForm';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 export default function CreateLeaguePage() {
+  const t = useTranslations('leagues');
+  const tCommon = useTranslations('common');
   const { categories, isLoading: isLoadingCategories, fetchCategories } = useCategories();
   const {
     step,
@@ -36,7 +39,7 @@ export default function CreateLeaguePage() {
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-8 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando categorías...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{t('loadingCategories')}</p>
         </div>
       </div>
     );
@@ -46,15 +49,15 @@ export default function CreateLeaguePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-8">
       <div className="max-w-6xl mx-auto">
         <Header 
-          title="Crear Nueva Liga"
+          title={t('createNewLeague')}
           icon={<TableIcon className="w-6 h-6 text-foreground dark:text-foreground" />}
-          description="Configure los detalles de su nueva liga."
+          description={t('createNewLeagueDescription')}
         />
         
         <div className="mt-8">
           <div className="mb-8">
             <div className="flex justify-between mb-2 text-sm text-gray-600 dark:text-gray-400">
-              <span>Paso {step} de 4</span>
+              <span>{t('step')} {step} {t('of')} 4</span>
               <span>{Math.round((step / 4) * 100)}%</span>
             </div>
             <Progress 
@@ -87,8 +90,8 @@ export default function CreateLeaguePage() {
                   onChange={(venues) => setFormData({ ...formData, venues })}
                 />
                 <div className="flex justify-between mt-6">
-                  <Button onClick={handleBack} variant="outline">
-                    ← Atrás
+                  <Button onClick={handleBack} variant="outline" className="font-bold">
+                    ← {t('back')}
                   </Button>
                   <Button 
                     onClick={() => {
@@ -96,9 +99,9 @@ export default function CreateLeaguePage() {
                         // El step se actualiza dentro de handleThirdStep
                       }
                     }}
-                    className="bg-primary hover:bg-primary/90"
+                    className="bg-primary hover:bg-primary/90 font-bold"
                   >
-                    Continuar →
+                    {t('continue')} →
                     
                   </Button>
                 </div>
@@ -112,21 +115,21 @@ export default function CreateLeaguePage() {
                   onCourtsChange={(courts) => setFormData({ ...formData, courts_per_time_slot: courts })}
                 />
                 <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
-                  <h3 className="font-bold mb-4">Resumen de la Liga</h3>
+                  <h3 className="font-bold mb-4">{t('leagueSummary')}</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div><strong>Nombre:</strong> {formData.name}</div>
-                    <div><strong>Tipo:</strong> {formData.league_type || 'round_robin'}</div>
-                    <div><strong>Categorías:</strong> {formData.categories.length}</div>
-                    <div><strong>Sedes:</strong> {formData.venues?.length || 0}</div>
-                    <div><strong>Canchas totales:</strong> {formData.venues?.reduce((s, v) => s + (v.court_ids?.length || 0), 0) || formData.courts_available || 0}</div>
-                    <div><strong>Canchas por horario:</strong> {formData.courts_per_time_slot || 2}</div>
-                    <div><strong>Horarios:</strong> {formData.match_times?.join(', ') || 'N/A'}</div>
-                    <div><strong>Frecuencia:</strong> {formData.frequency || 'quincenal'}</div>
+                    <div><strong>{t('name')}</strong> {formData.name}</div>
+                    <div><strong>{t('type')}</strong> {formData.league_type || 'round_robin'}</div>
+                    <div><strong>{t('categories')}</strong> {formData.categories.length}</div>
+                    <div><strong>{t('venues')}</strong> {formData.venues?.length || 0}</div>
+                    <div><strong>{t('totalCourts')}</strong> {formData.venues?.reduce((s, v) => s + (v.court_ids?.length || 0), 0) || formData.courts_available || 0}</div>
+                    <div><strong>{t('courtsPerSlot')}</strong> {formData.courts_per_time_slot || 2}</div>
+                    <div><strong>{t('schedules')}</strong> {formData.match_times?.join(', ') || 'N/A'}</div>
+                    <div><strong>{t('frequency')}</strong> {formData.frequency || 'quincenal'}</div>
                   </div>
                 </div>
                 <div className="flex justify-between mt-6">
-                  <Button onClick={handleBack} variant="outline">
-                    ← Atrás
+                  <Button onClick={handleBack} variant="outline" className="font-bold">
+                    ← {t('back')}
                   </Button>
                   <Button 
                     onClick={handleCreateLeague}

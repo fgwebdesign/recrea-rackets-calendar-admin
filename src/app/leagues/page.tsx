@@ -10,8 +10,11 @@ import { League } from '@/types/league';
 import { useCategories } from '@/hooks/useCategories';
 import { useLeagues } from '@/hooks/useLeagues';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 export default function LeaguesPage() {
+  const t = useTranslations('leagues');
+  const tCommon = useTranslations('common');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('Todos');
@@ -20,9 +23,9 @@ export default function LeaguesPage() {
   
   const getStatusDisplayName = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      'Inscribiendo': 'Inscripciones abiertas',
-      'Activa': 'En Curso',
-      'Finalizada': 'Finalizada'
+      'Inscribiendo': t('status.inscribiendo'),
+      'Activa': t('status.activa'),
+      'Finalizada': t('status.finalizada')
     };
     return statusMap[status] || status;
   };
@@ -64,11 +67,11 @@ export default function LeaguesPage() {
     const getStatusMessage = (status: string) => {
       switch (status) {
         case 'Inscribiendo':
-          return 'con inscripciones abiertas';
+          return t('withOpenRegistrations');
         case 'Activa':
-          return 'en curso';
+          return t('inProgress');
         case 'Finalizada':
-          return 'finalizadas';
+          return t('finished');
         default:
           return status.toLowerCase();
       }
@@ -79,25 +82,25 @@ export default function LeaguesPage() {
         <div className="text-center py-12">
           <SearchX className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-            No se encontraron ligas
+            {t('noLeaguesFound')}
           </h3>
           <p className="text-gray-500 dark:text-gray-400 mb-6">
             {searchQuery.trim() && (
-              <span>No hay ligas en categorías que coincidan con "{searchQuery}"{selectedCategoryName ? ' en la categoría ' + selectedCategoryName : ''}{selectedStatus !== 'Todos' ? ' que estén ' + getStatusMessage(selectedStatus) : ''}</span>
+              <span>{t('noLeaguesInCategory')} "{searchQuery}"{selectedCategoryName ? ` ${t('inCategory')} ${selectedCategoryName}` : ''}{selectedStatus !== 'Todos' ? ` ${t('withStatus')} ${getStatusMessage(selectedStatus)}` : ''}</span>
             )}
             {!searchQuery.trim() && (
               <span>
-                No hay ligas {selectedCategoryName ? 'en la categoría ' + selectedCategoryName : ''}{selectedStatus !== 'Todos' ? ' que estén ' + getStatusMessage(selectedStatus) : ''}
+                {t('noLeaguesFoundDescription')} {selectedCategoryName ? `${t('inCategory')} ${selectedCategoryName}` : ''}{selectedStatus !== 'Todos' ? ` ${t('withStatus')} ${getStatusMessage(selectedStatus)}` : ''}
               </span>
             )}
           </p>
           <Button
             onClick={resetFilters}
             variant="outline"
-            className="inline-flex items-center"
+            className="inline-flex items-center font-bold"
           >
             <FilterX className="w-4 h-4 mr-2" />
-            Limpiar filtros
+            {t('clearFilters')}
           </Button>
         </div>
       );
@@ -107,17 +110,17 @@ export default function LeaguesPage() {
       <div className="text-center py-12">
         <TableIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-          No hay ligas creadas
+          {t('noLeagues')}
         </h3>
         <p className="text-gray-500 dark:text-gray-400 mb-6">
-          Comienza creando tu primera liga
+          {t('noLeaguesDescription')}
         </p>
         <Link 
           href="/leagues/create" 
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 font-bold"
         >
           <PlusCircle className="w-4 h-4 mr-2" />
-          Crear Liga
+          {t('createLeague')}
         </Link>
       </div>
     );
@@ -126,9 +129,9 @@ export default function LeaguesPage() {
   const renderContent = () => {
     if (isLoadingLeagues || isLoadingCategories) {
       return (
-        <div className="text-center py-12">
+          <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-100 mx-auto mb-4"></div>
-          <p className="text-gray-900 dark:text-gray-100">Cargando datos...</p>
+          <p className="text-gray-900 dark:text-gray-100">{t('loadingData')}</p>
         </div>
       );
     }
@@ -144,16 +147,16 @@ export default function LeaguesPage() {
     <div className="min-h-screen bg-slate-100 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto p-8">
         <Header 
-          title="Ligas"
+          title={t('title')}
           icon={<TableIcon className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
-          description="Administra y visualiza todas las ligas."
+          description={t('description')}
           button={
             <Link 
               href="/leagues/create" 
-              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center"
+              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-300 flex items-center font-bold"
             >
               <PlusCircle className="mr-2" size={20} />
-              Crear Liga
+              {t('createLeague')}
             </Link>
           }
         />

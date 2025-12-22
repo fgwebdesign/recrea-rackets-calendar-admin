@@ -87,7 +87,7 @@ export default function KioskReportsPage() {
             <Button
               onClick={loadReports}
               disabled={isLoading}
-              className="w-full bg-green-600 text-white hover:bg-green-700"
+              className="w-full bg-green-600 text-white hover:bg-green-700 font-bold"
             >
               {isLoading ? t('common.loading') : t('reports.generate')}
             </Button>
@@ -209,7 +209,7 @@ export default function KioskReportsPage() {
           </p>
           <Button
             onClick={loadReports}
-            className="bg-green-600 text-white hover:bg-green-700"
+            className="bg-green-600 text-white hover:bg-green-700 font-bold"
           >
             {t('reports.generate')}
           </Button>

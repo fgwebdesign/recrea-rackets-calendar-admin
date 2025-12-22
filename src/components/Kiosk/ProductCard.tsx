@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { Edit2, Trash2, Package, AlertTriangle } from "lucide-react";
 import { Product } from "@/types/kiosk";
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface ProductCardProps {
   product: Product;
@@ -9,6 +10,8 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, onDelete, onEdit }: ProductCardProps) {
+  const t = useTranslations('kiosk');
+  const tCommon = useTranslations('common');
   const isLowStock = product.track_inventory && product.stock_quantity <= product.min_stock_alert;
   const stockPercentage = product.track_inventory && product.min_stock_alert > 0
     ? (product.stock_quantity / (product.min_stock_alert * 3)) * 100
@@ -37,13 +40,13 @@ export default function ProductCard({ product, onDelete, onEdit }: ProductCardPr
         )}
         {product.is_featured && (
           <div className="absolute top-1.5 right-1.5 bg-yellow-500 text-white px-1.5 py-0.5 rounded-full text-xs font-semibold">
-            Destacado
+            {t('products.isFeatured')}
           </div>
         )}
         {isLowStock && (
           <div className="absolute top-1.5 left-1.5 bg-red-500 text-white px-1.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" />
-            Stock Bajo
+            {t('products.lowStock')}
           </div>
         )}
       </div>
@@ -95,7 +98,7 @@ export default function ProductCard({ product, onDelete, onEdit }: ProductCardPr
         {/* Información de precio y stock */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-600 dark:text-gray-400">Precio:</span>
+            <span className="text-xs text-gray-600 dark:text-gray-400">{tCommon('price')}:</span>
             <span className="text-base font-bold text-green-600 dark:text-green-400">
               ${product.price.toLocaleString('es-UY')}
             </span>
@@ -104,13 +107,13 @@ export default function ProductCard({ product, onDelete, onEdit }: ProductCardPr
           {product.track_inventory && (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600 dark:text-gray-400">Stock:</span>
+                <span className="text-gray-600 dark:text-gray-400">{tCommon('available')}:</span>
                 <span className={`font-semibold text-xs ${
                   isLowStock 
                     ? 'text-red-600 dark:text-red-400' 
                     : 'text-gray-900 dark:text-gray-100'
                 }`}>
-                  {product.stock_quantity} unidades
+                  {product.stock_quantity}
                 </span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
@@ -130,7 +133,7 @@ export default function ProductCard({ product, onDelete, onEdit }: ProductCardPr
 
           {product.sku && (
             <div className="text-xs text-gray-500 dark:text-gray-500">
-              SKU: {product.sku}
+              {tCommon('sku')}: {product.sku}
             </div>
           )}
 
@@ -141,7 +144,7 @@ export default function ProductCard({ product, onDelete, onEdit }: ProductCardPr
                 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
             }`}>
-              {product.is_active ? 'Activo' : 'Inactivo'}
+              {product.is_active ? t('products.isActive') : t('products.isInactive')}
             </span>
           </div>
         </div>

@@ -108,7 +108,7 @@ export default function SponsorsPage() {
           onClose={() => setDeleteModal({ isOpen: false, sponsorId: null, sponsorName: '' })}
           onConfirm={handleDelete}
           itemName={deleteModal.sponsorName}
-          itemType="el"
+          itemType="patrocinador"
         />
 
         <EditSponsorModal

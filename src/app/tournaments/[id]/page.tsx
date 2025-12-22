@@ -240,7 +240,7 @@ export default function TournamentPage({ params }: PageProps) {
             className="mb-6 flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
           >
             <ArrowLeftIcon className="w-4 h-4 mr-2" />
-            Volver a Torneos
+            {t('detail.backToTournaments')}
           </Button>
 
           <div className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-800/20 rounded-2xl p-8 border border-blue-200 dark:border-blue-800 shadow-lg">
@@ -363,7 +363,7 @@ export default function TournamentPage({ params }: PageProps) {
                 {tournament?.tournament_venues && tournament.tournament_venues.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
                     <p className="text-xs font-semibold text-green-700 dark:text-green-300 mb-2">
-                      Sedes y Canchas:
+                      {t('detail.venuesAndCourts')}:
                     </p>
                     <div className="space-y-2">
                       {tournament.tournament_venues.map((tv) => (

@@ -25,7 +25,33 @@ const translations: Record<Locale, Record<string, any>> = {
     common: {
       loading: 'Cargando...',
       save: 'Guardar',
-      cancel: 'Cancelar'
+      cancel: 'Cancelar',
+      update: 'Actualizar',
+      saving: 'Guardando...',
+      product: 'producto',
+      category: 'categoría',
+      item: 'elemento',
+      sponsor: 'patrocinador',
+      confirmDeletion: 'Confirmar Eliminación',
+      deleteConfirmation: '¿Estás seguro que deseas eliminar',
+      cannotUndo: 'Esta acción no se puede deshacer.',
+      delete: 'Eliminar',
+      size: 'Talle',
+      sku: 'SKU',
+      quantity: 'Cantidad',
+      price: 'Precio',
+      total: 'Total',
+      subtotal: 'Subtotal',
+      selectSize: 'Seleccionar Talle',
+      selectSizeLabel: 'Selecciona un talle:',
+      selectedSize: 'Talle seleccionado:',
+      noSizesAvailable: 'No hay talles disponibles para este producto',
+      noStockAvailable: 'No hay stock disponible',
+      insufficientStock: 'Stock insuficiente',
+      available: 'Disponible',
+      noVenuesAvailable: 'No hay sedes disponibles',
+      mustSelectVenue: 'Debes seleccionar una sede para continuar',
+      error: 'Error'
     },
     dashboard: {
       title: 'Panel de Control',
@@ -105,6 +131,13 @@ const translations: Record<Locale, Record<string, any>> = {
       home: 'Inicio',
       tournaments: 'Torneos',
       leagues: 'Ligas',
+      venues: 'Sedes',
+      viewVenues: 'Ver Sedes',
+      kiosk: 'Kiosco',
+      registerSale: 'Registrar Venta',
+      products: 'Productos',
+      sales: 'Ventas',
+      reports: 'Reportes',
       categories: 'Categorías',
       courts: 'Canchas',
       professors: 'Profesores',
@@ -117,7 +150,7 @@ const translations: Record<Locale, Record<string, any>> = {
       viewLeagues: 'Ver ligas',
       createLeague: 'Crear liga',
       club: 'Club:',
-      clubName: 'Recrea Padel Club',
+      clubName: 'BayPadel San Francisco',
       logout: 'Cerrar sesión',
       loggingOut: 'Cerrando sesión...'
     },
@@ -214,7 +247,16 @@ const translations: Record<Locale, Record<string, any>> = {
         contextClass: 'Clase',
         contextBooking: 'Reserva',
         processing: 'Procesando...',
-        confirmSale: 'Confirmar Venta'
+        confirmSale: 'Confirmar Venta',
+        noStockForSize: 'No hay stock disponible para el talle {size}',
+        noStockAvailable: 'No hay stock disponible',
+        insufficientStockForSize: 'Stock insuficiente para el talle {size}. Disponible: {available}',
+        mustSelectVenue: 'Debes seleccionar una sede para continuar',
+        selectSize: 'Seleccionar Talle',
+        selectSizeLabel: 'Selecciona un talle:',
+        selectedSize: 'Talle seleccionado:',
+        noSizesAvailable: 'No hay talles disponibles para este producto',
+        noVenuesAvailable: 'No hay sedes disponibles'
       },
       categories: {
         title: 'Categorías de Productos',
@@ -266,19 +308,26 @@ const translations: Record<Locale, Record<string, any>> = {
         allVenues: 'Todas las sedes',
         isFeatured: 'Destacado',
         isActive: 'Activo',
+        isInactive: 'Inactivo',
         searchPlaceholder: 'Buscar productos...',
         allCategories: 'Todas las categorías',
+        all: 'Todas',
         lowStock: 'Stock Bajo',
         noProducts: 'No hay productos',
         noProductsDescription: 'Crea tu primer producto para comenzar a vender',
         addProductDescription: 'Crea un nuevo producto para el kiosco',
         editProductDescription: 'Edita los detalles del producto',
-        deleteConfirmation: '¿Estás seguro de eliminar el producto "{name}"?'
+        deleteConfirmation: '¿Estás seguro de eliminar el producto "{name}"?',
+        pagination: {
+          previous: 'Anterior',
+          next: 'Siguiente'
+        }
       },
       sales: {
         title: 'Ventas',
         description: 'Historial de ventas realizadas',
         saleNumber: 'N° Venta',
+        product: 'Producto',
         date: 'Fecha',
         customer: 'Cliente',
         venue: 'Sede',
@@ -295,6 +344,8 @@ const translations: Record<Locale, Record<string, any>> = {
         allStatus: 'Todos los estados',
         noSales: 'No hay ventas',
         noSalesDescription: 'Las ventas aparecerán aquí cuando se registren',
+        size: 'Talle',
+        sku: 'SKU',
         paymentMethods: {
           cash: 'Efectivo',
           transfer: 'Transferencia',
@@ -533,6 +584,15 @@ const translations: Record<Locale, Record<string, any>> = {
         }
       }
     },
+    settings: {
+      title: 'Configuraciones',
+      description: 'Administra las configuraciones de la aplicación.',
+      tabs: {
+        profile: 'Perfil',
+        integrations: 'Integraciones',
+        subscription: 'Suscripción'
+      }
+    },
   // Loading Screen
   loading: {
     defaultMessage: 'Cargando...',
@@ -579,9 +639,20 @@ const translations: Record<Locale, Record<string, any>> = {
     error: 'Error'
   },
   // Venues
-  venues: {
-    title: 'Gestión de Sedes y Canchas',
-    description: 'Administra las sedes del club y sus canchas.',
+    categories: {
+      title: 'Categorías',
+      description: 'Administra las categorías de los torneos.',
+      addCategory: 'Añadir Categoría',
+      editCategory: 'Editar Categoría',
+      addNewCategory: 'Añadir Nueva Categoría',
+      categoryName: 'Nombre de la Categoría',
+      categoryNamePlaceholder: 'Ingresa el nombre de la categoría',
+      saving: 'Guardando...',
+      update: 'Actualizar'
+    },
+    venues: {
+      title: 'Gestión de Sedes y Canchas',
+      description: 'Administra las sedes del club y sus canchas.',
     venues: 'Sedes',
     courts: 'Canchas',
     newVenue: 'Nueva Sede',
@@ -741,7 +812,8 @@ const translations: Record<Locale, Record<string, any>> = {
         location: 'Ubicación',
         inscriptionCost: 'Costo de Inscripción',
         rules: 'Reglamento',
-        prizes: 'Premios'
+        prizes: 'Premios',
+        venuesAndCourts: 'Sedes y Canchas'
       },
       stats: {
         potentialRevenue: 'Revenue Potencial',
@@ -1012,7 +1084,7 @@ const translations: Record<Locale, Record<string, any>> = {
           },
           clubName: {
             label: 'Nombre del Club',
-            placeholder: 'Ej: Recrea Padel Club'
+            clubName: 'BayPadel San Francisco',
           },
           signupLimit: {
             label: 'Fecha Límite de Inscripción',
@@ -1094,7 +1166,36 @@ const translations: Record<Locale, Record<string, any>> = {
     common: {
       loading: 'Loading...',
       save: 'Save',
-      cancel: 'Cancel'
+      cancel: 'Cancel',
+      update: 'Update',
+      saving: 'Saving...',
+      product: 'product',
+      category: 'category',
+      item: 'item',
+      sponsor: 'sponsor',
+      professor: 'professor',
+      venue: 'venue',
+      court: 'court',
+      confirmDeletion: 'Confirm Deletion',
+      deleteConfirmation: 'Are you sure you want to delete',
+      cannotUndo: 'This action cannot be undone.',
+      delete: 'Delete',
+      size: 'Size',
+      sku: 'SKU',
+      quantity: 'Quantity',
+      price: 'Price',
+      total: 'Total',
+      subtotal: 'Subtotal',
+      selectSize: 'Select Size',
+      selectSizeLabel: 'Select a size:',
+      selectedSize: 'Selected size:',
+      noSizesAvailable: 'No sizes available for this product',
+      noStockAvailable: 'No stock available',
+      insufficientStock: 'Insufficient stock',
+      available: 'Available',
+      noVenuesAvailable: 'No venues available',
+      mustSelectVenue: 'You must select a venue to continue',
+      error: 'Error'
     },
     dashboard: {
       title: 'Dashboard',
@@ -1174,6 +1275,13 @@ const translations: Record<Locale, Record<string, any>> = {
       home: 'Home',
       tournaments: 'Tournaments',
       leagues: 'Leagues',
+      venues: 'Venues',
+      viewVenues: 'View Venues',
+      kiosk: 'Kiosk',
+      registerSale: 'Register Sale',
+      products: 'Products',
+      sales: 'Sales',
+      reports: 'Reports',
       categories: 'Categories',
       courts: 'Courts',
       professors: 'Professors',
@@ -1186,7 +1294,7 @@ const translations: Record<Locale, Record<string, any>> = {
       viewLeagues: 'View leagues',
       createLeague: 'Create league',
       club: 'Club:',
-      clubName: 'Recrea Padel Club',
+      clubName: 'BayPadel San Francisco',
       logout: 'Log out',
       loggingOut: 'Logging out...'
     },
@@ -1283,7 +1391,16 @@ const translations: Record<Locale, Record<string, any>> = {
         contextClass: 'Class',
         contextBooking: 'Booking',
         processing: 'Processing...',
-        confirmSale: 'Confirm Sale'
+        confirmSale: 'Confirm Sale',
+        noStockForSize: 'No stock available for size {size}',
+        noStockAvailable: 'No stock available',
+        insufficientStockForSize: 'Insufficient stock for size {size}. Available: {available}',
+        mustSelectVenue: 'You must select a venue to continue',
+        selectSize: 'Select Size',
+        selectSizeLabel: 'Select a size:',
+        selectedSize: 'Selected size:',
+        noSizesAvailable: 'No sizes available for this product',
+        noVenuesAvailable: 'No venues available'
       },
       categories: {
         title: 'Product Categories',
@@ -1335,19 +1452,26 @@ const translations: Record<Locale, Record<string, any>> = {
         allVenues: 'All venues',
         isFeatured: 'Featured',
         isActive: 'Active',
+        isInactive: 'Inactive',
         searchPlaceholder: 'Search products...',
         allCategories: 'All categories',
+        all: 'All',
         lowStock: 'Low Stock',
         noProducts: 'No products',
         noProductsDescription: 'Create your first product to start selling',
         addProductDescription: 'Create a new product for the kiosk',
         editProductDescription: 'Edit product details',
-        deleteConfirmation: 'Are you sure you want to delete product "{name}"?'
+        deleteConfirmation: 'Are you sure you want to delete product "{name}"?',
+        pagination: {
+          previous: 'Previous',
+          next: 'Next'
+        }
       },
       sales: {
         title: 'Sales',
         description: 'Sales history',
         saleNumber: 'Sale #',
+        product: 'Product',
         date: 'Date',
         customer: 'Customer',
         venue: 'Venue',
@@ -1364,6 +1488,8 @@ const translations: Record<Locale, Record<string, any>> = {
         allStatus: 'All status',
         noSales: 'No sales',
         noSalesDescription: 'Sales will appear here when registered',
+        size: 'Size',
+        sku: 'SKU',
         paymentMethods: {
           cash: 'Cash',
           transfer: 'Transfer',
@@ -1648,9 +1774,20 @@ const translations: Record<Locale, Record<string, any>> = {
     error: 'Error'
   },
   // Venues
-  venues: {
-    title: 'Venue and Court Management',
-    description: 'Manage the club venues and their courts.',
+    categories: {
+      title: 'Categories',
+      description: 'Manage tournament categories.',
+      addCategory: 'Add Category',
+      editCategory: 'Edit Category',
+      addNewCategory: 'Add New Category',
+      categoryName: 'Category Name',
+      categoryNamePlaceholder: 'Enter category name',
+      saving: 'Saving...',
+      update: 'Update'
+    },
+    venues: {
+      title: 'Venue and Court Management',
+      description: 'Manage the club venues and their courts.',
     venues: 'Venues',
     courts: 'Courts',
     newVenue: 'New Venue',
@@ -1722,6 +1859,109 @@ const translations: Record<Locale, Record<string, any>> = {
     contactInfo: 'Contact Information',
     descriptionSection: 'Description',
     options: 'Options'
+  },
+  // Leagues
+  leagues: {
+    title: 'Leagues',
+    description: 'Manage and view all leagues.',
+    createLeague: 'Create League',
+    createNewLeague: 'Create New League',
+    createNewLeagueDescription: 'Configure the details of your new league.',
+    noLeagues: 'No leagues created',
+    noLeaguesDescription: 'Start by creating your first league',
+    noLeaguesFound: 'No leagues found',
+    noLeaguesFoundDescription: 'No leagues match the selected filters.',
+    searchPlaceholder: 'Search by category...',
+    allCategories: 'All categories',
+    allStatus: 'All',
+    clearFilters: 'Clear filters',
+    loadingData: 'Loading data...',
+    step: 'Step',
+    of: 'of',
+    loadingCategories: 'Loading categories...',
+    creating: 'Creating League...',
+    createLeagueCheck: 'Create League ✓',
+    back: 'Back',
+    // Status
+    status: {
+      all: 'All',
+      inscribiendo: 'Open Registrations',
+      activa: 'In Progress',
+      finalizada: 'Finished'
+    },
+    // League Card
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    registeredTeams: 'Registered Teams',
+    completed: 'completed',
+    spotsAvailable: 'spots available',
+    spotsFull: 'Spots Full',
+    inscriptionCost: 'Registration Cost',
+    // League Detail Page
+    backToLeagues: 'Back to Leagues',
+    loadingLeagueInfo: 'Loading league information...',
+    errorLoadingLeague: 'Could not load league information.',
+    registeredTeamsTitle: 'Registered Teams',
+    // Pagination
+    showing: 'Showing',
+    to: 'to',
+    leagues: 'leagues',
+    // Empty states
+    noLeaguesInCategory: 'No leagues in categories matching',
+    inCategory: 'in category',
+    withStatus: 'that are',
+    withOpenRegistrations: 'with open registrations',
+    inProgress: 'in progress',
+    finished: 'finished',
+    // League Summary
+    leagueSummary: 'League Summary',
+    name: 'Name:',
+    type: 'Type:',
+    categories: 'Categories:',
+    venues: 'Venues:',
+    totalCourts: 'Total Courts:',
+    courtsPerSlot: 'Courts per Slot:',
+    schedules: 'Schedules:',
+    frequency: 'Frequency:',
+    continue: 'Continue',
+    // League Detail Page Sections
+    upcomingMatches: 'Upcoming Matches',
+    leagueInfo: 'League Information',
+    standings: 'Standings',
+    gallery: 'Image Gallery',
+    // League Info Section
+    description: 'Description',
+    noDescription: 'No description',
+    inscriptionCost: 'Registration Cost',
+    dates: 'Dates',
+    start: 'Start:',
+    end: 'End:',
+    scoringSystem: 'Scoring System',
+    victory: 'Victory',
+    lossWithSet: 'Loss with Set',
+    loss: 'Loss',
+    walkover: 'W.O.',
+    points: 'points',
+    // Standings Section
+    loadingStandings: 'Loading standings...',
+    errorLoadingStandings: 'Error loading standings:',
+    noStandings: 'No standings available',
+    noStandingsDescription: 'No data available for this league. Generate matches to see standings.',
+    // Generate League Button
+    generateLeague: 'Generate league matches',
+    generatingLeague: 'Generating league...',
+    leagueGenerated: 'Matches have already been generated',
+    // Toast Messages
+    generatingLeagueToast: 'Generating league...',
+    generatingLeagueDescription: 'Please wait while matches are generated and notifications are sent',
+    leagueGeneratedSuccess: 'League generated successfully!',
+    leagueGeneratedDescription: 'Calendar and standings have been generated correctly',
+    authError: 'Authentication Error',
+    authErrorDescription: 'No active administrator session',
+    generateError: 'Error generating league',
+    generateErrorDescription: 'Could not generate calendar and standings',
+    unexpectedError: 'Unexpected Error',
+    unexpectedErrorDescription: 'An error occurred while generating the league'
   },
   // Tournaments
   tournaments: {
@@ -1797,12 +2037,14 @@ const translations: Record<Locale, Record<string, any>> = {
         groupsDescription: 'Generate and manage groups',
         matches: 'Matches',
         matchesDescription: 'Manage matches and results',
+        saveResult: 'Save Result',
         standings: 'Standings',
         standingsDescription: 'View positions and statistics',
         bracket: 'Eliminations',
         bracketDescription: 'Elimination bracket',
         payments: 'Payments',
-        paymentsDescription: 'Manage payments and registrations'
+        paymentsDescription: 'Manage payments and registrations',
+        saveResult: 'Save Result'
       },
       info: {
         description: 'Description',
@@ -1810,7 +2052,8 @@ const translations: Record<Locale, Record<string, any>> = {
         location: 'Location',
         inscriptionCost: 'Registration Cost',
         rules: 'Rules',
-        prizes: 'Prizes'
+        prizes: 'Prizes',
+        venuesAndCourts: 'Venues and Courts'
       },
       stats: {
         potentialRevenue: 'Potential Revenue',
@@ -2081,7 +2324,7 @@ const translations: Record<Locale, Record<string, any>> = {
           },
           clubName: {
             label: 'Club Name',
-            placeholder: 'E.g: Recrea Padel Club'
+            placeholder: 'E.g: BayPadel San Francisco'
           },
           signupLimit: {
             label: 'Registration Deadline',

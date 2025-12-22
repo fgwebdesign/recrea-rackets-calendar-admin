@@ -144,7 +144,7 @@ export default function VenuesPage() {
             ) : venues.length === 0 ? (
               <EmptyState />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {venues.map((venue) => (
                   <VenueCard
                     key={venue.id}
@@ -231,7 +231,7 @@ export default function VenuesPage() {
           onClose={() => setDeleteVenueModal({ isOpen: false, venue: null })}
           onConfirm={handleDeleteVenue}
           itemName={deleteVenueModal.venue?.name || ''}
-          itemType="la sede"
+          itemType="sede"
         />
 
         <SimpleAddCourtModal
@@ -245,7 +245,7 @@ export default function VenuesPage() {
           onClose={() => setDeleteCourtModal({ isOpen: false, courtId: null, courtName: '' })}
           onConfirm={handleDeleteCourt}
           itemName={deleteCourtModal.courtName}
-          itemType="la"
+          itemType="cancha"
         />
 
         <EditCourtModal

@@ -107,7 +107,7 @@ export default function ProfessorsPage() {
           onClose={() => setDeleteModal({ isOpen: false, professorId: null, professorName: '' })}
           onConfirm={handleDelete}
           itemName={deleteModal.professorName}
-          itemType="el"
+          itemType="profesor"
         />
 
         <EditProfessorModal

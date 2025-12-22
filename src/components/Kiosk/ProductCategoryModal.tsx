@@ -232,14 +232,14 @@ export default function ProductCategoryModal({
               variant="outline"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+              className="border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 font-bold"
             >
               {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || !formData.name.trim()}
-              className="bg-green-600 text-white hover:bg-green-700"
+              className="bg-green-600 text-white hover:bg-green-700 font-bold"
             >
               {isSubmitting ? t('common.saving') : (isEditing ? t('common.update') : t('common.save'))}
             </Button>

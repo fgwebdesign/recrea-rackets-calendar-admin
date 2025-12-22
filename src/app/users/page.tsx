@@ -6,6 +6,7 @@ import UserFilters from '../../components/Users/UserFilter';
 import Header from '@/components/Header';
 import { UsersIcon } from '@heroicons/react/24/outline';
 import { supabase } from '@/lib/supabase';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface User {
   id: string;
@@ -19,6 +20,7 @@ interface User {
 }
 
 export default function UsersPage() {
+  const t = useTranslations('users');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
   const [users, setUsers] = useState<User[]>([]);
@@ -40,17 +42,17 @@ export default function UsersPage() {
         const transformedUsers = data.map((user: any) => {
           const firstName = user.first_name || '';
           const lastName = user.last_name || '';
-          const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Usuario sin nombre';
+          const fullName = [firstName, lastName].filter(Boolean).join(' ') || t('notAvailable');
           
           return {
             id: user.id,
             email: user.email,
             name: fullName,
-            role: 'Jugador', // Todos los usuarios de la tabla users son jugadores
+            role: t('player'), // Todos los usuarios de la tabla users son jugadores
             status: 'active', 
             lastLogin: new Date().toISOString().split('T')[0], 
             avatar: '/assets/user.png', // Avatar por defecto
-            phone: user.phone || 'No disponible'
+            phone: user.phone || t('notAvailable')
           };
         });
         setUsers(transformedUsers);
@@ -88,8 +90,8 @@ export default function UsersPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         <Header 
-          title="Usuarios"
-          description="Administra y visualiza todos los usuarios."
+          title={t('title')}
+          description={t('description')}
           icon={<UsersIcon className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
         />
 

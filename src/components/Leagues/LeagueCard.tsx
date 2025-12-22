@@ -5,6 +5,7 @@ import { League } from '@/types/league';
 import { Category } from '@/hooks/useCategories';
 import { getCategoryName } from '@/utils/category';
 import { Progress } from '@/components/ui/progress';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface LeagueCardProps {
   league: League;
@@ -12,6 +13,7 @@ interface LeagueCardProps {
 }
 
 export function LeagueCard({ league, categories }: LeagueCardProps) {
+  const t = useTranslations('leagues');
   const categoryName = getCategoryName(league.category_id, categories);
   const registeredTeams = league.registeredTeams || 0;
   const registrationProgress = (registeredTeams / league.team_size) * 100;
@@ -33,11 +35,11 @@ export function LeagueCard({ league, categories }: LeagueCardProps) {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'Inscribiendo':
-        return 'Inscripciones abiertas';
+        return t('status.inscribiendo');
       case 'Activa':
-        return 'En Curso';
+        return t('status.activa');
       case 'Finalizada':
-        return 'Finalizada';
+        return t('status.finalizada');
       default:
         return status;
     }
@@ -91,13 +93,13 @@ export function LeagueCard({ league, categories }: LeagueCardProps) {
           {/* Fecha de inicio y fin */}
           <div className="flex flex-col gap-2">
             <div className="p-3 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-              <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">Fecha de inicio</p>
+              <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">{t('startDate')}</p>
               <p className="text-sm text-emerald-800 dark:text-emerald-200">
                 {formatDate(league.start_date)}
               </p>
             </div>
             <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30">
-              <p className="text-sm font-medium text-red-900 dark:text-red-300">Fecha de fin</p>
+              <p className="text-sm font-medium text-red-900 dark:text-red-300">{t('endDate')}</p>
               <p className="text-sm text-red-800 dark:text-red-200">
                 {formatDate(league.end_date)}
               </p>
@@ -110,7 +112,7 @@ export function LeagueCard({ league, categories }: LeagueCardProps) {
               <div className="flex items-center gap-2">
                 <Users className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Equipos registrados
+                  {t('registeredTeams')}
                 </span>
               </div>
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -130,15 +132,15 @@ export function LeagueCard({ league, categories }: LeagueCardProps) {
               />
               <div className="flex justify-between">
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {registrationProgress}% completado
+                  {registrationProgress}% {t('completed')}
                 </span>
                 {league.status === 'Inscribiendo' && availableSpots > 0 ? (
                   <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                    {availableSpots} cupos disponibles
+                    {availableSpots} {t('spotsAvailable')}
                   </span>
                 ) : registeredTeams === league.team_size && (
                   <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                    Cupos completos
+                    {t('spotsFull')}
                   </span>
                 )}
               </div>
@@ -149,7 +151,7 @@ export function LeagueCard({ league, categories }: LeagueCardProps) {
           {league.inscription_cost > 0 && (
             <div className="mt-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
               <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300 mb-1">
-                Costo de inscripción
+                {t('inscriptionCost')}
               </p>
               <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
                 ${league.inscription_cost}

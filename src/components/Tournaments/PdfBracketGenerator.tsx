@@ -127,7 +127,7 @@ export const PdfBracketGenerator: React.FC<PdfBracketGeneratorProps> = ({
       pdf.setFontSize(12);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor('#3b82f6');
-      pdf.text('Recrea Padel Club', pdfWidth - 70, 30);
+      pdf.text('BayPadel San Francisco', pdfWidth - 70, 30);
       
       // Fecha de generación
       pdf.setFontSize(9);

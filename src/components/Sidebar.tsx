@@ -120,7 +120,7 @@ const LogoCard = ({ t }: { t: (key: string) => string }) => (
         <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-white dark:from-blue-900 dark:to-gray-800 rounded-full animate-pulse-slow" />
         <Image
           src="/assets/Matchlylogo.png"
-          alt="Recrea Padel Club"
+          alt="BayPadel San Francisco"
           fill
           priority
           sizes="(max-width: 768px) 80px, 80px"
@@ -207,14 +207,14 @@ const Sidebar = () => {
       ]
     },
     { 
-      name: 'SEDES', 
+      name: t('venues'), 
       href: '/venues', 
       icon: BuildingOfficeIcon,
       iconColor: 'text-purple-500',
       hoverColor: 'hover:bg-purple-50',
       submenu: [
         { 
-          name: 'Ver Sedes', 
+          name: t('viewVenues'), 
           href: '/venues', 
           icon: BuildingOfficeIcon,
           iconColor: 'text-purple-500' 
@@ -231,41 +231,41 @@ const Sidebar = () => {
     
     // 3. GESTIÓN DE PRODUCTOS Y VENTAS
     { 
-      name: 'KIOSCO', 
+      name: t('kiosk'), 
       href: '/kiosk', 
       icon: ShoppingCartIcon,
       iconColor: 'text-indigo-500',
       hoverColor: 'hover:bg-indigo-50',
       submenu: [
         { 
-          name: 'Registrar Venta', 
+          name: t('registerSale'), 
           href: '/kiosk', 
           icon: ShoppingCartIcon,
           iconColor: 'text-indigo-500' 
         },
         { 
-          name: 'Productos', 
+          name: t('products'), 
           href: '/kiosk/products', 
           icon: CubeIcon,
           iconColor: 'text-indigo-600',
           textColor: 'text-indigo-600 font-medium'
         },
         { 
-          name: 'Categorías', 
+          name: t('categories'), 
           href: '/kiosk/categories', 
           icon: TagIcon,
           iconColor: 'text-indigo-600',
           textColor: 'text-indigo-600 font-medium'
         },
         { 
-          name: 'Ventas', 
+          name: t('sales'), 
           href: '/kiosk/sales', 
           icon: DocumentTextIcon,
           iconColor: 'text-indigo-600',
           textColor: 'text-indigo-600 font-medium'
         },
         { 
-          name: 'Reportes', 
+          name: t('reports'), 
           href: '/kiosk/reports', 
           icon: ChartBarIcon,
           iconColor: 'text-indigo-600',

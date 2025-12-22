@@ -657,14 +657,14 @@ export default function ProductModal({
               variant="outline"
               onClick={handleClose}
               disabled={isSubmitting || uploadingImage}
-              className="border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+              className="border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 font-bold"
             >
               {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || uploadingImage || !formData.name.trim() || !formData.category_id}
-              className="bg-green-600 text-white hover:bg-green-700"
+              className="bg-green-600 text-white hover:bg-green-700 font-bold"
             >
               {isSubmitting || uploadingImage 
                 ? t('common.saving') 

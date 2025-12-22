@@ -9,8 +9,10 @@ import AddCategoryModal from '@/components/Categories/AddCategoryModal';
 import { useCategories, Category } from '@/hooks/useCategories';
 import EmptyState from '@/components/EmptyState';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 export default function CategoriesPage() {
+  const t = useTranslations('categories');
   const { categories, isLoading, fetchCategories, createCategory, deleteCategory, updateCategory } = useCategories();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -58,16 +60,16 @@ export default function CategoriesPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
         <Header 
-          title="Categorías"
+          title={t('title')}
           icon={<ListChecks className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
-          description="Administra las categorías de los torneos."
+          description={t('description')}
           button={
             <Button 
               onClick={() => setIsAddModalOpen(true)}
-              className="bg-[#6B8AFF] text-white hover:bg-[#5A75E6] dark:bg-blue-600 dark:hover:bg-blue-700"
+              className="bg-[#6B8AFF] text-white hover:bg-[#5A75E6] dark:bg-blue-600 dark:hover:bg-blue-700 font-bold"
             >
               <PlusCircle className="mr-2 h-5 w-5" />
-              Añadir Categoría
+              {t('addCategory')}
             </Button>
           }
         />

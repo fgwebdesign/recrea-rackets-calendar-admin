@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Category } from "@/hooks/useCategories";
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface LeagueFiltersProps {
   searchQuery: string;
@@ -30,14 +31,18 @@ export function LeagueFilters({
   setSelectedStatus,
   categories
 }: LeagueFiltersProps) {
+  const t = useTranslations('leagues');
+  
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'Inscribiendo':
-        return 'Inscripciones abiertas';
+        return t('status.inscribiendo');
       case 'Activa':
-        return 'En Curso';
+        return t('status.activa');
       case 'Finalizada':
-        return 'Finalizada';
+        return t('status.finalizada');
+      case 'Todos':
+        return t('status.all');
       default:
         return status;
     }
@@ -47,7 +52,7 @@ export function LeagueFilters({
     <div className="flex flex-col md:flex-row gap-4 mb-6">
       <div className="flex-1">
         <Input
-          placeholder="Buscar por categoría..."
+          placeholder={t('searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-sm"
@@ -57,10 +62,10 @@ export function LeagueFilters({
       <div className="flex gap-4">
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Todas las categorías" />
+            <SelectValue placeholder={t('allCategories')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas las categorías</SelectItem>
+            <SelectItem value="all">{t('allCategories')}</SelectItem>
             {categories.map((category) => (
               <SelectItem key={category.id} value={category.id}>
                 {category.name}
