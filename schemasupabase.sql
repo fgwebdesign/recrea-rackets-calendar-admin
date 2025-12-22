@@ -25,6 +25,24 @@ CREATE TABLE public.courts (
   CONSTRAINT courts_pkey PRIMARY KEY (id),
   CONSTRAINT courts_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id)
 );
+CREATE TABLE public.inventory_movements (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  product_id uuid NOT NULL,
+  movement_type text NOT NULL CHECK (movement_type = ANY (ARRAY['sale'::text, 'purchase'::text, 'adjustment'::text, 'return'::text, 'loss'::text, 'transfer'::text])),
+  quantity integer NOT NULL,
+  previous_stock integer NOT NULL,
+  new_stock integer NOT NULL,
+  reference_type text,
+  reference_id uuid,
+  notes text,
+  user_id uuid,
+  venue_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT inventory_movements_pkey PRIMARY KEY (id),
+  CONSTRAINT inventory_movements_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id),
+  CONSTRAINT inventory_movements_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT inventory_movements_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id)
+);
 CREATE TABLE public.league_gallery (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   league_id uuid,
@@ -198,6 +216,41 @@ CREATE TABLE public.matches (
   CONSTRAINT matches_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id),
   CONSTRAINT matches_winner_team_id_fkey FOREIGN KEY (winner_team_id) REFERENCES public.teams(id)
 );
+CREATE TABLE public.product_categories (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name text NOT NULL,
+  slug text UNIQUE,
+  description text,
+  icon text,
+  color text DEFAULT '#3B82F6'::text,
+  sort_order integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT product_categories_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.products (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  category_id uuid NOT NULL,
+  name text NOT NULL,
+  description text,
+  sku text UNIQUE,
+  barcode text,
+  price numeric NOT NULL CHECK (price >= 0::numeric),
+  cost_price numeric DEFAULT 0 CHECK (cost_price >= 0::numeric),
+  stock_quantity integer DEFAULT 0 CHECK (stock_quantity >= 0),
+  min_stock_alert integer DEFAULT 5,
+  track_inventory boolean DEFAULT true,
+  image_url text,
+  is_active boolean DEFAULT true,
+  is_featured boolean DEFAULT false,
+  venue_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT products_pkey PRIMARY KEY (id),
+  CONSTRAINT products_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.product_categories(id),
+  CONSTRAINT products_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id)
+);
 CREATE TABLE public.professors (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   name text NOT NULL,
@@ -224,6 +277,49 @@ CREATE TABLE public.results (
   CONSTRAINT results_pkey PRIMARY KEY (id),
   CONSTRAINT results_winner_team_id_fkey FOREIGN KEY (winner_team_id) REFERENCES public.teams(id),
   CONSTRAINT results_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.matches(id)
+);
+CREATE TABLE public.sale_items (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  sale_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+  quantity integer NOT NULL DEFAULT 1 CHECK (quantity > 0),
+  unit_price numeric NOT NULL CHECK (unit_price >= 0::numeric),
+  discount_amount numeric DEFAULT 0 CHECK (discount_amount >= 0::numeric),
+  total numeric NOT NULL CHECK (total >= 0::numeric),
+  product_name text NOT NULL,
+  product_sku text,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT sale_items_pkey PRIMARY KEY (id),
+  CONSTRAINT sale_items_sale_id_fkey FOREIGN KEY (sale_id) REFERENCES public.sales(id),
+  CONSTRAINT sale_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
+);
+CREATE TABLE public.sales (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  sale_number integer NOT NULL DEFAULT nextval('sales_sale_number_seq'::regclass),
+  venue_id uuid,
+  user_id uuid,
+  customer_id uuid,
+  customer_name text,
+  subtotal numeric NOT NULL DEFAULT 0 CHECK (subtotal >= 0::numeric),
+  discount_amount numeric DEFAULT 0 CHECK (discount_amount >= 0::numeric),
+  discount_percent numeric DEFAULT 0 CHECK (discount_percent >= 0::numeric AND discount_percent <= 100::numeric),
+  total numeric NOT NULL DEFAULT 0 CHECK (total >= 0::numeric),
+  payment_method text NOT NULL DEFAULT 'cash'::text CHECK (payment_method = ANY (ARRAY['cash'::text, 'transfer'::text, 'card'::text, 'mixed'::text, 'pending'::text])),
+  payment_status text NOT NULL DEFAULT 'completed'::text CHECK (payment_status = ANY (ARRAY['pending'::text, 'completed'::text, 'refunded'::text, 'cancelled'::text])),
+  payment_reference text,
+  sale_context text DEFAULT 'general'::text CHECK (sale_context = ANY (ARRAY['general'::text, 'tournament'::text, 'league'::text, 'class'::text, 'booking'::text])),
+  tournament_id uuid,
+  league_id uuid,
+  notes text,
+  sale_date timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT sales_pkey PRIMARY KEY (id),
+  CONSTRAINT sales_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT sales_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id),
+  CONSTRAINT sales_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.users(id),
+  CONSTRAINT sales_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES public.tournaments(id),
+  CONSTRAINT sales_league_id_fkey FOREIGN KEY (league_id) REFERENCES public.leagues(id)
 );
 CREATE TABLE public.settings (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),

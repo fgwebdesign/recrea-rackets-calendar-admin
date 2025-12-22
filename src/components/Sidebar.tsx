@@ -16,6 +16,9 @@ import {
   TableCellsIcon,
   AcademicCapIcon,
   BookOpenIcon,
+  ShoppingCartIcon,
+  ReceiptRefundIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline';
 import { ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -221,6 +224,49 @@ const Sidebar = () => {
       href: '/categories', 
       icon: TrophyIcon,
       iconColor: 'text-blue-500'
+    },
+    { 
+      name: 'KIOSCO', 
+      href: '/kiosk', 
+      icon: ShoppingCartIcon,
+      iconColor: 'text-indigo-500',
+      hoverColor: 'hover:bg-indigo-50',
+      submenu: [
+        { 
+          name: 'Punto de Venta', 
+          href: '/kiosk', 
+          icon: ShoppingCartIcon,
+          iconColor: 'text-indigo-500' 
+        },
+        { 
+          name: 'Productos', 
+          href: '/kiosk/products', 
+          icon: ImageIcon,
+          iconColor: 'text-indigo-600',
+          textColor: 'text-indigo-600 font-medium'
+        },
+        { 
+          name: 'Categorías', 
+          href: '/kiosk/categories', 
+          icon: TrophyIcon,
+          iconColor: 'text-indigo-600',
+          textColor: 'text-indigo-600 font-medium'
+        },
+        { 
+          name: 'Ventas', 
+          href: '/kiosk/sales', 
+          icon: ReceiptRefundIcon,
+          iconColor: 'text-indigo-600',
+          textColor: 'text-indigo-600 font-medium'
+        },
+        { 
+          name: 'Reportes', 
+          href: '/kiosk/reports', 
+          icon: ChartBarIcon,
+          iconColor: 'text-indigo-600',
+          textColor: 'text-indigo-600 font-medium'
+        },
+      ]
     },
     { 
       name: t('professors'), 

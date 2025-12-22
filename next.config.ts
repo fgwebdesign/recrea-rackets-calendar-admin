@@ -12,11 +12,20 @@ const nextConfig = {
     optimizePackageImports: ['@heroicons/react', '@phosphor-icons/react'],
   },
   images: {
-    domains: ['goipmracccjxjmhpizib.supabase.co'],
+    domains: [
+      'goipmracccjxjmhpizib.supabase.co',
+      'lohsoxizoliuhirlxypf.supabase.co'
+    ],
     remotePatterns: [
       {
         protocol: 'https' as const,
         hostname: 'goipmracccjxjmhpizib.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https' as const,
+        hostname: 'lohsoxizoliuhirlxypf.supabase.co',
         port: '',
         pathname: '/storage/v1/object/public/**',
       },
