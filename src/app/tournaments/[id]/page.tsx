@@ -47,7 +47,6 @@ export default function TournamentPage({ params }: PageProps) {
   const { 
     tournament, 
     tournamentInfo, 
-    stats,
     sponsors,
     loading, 
     error, 
@@ -56,8 +55,7 @@ export default function TournamentPage({ params }: PageProps) {
 
   const { 
     data: paymentStats, 
-    loading: paymentStatsLoading, 
-    error: paymentStatsError 
+    loading: paymentStatsLoading
   } = useTournamentPaymentStats(id)
   
   const { categories } = useCategories()
@@ -185,15 +183,6 @@ export default function TournamentPage({ params }: PageProps) {
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
-  const formatTournamentType = (type: string) => {
-    const typeConfig = {
-      SIX_PLAYERS: t('sixTeams'),
-      NINE_PLAYERS: t('nineTeams'),
-      TWELVE_PLAYERS: t('twelveTeams'), 
-      SIXTEEN_PLAYERS: t('sixteenTeams')
-    }
-    return typeConfig[type as keyof typeof typeConfig] || type
-  }
 
   const navigationCards = [
     {
@@ -370,6 +359,40 @@ export default function TournamentPage({ params }: PageProps) {
                 <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                   {tournamentInfo.tournament_address}
                 </p>
+                {/* ✨ NUEVO: Mostrar información de venues si está disponible */}
+                {tournament?.tournament_venues && tournament.tournament_venues.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
+                    <p className="text-xs font-semibold text-green-700 dark:text-green-300 mb-2">
+                      Sedes y Canchas:
+                    </p>
+                    <div className="space-y-2">
+                      {tournament.tournament_venues.map((tv) => (
+                        <div key={tv.id} className="text-xs">
+                          <div className="flex items-center gap-1 mb-1">
+                            <span className="font-medium text-gray-800 dark:text-gray-200">
+                              {tv.venue?.name || 'Sede'}
+                            </span>
+                            {tv.is_primary && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                                Principal
+                              </Badge>
+                            )}
+                          </div>
+                          {tv.tournament_venue_courts && tv.tournament_venue_courts.length > 0 && (
+                            <p className="text-gray-600 dark:text-gray-400 ml-2">
+                              {tv.tournament_venue_courts.length} {tv.tournament_venue_courts.length === 1 ? 'cancha' : 'canchas'}
+                              {tv.tournament_venue_courts.length > 0 && (
+                                <span className="ml-1">
+                                  ({tv.tournament_venue_courts.map((cvc) => cvc.court?.name).filter(Boolean).join(', ')})
+                                </span>
+                              )}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -446,7 +469,7 @@ export default function TournamentPage({ params }: PageProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-3">
-                    {sponsors.map((sponsor: any, index: number) => (
+                    {sponsors.map((sponsor, index: number) => (
                       <div key={index} className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-pink-200 dark:border-pink-800">
                         {sponsor.logo_url && (
                           <div className="relative h-8 w-8 rounded-md overflow-hidden">

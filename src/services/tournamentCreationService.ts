@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './tournamentService';
+import { VenueConfig } from '@/types/venue';
 
 export interface TournamentCreationData {
   // Información básica del torneo
@@ -9,8 +10,10 @@ export interface TournamentCreationData {
   courts_available: number;
   tournament_type: 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS';
   time_slots: number[][];
-  group_time_slots: any[]; // El backend genera estos dinámicamente
+  group_time_slots: unknown[]; // El backend genera estos dinámicamente
   requires_shirts: boolean;
+  // ✨ NUEVO: Multi-sede support
+  venues?: VenueConfig[];
   
   // Información detallada (tournament_info)
   description: string;
@@ -115,8 +118,22 @@ export class TournamentCreationService {
       errors.push('La fecha de fin debe ser posterior a la fecha de inicio');
     }
 
-    if (!data.courts_available || data.courts_available < 1) {
-      errors.push('Debe haber al menos una cancha disponible');
+    // ✨ NUEVO: Validar venues o courts_available
+    if (data.venues && data.venues.length > 0) {
+      // Validar que cada venue tenga al menos una cancha
+      const venuesWithoutCourts = data.venues.filter(v => !v.court_ids || v.court_ids.length === 0);
+      if (venuesWithoutCourts.length > 0) {
+        errors.push('Cada sede debe tener al menos una cancha seleccionada');
+      }
+      const totalCourts = data.venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0);
+      if (totalCourts === 0) {
+        errors.push('Debe seleccionar al menos una cancha en total');
+      }
+    } else {
+      // Fallback: validar courts_available si no hay venues
+      if (!data.courts_available || data.courts_available < 1) {
+        errors.push('Debe haber al menos una cancha disponible');
+      }
     }
 
     if (!['SIX_PLAYERS', 'NINE_PLAYERS', 'TWELVE_PLAYERS', 'SIXTEEN_PLAYERS'].includes(data.tournament_type)) {
@@ -173,13 +190,14 @@ export class TournamentCreationService {
   /**
    * Manejar errores específicos del backend
    */
-  private handleBackendError(error: any): string {
-    if (error.message) {
-      return error.message;
-    } else if (error.error) {
-      return error.error;
-    } else if (Array.isArray(error.errors)) {
-      return error.errors.join(', ');
+  private handleBackendError(error: unknown): string {
+    const err = error as { message?: string; error?: string; errors?: string[] };
+    if (err.message) {
+      return err.message;
+    } else if (err.error) {
+      return err.error;
+    } else if (Array.isArray(err.errors)) {
+      return err.errors.join(', ');
     } else {
       return 'Error al crear el torneo';
     }

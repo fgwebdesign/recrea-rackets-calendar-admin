@@ -229,6 +229,17 @@ CREATE TABLE public.product_categories (
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   CONSTRAINT product_categories_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.product_sizes (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  product_id uuid NOT NULL,
+  size text NOT NULL,
+  size_type text NOT NULL DEFAULT 'clothing'::text CHECK (size_type = ANY (ARRAY['clothing'::text, 'shoes'::text])),
+  stock_quantity integer DEFAULT 0 CHECK (stock_quantity >= 0),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT product_sizes_pkey PRIMARY KEY (id),
+  CONSTRAINT product_sizes_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
+);
 CREATE TABLE public.products (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   category_id uuid NOT NULL,
@@ -289,9 +300,13 @@ CREATE TABLE public.sale_items (
   product_name text NOT NULL,
   product_sku text,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  product_size_id uuid,
+  size text,
+  size_type text CHECK (size_type = ANY (ARRAY['clothing'::text, 'shoes'::text])),
   CONSTRAINT sale_items_pkey PRIMARY KEY (id),
   CONSTRAINT sale_items_sale_id_fkey FOREIGN KEY (sale_id) REFERENCES public.sales(id),
-  CONSTRAINT sale_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
+  CONSTRAINT sale_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id),
+  CONSTRAINT sale_items_product_size_id_fkey FOREIGN KEY (product_size_id) REFERENCES public.product_sizes(id)
 );
 CREATE TABLE public.sales (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -304,7 +319,7 @@ CREATE TABLE public.sales (
   discount_amount numeric DEFAULT 0 CHECK (discount_amount >= 0::numeric),
   discount_percent numeric DEFAULT 0 CHECK (discount_percent >= 0::numeric AND discount_percent <= 100::numeric),
   total numeric NOT NULL DEFAULT 0 CHECK (total >= 0::numeric),
-  payment_method text NOT NULL DEFAULT 'cash'::text CHECK (payment_method = ANY (ARRAY['cash'::text, 'transfer'::text, 'card'::text, 'mixed'::text, 'pending'::text])),
+  payment_method text NOT NULL DEFAULT 'cash'::text CHECK (payment_method = ANY (ARRAY['cash'::text, 'transfer'::text, 'card'::text, 'mercadopago'::text, 'pending'::text])),
   payment_status text NOT NULL DEFAULT 'completed'::text CHECK (payment_status = ANY (ARRAY['pending'::text, 'completed'::text, 'refunded'::text, 'cancelled'::text])),
   payment_reference text,
   sale_context text DEFAULT 'general'::text CHECK (sale_context = ANY (ARRAY['general'::text, 'tournament'::text, 'league'::text, 'class'::text, 'booking'::text])),

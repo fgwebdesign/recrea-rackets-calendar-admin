@@ -68,6 +68,35 @@ export interface Sponsor {
 export type TournamentType = 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS'
 export type TournamentStatus = 'upcoming' | 'in_progress' | 'completed'
 
+export interface TournamentVenueCourt {
+  id: string
+  court_id: string
+  is_available: boolean
+  priority: number
+  court?: {
+    id: string
+    name: string
+    photo_url?: string
+  }
+}
+
+export interface TournamentVenue {
+  id: string
+  venue_id: string
+  courts_count: number
+  is_primary: boolean
+  notes?: string
+  venue?: {
+    id: string
+    name: string
+    address?: string
+    city?: string
+    phone?: string
+    photo_url?: string
+  }
+  tournament_venue_courts?: TournamentVenueCourt[]
+}
+
 export interface Tournament {
   id: string
   name: string
@@ -91,6 +120,8 @@ export interface Tournament {
   tournament_matches?: TournamentMatch[]
   tournament_standings?: TournamentStanding[]
   tournament_sponsors?: TournamentSponsor[]
+  // ✨ NUEVO: Multi-sede support
+  tournament_venues?: TournamentVenue[]
 }
 
 export interface TimeSlot {

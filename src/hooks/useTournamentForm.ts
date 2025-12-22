@@ -12,6 +12,8 @@ interface TournamentResponse {
   };
 }
 
+import { VenueConfig } from '@/types/venue';
+
 export interface TournamentFormData {
   // Paso 1: Información Básica
   name: string;
@@ -23,6 +25,8 @@ export interface TournamentFormData {
   tournament_thumbnail: File | null;
   thumbnail_url?: string | null;
   requires_shirts: boolean;
+  // ✨ NUEVO: Multi-sede support
+  venues?: VenueConfig[];
 
   // Paso 2: Información Detallada
   description: string;
@@ -55,6 +59,7 @@ const INITIAL_FORM_DATA: TournamentFormData = {
   tournament_type: 'NINE_PLAYERS',
   tournament_thumbnail: null,
   requires_shirts: false,
+  venues: [], // ✨ NUEVO: Multi-sede support
   description: '',
   rules: '',
   tournament_location: '',
@@ -111,8 +116,23 @@ export function useTournamentForm() {
       newErrors.end_date = t('create.validation.endDateAfterStart');
     }
 
-    if (!data.courts_available || data.courts_available < 1) {
-      newErrors.courts_available = t('create.validation.courtsRequired');
+    // ✨ NUEVO: Validar venues o courts_available
+    if (!data.venues || data.venues.length === 0) {
+      // Si no hay venues, validar courts_available como fallback
+      if (!data.courts_available || data.courts_available < 1) {
+        newErrors.courts_available = t('create.validation.courtsRequired');
+      }
+    } else {
+      // Si hay venues, validar que cada venue tenga al menos una cancha
+      const venuesWithoutCourts = data.venues.filter(v => !v.court_ids || v.court_ids.length === 0);
+      if (venuesWithoutCourts.length > 0) {
+        newErrors.venues = 'Cada sede debe tener al menos una cancha seleccionada';
+      }
+      // Calcular courts_available automáticamente desde venues
+      const totalCourts = data.venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0);
+      if (totalCourts === 0) {
+        newErrors.venues = 'Debe seleccionar al menos una cancha en total';
+      }
     }
 
     if (!data.tournament_thumbnail) {
@@ -215,13 +235,19 @@ export function useTournamentForm() {
         const token = localStorage.getItem('adminToken');
         if (!token) throw new Error(t('create.error.notAuthenticated'));
 
+        // ✨ Calcular courts_available desde venues si están disponibles
+        let courtsAvailable = data.courts_available;
+        if (data.venues && data.venues.length > 0) {
+          courtsAvailable = data.venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0);
+        }
+
         // Formatear datos para el backend
         const tournamentData: TournamentCreationData = {
           name: data.name.trim(),
           categories: data.categories,
           start_date: data.start_date,
           end_date: data.end_date,
-          courts_available: data.courts_available,
+          courts_available: courtsAvailable,
           tournament_type: data.tournament_type,
           time_slots: data.time_slots,
           group_time_slots: [], // El backend genera estos dinámicamente
@@ -237,7 +263,8 @@ export function useTournamentForm() {
           tournament_thumbnail: data.thumbnail_url || '',
           first_place_prize: data.first_place_prize.trim(),
           second_place_prize: data.second_place_prize.trim(),
-          third_place_prize: data.third_place_prize.trim()
+          third_place_prize: data.third_place_prize.trim(),
+          venues: data.venues || [] // ✨ NUEVO: Enviar venues al backend
         };
 
         // Validar datos antes de enviar

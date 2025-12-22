@@ -12,6 +12,7 @@ import { TournamentFormData } from '@/hooks/useTournamentForm';
 import { Category } from '@/types/category';
 import { SponsorSelector } from './SponsorSelector';
 import { useTranslations } from '@/contexts/TranslationContext';
+import { VenueSelector } from '@/components/Leagues/create/VenueSelector';
 
 interface Court {
   id: string;
@@ -288,72 +289,110 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <LabelWithTooltip
-                htmlFor="courts_available"
-                label={t('create.basicInfo.courts.label')}
-                tooltip={t('create.basicInfo.courts.tooltip')}
+          {/* ✨ NUEVO: Selector de Sedes y Canchas (Multi-sede) */}
+          <div>
+            <LabelWithTooltip
+              label="Sedes y Canchas"
+              tooltip="Selecciona las sedes donde se realizará el torneo y las canchas disponibles en cada una. Si no seleccionas sedes, se usará el método tradicional."
+            />
+            <div className="space-y-2">
+              <VenueSelector
+                selectedVenues={formData.venues || []}
+                onChange={(venues) => {
+                  // Calcular courts_available automáticamente desde venues
+                  const totalCourts = venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0);
+                  setFormData({ 
+                    ...formData, 
+                    venues,
+                    courts_available: totalCourts > 0 ? totalCourts : formData.courts_available
+                  });
+                }}
               />
-              <div className="space-y-2">
-                <Select
-                  value={formData.courts_available.toString()}
-                  onValueChange={(value) => setFormData({ ...formData, courts_available: parseInt(value) })}
-                >
-                  <SelectTrigger 
-                    className={cn(
-                      "bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700",
-                      errors.courts_available && "border-red-500 dark:border-red-500"
-                    )}
+              {errors.venues && (
+                <p className="text-sm text-red-500">{errors.venues}</p>
+              )}
+              {/* Mostrar resumen si hay venues seleccionadas */}
+              {formData.venues && formData.venues.length > 0 && (
+                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    <strong>Resumen:</strong> {formData.venues.length} {formData.venues.length === 1 ? 'sede' : 'sedes'} seleccionada{formData.venues.length > 1 ? 's' : ''}, 
+                    {' '}{formData.venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0)} canchas en total
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Fallback: Campo tradicional de canchas (solo si no hay venues) */}
+          {(!formData.venues || formData.venues.length === 0) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <LabelWithTooltip
+                  htmlFor="courts_available"
+                  label={t('create.basicInfo.courts.label')}
+                  tooltip={t('create.basicInfo.courts.tooltip')}
+                />
+                <div className="space-y-2">
+                  <Select
+                    value={formData.courts_available.toString()}
+                    onValueChange={(value) => setFormData({ ...formData, courts_available: parseInt(value) })}
                   >
-                    <SelectValue placeholder={t('create.basicInfo.courts.placeholder')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {courts.map((court, index) => (
-                      <SelectItem key={court.id} value={(index + 1).toString()}>
-                        {index + 1} {index === 0 ? t('create.basicInfo.courts.single') : t('create.basicInfo.courts.plural')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.courts_available && (
-                  <p className="text-sm text-red-500">{errors.courts_available}</p>
-                )}
+                    <SelectTrigger 
+                      className={cn(
+                        "bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700",
+                        errors.courts_available && "border-red-500 dark:border-red-500"
+                      )}
+                    >
+                      <SelectValue placeholder={t('create.basicInfo.courts.placeholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {courts.map((court, index) => (
+                        <SelectItem key={court.id} value={(index + 1).toString()}>
+                          {index + 1} {index === 0 ? t('create.basicInfo.courts.single') : t('create.basicInfo.courts.plural')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.courts_available && (
+                    <p className="text-sm text-red-500">{errors.courts_available}</p>
+                  )}
+                </div>
               </div>
             </div>
-
-            <div>
-              <LabelWithTooltip
-                htmlFor="tournament_type"
-                label={t('create.basicInfo.tournamentType.label')}
-                tooltip={t('create.basicInfo.tournamentType.tooltip')}
-              />
-              <div className="space-y-2">
-                <Select
-                  value={formData.tournament_type}
-                  onValueChange={(value: 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS') => 
-                    setFormData({ ...formData, tournament_type: value })
-                  }
+          )}
+          
+          {/* Tipo de Torneo (siempre visible) */}
+          <div>
+            <LabelWithTooltip
+              htmlFor="tournament_type"
+              label={t('create.basicInfo.tournamentType.label')}
+              tooltip={t('create.basicInfo.tournamentType.tooltip')}
+            />
+            <div className="space-y-2">
+              <Select
+                value={formData.tournament_type}
+                onValueChange={(value: 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS') => 
+                  setFormData({ ...formData, tournament_type: value })
+                }
+              >
+                <SelectTrigger 
+                  className={cn(
+                    "bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700",
+                    errors.tournament_type && "border-red-500 dark:border-red-500"
+                  )}
                 >
-                  <SelectTrigger 
-                    className={cn(
-                      "bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700",
-                      errors.tournament_type && "border-red-500 dark:border-red-500"
-                    )}
-                  >
-                    <SelectValue placeholder={t('create.basicInfo.tournamentType.placeholder')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SIX_PLAYERS">{t('create.basicInfo.tournamentType.sixPlayers')}</SelectItem>
-                    <SelectItem value="NINE_PLAYERS">{t('create.basicInfo.tournamentType.ninePlayers')}</SelectItem>
-                    <SelectItem value="TWELVE_PLAYERS">{t('create.basicInfo.tournamentType.twelvePlayers')}</SelectItem>
-                    <SelectItem value="SIXTEEN_PLAYERS">{t('create.basicInfo.tournamentType.sixteenPlayers')}</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.tournament_type && (
-                  <p className="text-sm text-red-500">{errors.tournament_type}</p>
-                )}
-              </div>
+                  <SelectValue placeholder={t('create.basicInfo.tournamentType.placeholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SIX_PLAYERS">{t('create.basicInfo.tournamentType.sixPlayers')}</SelectItem>
+                  <SelectItem value="NINE_PLAYERS">{t('create.basicInfo.tournamentType.ninePlayers')}</SelectItem>
+                  <SelectItem value="TWELVE_PLAYERS">{t('create.basicInfo.tournamentType.twelvePlayers')}</SelectItem>
+                  <SelectItem value="SIXTEEN_PLAYERS">{t('create.basicInfo.tournamentType.sixteenPlayers')}</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.tournament_type && (
+                <p className="text-sm text-red-500">{errors.tournament_type}</p>
+              )}
             </div>
           </div>
 
