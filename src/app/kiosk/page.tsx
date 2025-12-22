@@ -183,45 +183,101 @@ export default function KioskPOSPage() {
         {/* Panel de Productos */}
         <div className="lg:col-span-2 space-y-4">
           {/* Filtros */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder={t('pos.searchProducts')}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700 space-y-4">
+            {/* Barra de búsqueda */}
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder={t('pos.searchProducts')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                />
+              </div>
+            </div>
+            
+            {/* Selector de Categorías estilo PedidosYa con blur */}
+            <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+            <button
+              onClick={() => setSelectedCategory('')}
+              className={`
+                group relative
+                flex flex-col items-center justify-center gap-1.5
+                px-4 py-3
+                min-w-[90px]
+                rounded-2xl
+                transition-all duration-300
+                whitespace-nowrap
+                overflow-hidden
+                ${selectedCategory === ''
+                  ? 'bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500/50'
+                  : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-md text-gray-800 dark:text-gray-200 hover:bg-white/90 dark:hover:bg-gray-800/90 border border-gray-200/50 dark:border-gray-700/50 shadow-sm'
+                }
+              `}
+            >
+              {/* Background blur effect */}
+              {selectedCategory === '' && (
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-sm" />
+              )}
+              <div className={`
+                relative z-10
+                p-2 rounded-xl
+                ${selectedCategory === ''
+                  ? 'bg-white/20 backdrop-blur-sm'
+                  : 'bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm'
+                }
+              `}>
+                <Package className={`w-4 h-4 ${selectedCategory === '' ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
+              </div>
+              <span className={`relative z-10 text-xs font-semibold ${selectedCategory === '' ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
+                Todas
+              </span>
+            </button>
+            {categories.filter(c => c.is_active).map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`
+                  group relative
+                  flex flex-col items-center justify-center gap-1.5
+                  px-4 py-3
+                  min-w-[90px]
+                  rounded-2xl
+                  transition-all duration-300
+                  whitespace-nowrap
+                  overflow-hidden
+                  ${selectedCategory === cat.id
+                    ? 'bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500/50'
+                    : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-md text-gray-800 dark:text-gray-200 hover:bg-white/90 dark:hover:bg-gray-800/90 border border-gray-200/50 dark:border-gray-700/50 shadow-sm'
+                  }
+                `}
+              >
+                {/* Background blur effect */}
+                {selectedCategory === cat.id && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-sm" />
+                )}
+                <div className={`
+                  relative z-10
+                  p-2 rounded-xl
+                  ${selectedCategory === cat.id
+                    ? 'bg-white/20 backdrop-blur-sm'
+                    : 'bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm'
+                  }
+                `}>
+                  <CategoryIcon
+                    iconName={cat.icon}
+                    categoryName={cat.name}
+                    className={`w-4 h-4 ${selectedCategory === cat.id ? 'text-white' : ''}`}
+                    color={selectedCategory === cat.id ? undefined : cat.color}
                   />
                 </div>
-              </div>
-              
-              <Select
-                value={selectedCategory || 'all'}
-                onValueChange={(value) => setSelectedCategory(value === 'all' ? '' : value)}
-              >
-                <SelectTrigger className="w-[200px] bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
-                  <SelectValue placeholder={t('pos.allCategories')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('pos.allCategories')}</SelectItem>
-                  {categories.filter(c => c.is_active).map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <span className="flex items-center gap-2">
-                        <CategoryIcon 
-                          iconName={cat.icon} 
-                          categoryName={cat.name}
-                          className="w-4 h-4"
-                          color={cat.color}
-                        />
-                        {cat.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <span className={`relative z-10 text-xs font-semibold ${selectedCategory === cat.id ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
+                  {cat.name}
+                </span>
+              </button>
+            ))}
+          </div>
           </div>
 
           {/* Grid de Productos */}

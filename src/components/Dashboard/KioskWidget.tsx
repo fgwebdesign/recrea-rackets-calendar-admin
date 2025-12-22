@@ -1,64 +1,23 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ShoppingCart, 
-  Package, 
   AlertTriangle, 
-  DollarSign, 
   Receipt,
   BarChart3,
   Box
 } from 'lucide-react';
-import { useKioskReports } from '@/hooks/useKioskReports';
 import { useProducts } from '@/hooks/useProducts';
 import { useSales } from '@/hooks/useSales';
 import { useTranslations } from '@/contexts/TranslationContext';
-import { format } from 'date-fns';
 
 export function KioskWidget() {
   const router = useRouter();
   const t = useTranslations('kiosk');
-  const { getSalesSummary } = useKioskReports();
   const { products } = useProducts({ is_active: true, low_stock: true });
   const { sales } = useSales({ limit: 100 });
-  
-  const [salesSummary, setSalesSummary] = useState<{
-    total_sales: number;
-    total_revenue: number;
-    today_sales: number;
-    today_revenue: number;
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Obtener resumen de ventas del día
-  useEffect(() => {
-    const fetchSummary = async () => {
-      try {
-        const today = format(new Date(), 'yyyy-MM-dd');
-        const summary = await getSalesSummary({
-          start_date: today,
-          end_date: today
-        });
-        
-        if (summary) {
-          setSalesSummary({
-            total_sales: summary.total_sales || 0,
-            total_revenue: summary.total_revenue || 0,
-            today_sales: summary.total_sales || 0,
-            today_revenue: summary.total_revenue || 0
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching sales summary:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSummary();
-  }, [getSalesSummary]);
 
   // Calcular productos con stock bajo
   const lowStockProducts = useMemo(() => {
@@ -68,35 +27,42 @@ export function KioskWidget() {
     ).length;
   }, [products]);
 
-  // Calcular total de productos activos
-  const totalActiveProducts = useMemo(() => {
-    return products.length;
-  }, [products]);
-
   const quickActions = [
     {
       label: t('pos.title'),
       icon: ShoppingCart,
       href: '/kiosk',
-      color: 'bg-green-600 hover:bg-green-700'
+      iconColor: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-50 dark:bg-green-900/20',
+      hoverBg: 'hover:bg-green-100 dark:hover:bg-green-900/30',
+      borderColor: 'border-green-200 dark:border-green-800'
     },
     {
       label: t('products.title'),
       icon: Box,
       href: '/kiosk/products',
-      color: 'bg-blue-600 hover:bg-blue-700'
+      iconColor: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+      hoverBg: 'hover:bg-blue-100 dark:hover:bg-blue-900/30',
+      borderColor: 'border-blue-200 dark:border-blue-800'
     },
     {
       label: t('sales.title'),
       icon: Receipt,
       href: '/kiosk/sales',
-      color: 'bg-purple-600 hover:bg-purple-700'
+      iconColor: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+      hoverBg: 'hover:bg-purple-100 dark:hover:bg-purple-900/30',
+      borderColor: 'border-purple-200 dark:border-purple-800'
     },
     {
       label: t('reports.title'),
       icon: BarChart3,
       href: '/kiosk/reports',
-      color: 'bg-orange-600 hover:bg-orange-700'
+      iconColor: 'text-orange-600 dark:text-orange-400',
+      bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+      hoverBg: 'hover:bg-orange-100 dark:hover:bg-orange-900/30',
+      borderColor: 'border-orange-200 dark:border-orange-800'
     }
   ];
 
@@ -114,28 +80,7 @@ export function KioskWidget() {
         </div>
 
         {/* Estadísticas Minimalistas */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
-              <p className="text-xs text-gray-600 dark:text-gray-400">Ventas Hoy</p>
-            </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {isLoading ? '...' : salesSummary?.today_sales || 0}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-              ${isLoading ? '...' : (salesSummary?.today_revenue || 0).toLocaleString('es-UY')}
-            </p>
-          </div>
-
-          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
-            <div className="flex items-center gap-2 mb-2">
-              <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <p className="text-xs text-gray-600 dark:text-gray-400">Productos</p>
-            </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalActiveProducts}</p>
-          </div>
-
+        <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
@@ -153,18 +98,39 @@ export function KioskWidget() {
           </div>
         </div>
 
-        {/* Atajos Rápidos Minimalistas */}
-        <div className="flex flex-wrap gap-2">
+        {/* Atajos Rápidos Mejorados */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {quickActions.map((action) => {
             const Icon = action.icon;
             return (
               <button
                 key={action.href}
                 onClick={() => router.push(action.href)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className={`
+                  group relative
+                  flex flex-col items-center justify-center gap-2
+                  px-4 py-4
+                  ${action.bgColor}
+                  ${action.hoverBg}
+                  border ${action.borderColor}
+                  rounded-xl
+                  transition-all duration-200
+                  hover:shadow-md hover:scale-[1.02]
+                  active:scale-[0.98]
+                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800
+                `}
               >
-                <Icon className="w-4 h-4" />
-                <span>{action.label}</span>
+                <div className={`
+                  p-2.5 rounded-lg
+                  ${action.bgColor}
+                  group-hover:scale-110
+                  transition-transform duration-200
+                `}>
+                  <Icon className={`w-5 h-5 ${action.iconColor}`} />
+                </div>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+                  {action.label}
+                </span>
               </button>
             );
           })}
