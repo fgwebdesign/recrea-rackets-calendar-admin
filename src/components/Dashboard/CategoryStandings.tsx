@@ -4,6 +4,7 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { Spinner } from '@/components/ui/Spinner';
 import { CategoryFilterTabs } from './CategoryFilterTabs';
 import { Category } from '@/types/category';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface CategoryStandingsProps {
   categories: Category[];
@@ -41,6 +42,7 @@ export function CategoryStandings({
   standings,
   isLoading 
 }: CategoryStandingsProps) {
+  const t = useTranslations('dashboard');
   const currentCategory = categories?.find(cat => cat.id === selectedCategory)?.name || '';
 
   if (isLoading || !categories) {
@@ -48,7 +50,7 @@ export function CategoryStandings({
       <div className="flex flex-col items-center justify-center p-8 space-y-4 bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <Spinner size="lg" />
         <p className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">
-          Cargando tabla de posiciones...
+          {t('loadingStandings')}
         </p>
       </div>
     );
@@ -75,35 +77,28 @@ export function CategoryStandings({
             </svg>
           </div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            Sin posiciones disponibles
+            {t('noPositionsAvailable')}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            No hay datos disponibles para la categoría {currentCategory}.
+            {t('noDataForCategory').replace('{category}', currentCategory)}
           </p>
-          <div className="text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 p-3 rounded">
-            <p><strong>Debug Info:</strong></p>
-            <p>• Categoría seleccionada: {selectedCategory}</p>
-            <p>• Nombre de categoría: {currentCategory}</p>
-            <p>• Total de standings: {validStandings.length}</p>
-            <p>• Estado de carga: {isLoading ? 'Cargando...' : 'Completado'}</p>
-          </div>
         </div>
       ) : (
         <div className="w-full overflow-x-auto rounded-lg bg-white dark:bg-gray-900 p-4 shadow-sm border border-gray-200 dark:border-gray-700">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
-                <HeaderWithTooltip short="Pos" full="Posición" />
+                <HeaderWithTooltip short="Pos" full={t('position')} />
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Equipo
+                  {t('team')}
                 </th>
-                <HeaderWithTooltip short="PJ" full="Partidos Jugados" />
-                <HeaderWithTooltip short="PG" full="Partidos Ganados" />
-                <HeaderWithTooltip short="PP" full="Partidos Perdidos" />
-                <HeaderWithTooltip short="JG" full="Juegos Ganados" />
-                <HeaderWithTooltip short="JP" full="Juegos Perdidos" />
-                <HeaderWithTooltip short="DJ" full="Diferencia de Juegos" />
-                <HeaderWithTooltip short="Pts" full="Puntos Totales" />
+                <HeaderWithTooltip short="PJ" full={t('gamesPlayed')} />
+                <HeaderWithTooltip short="PG" full={t('gamesWon')} />
+                <HeaderWithTooltip short="PP" full={t('gamesLost')} />
+                <HeaderWithTooltip short="JG" full={t('setsWon')} />
+                <HeaderWithTooltip short="JP" full={t('setsLost')} />
+                <HeaderWithTooltip short="DJ" full={t('gamesDifference')} />
+                <HeaderWithTooltip short="Pts" full={t('totalPoints')} />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -119,7 +114,7 @@ export function CategoryStandings({
                     {standing.team ? 
                       `${standing.team.player1.first_name} ${standing.team.player1.last_name} - 
                        ${standing.team.player2.first_name} ${standing.team.player2.last_name}` : 
-                      'Equipo no disponible'}
+                      t('teamNotAvailable')}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-green-600 dark:text-green-400">
                     {standing.games_played}

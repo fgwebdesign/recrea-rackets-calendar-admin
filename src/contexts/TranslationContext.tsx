@@ -141,7 +141,28 @@ const translations: Record<Locale, Record<string, any>> = {
       unknownError: 'Error desconocido',
       errorLoadingMatches: 'Error al cargar los partidos: {status} {statusText}',
       noDataReceived: 'No se recibieron datos del servidor',
-      errorLoadingStandings: 'Error al cargar las posiciones: {status} {statusText}'
+      errorLoadingStandings: 'Error al cargar las posiciones: {status} {statusText}',
+      // League Schedule Card
+      viewAllMatches: 'Ver todos los partidos',
+      notAssigned: 'Sin asignar',
+      vs: 'VS',
+      noMatches: 'Sin partidos programados',
+      noMatchesForLeague: 'No hay partidos programados para las ligas en este momento.',
+      // Empty Leagues
+      noActiveLeagues: 'Sin ligas activas',
+      // Category Standings
+      loadingStandings: 'Cargando tabla de posiciones...',
+      noDataForCategory: 'No hay datos disponibles para la categoría {category}.',
+      position: 'Posición',
+      team: 'Equipo',
+      gamesPlayed: 'Partidos Jugados',
+      gamesWon: 'Partidos Ganados',
+      gamesLost: 'Partidos Perdidos',
+      setsWon: 'Juegos Ganados',
+      setsLost: 'Juegos Perdidos',
+      gamesDifference: 'Diferencia de Juegos',
+      totalPoints: 'Puntos Totales',
+      teamNotAvailable: 'Equipo no disponible'
     },
     datetime: {
       monday: 'Lunes',
@@ -1318,7 +1339,6 @@ const translations: Record<Locale, Record<string, any>> = {
       // Dashboard Stats
       totalUsers: 'Total Users',
       totalSponsors: 'Total Sponsors',
-      activeTournaments: 'Active Tournaments',
       monthlyIncome: 'Monthly Income',
       // Status and errors
       noStatus: 'No status',
@@ -1326,7 +1346,28 @@ const translations: Record<Locale, Record<string, any>> = {
       unknownError: 'Unknown error',
       errorLoadingMatches: 'Error loading matches: {status} {statusText}',
       noDataReceived: 'No data received from server',
-      errorLoadingStandings: 'Error loading standings: {status} {statusText}'
+      errorLoadingStandings: 'Error loading standings: {status} {statusText}',
+      // League Schedule Card
+      viewAllMatches: 'View all matches',
+      notAssigned: 'Not assigned',
+      vs: 'VS',
+      noMatches: 'No matches scheduled',
+      noMatchesForLeague: 'No matches scheduled for leagues at this time.',
+      // Empty Leagues
+      noActiveLeagues: 'No active leagues',
+      // Category Standings
+      loadingStandings: 'Loading standings table...',
+      noDataForCategory: 'No data available for the {category} category.',
+      position: 'Position',
+      team: 'Team',
+      gamesPlayed: 'Games Played',
+      gamesWon: 'Games Won',
+      gamesLost: 'Games Lost',
+      setsWon: 'Sets Won',
+      setsLost: 'Sets Lost',
+      gamesDifference: 'Games Difference',
+      totalPoints: 'Total Points',
+      teamNotAvailable: 'Team not available'
     },
     datetime: {
       monday: 'Monday',

@@ -1,4 +1,4 @@
-import { CalendarDays, Clock, ChevronLeft, ChevronRight, ListFilter, MapPin } from "lucide-react";
+import { CalendarDays, Clock, ChevronLeft, ChevronRight, ListFilter } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
@@ -65,7 +65,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
           const errorData = await response.json().catch(() => null);
           throw new Error(
             errorData?.message || 
-            t('errorLoadingMatches', { status: response.status, statusText: response.statusText })
+            t('errorLoadingMatches').replace('{status}', response.status.toString()).replace('{statusText}', response.statusText || '')
           );
         }
         
@@ -98,6 +98,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
     };
 
     fetchMatches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leagueId, onMatchesLoaded]);
 
   // Efecto para filtrar los partidos cuando cambia la categoría seleccionada
@@ -193,7 +194,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
             <Tabs defaultValue="all" value={selectedCategory} onValueChange={setSelectedCategory}>
               <TabsList>
                 <TabsTrigger value="all" className="text-sm">
-                  Todas las categorías
+                  {t('allCategories')}
                 </TabsTrigger>
                 {categories.map((category) => (
                   <TabsTrigger
@@ -234,7 +235,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
           <Tabs defaultValue="all" value={selectedCategory} onValueChange={setSelectedCategory}>
             <TabsList>
               <TabsTrigger value="all" className="text-sm">
-                Todas las categorías
+                {t('allCategories')}
               </TabsTrigger>
               {categories.map((category) => (
                 <TabsTrigger
@@ -257,7 +258,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
                        shadow-lg shadow-purple-500/20 dark:shadow-purple-900/30"
             >
               <ListFilter className="w-4 h-4" />
-              Ver todos los partidos
+              {t('viewAllMatches')}
             </button>
           )}
         </div>
@@ -332,7 +333,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
                                  bg-gray-900/5 dark:bg-white/5 
                                  text-gray-700 dark:text-gray-300
                                  border border-gray-200/50 dark:border-gray-700/30">
-                      {match.court_name || 'Sin asignar'}
+                      {match.court_name || t('notAssigned')}
                     </span>
                   </div>
 
@@ -359,7 +360,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
                             <span className="px-3 text-sm font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 
                                          text-white rounded-full py-1 shadow-lg shadow-emerald-500/20
                                          dark:shadow-emerald-900/30">
-                              VS
+                              {t('vs')}
                             </span>
                           </div>
                         </div>

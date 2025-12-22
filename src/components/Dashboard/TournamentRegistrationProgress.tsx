@@ -214,6 +214,7 @@ export function TournamentRegistrationProgress({
 
 // Componente de tarjeta extraído para mejor organización
 function TournamentCard({ tournament, categories }: { tournament: any; categories: any[] }) {
+  const t = useTranslations('dashboard');
   // Obtener información del torneo
   const tournamentInfo = tournament.tournament_info || tournament;
   const registeredTeams = tournament.tournament_teams?.length || 0;
@@ -223,7 +224,7 @@ function TournamentCard({ tournament, categories }: { tournament: any; categorie
 
   // Obtener categoría del torneo
   const tournamentCategory = tournament.categories?.[0] || tournament.category;
-  const categoryName = tournamentCategory?.name || 'Sin categoría';
+  const categoryName = tournamentCategory?.name || t('noCategory');
 
   const getStatusStyle = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -305,13 +306,13 @@ function TournamentCard({ tournament, categories }: { tournament: any; categorie
           {/* Fecha de inicio y fin */}
           <div className="flex flex-col gap-2">
             <div className="p-3 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-              <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">Fecha de inicio</p>
+              <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">{t('startDate')}</p>
               <p className="text-sm text-emerald-800 dark:text-emerald-200">
                 {formatDate(tournamentInfo.start_date || tournament.start_date)}
               </p>
             </div>
             <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30">
-              <p className="text-sm font-medium text-red-900 dark:text-red-300">Fecha de fin</p>
+              <p className="text-sm font-medium text-red-900 dark:text-red-300">{t('endDate')}</p>
               <p className="text-sm text-red-800 dark:text-red-200">
                 {formatDate(tournamentInfo.end_date || tournament.end_date)}
               </p>
@@ -324,7 +325,7 @@ function TournamentCard({ tournament, categories }: { tournament: any; categorie
               <div className="flex items-center gap-2">
                 <Users2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Equipos registrados
+                  {t('registeredTeams')}
                 </span>
               </div>
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -344,15 +345,15 @@ function TournamentCard({ tournament, categories }: { tournament: any; categorie
               />
               <div className="flex justify-between">
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {Math.round(registrationProgress)}% completado
+                  {Math.round(registrationProgress)}% {t('completed')}
                 </span>
                 {tournament.status?.toLowerCase() === 'inscripciones_abiertas' && availableSpots > 0 ? (
                   <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                    {availableSpots} cupos disponibles
+                    {availableSpots} {t('spotsAvailable')}
                   </span>
                 ) : registeredTeams === maxTeams && (
                   <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                    Cupos completos
+                    {t('spotsFull')}
                   </span>
                 )}
               </div>
@@ -363,7 +364,7 @@ function TournamentCard({ tournament, categories }: { tournament: any; categorie
           {(tournamentInfo.inscription_cost || tournament.inscription_cost) > 0 && (
             <div className="mt-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
               <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300 mb-1">
-                Costo de inscripción
+                {t('inscriptionCost')}
               </p>
               <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
                 ${tournamentInfo.inscription_cost || tournament.inscription_cost}
