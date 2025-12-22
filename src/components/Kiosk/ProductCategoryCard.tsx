@@ -1,5 +1,6 @@
 import { Edit2, Trash2 } from "lucide-react";
 import { ProductCategory } from "@/types/kiosk";
+import { CategoryIcon } from "@/lib/categoryIcons";
 
 interface ProductCategoryCardProps {
   category: ProductCategory;
@@ -13,14 +14,17 @@ export default function ProductCategoryCard({ category, onDelete, onEdit }: Prod
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            {category.icon && (
-              <div 
-                className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
-                style={{ backgroundColor: category.color ? `${category.color}20` : '#3B82F620' }}
-              >
-                {category.icon}
-              </div>
-            )}
+            <div 
+              className="w-12 h-12 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: category.color ? `${category.color}20` : '#3B82F620' }}
+            >
+              <CategoryIcon 
+                iconName={category.icon} 
+                categoryName={category.name}
+                className="w-6 h-6"
+                color={category.color || '#3B82F6'}
+              />
+            </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {category.name}

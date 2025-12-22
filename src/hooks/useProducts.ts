@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { Product, CreateProductData, UpdateProductData, UpdateStockData, ProductFilters } from '@/types/kiosk';
 
@@ -7,20 +7,20 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 export function useProducts(filters?: ProductFilters) {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const filtersRef = useRef<string>('');
 
-  const fetchProducts = useCallback(async (customFilters?: ProductFilters) => {
+  const fetchProducts = useCallback(async (customFilters: ProductFilters) => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('adminToken');
-      const activeFilters = customFilters || filters || {};
 
       // Construir query params
       const params = new URLSearchParams();
-      if (activeFilters.category_id) params.append('category_id', activeFilters.category_id);
-      if (activeFilters.venue_id) params.append('venue_id', activeFilters.venue_id);
-      if (activeFilters.is_active !== undefined) params.append('is_active', String(activeFilters.is_active));
-      if (activeFilters.search) params.append('search', activeFilters.search);
-      if (activeFilters.low_stock) params.append('low_stock', 'true');
+      if (customFilters.category_id) params.append('category_id', customFilters.category_id);
+      if (customFilters.venue_id) params.append('venue_id', customFilters.venue_id);
+      if (customFilters.is_active !== undefined) params.append('is_active', String(customFilters.is_active));
+      if (customFilters.search) params.append('search', customFilters.search);
+      if (customFilters.low_stock) params.append('low_stock', 'true');
 
       const queryString = params.toString();
       const url = `${API_URL}/kiosk/products${queryString ? `?${queryString}` : ''}`;
@@ -47,11 +47,16 @@ export function useProducts(filters?: ProductFilters) {
     } finally {
       setIsLoading(false);
     }
-  }, [filters]);
+  }, []);
 
+  // Solo ejecutar cuando realmente cambian los filtros (comparando serialización)
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    const currentFilters = JSON.stringify(filters || {});
+    if (filtersRef.current !== currentFilters) {
+      filtersRef.current = currentFilters;
+      fetchProducts(filters || {});
+    }
+  }, [filters, fetchProducts]);
 
   const getProductById = useCallback(async (id: string): Promise<Product | null> => {
     try {
@@ -93,6 +98,7 @@ export function useProducts(filters?: ProductFilters) {
       
       const { product } = await response.json();
       setProducts(prev => [...prev, product]);
+      
       toast({
         title: "Éxito",
         description: "Producto creado exitosamente",
@@ -109,7 +115,7 @@ export function useProducts(filters?: ProductFilters) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [getProductById]);
 
   const updateProduct = useCallback(async (id: string, productData: UpdateProductData) => {
     try {

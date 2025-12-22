@@ -7,12 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { ImageIcon } from "lucide-react";
 import Image from 'next/image';
 import { Product, CreateProductData, UpdateProductData } from "@/types/kiosk";
 import { useProductCategories } from "@/hooks/useProductCategories";
 import { useVenues } from "@/hooks/useVenues";
 import { useTranslations } from '@/contexts/TranslationContext';
+import { CategoryIcon } from "@/lib/categoryIcons";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface ProductModalProps {
@@ -20,13 +22,15 @@ interface ProductModalProps {
   onClose: () => void;
   onSubmit: (data: CreateProductData | UpdateProductData, imageFile?: File | null) => Promise<{ success: boolean; productId?: string }>;
   product?: Product | null;
+  onProductUpdated?: () => void; // Callback para refrescar la lista después de subir imagen
 }
 
 export default function ProductModal({ 
   isOpen, 
   onClose, 
   onSubmit, 
-  product 
+  product,
+  onProductUpdated
 }: ProductModalProps) {
   const t = useTranslations('kiosk');
   const isEditing = !!product;
@@ -162,6 +166,10 @@ export default function ProductModal({
       if (result.success && imageFile && result.productId) {
         try {
           await uploadImage(imageFile, result.productId);
+          // Refrescar la lista de productos después de subir la imagen
+          if (onProductUpdated) {
+            onProductUpdated();
+          }
         } catch (error) {
           console.error('Error uploading image after product update:', error);
           // No lanzar error, el producto ya se creó/actualizó
@@ -201,7 +209,7 @@ export default function ProductModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-white dark:bg-gray-800 max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-white dark:bg-gray-800 max-w-6xl max-h-[90vh] overflow-y-auto z-50">
         <DialogHeader>
           <DialogTitle className="text-gray-900 dark:text-white">
             {isEditing ? t('products.editProduct') : t('products.addProduct')}
@@ -210,91 +218,144 @@ export default function ProductModal({
             {isEditing ? t('products.editProductDescription') : t('products.addProductDescription')}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Imagen */}
-          <div className="space-y-2">
-            <Label className="text-gray-700 dark:text-gray-300">{t('products.image')}</Label>
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
-              {previewUrl ? (
-                <div className="relative w-full h-48 mb-2">
-                  <Image
-                    src={previewUrl}
-                    alt="Preview"
-                    fill
-                    className="object-cover rounded-md"
-                    unoptimized
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Toggle de Estado Activo/Inactivo - Arriba del todo */}
+          {isEditing && (
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${formData.is_active ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-200 dark:bg-gray-600'}`}>
+                  <span className={`text-sm font-semibold ${formData.is_active ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                    {formData.is_active ? '✓' : '✗'}
+                  </span>
+                </div>
+                <div>
+                  <Label htmlFor="is_active" className="text-base font-semibold text-gray-900 dark:text-gray-100 cursor-pointer">
+                    {t('products.isActive')}
+                  </Label>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {formData.is_active ? 'El producto está activo y visible' : 'El producto está inactivo y oculto'}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="is_active"
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
+                className="data-[state=checked]:bg-green-600"
+              />
+            </div>
+          )}
+          
+          {/* Layout horizontal: Imagen a la izquierda, Información básica a la derecha */}
+          <div className="grid grid-cols-3 gap-6">
+            {/* Imagen - Columna izquierda */}
+            <div className="space-y-2">
+              <Label className="text-gray-700 dark:text-gray-300">{t('products.image')}</Label>
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+                {previewUrl ? (
+                  <div className="relative w-full h-48 mb-3 rounded-md overflow-hidden">
+                    <Image
+                      src={previewUrl}
+                      alt="Preview"
+                      fill
+                      className="object-cover rounded-md"
+                      unoptimized
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-48 mb-3">
+                    <ImageIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 mb-2" />
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('products.noImage')}</p>
+                  </div>
+                )}
+                <label className="flex flex-col items-center justify-center w-full">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    id="image-upload"
+                    disabled={isSubmitting || uploadingImage}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('image-upload')?.click()}
+                    disabled={isSubmitting || uploadingImage}
+                    className="w-full border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                  >
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    {previewUrl ? t('products.changeImage') : t('products.selectImage')}
+                  </Button>
+                </label>
+              </div>
+            </div>
+
+            {/* Información básica - Columnas derechas */}
+            <div className="col-span-2 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">
+                    {t('products.name')} <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder={t('products.namePlaceholder')}
+                    required
+                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                   />
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-48">
-                  <ImageIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 mb-2" />
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('products.noImage')}</p>
+                <div className="space-y-2">
+                  <Label htmlFor="category_id" className="text-gray-700 dark:text-gray-300">
+                    {t('products.category')} <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={formData.category_id}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
+                    disabled={loadingCategories || isSubmitting}
+                  >
+                    <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+                      <SelectValue placeholder={t('products.selectCategory')} />
+                    </SelectTrigger>
+                    <SelectContent position="item-aligned" className="z-[100]">
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          <span className="flex items-center gap-2">
+                            <CategoryIcon 
+                              iconName={cat.icon} 
+                              categoryName={cat.name}
+                              className="w-4 h-4"
+                              color={cat.color}
+                            />
+                            {cat.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="mt-2"
-                disabled={isSubmitting || uploadingImage}
-              />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-gray-700 dark:text-gray-300">
+                  {t('products.descriptionLabel')}
+                </Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder={t('products.descriptionPlaceholder')}
+                  rows={2}
+                  className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Información básica */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">
-                {t('products.name')} <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder={t('products.namePlaceholder')}
-                required
-                className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="category_id" className="text-gray-700 dark:text-gray-300">
-                {t('products.category')} <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={formData.category_id}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
-                disabled={loadingCategories || isSubmitting}
-              >
-                <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-                  <SelectValue placeholder={t('products.selectCategory')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.icon} {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description" className="text-gray-700 dark:text-gray-300">
-              {t('products.description')}
-            </Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder={t('products.descriptionPlaceholder')}
-              rows={3}
-              className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
-            />
-          </div>
-
-          {/* Códigos */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Códigos y Precios en una sola fila horizontal */}
+          <div className="grid grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="sku" className="text-gray-700 dark:text-gray-300">{t('products.sku')}</Label>
               <Input
@@ -315,10 +376,6 @@ export default function ProductModal({
                 className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
               />
             </div>
-          </div>
-
-          {/* Precios */}
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="price" className="text-gray-700 dark:text-gray-300">
                 {t('products.price')} <span className="text-red-500">*</span>
@@ -348,105 +405,92 @@ export default function ProductModal({
             </div>
           </div>
 
-          {/* Inventario */}
-          <div className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="track_inventory"
-                checked={formData.track_inventory}
-                onChange={(e) => setFormData(prev => ({ ...prev, track_inventory: e.target.checked }))}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <Label htmlFor="track_inventory" className="text-gray-700 dark:text-gray-300">
-                {t('products.trackInventory')}
-              </Label>
-            </div>
-
-            {formData.track_inventory && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="stock_quantity" className="text-gray-700 dark:text-gray-300">
-                    {t('products.stockQuantity')}
-                  </Label>
-                  <Input
-                    id="stock_quantity"
-                    type="number"
-                    min="0"
-                    value={formData.stock_quantity}
-                    onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: parseInt(e.target.value) || 0 }))}
-                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="min_stock_alert" className="text-gray-700 dark:text-gray-300">
-                    {t('products.minStockAlert')}
-                  </Label>
-                  <Input
-                    id="min_stock_alert"
-                    type="number"
-                    min="0"
-                    value={formData.min_stock_alert}
-                    onChange={(e) => setFormData(prev => ({ ...prev, min_stock_alert: parseInt(e.target.value) || 5 }))}
-                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Sede */}
-          <div className="space-y-2">
-            <Label htmlFor="venue_id" className="text-gray-700 dark:text-gray-300">
-              {t('products.venue')}
-            </Label>
-            <Select
-              value={formData.venue_id}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, venue_id: value }))}
-              disabled={loadingVenues || isSubmitting}
-            >
-              <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-                <SelectValue placeholder={t('products.selectVenue')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{t('products.allVenues')}</SelectItem>
-                {venues.map((venue) => (
-                  <SelectItem key={venue.id} value={venue.id}>
-                    {venue.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Opciones */}
-          <div className="space-y-2 border-t border-gray-200 dark:border-gray-700 pt-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="is_featured"
-                checked={formData.is_featured}
-                onChange={(e) => setFormData(prev => ({ ...prev, is_featured: e.target.checked }))}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <Label htmlFor="is_featured" className="text-gray-700 dark:text-gray-300">
-                {t('products.isFeatured')}
-              </Label>
-            </div>
-            {isEditing && (
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  checked={formData.is_active}
-                  onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <Label htmlFor="is_active" className="text-gray-700 dark:text-gray-300">
-                  {t('products.isActive')}
+          {/* Inventario, Sede y Opciones en layout horizontal */}
+          <div className="grid grid-cols-3 gap-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+            {/* Inventario */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                <Label htmlFor="track_inventory" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                  {t('products.trackInventory')}
                 </Label>
+                <Switch
+                  id="track_inventory"
+                  checked={formData.track_inventory}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, track_inventory: checked }))}
+                  className="data-[state=checked]:bg-blue-600"
+                />
               </div>
-            )}
+
+              {formData.track_inventory && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="stock_quantity" className="text-gray-700 dark:text-gray-300">
+                      {t('products.stockQuantity')}
+                    </Label>
+                    <Input
+                      id="stock_quantity"
+                      type="number"
+                      min="0"
+                      value={formData.stock_quantity}
+                      onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: parseInt(e.target.value) || 0 }))}
+                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="min_stock_alert" className="text-gray-700 dark:text-gray-300">
+                      {t('products.minStockAlert')}
+                    </Label>
+                    <Input
+                      id="min_stock_alert"
+                      type="number"
+                      min="0"
+                      value={formData.min_stock_alert}
+                      onChange={(e) => setFormData(prev => ({ ...prev, min_stock_alert: parseInt(e.target.value) || 5 }))}
+                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Sede */}
+            <div className="space-y-2">
+              <Label htmlFor="venue_id" className="text-gray-700 dark:text-gray-300">
+                {t('products.venue')}
+              </Label>
+              <Select
+                value={formData.venue_id}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, venue_id: value }))}
+                disabled={loadingVenues || isSubmitting}
+              >
+                <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+                  <SelectValue placeholder={t('products.selectVenue')} />
+                </SelectTrigger>
+                <SelectContent position="item-aligned" className="z-[100]">
+                  <SelectItem value="none">{t('products.allVenues')}</SelectItem>
+                  {venues.map((venue) => (
+                    <SelectItem key={venue.id} value={venue.id}>
+                      {venue.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Opciones */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                <Label htmlFor="is_featured" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                  {t('products.isFeatured')}
+                </Label>
+                <Switch
+                  id="is_featured"
+                  checked={formData.is_featured}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_featured: checked }))}
+                  className="data-[state=checked]:bg-yellow-500"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">

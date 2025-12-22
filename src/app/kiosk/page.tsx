@@ -17,6 +17,7 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import { toast } from '@/components/ui/use-toast';
 import Image from 'next/image';
 import { Package } from 'lucide-react';
+import { CategoryIcon } from "@/lib/categoryIcons";
 
 interface CartItem {
   product: Product;
@@ -207,7 +208,15 @@ export default function KioskPOSPage() {
                   <SelectItem value="all">{t('pos.allCategories')}</SelectItem>
                   {categories.filter(c => c.is_active).map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
-                      {cat.icon} {cat.name}
+                      <span className="flex items-center gap-2">
+                        <CategoryIcon 
+                          iconName={cat.icon} 
+                          categoryName={cat.name}
+                          className="w-4 h-4"
+                          color={cat.color}
+                        />
+                        {cat.name}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

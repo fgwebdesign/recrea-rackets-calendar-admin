@@ -17,8 +17,11 @@ import {
   AcademicCapIcon,
   BookOpenIcon,
   ShoppingCartIcon,
-  ReceiptRefundIcon,
+  DocumentTextIcon,
   ChartBarIcon,
+  BuildingOfficeIcon,
+  TagIcon,
+  CubeIcon,
 } from '@heroicons/react/24/outline';
 import { ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -74,7 +77,9 @@ const MenuItem = ({
           <item.icon
             className={`w-4 h-4 mr-2.5 transition-colors ${item.iconColor || 'text-gray-400 dark:text-gray-500'}`}
           />
-          <span className="text-sm font-semibold tracking-wide uppercase text-gray-700 dark:text-gray-100">
+          <span className={`text-sm tracking-wide uppercase text-gray-700 dark:text-gray-100 ${
+            item.submenu ? 'font-bold' : 'font-semibold'
+          }`}>
             {item.name}
           </span>
         </div>
@@ -145,7 +150,9 @@ const Sidebar = () => {
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
   // Generar menú dinámicamente con traducciones
+  // Ordenado por prioridad y agrupación lógica
   const getMenuItems = (): MenuItem[] => [
+    // 1. INICIO - Dashboard principal (siempre primero)
     { 
       name: t('home'), 
       href: '/dashboard', 
@@ -153,6 +160,8 @@ const Sidebar = () => {
       iconColor: 'text-blue-500',
       hoverColor: 'hover:bg-blue-50'
     },
+    
+    // 2. OPERACIONES PRINCIPALES DEL CLUB
     { 
       name: t('tournaments'), 
       href: '/tournaments', 
@@ -200,31 +209,27 @@ const Sidebar = () => {
     { 
       name: 'SEDES', 
       href: '/venues', 
-      icon: TrophyIcon,
+      icon: BuildingOfficeIcon,
       iconColor: 'text-purple-500',
       hoverColor: 'hover:bg-purple-50',
       submenu: [
         { 
           name: 'Ver Sedes', 
           href: '/venues', 
-          icon: TrophyIcon,
+          icon: BuildingOfficeIcon,
           iconColor: 'text-purple-500' 
         },
         { 
           name: t('courts'), 
           href: '/venues', 
-          icon: TrophyIcon,
+          icon: BuildingOfficeIcon,
           iconColor: 'text-purple-600',
           textColor: 'text-purple-600 font-medium'
         },
       ]
     },
-    { 
-      name: t('categories'), 
-      href: '/categories', 
-      icon: TrophyIcon,
-      iconColor: 'text-blue-500'
-    },
+    
+    // 3. GESTIÓN DE PRODUCTOS Y VENTAS
     { 
       name: 'KIOSCO', 
       href: '/kiosk', 
@@ -233,7 +238,7 @@ const Sidebar = () => {
       hoverColor: 'hover:bg-indigo-50',
       submenu: [
         { 
-          name: 'Punto de Venta', 
+          name: 'Registrar Venta', 
           href: '/kiosk', 
           icon: ShoppingCartIcon,
           iconColor: 'text-indigo-500' 
@@ -241,21 +246,21 @@ const Sidebar = () => {
         { 
           name: 'Productos', 
           href: '/kiosk/products', 
-          icon: ImageIcon,
+          icon: CubeIcon,
           iconColor: 'text-indigo-600',
           textColor: 'text-indigo-600 font-medium'
         },
         { 
           name: 'Categorías', 
           href: '/kiosk/categories', 
-          icon: TrophyIcon,
+          icon: TagIcon,
           iconColor: 'text-indigo-600',
           textColor: 'text-indigo-600 font-medium'
         },
         { 
           name: 'Ventas', 
           href: '/kiosk/sales', 
-          icon: ReceiptRefundIcon,
+          icon: DocumentTextIcon,
           iconColor: 'text-indigo-600',
           textColor: 'text-indigo-600 font-medium'
         },
@@ -268,6 +273,17 @@ const Sidebar = () => {
         },
       ]
     },
+    
+    // 4. GESTIÓN DE CONTENIDO
+    { 
+      name: t('categories'), 
+      href: '/categories', 
+      icon: TagIcon,
+      iconColor: 'text-blue-500',
+      hoverColor: 'hover:bg-blue-50'
+    },
+    
+    // 5. GESTIÓN DE PERSONAS
     { 
       name: t('professors'), 
       href: '/professors', 
@@ -276,19 +292,23 @@ const Sidebar = () => {
       hoverColor: 'hover:bg-indigo-50'
     },
     { 
-      name: t('sponsors'), 
-      href: '/sponsors', 
-      icon: ImageIcon,
-      iconColor: 'text-pink-500',
-      hoverColor: 'hover:bg-pink-50'
-    },
-    { 
       name: t('users'), 
       href: '/users', 
       icon: UsersIcon,
       iconColor: 'text-cyan-500',
       hoverColor: 'hover:bg-cyan-50'
     },
+    
+    // 6. MARKETING Y PROMOCIÓN
+    { 
+      name: t('sponsors'), 
+      href: '/sponsors', 
+      icon: ImageIcon,
+      iconColor: 'text-pink-500',
+      hoverColor: 'hover:bg-pink-50'
+    },
+    
+    // 7. CONFIGURACIÓN Y AYUDA
     { 
       name: t('settings'), 
       href: '/settings', 

@@ -13,6 +13,7 @@ import { TournamentScheduleCard } from '@/components/Dashboard/TournamentSchedul
 import { TournamentRegistrationProgress } from '@/components/Dashboard/TournamentRegistrationProgress';
 import { TournamentStandings } from '@/components/Dashboard/TournamentStandings';
 import { ActiveTournamentsWidget } from '@/components/Dashboard/ActiveTournamentsWidget';
+import { KioskWidget } from '@/components/Dashboard/KioskWidget';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import * as Collapsible from "@radix-ui/react-collapsible";
@@ -96,6 +97,9 @@ export default function Dashboard() {
             />
             <DateTime />
           </div>
+
+          {/* Widget de Kiosco */}
+          <KioskWidget />
 
           {/* Tabs para Leagues y Tournaments */}
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'leagues' | 'tournaments')} className="w-full">

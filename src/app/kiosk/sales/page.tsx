@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Receipt, Calendar, Filter, Search } from "lucide-react";
+import { Receipt, Search, X } from "lucide-react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +20,14 @@ export default function SalesPage() {
     offset: 0
   });
   
-  const { sales, isLoading, pagination, fetchSales, getSaleById } = useSales(filters);
+  const { sales, isLoading, fetchSales, getSaleById } = useSales(filters);
   const { venues } = useVenues({ includeCourts: false });
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [showSaleModal, setShowSaleModal] = useState(false);
 
   useEffect(() => {
     fetchSales(filters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   const handleViewSale = async (saleId: string) => {

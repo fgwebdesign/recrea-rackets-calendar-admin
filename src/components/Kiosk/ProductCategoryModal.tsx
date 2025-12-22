@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ProductCategory, CreateProductCategoryData, UpdateProductCategoryData } from "@/types/kiosk";
 import { useTranslations } from '@/contexts/TranslationContext';
+import { AVAILABLE_ICONS, CategoryIcon } from "@/lib/categoryIcons";
 
 interface ProductCategoryModalProps {
   isOpen: boolean;
@@ -126,7 +127,7 @@ export default function ProductCategoryModal({
 
           <div className="space-y-2">
             <Label htmlFor="description" className="text-gray-700 dark:text-gray-300">
-              {t('categories.description')}
+              {t('categories.descriptionLabel')}
             </Label>
             <Textarea
               id="description"
@@ -138,19 +139,55 @@ export default function ProductCategoryModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="icon" className="text-gray-700 dark:text-gray-300">
+              <Label className="text-gray-700 dark:text-gray-300">
                 {t('categories.icon')}
               </Label>
-              <Input
-                id="icon"
-                value={formData.icon}
-                onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
-                placeholder="🥤 🍺 🍔 🎾"
-                className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
-              />
+              <div className="grid grid-cols-6 gap-2 p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 max-h-48 overflow-y-auto">
+                {AVAILABLE_ICONS.map((iconOption) => {
+                  const IconComponent = iconOption.icon;
+                  const isSelected = formData.icon === iconOption.value;
+                  return (
+                    <button
+                      key={iconOption.value}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, icon: iconOption.value }))}
+                      className={`
+                        p-3 rounded-lg border-2 transition-all hover:scale-105
+                        ${isSelected 
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/30 shadow-md' 
+                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600'
+                        }
+                      `}
+                      title={iconOption.name}
+                    >
+                      <IconComponent 
+                        className={`w-5 h-5 mx-auto ${
+                          isSelected 
+                            ? 'text-green-600 dark:text-green-400' 
+                            : 'text-gray-600 dark:text-gray-400'
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+              {formData.icon && (
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <span>Icono seleccionado:</span>
+                  <div className="flex items-center gap-2">
+                    <CategoryIcon 
+                      iconName={formData.icon} 
+                      className="w-5 h-5"
+                      color={formData.color}
+                    />
+                    <span className="font-medium">{AVAILABLE_ICONS.find(i => i.value === formData.icon)?.name}</span>
+                  </div>
+                </div>
+              )}
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="color" className="text-gray-700 dark:text-gray-300">
                 {t('categories.color')}
