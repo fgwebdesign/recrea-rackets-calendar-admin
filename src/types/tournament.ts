@@ -236,6 +236,10 @@ export interface TournamentMatch {
   start_time?: string
   court_id?: string
   court_name?: string // Nombre de la cancha
+  venue_id?: string // ✨ NUEVO: ID de la sede
+  venue_name?: string // ✨ NUEVO: Nombre de la sede
+  venue_address?: string // ✨ NUEVO: Dirección de la sede
+  venue_city?: string // ✨ NUEVO: Ciudad de la sede
   team1_sets1_won: number
   team2_sets1_won: number
   team1_sets2_won: number

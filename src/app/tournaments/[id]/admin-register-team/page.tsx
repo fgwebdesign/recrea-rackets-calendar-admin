@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeftIcon, UsersIcon, CalendarIcon } from '@heroicons/react/24/outline';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,6 +32,7 @@ interface TimeSlot {
   id: string;
   label: string;
   day: number;
+  tournament_day?: number; // Día del torneo (1, 2, 3)
   start: string;
   end?: string;
   date?: string;
@@ -51,7 +52,6 @@ export default function AdminRegisterTeamPage() {
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [selectedPlayer1, setSelectedPlayer1] = useState<string>('');
   const [selectedPlayer2, setSelectedPlayer2] = useState<string>('');
-  const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [slotsByDay, setSlotsByDay] = useState<{day1: TimeSlot[], day2: TimeSlot[]}>({day1: [], day2: []});
   const [selectedShirtSizes, setSelectedShirtSizes] = useState<string[]>([]);
@@ -67,8 +67,16 @@ export default function AdminRegisterTeamPage() {
   const { tournament, loading: tournamentLoading } = useTournament(tournamentId);
   const { categories } = useCategories();
 
+  // Calcular nombres de días dinámicamente desde los slots
+  const day1Name = slotsByDay.day1.length > 0 
+    ? slotsByDay.day1[0]?.label?.split(' ')[0] || 'Día 1'
+    : 'Día 1';
+  const day2Name = slotsByDay.day2.length > 0 
+    ? slotsByDay.day2[0]?.label?.split(' ')[0] || 'Día 2'
+    : 'Día 2';
+
   // Función para obtener si el torneo requiere remeras
-  const getRequiresShirts = () => {
+  const getRequiresShirts = useCallback(() => {
     if (!tournament) return false;
     
     // Primero verificar si está directamente en el torneo
@@ -82,7 +90,68 @@ export default function AdminRegisterTeamPage() {
     }
     
     return false;
-  };
+  }, [tournament]);
+
+  const loadPlayers = useCallback(async () => {
+    try {
+      // Usar el nuevo endpoint que filtra jugadores ya registrados en el torneo
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/available-players`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(t('adminRegister.errors.loadPlayers'));
+      }
+      
+      const data = await response.json();
+      setPlayers(data || []);
+    } catch (err) {
+      console.error('Error cargando jugadores:', err);
+      toast({
+        title: t('adminRegister.errors.title'),
+        description: t('adminRegister.errors.loadPlayersDescription'),
+        variant: "destructive",
+      });
+    }
+  }, [tournamentId, t]);
+
+  const loadAvailableSlots = useCallback(async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/available-group-hours`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(t('adminRegister.errors.loadSlots'));
+      }
+      
+      const data = await response.json();
+      const slots = data.available_hours || [];
+      console.log('🔍 Slots recibidos del backend:', slots);
+      console.log('🔍 Primer slot:', slots[0]);
+      setAvailableSlots(slots);
+      
+      // Organizar por días según la guía
+      const organizedSlots = {
+        day1: slots.filter((slot: TimeSlot) => slot.day === 1 || slot.tournament_day === 1),
+        day2: slots.filter((slot: TimeSlot) => slot.day === 2 || slot.tournament_day === 2)
+      };
+      setSlotsByDay(organizedSlots);
+    } catch (err) {
+      console.error('Error cargando slots:', err);
+      toast({
+        title: t('adminRegister.errors.title'),
+        description: t('adminRegister.errors.loadSlotsDescription'),
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingData(false);
+    }
+  }, [tournamentId, t]);
 
   // Debug: verificar datos del torneo
   useEffect(() => {
@@ -102,7 +171,7 @@ export default function AdminRegisterTeamPage() {
       
       console.log('🔍 Final requires_shirts value:', getRequiresShirts());
     }
-  }, [tournament]);
+  }, [tournament, getRequiresShirts]);
 
   // Función para validar formulario completo
   const validateForm = () => {
@@ -167,68 +236,7 @@ export default function AdminRegisterTeamPage() {
       loadPlayers();
       loadAvailableSlots();
     }
-  }, [tournamentId]);
-
-  const loadPlayers = async () => {
-    try {
-      // Usar el nuevo endpoint que filtra jugadores ya registrados en el torneo
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/available-players`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(t('adminRegister.errors.loadPlayers'));
-      }
-      
-      const data = await response.json();
-      setPlayers(data || []);
-    } catch (err) {
-      console.error('Error cargando jugadores:', err);
-      toast({
-        title: t('adminRegister.errors.title'),
-        description: t('adminRegister.errors.loadPlayersDescription'),
-        variant: "destructive",
-      });
-    }
-  };
-
-  const loadAvailableSlots = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/available-group-hours`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(t('adminRegister.errors.loadSlots'));
-      }
-      
-      const data = await response.json();
-      const slots = data.available_hours || [];
-      console.log('🔍 Slots recibidos del backend:', slots);
-      console.log('🔍 Primer slot:', slots[0]);
-      setAvailableSlots(slots);
-      
-      // Organizar por días según la guía
-      const organizedSlots = {
-        day1: slots.filter((slot: TimeSlot) => slot.day === 1), // Sábado 17:00-23:00
-        day2: slots.filter((slot: TimeSlot) => slot.day === 2)  // Domingo 08:00-23:00
-      };
-      setSlotsByDay(organizedSlots);
-    } catch (err) {
-      console.error('Error cargando slots:', err);
-      toast({
-        title: t('adminRegister.errors.title'),
-        description: t('adminRegister.errors.loadSlotsDescription'),
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingData(false);
-    }
-  };
+  }, [tournamentId, loadPlayers, loadAvailableSlots]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -338,14 +346,13 @@ export default function AdminRegisterTeamPage() {
       // Limpiar formulario
       setSelectedPlayer1('');
       setSelectedPlayer2('');
-      setSelectedSlot('');
       setSelectedSlots([]);
       setSelectedShirtSizes([]);
       
       // Recargar slots disponibles
       await loadAvailableSlots();
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error en registro:', err);
       toast({
         title: t('adminRegister.errors.connectionError'),
@@ -489,12 +496,12 @@ export default function AdminRegisterTeamPage() {
                     </div>
                   )}
                   
-                  {/* Día 1 - Sábado */}
+                  {/* Día 1 - Dinámico */}
                   {slotsByDay.day1.length > 0 && (
                     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
                         <CalendarIcon className="h-4 w-4 text-blue-600" />
-                        Día 1 - Sábado
+                        Día 1 - {day1Name}
                       </h4>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         {slotsByDay.day1.map((slot) => (
@@ -527,12 +534,12 @@ export default function AdminRegisterTeamPage() {
                     </div>
                   )}
 
-                  {/* Día 2 - Domingo */}
+                  {/* Día 2 - Dinámico */}
                   {slotsByDay.day2.length > 0 && (
                     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
                         <CalendarIcon className="h-4 w-4 text-green-600" />
-                        Día 2 - Domingo
+                        Día 2 - {day2Name}
                       </h4>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         {slotsByDay.day2.map((slot) => (

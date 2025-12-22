@@ -10,18 +10,143 @@
  * 3. Filtra slots según restricciones de los equipos
  * 4. Asigna partidos distribuyendo en canchas disponibles
  * 5. Respeta capacidad de slots y evita conflictos
+ * 
+ * ✨ ACTUALIZADO: Soporta sistema multi-sede
  */
 
 import { supabase } from '../config/supabaseClient.js';
 
 /**
+ * 🏢 HELPER: Obtener canchas desde multi-sede
+ * (Duplicado desde tournament.controller.js para uso en este módulo)
+ */
+async function getTournamentCourts(tournamentId) {
+  console.log('🏢 Fetching courts from tournament venues (multi-sede)...');
+  
+  // 1. Obtener las sedes asignadas a este torneo
+  const { data: tournamentVenues, error: venuesError } = await supabase
+    .from('tournament_venues')
+    .select('id, venue_id, is_primary, venues:venue_id(id, name)')
+    .eq('tournament_id', tournamentId)
+    .order('is_primary', { ascending: false }); // Primaria primero
+
+  let courts = [];
+  let venueCourtMap = new Map(); // Mapeo court_id -> venue_id para asignar sede a partidos
+
+  if (venuesError) {
+    console.error('Error fetching tournament venues:', venuesError);
+  }
+
+  if (tournamentVenues && tournamentVenues.length > 0) {
+    // Torneo tiene multi-sede configurada - obtener canchas específicas
+    console.log(`✅ Torneo tiene ${tournamentVenues.length} sedes asignadas`);
+    
+    const tournamentVenueIds = tournamentVenues.map(tv => tv.id);
+    
+    // 2. Obtener las canchas específicas de cada sede para este torneo
+    const { data: tournamentVenueCourts, error: courtsError } = await supabase
+      .from('tournament_venue_courts')
+      .select(`
+        court_id,
+        priority,
+        is_available,
+        tournament_venue_id,
+        court:court_id(id, name, venue_id)
+      `)
+      .in('tournament_venue_id', tournamentVenueIds)
+      .eq('is_available', true)
+      .order('priority');
+
+    if (courtsError) {
+      console.error('Error fetching tournament venue courts:', courtsError);
+      return { courts: [], venueCourtMap: new Map() };
+    }
+
+    if (!tournamentVenueCourts || tournamentVenueCourts.length === 0) {
+      console.log('⚠️ No hay canchas disponibles en las sedes asignadas a este torneo');
+      return { courts: [], venueCourtMap: new Map() };
+    }
+
+    // Mapear canchas y sus sedes
+    courts = tournamentVenueCourts.map(tvc => ({
+      id: tvc.court.id,
+      name: tvc.court.name,
+      venue_id: tvc.court.venue_id
+    }));
+
+    // Crear mapeo para asignar venue_id a partidos
+    tournamentVenueCourts.forEach(tvc => {
+      venueCourtMap.set(tvc.court.id, tvc.court.venue_id);
+    });
+
+    console.log(`🎾 Found ${courts.length} courts from multi-sede:`, 
+      courts.map(c => `${c.name} (Sede: ${c.venue_id})`).join(', '));
+  } else {
+    // Torneo sin multi-sede - fallback a todas las canchas (comportamiento legacy)
+    console.log('ℹ️ Torneo sin multi-sede, usando todas las canchas disponibles (legacy)');
+    
+    // Obtener el torneo para saber cuántas canchas usar
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('courts_available, venue_id')
+      .eq('id', tournamentId)
+      .single();
+    
+    if (tournamentError || !tournament) {
+      console.error('Error obteniendo torneo para fallback:', tournamentError);
+      return { courts: [], venueCourtMap: new Map() };
+    }
+    
+    // Obtener todas las canchas disponibles
+    let allCourtsQuery = supabase
+      .from('courts')
+      .select('id, name, venue_id');
+    
+    // Si hay venue_id en el torneo, filtrar por esa sede
+    if (tournament.venue_id) {
+      allCourtsQuery = allCourtsQuery.eq('venue_id', tournament.venue_id);
+    }
+    
+    const { data: allCourts, error: allCourtsError } = await allCourtsQuery
+      .limit(tournament.courts_available || 10);
+    
+    if (allCourtsError) {
+      console.error('Error obteniendo canchas (fallback):', allCourtsError);
+      return { courts: [], venueCourtMap: new Map() };
+    }
+    
+    courts = allCourts || [];
+    
+    // Crear mapeo vacío para legacy
+    courts.forEach(court => {
+      if (court.venue_id) {
+        venueCourtMap.set(court.id, court.venue_id);
+      }
+    });
+    
+    console.log(`🎾 Found ${courts.length} courts (legacy mode)`);
+  }
+
+  return { courts, venueCourtMap };
+}
+
+/**
  * Obtiene los slots disponibles para un día específico del torneo
+ * IMPORTANTE: Solo devuelve slots de días 1 y 2 (fase de grupos)
+ * El día 3 es para eliminatorias y no se programa aquí
  * @param {Object} tournament - Datos del torneo
  * @param {number} day - Día del torneo (1 o 2)
  * @returns {Array} Slots disponibles ordenados por hora
  */
 function getSlotsForDay(tournament, day) {
   if (!tournament.group_time_slots || !Array.isArray(tournament.group_time_slots)) {
+    return [];
+  }
+
+  // ✨ FILTRAR: Solo días 1 y 2 (fase de grupos)
+  // El día 3 es para eliminatorias y se programa automáticamente al generar el bracket
+  if (day !== 1 && day !== 2) {
+    console.log(`⚠️  Auto-scheduling: Día ${day} no es válido para fase de grupos (solo días 1 y 2)`);
     return [];
   }
 
@@ -93,19 +218,18 @@ export async function autoScheduleMatches(tournamentId) {
   console.log(`📋 Torneo: ${tournament.name}`);
   console.log(`🏟️  Canchas disponibles: ${tournament.courts_available}`);
 
-  // 2. Obtener canchas del sistema
-  const { data: courts, error: courtsErr } = await supabase
-    .from('courts')
-    .select('id, name')
-    .limit(tournament.courts_available);
-
-  if (courtsErr || !courts || courts.length === 0) {
-    throw new Error('No hay canchas disponibles');
+  // 2. ✨ NUEVO: Obtener canchas desde multi-sede o fallback tradicional
+  const { courts, venueCourtMap } = await getTournamentCourts(tournamentId);
+  
+  if (!courts || courts.length === 0) {
+    throw new Error('No hay canchas disponibles para este torneo');
   }
 
-  console.log(`🎾 Canchas obtenidas: ${courts.map(c => c.name).join(', ')}`);
+  console.log(`🎾 Canchas obtenidas (${courts.length}): ${courts.map(c => c.name).join(', ')}`);
 
-  // 3. Obtener partidos que tienen día asignado pero sin hora/cancha
+  // 3. ✨ Obtener partidos que tienen día asignado pero sin hora/cancha
+  // IMPORTANTE: Solo procesar días 1 y 2 (fase de grupos)
+  // El día 3 es para eliminatorias y se programa automáticamente al generar el bracket
   const { data: matches, error: matchesErr } = await supabase
     .from('tournament_matches')
     .select(`
@@ -120,7 +244,7 @@ export async function autoScheduleMatches(tournamentId) {
     `)
     .eq('tournament_id', tournamentId)
     .eq('stage', 'group')
-    .not('tournament_day', 'is', null)
+    .in('tournament_day', [1, 2]) // ✨ SOLO días 1 y 2 (fase de grupos)
     .is('start_time', null);
 
   if (matchesErr) {
@@ -169,7 +293,7 @@ export async function autoScheduleMatches(tournamentId) {
   console.log(`   DÍA 2: ${matchesByDay[2].length} partidos`);
 
   // 6. Obtener otras categorías del mismo evento (buscar por mismas fechas)
-  const { data: eventTournaments, error: eventTournamentsErr } = await supabase
+  const { data: eventTournaments } = await supabase
     .from('tournaments')
     .select('id')
     .eq('start_date', tournament.start_date)
@@ -291,13 +415,23 @@ export async function autoScheduleMatches(tournamentId) {
   console.log(`\n💾 ACTUALIZANDO BASE DE DATOS...`);
 
   for (const scheduled of scheduledMatches) {
+    // ✨ NUEVO: Obtener venue_id desde el mapeo si está disponible
+    const venueId = venueCourtMap.get(scheduled.court_id) || null;
+    
+    const updateData = {
+      start_time: scheduled.start_time,
+      court_id: scheduled.court_id,
+      status: 'scheduled'
+    };
+    
+    // ✨ NUEVO: Agregar venue_id si está disponible (soporte multi-sede)
+    if (venueId) {
+      updateData.venue_id = venueId;
+    }
+    
     const { error: updateErr } = await supabase
       .from('tournament_matches')
-      .update({
-        start_time: scheduled.start_time,
-        court_id: scheduled.court_id,
-        status: 'scheduled'
-      })
+      .update(updateData)
       .eq('id', scheduled.match_id);
 
     if (updateErr) {

@@ -3,9 +3,65 @@
  *
  * Proporciona visibilidad completa del estado de programación del torneo
  * para que el admin pueda revisar y validar las decisiones automáticas
+ * 
+ * ✨ ACTUALIZADO: Soporta sistema multi-sede
  */
 
 import { supabase } from '../config/supabaseClient.js';
+
+/**
+ * 🏢 HELPER: Obtener canchas desde multi-sede
+ * (Duplicado desde tournament.controller.js para uso en este módulo)
+ */
+async function getTournamentCourts(tournamentId) {
+  console.log('🏢 Fetching courts from tournament venues (multi-sede)...');
+  
+  // 1. Obtener las sedes asignadas a este torneo
+  const { data: tournamentVenues, error: venuesError } = await supabase
+    .from('tournament_venues')
+    .select('id, venue_id, is_primary')
+    .eq('tournament_id', tournamentId)
+    .order('is_primary', { ascending: false });
+
+  let courts = [];
+
+  if (venuesError) {
+    console.error('Error fetching tournament venues:', venuesError);
+  }
+
+  if (tournamentVenues && tournamentVenues.length > 0) {
+    // Torneo tiene multi-sede configurada
+    const tournamentVenueIds = tournamentVenues.map(tv => tv.id);
+    
+    const { data: tournamentVenueCourts, error: courtsError } = await supabase
+      .from('tournament_venue_courts')
+      .select('court_id, is_available')
+      .in('tournament_venue_id', tournamentVenueIds)
+      .eq('is_available', true);
+
+    if (courtsError) {
+      console.error('Error fetching tournament venue courts:', courtsError);
+      return { courts: [], courtsCount: 0 };
+    }
+
+    courts = tournamentVenueCourts || [];
+    console.log(`🎾 Found ${courts.length} courts from multi-sede`);
+  } else {
+    // Fallback: obtener desde tournament.courts_available
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('courts_available')
+      .eq('id', tournamentId)
+      .single();
+    
+    if (!tournamentError && tournament) {
+      courts = Array(tournament.courts_available || 0).fill(null); // Array de tamaño courts_available
+      console.log(`🎾 Using ${courts.length} courts (legacy mode)`);
+    }
+  }
+
+  return { courts, courtsCount: courts.length };
+}
 
 /**
  * Obtiene el estado completo de scheduling de un torneo
@@ -26,6 +82,12 @@ export async function getSchedulingStatus(tournamentId) {
   if (tErr || !tournament) {
     throw new Error('Torneo no encontrado');
   }
+
+  // ✨ NUEVO: Obtener canchas reales desde multi-sede
+  const { courtsCount } = await getTournamentCourts(tournamentId);
+  const actualCourtsAvailable = courtsCount > 0 ? courtsCount : tournament.courts_available;
+  
+  console.log(`🏟️  Canchas disponibles: ${actualCourtsAvailable} (multi-sede: ${courtsCount > 0 ? 'Sí' : 'No'})`);
 
   // 2. Obtener grupos
   const { data: groups, error: gErr } = await supabase
@@ -138,22 +200,23 @@ function analyzeSchedulingStatus(tournament, groups, matches, teamRestrictions) 
   const day1Slots = (tournament.group_time_slots || []).filter(s => s.tournament_day === 1);
   const day2Slots = (tournament.group_time_slots || []).filter(s => s.tournament_day === 2);
 
+  // ✨ NUEVO: Usar canchas reales desde multi-sede
   const slotsCapacity = {
     day1: {
       total_slots: day1Slots.length,
-      capacity_per_slot: tournament.courts_available,
-      total_capacity: day1Slots.length * tournament.courts_available,
+      capacity_per_slot: actualCourtsAvailable,
+      total_capacity: day1Slots.length * actualCourtsAvailable,
       matches_assigned: matchesByDay.day1.filter(m => m.start_time !== null).length,
       matches_pending: matchesByDay.day1.filter(m => m.start_time === null).length,
-      utilization_percentage: ((matchesByDay.day1.filter(m => m.start_time !== null).length) / (day1Slots.length * tournament.courts_available) * 100).toFixed(1)
+      utilization_percentage: ((matchesByDay.day1.filter(m => m.start_time !== null).length) / (day1Slots.length * actualCourtsAvailable) * 100).toFixed(1)
     },
     day2: {
       total_slots: day2Slots.length,
-      capacity_per_slot: tournament.courts_available,
-      total_capacity: day2Slots.length * tournament.courts_available,
+      capacity_per_slot: actualCourtsAvailable,
+      total_capacity: day2Slots.length * actualCourtsAvailable,
       matches_assigned: matchesByDay.day2.filter(m => m.start_time !== null).length,
       matches_pending: matchesByDay.day2.filter(m => m.start_time === null).length,
-      utilization_percentage: ((matchesByDay.day2.filter(m => m.start_time !== null).length) / (day2Slots.length * tournament.courts_available) * 100).toFixed(1)
+      utilization_percentage: ((matchesByDay.day2.filter(m => m.start_time !== null).length) / (day2Slots.length * actualCourtsAvailable) * 100).toFixed(1)
     }
   };
 
@@ -190,7 +253,8 @@ function analyzeSchedulingStatus(tournament, groups, matches, teamRestrictions) 
       id: tournament.id,
       name: tournament.name,
       tournament_type: tournament.tournament_type,
-      courts_available: tournament.courts_available,
+      courts_available: actualCourtsAvailable, // ✨ NUEVO: Usar canchas reales desde multi-sede
+      courts_available_legacy: tournament.courts_available, // Mantener para referencia
       start_date: tournament.start_date,
       end_date: tournament.end_date
     },

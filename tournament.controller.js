@@ -2670,7 +2670,14 @@ export async function getMatchesByTournamentId(req, res) {
         *,
         courts:court_id (
           id,
-          name
+          name,
+          venue_id
+        ),
+        venues:venue_id (
+          id,
+          name,
+          address,
+          city
         )
       `)
       .eq('tournament_id', tournament_id)
@@ -2682,10 +2689,14 @@ export async function getMatchesByTournamentId(req, res) {
       return res.status(500).json({ message: error.message });
     }
 
-    // Formatear datos para incluir nombre de cancha
+    // Formatear datos para incluir nombre de cancha y sede
     const formattedMatches = (data || []).map(match => ({
       ...match,
-      court_name: match.courts?.name || null
+      court_name: match.courts?.name || null,
+      venue_id: match.venue_id || match.courts?.venue_id || null, // ✨ NUEVO: venue_id desde match o court
+      venue_name: match.venues?.name || null, // ✨ NUEVO: nombre de la sede
+      venue_address: match.venues?.address || null, // ✨ NUEVO: dirección de la sede
+      venue_city: match.venues?.city || null // ✨ NUEVO: ciudad de la sede
     }));
 
     res.json({
@@ -3427,8 +3438,15 @@ export async function getAvailableGroupHours(req, res) {
       });
     }
 
-    // 5. Enriquecer slots con información de restricciones y capacidad
-    const slots = tournament.group_time_slots || [];
+    // 5. ✨ FILTRAR: Solo slots de días 1 y 2 (fase de grupos)
+    // El día 3 es para eliminatorias y no debe aparecer en inscripciones
+    const allSlots = tournament.group_time_slots || [];
+    const slots = allSlots.filter(slot => 
+      slot.tournament_day === 1 || slot.tournament_day === 2
+    );
+    
+    console.log(`📅 [FILTRO] Total slots: ${allSlots.length}, Slots fase grupos (días 1-2): ${slots.length}`);
+    
     const courts = slots[0]?.courts || 2;
     const MAX_TEAMS_PER_SLOT = MAX_RESTRICTIONS_PER_SLOT_PER_COURT * courts;
     

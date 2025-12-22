@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { MapPin, Phone, Mail, Building2, Star, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Venue } from "@/types/venue";
@@ -21,35 +22,57 @@ export default function VenueCard({ venue, onEdit, onDelete }: VenueCardProps) {
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Building2 className="h-5 w-5 text-blue-500" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {venue.name}
-            </h3>
-            {venue.is_default && (
-              <span className="flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-md text-xs font-medium">
-                <Star className="h-3 w-3" />
-                {t('defaultVenue')}
-              </span>
-            )}
-          </div>
-          <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              <span>{location}</span>
+          <div className="flex items-start gap-4 mb-2">
+            {/* Imagen de perfil */}
+            <div className="flex-shrink-0">
+              {venue.photo_url ? (
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 shadow-sm">
+                  <Image
+                    src={venue.photo_url}
+                    alt={venue.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                  <Building2 className="h-8 w-8 text-blue-500 dark:text-blue-400" />
+                </div>
+              )}
             </div>
-            {venue.phone && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                <span>{venue.phone}</span>
+            
+            {/* Información */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
+                  {venue.name}
+                </h3>
+                {venue.is_default && (
+                  <span className="flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-md text-xs font-medium flex-shrink-0">
+                    <Star className="h-3 w-3" />
+                    {t('defaultVenue')}
+                  </span>
+                )}
               </div>
-            )}
-            {venue.email && (
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                <span>{venue.email}</span>
+              <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{location}</span>
+                </div>
+                {venue.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 flex-shrink-0" />
+                    <span>{venue.phone}</span>
+                  </div>
+                )}
+                {venue.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{venue.email}</span>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
         <div className="flex gap-2">

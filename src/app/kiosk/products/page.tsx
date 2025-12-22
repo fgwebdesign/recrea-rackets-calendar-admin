@@ -5,13 +5,11 @@ import { PlusCircle, Search, Filter, Package } from "lucide-react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ProductCard from "@/components/Kiosk/ProductCard";
 import ProductModal from "@/components/Kiosk/ProductModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import { useProducts } from "@/hooks/useProducts";
 import { useProductCategories } from "@/hooks/useProductCategories";
-import { useVenues } from "@/hooks/useVenues";
 import { Product, CreateProductData, UpdateProductData, ProductFilters } from "@/types/kiosk";
 import { useTranslations } from '@/contexts/TranslationContext';
 import { CategoryIcon } from "@/lib/categoryIcons";
@@ -29,7 +27,6 @@ export default function ProductsPage() {
   const t = useTranslations('kiosk');
   const [filters, setFilters] = useState<ProductFilters>({
     category_id: '',
-    venue_id: '',
     is_active: true,
     search: '',
     low_stock: false
@@ -38,7 +35,6 @@ export default function ProductsPage() {
   // El hook useProducts ya maneja la carga automática cuando cambian los filtros
   const { products, isLoading, createProduct, updateProduct, deleteProduct, fetchProducts } = useProducts(filters);
   const { categories } = useProductCategories();
-  const { venues } = useVenues({ includeCourts: false });
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -115,7 +111,7 @@ export default function ProductsPage() {
   // Resetear página cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.category_id, filters.venue_id, filters.search, filters.low_stock]);
+  }, [filters.category_id, filters.search, filters.low_stock]);
 
   // Calcular productos paginados
   const totalPages = Math.ceil(displayProducts.length / PRODUCTS_PER_PAGE);
@@ -155,23 +151,6 @@ export default function ProductsPage() {
                 />
               </div>
             </div>
-            
-            <Select
-              value={filters.venue_id || 'all'}
-              onValueChange={(value) => setFilters(prev => ({ ...prev, venue_id: value === 'all' ? '' : value }))}
-            >
-              <SelectTrigger className="w-[200px] bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                <SelectValue placeholder={t('products.allVenues')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('products.allVenues')}</SelectItem>
-                {venues.map((venue) => (
-                  <SelectItem key={venue.id} value={venue.id}>
-                    {venue.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
             <Button
               variant="outline"

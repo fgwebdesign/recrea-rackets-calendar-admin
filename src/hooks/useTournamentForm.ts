@@ -119,8 +119,8 @@ export function useTournamentForm() {
     // ✨ NUEVO: Validar venues o courts_available
     if (!data.venues || data.venues.length === 0) {
       // Si no hay venues, validar courts_available como fallback
-      if (!data.courts_available || data.courts_available < 1) {
-        newErrors.courts_available = t('create.validation.courtsRequired');
+    if (!data.courts_available || data.courts_available < 1) {
+      newErrors.courts_available = t('create.validation.courtsRequired');
       }
     } else {
       // Si hay venues, validar que cada venue tenga al menos una cancha

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Building2 } from "lucide-react";
+import { Search, Building2, Upload, X } from "lucide-react";
 import { Venue } from "@/types/venue";
 import { useTranslations } from '@/contexts/TranslationContext';
+import { supabase } from '@/lib/supabase';
 
 // Tipos locales para country-state-city
 interface CountryType {
@@ -77,6 +79,9 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   
   // Estados para países, estados y ciudades
   const [selectedCountryCode, setSelectedCountryCode] = useState<string>('UY'); // Uruguay por defecto
@@ -193,7 +198,10 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
         description: venue.description || '',
         is_default: venue.is_default || false,
         is_active: venue.is_active !== undefined ? venue.is_active : true,
+        photo_url: venue.photo_url || '',
       });
+      setPreviewUrl(venue.photo_url || null);
+      setImageFile(null);
     } else {
       setSelectedCountryCode('UY');
       setSelectedStateCode('');
@@ -209,7 +217,10 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
         description: '',
         is_default: false,
         is_active: true,
+        photo_url: '',
       });
+      setPreviewUrl(null);
+      setImageFile(null);
     }
     setErrors({});
   }, [venue, isOpen]);
@@ -225,6 +236,119 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, image: 'La imagen no debe superar los 5MB' }));
+        return;
+      }
+      
+      // Validar tipo
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({ ...prev, image: 'El archivo debe ser una imagen' }));
+        return;
+      }
+
+      setImageFile(file);
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.image;
+        return newErrors;
+      });
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setPreviewUrl(null);
+    setFormData(prev => ({ ...prev, photo_url: '' }));
+  };
+
+  const uploadImage = async (file: File, venueId?: string): Promise<string> => {
+    try {
+      setUploadingImage(true);
+      
+      // Si hay un venueId (edición), usar el endpoint del backend
+      if (venueId) {
+        const token = localStorage.getItem('adminToken');
+        if (!token) throw new Error('No estás autenticado');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9999';
+        const response = await fetch(`${API_URL}/venues/${venueId}/photo`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Error al subir la imagen');
+        }
+
+        const data = await response.json();
+        return data.photo_url;
+      }
+
+      // Si no hay venueId (creación), intentar subir directamente
+      // Intentar diferentes buckets en orden de preferencia
+      const bucketsToTry = ['courts-bucket','venues-bucket', , 'tournament-thumbnails'];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `venues/${fileName}`;
+
+      let lastError: Error | null = null;
+      
+      for (const bucketName of bucketsToTry) {
+        try {
+          const { error: uploadError } = await supabase.storage
+            .from(bucketName as string)
+            .upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (!uploadError) {
+            // Obtener URL pública
+            const { data: { publicUrl } } = supabase.storage
+              .from(bucketName as string)
+              .getPublicUrl(filePath);
+            
+            return publicUrl;
+          } else {
+            lastError = uploadError instanceof Error ? uploadError : new Error(String(uploadError));
+          }
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error(String(err));
+          continue;
+        }
+      }
+
+      // Si todos los buckets fallaron, lanzar el último error
+      throw lastError || new Error('No se pudo subir la imagen. Verifica que el bucket de almacenamiento esté configurado.');
+    } catch (error: unknown) {
+      console.error('Error uploading image:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Error desconocido al subir la imagen');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -234,7 +358,28 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
 
     setIsLoading(true);
     try {
-      await onSubmit(formData);
+      // Si hay una imagen nueva, subirla primero
+      let photoUrl = formData.photo_url;
+      if (imageFile) {
+        try {
+          // Si estamos editando, usar el endpoint del backend
+          photoUrl = await uploadImage(imageFile, venue?.id);
+        } catch (uploadError: unknown) {
+          console.error('Error uploading image:', uploadError);
+          const errorMessage = uploadError instanceof Error 
+            ? uploadError.message 
+            : 'Error al subir la imagen. Por favor, intenta nuevamente.';
+          setErrors(prev => ({ 
+            ...prev, 
+            image: errorMessage
+          }));
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Enviar datos con la URL de la imagen
+      await onSubmit({ ...formData, photo_url: photoUrl });
       handleClose();
     } catch (error) {
       console.error('Error submitting venue:', error);
@@ -275,6 +420,75 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
 
         <div className="px-6 py-6">
           <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Imagen de Perfil */}
+          <div className="bg-gradient-to-br from-pink-50/50 to-rose-50/50 dark:from-pink-900/10 dark:to-rose-900/10 rounded-xl p-5 border border-pink-100 dark:border-pink-800/50">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <span className="h-1 w-1 rounded-full bg-pink-500"></span>
+              Imagen de Perfil
+            </h3>
+            
+            <div className="space-y-4">
+              {/* Preview de imagen */}
+              {(previewUrl || formData.photo_url) && (
+                <div className="relative w-full max-w-xs mx-auto">
+                  <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 shadow-md">
+                    <Image
+                      src={previewUrl || formData.photo_url || ''}
+                      alt="Preview"
+                      fill
+                      className="object-cover"
+                      unoptimized={previewUrl?.startsWith('data:')}
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-colors z-10"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Input de carga */}
+              <div>
+                <Label htmlFor="photo" className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 block">
+                  {previewUrl || formData.photo_url ? 'Cambiar imagen' : 'Seleccionar imagen'}
+                </Label>
+                <div className="flex items-center gap-4">
+                  <label
+                    htmlFor="photo"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-700/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-pink-500 dark:hover:border-pink-400 transition-colors"
+                  >
+                    <Upload className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {imageFile ? imageFile.name : 'Subir imagen'}
+                    </span>
+                  </label>
+                  <input
+                    id="photo"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                  {uploadingImage && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-pink-500"></div>
+                      <span>Subiendo...</span>
+                    </div>
+                  )}
+                </div>
+                {errors.image && (
+                  <p className="text-sm text-red-500 dark:text-red-400 mt-2 font-medium">{errors.image}</p>
+                )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Tamaño máximo: 5MB. Formatos: JPG, PNG, WebP
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Información Básica */}
           <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-xl p-5 border border-blue-100 dark:border-blue-800/50">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -597,10 +811,10 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={isLoading || !formData.name}
+            disabled={isLoading || uploadingImage || !formData.name}
             className="h-11 px-8 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 dark:from-green-700 dark:to-emerald-700 dark:hover:from-green-600 dark:hover:to-emerald-600 text-white font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
-            {isLoading ? t('saving') : venue ? t('update') : t('save')}
+            {isLoading || uploadingImage ? t('saving') : venue ? t('update') : t('save')}
           </Button>
         </DialogFooter>
       </DialogContent>

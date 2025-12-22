@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTournament } from '@/hooks/useTournaments';
 import { useCategories } from '@/hooks/useCategories';
@@ -28,11 +28,10 @@ import {
   ArrowLeft,
   CalendarDays
 } from 'lucide-react';
-import { TournamentMatch, Team } from '@/types/tournament';
+import { TournamentMatch } from '@/types/tournament';
 import { TournamentMatchModal } from '@/components/Tournaments/TournamentMatchModal';
 import { getCategoryName } from '@/utils/category';
 import EliminationBracketGenerator from '@/components/Tournaments/EliminationBracketGenerator';
-import EliminationBracketViewer from '@/components/Tournaments/EliminationBracketViewer';
 
 interface MatchResult {
   matchId: string;
@@ -67,8 +66,7 @@ export default function TournamentMatchesPage() {
   const [modalSuccess, setModalSuccess] = useState<string | null>(null);
   
   // Estado para la fase eliminatoria
-  const [bracketData, setBracketData] = useState<any>(null);
-  const [showBracket, setShowBracket] = useState(false);
+  const [, setBracketData] = useState<unknown>(null);
   
   // Estado para el tab activo
   const [activeTab, setActiveTab] = useState('groups');
@@ -92,9 +90,8 @@ export default function TournamentMatchesPage() {
     matches.some(match => match.round !== 'group') : false;
 
   // Función para manejar cuando se genera el bracket
-  const handleBracketGenerated = (data: any) => {
+  const handleBracketGenerated = (data: unknown) => {
     setBracketData(data);
-    setShowBracket(true);
   };
 
   // Debug: verificar datos de partidos en la página
@@ -106,7 +103,7 @@ export default function TournamentMatchesPage() {
   console.log('🔍 Teams count:', Array.isArray(teams) ? teams.length : 0);
 
   // Obtener equipos por ID
-  const getTeamById = (teamId: string): any => {
+  const getTeamById = (teamId: string): { team_id: string; teams?: { player1?: { first_name?: string; last_name?: string }; player2?: { first_name?: string; last_name?: string } } } | null => {
     if (!Array.isArray(teams)) return null;
     const team = teams.find(team => team.team_id === teamId) || null;
     
@@ -119,7 +116,7 @@ export default function TournamentMatchesPage() {
   };
 
   // Formatear nombres de jugadores
-  const formatPlayerNames = (team: any): string => {
+  const formatPlayerNames = (team: { teams?: { player1?: { first_name?: string; last_name?: string }; player2?: { first_name?: string; last_name?: string } } } | null): string => {
     if (!team) return 'Equipo no encontrado';
     
     const player1 = team.teams?.player1;
@@ -169,7 +166,18 @@ export default function TournamentMatchesPage() {
   };
 
   // Guardar resultado desde el modal (usando el mismo endpoint que bracket)
-  const handleSaveResult = async (matchId: string, result: any) => {
+  const handleSaveResult = async (matchId: string, result: {
+    team1_sets1_won: number;
+    team2_sets1_won: number;
+    team1_sets2_won: number;
+    team2_sets2_won: number;
+    team1_tie1_won?: number;
+    team2_tie1_won?: number;
+    team1_tie2_won?: number;
+    team2_tie2_won?: number;
+    team1_tie3_won?: number;
+    team2_tie3_won?: number;
+  }) => {
     setSavingResult(true);
     setModalError(null);
     setModalSuccess(null);
@@ -206,9 +214,10 @@ export default function TournamentMatchesPage() {
       await refetch();
       handleCloseModal();
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving match result:', error);
-      setModalError(error.message || 'Error al guardar el resultado');
+      const errorMessage = error instanceof Error ? error.message : 'Error al guardar el resultado';
+      setModalError(errorMessage);
     } finally {
       setSavingResult(false);
     }
@@ -265,9 +274,10 @@ export default function TournamentMatchesPage() {
       // Recargar datos para mostrar los horarios y canchas asignados
       await refetch();
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error en auto-scheduling:', error);
-      alert(`❌ Error en auto-scheduling: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido en auto-scheduling';
+      alert(`❌ Error en auto-scheduling: ${errorMessage}`);
     } finally {
       setIsSchedulingMatches(false);
     }
@@ -302,26 +312,6 @@ export default function TournamentMatchesPage() {
     }
   };
 
-  // Inicializar formulario de resultado
-  const initializeResultForm = (match: TournamentMatch) => {
-    setMatchResults(prev => ({
-      ...prev,
-      [match.id]: {
-        matchId: match.id,
-        team1Sets1: match.team1_sets1_won || 0,
-        team2Sets1: match.team2_sets1_won || 0,
-        team1Sets2: match.team1_sets2_won || 0,
-        team2Sets2: match.team2_sets2_won || 0,
-        team1Tie1: match.team1_tie1_won || 0,
-        team2Tie1: match.team2_tie1_won || 0,
-        team1Tie2: match.team1_tie2_won || 0,
-        team2Tie2: match.team2_tie2_won || 0,
-        team1Tie3: match.team1_tie3_won || 0,
-        team2Tie3: match.team2_tie3_won || 0,
-      }
-    }));
-    setShowResultForm(match.id);
-  };
 
   // Obtener estado del partido
   const getMatchStatusBadge = (status: string) => {
@@ -716,9 +706,16 @@ export default function TournamentMatchesPage() {
                                     )}
                                     
                                     {match.court_name && (
-                                      <div className="flex items-center gap-1">
-                                        <MapPin className="h-3 w-3" />
-                                        {match.court_name}
+                                      <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-1">
+                                          <MapPin className="h-3 w-3" />
+                                          <span className="font-medium">{match.court_name}</span>
+                                        </div>
+                                        {match.venue_name && (
+                                          <span className="text-xs text-gray-500 dark:text-gray-400 ml-4">
+                                            {match.venue_name}
+                                          </span>
+                                        )}
                                       </div>
                                     )}
                                   </div>
@@ -1046,7 +1043,7 @@ export default function TournamentMatchesPage() {
                     if (!acc[round]) acc[round] = [];
                     acc[round].push(match);
                     return acc;
-                  }, {} as Record<string, any[]>);
+                  }, {} as Record<string, TournamentMatch[]>);
                   
                   // Debug: mostrar qué rounds tenemos
                   console.log('🔍 Rounds encontrados:', Object.keys(matchesByRound));
@@ -1124,7 +1121,7 @@ export default function TournamentMatchesPage() {
                                     Fecha/Hora
                                   </th>
                                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                    Cancha
+                                    Cancha / Sede
                                   </th>
                                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                     Estado
@@ -1216,7 +1213,20 @@ export default function TournamentMatchesPage() {
                                       </td>
                                       
                                       <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-600 dark:text-gray-400">
-                                        {match.court_name || '-'}
+                                        <div className="flex flex-col items-center gap-1">
+                                          {match.court_name && (
+                                            <span className="font-medium">{match.court_name}</span>
+                                          )}
+                                          {match.venue_name && (
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                              <MapPin className="h-3 w-3" />
+                                              {match.venue_name}
+                                            </span>
+                                          )}
+                                          {!match.court_name && !match.venue_name && (
+                                            <span className="text-gray-400">-</span>
+                                          )}
+                                        </div>
                                       </td>
                                       
                                       <td className="px-4 py-4 whitespace-nowrap text-center">
