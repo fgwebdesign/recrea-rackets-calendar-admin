@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { HomeIcon } from '@heroicons/react/24/outline';
 import Header from '@/components/Header';
 import { DateTime } from '@/components/Dashboard/DateTime';
@@ -17,11 +17,10 @@ import { KioskWidget } from '@/components/Dashboard/KioskWidget';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import * as Collapsible from "@radix-ui/react-collapsible";
-import { ChevronDown, Trophy, Users, Calendar, BarChart3, Target, Zap, Activity } from 'lucide-react';
+import { ChevronDown, Trophy, Users, Calendar, BarChart3, Target, Activity } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useLeagues } from '@/hooks/useLeagues';
 import { useCategories } from '@/hooks/useCategories';
-import { useStandings } from '@/hooks/useStandings';
 import { useTournaments } from '@/hooks/useTournaments';
 import { useTranslations } from '@/contexts/TranslationContext';
 
@@ -38,10 +37,6 @@ export default function Dashboard() {
   const { users, isLoading: isLoadingUsers } = useUsers();
   const { leagues, isLoading: isLoadingLeagues } = useLeagues();
   const { categories, isLoading: isLoadingCategories } = useCategories();
-  // Removemos useStandings por ahora ya que no tenemos un tournamentId específico
-  // const { standings, loading: isLoadingStandings } = useStandings(selectedCategory);
-  const standings = null;
-  const isLoadingStandings = false;
   const { tournaments, loading: isLoadingTournaments } = useTournaments();
 
   const totalUsers = useMemo(() => {
@@ -72,7 +67,7 @@ export default function Dashboard() {
     if (!tournaments) return 0;
     return tournaments.reduce((total, tournament) => {
       const tournamentInfo = tournament.tournament_info || tournament;
-      const inscriptionCost = (tournamentInfo as any).inscription_cost || (tournament as any).inscription_cost || 0;
+      const inscriptionCost = (tournamentInfo as { inscription_cost?: number }).inscription_cost || (tournament as { inscription_cost?: number }).inscription_cost || 0;
       const registeredTeams = tournament.tournament_teams?.length || 0;
       return total + (inscriptionCost * registeredTeams);
     }, 0);
@@ -101,28 +96,22 @@ export default function Dashboard() {
           {/* Widget de Kiosco */}
           <KioskWidget />
 
-          {/* Tabs para Leagues y Tournaments */}
+          {/* Tabs para Leagues y Tournaments - Diseño Minimalista */}
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'leagues' | 'tournaments')} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+            <TabsList className="inline-flex items-center justify-start gap-1 mb-8 pb-2 border-b border-gray-200 dark:border-gray-700 h-auto bg-transparent p-0">
               <TabsTrigger 
                 value="leagues" 
-                className="flex items-center gap-3 px-6 py-4 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-600 dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-blue-400"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 dark:data-[state=active]:border-blue-400 rounded-none bg-transparent hover:text-gray-900 dark:hover:text-gray-200 transition-colors shadow-none"
               >
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                  <Users className="w-4 h-4" />
-                </div>
-                <span className="font-medium">{t('leagues')}</span>
+                <Users className="w-4 h-4" />
+                <span>{t('leagues')}</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="tournaments" 
-                className="flex items-center gap-3 px-6 py-4 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-purple-600 dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-purple-400"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 data-[state=active]:text-purple-600 dark:data-[state=active]:text-purple-400 data-[state=active]:border-b-2 data-[state=active]:border-purple-600 dark:data-[state=active]:border-purple-400 rounded-none bg-transparent hover:text-gray-900 dark:hover:text-gray-200 transition-colors shadow-none"
               >
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                  <Trophy className="w-4 h-4" />
-                </div>
-                <span className="font-medium">{t('tournaments')}</span>
+                <Trophy className="w-4 h-4" />
+                <span>{t('tournaments')}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -254,7 +243,7 @@ export default function Dashboard() {
                         selectedCategory={selectedCategory}
                         onCategoryChange={setSelectedCategory}
                         standings={[]} 
-                        isLoading={isLoadingStandings}
+                        isLoading={false}
                       />
                     </CardContent>
                   </Collapsible.Content>

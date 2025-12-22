@@ -2,14 +2,11 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { 
   ShoppingCart, 
   Package, 
   AlertTriangle, 
   DollarSign, 
-  ArrowRight,
   Receipt,
   BarChart3,
   Box
@@ -104,83 +101,76 @@ export function KioskWidget() {
   ];
 
   return (
-    <Card className="w-full bg-white dark:bg-[#0E1629] border-gray-200 dark:border-gray-700/50 shadow-sm overflow-hidden">
-      <CardHeader className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
-          <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-            <ShoppingCart className="w-5 h-5 text-green-600 dark:text-green-400" />
-          </div>
-          Kiosco
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-6">
-        {/* Estadísticas Rápidas */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 rounded-lg p-4 text-white">
-            <div className="flex items-center justify-between mb-2">
-              <DollarSign className="w-5 h-5 opacity-80" />
+    <div className="bg-white dark:bg-[#0E1629] border border-gray-200 dark:border-gray-700/50 rounded-xl shadow-sm overflow-hidden">
+      <div className="p-6">
+        {/* Header Minimalista */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+              <ShoppingCart className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </div>
-            <p className="text-xs opacity-90 mb-1">Ventas Hoy</p>
-            <p className="text-2xl font-bold">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Kiosco</h3>
+          </div>
+        </div>
+
+        {/* Estadísticas Minimalistas */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+            <div className="flex items-center gap-2 mb-2">
+              <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
+              <p className="text-xs text-gray-600 dark:text-gray-400">Ventas Hoy</p>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {isLoading ? '...' : salesSummary?.today_sales || 0}
             </p>
-            <p className="text-xs opacity-75 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
               ${isLoading ? '...' : (salesSummary?.today_revenue || 0).toLocaleString('es-UY')}
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-lg p-4 text-white">
-            <div className="flex items-center justify-between mb-2">
-              <Package className="w-5 h-5 opacity-80" />
+          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+            <div className="flex items-center gap-2 mb-2">
+              <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <p className="text-xs text-gray-600 dark:text-gray-400">Productos</p>
             </div>
-            <p className="text-xs opacity-90 mb-1">Productos Activos</p>
-            <p className="text-2xl font-bold">{totalActiveProducts}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalActiveProducts}</p>
           </div>
 
-          <div className="bg-gradient-to-br from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 rounded-lg p-4 text-white">
-            <div className="flex items-center justify-between mb-2">
-              <AlertTriangle className="w-5 h-5 opacity-80" />
+          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+              <p className="text-xs text-gray-600 dark:text-gray-400">Stock Bajo</p>
             </div>
-            <p className="text-xs opacity-90 mb-1">Stock Bajo</p>
-            <p className="text-2xl font-bold">{lowStockProducts}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{lowStockProducts}</p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 rounded-lg p-4 text-white">
-            <div className="flex items-center justify-between mb-2">
-              <Receipt className="w-5 h-5 opacity-80" />
+          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+            <div className="flex items-center gap-2 mb-2">
+              <Receipt className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <p className="text-xs text-gray-600 dark:text-gray-400">Total Ventas</p>
             </div>
-            <p className="text-xs opacity-90 mb-1">Total Ventas</p>
-            <p className="text-2xl font-bold">{sales.length}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{sales.length}</p>
           </div>
         </div>
 
-        {/* Atajos Rápidos */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-            Accesos Rápidos
-          </h3>
-          <div className="grid grid-cols-2 gap-2">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              return (
-                <Button
-                  key={action.href}
-                  onClick={() => router.push(action.href)}
-                  className={`${action.color} text-white flex items-center justify-between gap-2`}
-                  variant="default"
-                >
-                  <div className="flex items-center gap-2">
-                    <Icon className="w-4 h-4" />
-                    <span className="text-sm font-medium">{action.label}</span>
-                  </div>
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              );
-            })}
-          </div>
+        {/* Atajos Rápidos Minimalistas */}
+        <div className="flex flex-wrap gap-2">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.href}
+                onClick={() => router.push(action.href)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <Icon className="w-4 h-4" />
+                <span>{action.label}</span>
+              </button>
+            );
+          })}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
