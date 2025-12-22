@@ -28,9 +28,10 @@ export default function SalesPage() {
   const [showSaleModal, setShowSaleModal] = useState(false);
 
   useEffect(() => {
+    // Solo hacer fetch si los filters realmente cambiaron
     fetchSales(filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [JSON.stringify(filters)]);
 
   const handleViewSale = async (saleId: string) => {
     const sale = await getSaleById(saleId);

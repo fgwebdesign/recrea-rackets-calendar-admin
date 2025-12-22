@@ -10,14 +10,17 @@ import {
   Box
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
-import { useSales } from '@/hooks/useSales';
 import { useTranslations } from '@/contexts/TranslationContext';
+import { useState, useEffect } from 'react';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function KioskWidget() {
   const router = useRouter();
   const t = useTranslations('kiosk');
   const { products } = useProducts({ is_active: true, low_stock: true });
-  const { sales } = useSales({ limit: 100 });
+  const [totalSales, setTotalSales] = useState<number>(0);
+  const [isLoadingSales, setIsLoadingSales] = useState(false);
 
   // Calcular productos con stock bajo
   const lowStockProducts = useMemo(() => {
@@ -26,6 +29,62 @@ export function KioskWidget() {
       p.stock_quantity <= p.min_stock_alert
     ).length;
   }, [products]);
+
+  // Obtener solo el total de ventas (más eficiente que cargar todas)
+  useEffect(() => {
+    let abortController: AbortController | null = null;
+    
+    const fetchTotalSales = async () => {
+      try {
+        // Cancelar request anterior si existe
+        if (abortController) {
+          abortController.abort();
+        }
+        
+        abortController = new AbortController();
+        setIsLoadingSales(true);
+        
+        const token = localStorage.getItem('adminToken');
+        if (!token) return;
+
+        // Usar el endpoint de resumen que es más eficiente
+        const response = await fetch(`${API_URL}/kiosk/reports/summary`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          signal: abortController.signal
+        });
+
+        if (!response.ok || abortController.signal.aborted) return;
+        
+        const data = await response.json();
+        if (data.success && !abortController.signal.aborted) {
+          setTotalSales(data.summary?.total_sales || 0);
+        }
+      } catch (error) {
+        // Ignorar errores de cancelación y red cuando la app está en standby
+        if (error instanceof Error && 
+            error.name !== 'AbortError' && 
+            !error.message.includes('Failed to fetch') &&
+            !error.message.includes('NetworkError')) {
+          console.error('Error fetching sales summary:', error);
+        }
+      } finally {
+        if (!abortController?.signal.aborted) {
+          setIsLoadingSales(false);
+        }
+      }
+    };
+
+    fetchTotalSales();
+
+    // Cleanup: cancelar request al desmontar
+    return () => {
+      if (abortController) {
+        abortController.abort();
+      }
+    };
+  }, []);
 
   const quickActions = [
     {
@@ -94,7 +153,9 @@ export function KioskWidget() {
               <Receipt className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               <p className="text-xs text-gray-600 dark:text-gray-400">Total Ventas</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{sales.length}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              {isLoadingSales ? '...' : totalSales}
+            </p>
           </div>
         </div>
 

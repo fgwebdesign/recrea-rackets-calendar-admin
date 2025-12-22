@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { Sale, CreateSaleData, SaleFilters } from '@/types/kiosk';
 
@@ -8,14 +8,32 @@ export function useSales(filters?: SaleFilters) {
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pagination, setPagination] = useState<{ total: number; limit: number; offset: number } | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const filtersRef = useRef(filters);
+
+  // Actualizar ref cuando cambian los filters
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
 
   const fetchSales = useCallback(async (customFilters?: SaleFilters) => {
+    // Cancelar request anterior si existe
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Crear nuevo AbortController
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try {
       setIsLoading(true);
       const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('No estás autenticado');
+      if (!token) {
+        throw new Error('No estás autenticado');
+      }
 
-      const activeFilters = customFilters || filters || {};
+      const activeFilters = customFilters || filtersRef.current || {};
       const params = new URLSearchParams();
       
       if (activeFilters.venue_id) params.append('venue_id', activeFilters.venue_id);
@@ -33,31 +51,68 @@ export function useSales(filters?: SaleFilters) {
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal: abortController.signal
       });
       
-      if (!response.ok) throw new Error('Error fetching sales');
+      if (!response.ok) {
+        // No mostrar error si fue cancelado
+        if (abortController.signal.aborted) return;
+        throw new Error('Error fetching sales');
+      }
+      
       const data = await response.json();
-      setSales(data.sales || []);
-      setPagination(data.pagination || null);
+      
+      // Verificar que no fue cancelado antes de actualizar estado
+      if (!abortController.signal.aborted) {
+        setSales(data.sales || []);
+        setPagination(data.pagination || null);
+      }
     } catch (error) {
-      if (error instanceof Error && !error.message.includes('sesión ha expirado')) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
+      // Ignorar errores de cancelación
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      
+      // Solo mostrar toast si no es un error de autenticación o cancelación
+      if (error instanceof Error && 
+          !error.message.includes('sesión ha expirado') && 
+          !error.message.includes('aborted')) {
+        // No mostrar toast para errores de red cuando la app está en standby
+        if (!error.message.includes('Failed to fetch') && !error.message.includes('NetworkError')) {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       }
       console.error('Error fetching sales:', error);
-      setSales([]);
+      
+      // Solo actualizar estado si no fue cancelado
+      if (!abortController.signal.aborted) {
+        setSales([]);
+      }
     } finally {
-      setIsLoading(false);
+      // Solo actualizar loading si no fue cancelado
+      if (!abortController.signal.aborted) {
+        setIsLoading(false);
+      }
     }
-  }, [filters]);
+  }, []); // Sin dependencias para evitar re-creaciones innecesarias
 
+  // Efecto para fetch inicial y cuando cambian los filters
   useEffect(() => {
     fetchSales();
-  }, [fetchSales]);
+    
+    // Cleanup: cancelar request al desmontar o cuando cambian los filters
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(filters)]); // Usar stringify para comparar filters
 
   const getSaleById = useCallback(async (id: string): Promise<Sale | null> => {
     try {

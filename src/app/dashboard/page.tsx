@@ -23,6 +23,8 @@ import { useLeagues } from '@/hooks/useLeagues';
 import { useCategories } from '@/hooks/useCategories';
 import { useTournaments } from '@/hooks/useTournaments';
 import { useTranslations } from '@/contexts/TranslationContext';
+import { Standing } from '@/hooks/useStandings';
+import { getLeagueStandings } from '@/services/leagueService';
 
 export default function Dashboard() {
   const t = useTranslations('dashboard');
@@ -38,6 +40,8 @@ export default function Dashboard() {
   const { leagues, isLoading: isLoadingLeagues } = useLeagues();
   const { categories, isLoading: isLoadingCategories } = useCategories();
   const { tournaments, loading: isLoadingTournaments } = useTournaments();
+  const [standings, setStandings] = useState<Standing[]>([]);
+  const [isLoadingStandings, setIsLoadingStandings] = useState(false);
 
   const totalUsers = useMemo(() => {
     if (!users) return 0;
@@ -78,6 +82,97 @@ export default function Dashboard() {
       setSelectedCategory(categories[0].id);
     }
   }, [categories, isLoadingCategories, selectedCategory]);
+
+  // Obtener standings de todas las ligas de la categoría seleccionada
+  useEffect(() => {
+    const fetchCategoryStandings = async () => {
+      if (!selectedCategory || !leagues || leagues.length === 0) {
+        setStandings([]);
+        return;
+      }
+
+      setIsLoadingStandings(true);
+      try {
+        // Filtrar ligas de la categoría seleccionada
+        const categoryLeagues = leagues.filter(league => league.category_id === selectedCategory);
+        
+        if (categoryLeagues.length === 0) {
+          setStandings([]);
+          setIsLoadingStandings(false);
+          return;
+        }
+
+        // Obtener standings de todas las ligas de la categoría
+        const allStandingsPromises = categoryLeagues.map(async (league) => {
+          try {
+            const data = await getLeagueStandings(league.id);
+            return (data.standings || []).map((standing: {
+              id: string;
+              team?: {
+                player1?: { first_name?: string; last_name?: string };
+                player2?: { first_name?: string; last_name?: string };
+              };
+              games_played?: number;
+              wins?: number;
+              losses?: number;
+              games_won?: number;
+              games_lost?: number;
+              sets_won?: number;
+              sets_lost?: number;
+              points?: number;
+            }) => ({
+              id: standing.id,
+              league_id: league.id,
+              league_name: league.name,
+              team: standing.team ? {
+                player1: {
+                  first_name: standing.team.player1?.first_name || '',
+                  last_name: standing.team.player1?.last_name || ''
+                },
+                player2: {
+                  first_name: standing.team.player2?.first_name || '',
+                  last_name: standing.team.player2?.last_name || ''
+                }
+              } : {
+                player1: { first_name: '', last_name: '' },
+                player2: { first_name: '', last_name: '' }
+              },
+              games_played: standing.games_played || 0,
+              wins: standing.wins || 0,
+              losses: standing.losses || 0,
+              games_won: standing.games_won || 0,
+              games_lost: standing.games_lost || 0,
+              sets_won: standing.sets_won || 0,
+              sets_lost: standing.sets_lost || 0,
+              points: standing.points || 0
+            }));
+          } catch (error) {
+            console.error(`Error fetching standings for league ${league.id}:`, error);
+            return [];
+          }
+        });
+
+        const allStandingsArrays = await Promise.all(allStandingsPromises);
+        const combinedStandings = allStandingsArrays.flat();
+
+        // Ordenar por puntos (descendente), luego por sets_won, luego por games_won
+        combinedStandings.sort((a, b) => {
+          if (b.points !== a.points) return b.points - a.points;
+          if (b.sets_won !== a.sets_won) return b.sets_won - a.sets_won;
+          return b.games_won - a.games_won;
+        });
+
+        setStandings(combinedStandings);
+      } catch (error) {
+        console.error('Error fetching category standings:', error);
+        setStandings([]);
+      } finally {
+        setIsLoadingStandings(false);
+      }
+    };
+
+    fetchCategoryStandings();
+  }, [selectedCategory, leagues]);
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-gray-900">
@@ -242,8 +337,8 @@ export default function Dashboard() {
                         categories={categories}
                         selectedCategory={selectedCategory}
                         onCategoryChange={setSelectedCategory}
-                        standings={[]} 
-                        isLoading={false}
+                        standings={standings} 
+                        isLoading={isLoadingStandings}
                       />
                     </CardContent>
                   </Collapsible.Content>
