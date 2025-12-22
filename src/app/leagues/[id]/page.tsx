@@ -324,7 +324,7 @@ export default function LeagueDetailsPage() {
                     <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 space-y-2">
                       <div className="flex items-center gap-2">
                         <FileText className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                        <h3 className="font-medium text-slate-900 dark:text-slate-200">{t('description')}</h3>
+                        <h3 className="font-medium text-slate-900 dark:text-slate-200">{t('leagueDescription')}</h3>
                       </div>
                       <p className="text-slate-600 dark:text-slate-400">
                         {league.description || t('noDescription')}
@@ -335,7 +335,7 @@ export default function LeagueDetailsPage() {
                     <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-6 space-y-2">
                       <div className="flex items-center gap-2">
                         <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                        <h3 className="font-medium text-emerald-900 dark:text-emerald-200">{t('inscriptionCost')}</h3>
+                        <h3 className="font-medium text-emerald-900 dark:text-emerald-200">{t('leagueInscriptionCost')}</h3>
                       </div>
                       <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                         ${league.inscription_cost || 0}
@@ -538,7 +538,7 @@ export default function LeagueDetailsPage() {
                     <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
                       <div className="flex items-center gap-2">
                         <ImageIcon className="w-5 h-5" />
-                        Galería de Imágenes
+                        {t('gallery')}
                       </div>
                     </CardTitle>
                     <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isGalleryOpen ? 'transform rotate-180' : ''}`} />

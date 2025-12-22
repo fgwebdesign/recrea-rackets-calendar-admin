@@ -1930,9 +1930,9 @@ const translations: Record<Locale, Record<string, any>> = {
     standings: 'Standings',
     gallery: 'Image Gallery',
     // League Info Section
-    description: 'Description',
+    leagueDescription: 'Description',
     noDescription: 'No description',
-    inscriptionCost: 'Registration Cost',
+    leagueInscriptionCost: 'Registration Cost',
     dates: 'Dates',
     start: 'Start:',
     end: 'End:',
@@ -1961,7 +1961,11 @@ const translations: Record<Locale, Record<string, any>> = {
     generateError: 'Error generating league',
     generateErrorDescription: 'Could not generate calendar and standings',
     unexpectedError: 'Unexpected Error',
-    unexpectedErrorDescription: 'An error occurred while generating the league'
+    unexpectedErrorDescription: 'An error occurred while generating the league',
+    // League Header
+    categoryNotSpecified: 'Category not specified',
+    spotAvailable: 'spot available',
+    maxTeams: 'max teams'
   },
   // Tournaments
   tournaments: {
@@ -2043,8 +2047,7 @@ const translations: Record<Locale, Record<string, any>> = {
         bracket: 'Eliminations',
         bracketDescription: 'Elimination bracket',
         payments: 'Payments',
-        paymentsDescription: 'Manage payments and registrations',
-        saveResult: 'Save Result'
+        paymentsDescription: 'Manage payments and registrations'
       },
       info: {
         description: 'Description',

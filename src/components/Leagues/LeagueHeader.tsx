@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Card } from "@/components/ui/card"
+import { useTranslations } from '@/contexts/TranslationContext'
 
 interface LeagueHeaderProps {
   league: League
@@ -17,8 +18,10 @@ interface LeagueHeaderProps {
 }
 
 export function LeagueHeader({ league, categories, onBack }: LeagueHeaderProps) {
+  const t = useTranslations('leagues');
+  const tCommon = useTranslations('common');
   const categoryName =
-    league.category_id && categories ? getCategoryName(league.category_id, categories) : "Categoría no especificada"
+    league.category_id && categories ? getCategoryName(league.category_id, categories) : t('categoryNotSpecified')
 
   const registeredTeams = league.registeredTeams || 0;
   const registrationProgress = (registeredTeams / league.team_size) * 100;
@@ -40,11 +43,11 @@ export function LeagueHeader({ league, categories, onBack }: LeagueHeaderProps) 
   const getStatusText = (status: string) => {
     switch (status) {
       case 'Inscribiendo':
-        return 'Inscripciones abiertas';
+        return t('status.inscribiendo');
       case 'Activa':
-        return 'En Curso';
+        return t('status.activa');
       case 'Finalizada':
-        return 'Finalizada';
+        return t('status.finalizada');
       default:
         return status;
     }
@@ -60,7 +63,7 @@ export function LeagueHeader({ league, categories, onBack }: LeagueHeaderProps) 
           className="mb-4 inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Volver a ligas
+          {t('backToLeagues')}
         </Button>
 
         <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -85,7 +88,7 @@ export function LeagueHeader({ league, categories, onBack }: LeagueHeaderProps) 
               <div className="flex-1">
                 <div className="flex items-center justify-between text-sm mb-1.5">
                   <span className="text-gray-600 dark:text-gray-400">
-                    Equipos registrados
+                    {t('registeredTeams')}
                   </span>
                   <span className="font-medium text-gray-900 dark:text-white">
                     {registeredTeams} / {league.team_size}
@@ -94,7 +97,7 @@ export function LeagueHeader({ league, categories, onBack }: LeagueHeaderProps) 
                 <Progress value={registrationProgress} className="h-1.5" />
                 {availableSpots > 0 && league.status === 'Inscribiendo' && (
                   <p className="mt-1.5 text-xs text-emerald-600 dark:text-emerald-400">
-                    {availableSpots} {availableSpots === 1 ? 'cupo disponible' : 'cupos disponibles'}
+                    {availableSpots} {availableSpots === 1 ? t('spotAvailable') : t('spotsAvailable')}
                   </p>
                 )}
               </div>
@@ -106,7 +109,7 @@ export function LeagueHeader({ league, categories, onBack }: LeagueHeaderProps) 
             <div className="flex items-center gap-3">
               <Trophy className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               <h2 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Categoría
+                {tCommon('category')}
               </h2>
             </div>
             
@@ -118,7 +121,7 @@ export function LeagueHeader({ league, categories, onBack }: LeagueHeaderProps) 
               <div className="flex items-center gap-2">
                 <Users2 className="w-4 h-4 text-purple-500/70 dark:text-purple-400/70" />
                 <span className="text-xs text-purple-600/90 dark:text-purple-400/90">
-                  {league.team_size} equipos máximo
+                  {league.team_size} {t('maxTeams')}
                 </span>
               </div>
             </div>

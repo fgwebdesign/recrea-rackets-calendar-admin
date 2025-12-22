@@ -101,7 +101,7 @@ export default function CreateLeaguePage() {
                     }}
                     className="bg-primary hover:bg-primary/90 font-bold"
                   >
-                    {t('continue')} →
+                    {tCommon('next')} →
                     
                   </Button>
                 </div>
