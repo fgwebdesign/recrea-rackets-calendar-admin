@@ -111,6 +111,7 @@ const translations: Record<Locale, Record<string, any>> = {
       sponsors: 'Patrocinadores',
       users: 'Usuarios',
       settings: 'Configuraciones',
+      guide: 'Guía',
       viewTournaments: 'Ver torneos',
       createTournament: 'Crear torneo',
       viewLeagues: 'Ver ligas',
@@ -241,17 +242,142 @@ const translations: Record<Locale, Record<string, any>> = {
       saving: 'Guardando...',
       saveProfessor: 'Guardar Profesor',
       saveChanges: 'Guardar Cambios',
-    // Errores
-    nameRequired: 'El nombre es requerido',
-    descriptionRequired: 'La descripción es requerida',
-    availabilityHoursRequired: 'Los horarios de disponibilidad son requeridos',
-    specializationsRequired: 'Debe seleccionar al menos una especialidad',
-    availabilityDaysRequired: 'Debe seleccionar al menos un día de disponibilidad',
-    imageTooLarge: 'La imagen no debe superar los 5MB',
-    errorCreatingProfessor: 'Error al crear el profesor',
-    errorUpdatingProfessor: 'Error al actualizar el profesor',
-    error: 'Error'
-  },
+      // Errores
+      nameRequired: 'El nombre es requerido',
+      descriptionRequired: 'La descripción es requerida',
+      availabilityHoursRequired: 'Los horarios de disponibilidad son requeridos',
+      specializationsRequired: 'Debe seleccionar al menos una especialidad',
+      availabilityDaysRequired: 'Debe seleccionar al menos un día de disponibilidad',
+      imageTooLarge: 'La imagen no debe superar los 5MB',
+      errorCreatingProfessor: 'Error al crear el profesor',
+      errorUpdatingProfessor: 'Error al actualizar el profesor',
+      error: 'Error'
+    },
+    guide: {
+      title: 'Guía del Sistema',
+      subtitle: 'Aprende a utilizar todas las funcionalidades del panel de administración',
+      prerequisites: {
+        title: 'Requisitos Previos',
+        description: 'Antes de crear ligas o torneos, asegúrate de tener configurado lo siguiente:',
+        venues: {
+          title: 'Sedes',
+          description: 'Debes tener al menos una sede creada. Las sedes son los lugares físicos donde se juegan los partidos.'
+        },
+        courts: {
+          title: 'Canchas',
+          description: 'Cada sede debe tener al menos una cancha asignada. Las canchas son los espacios donde se juegan los partidos.'
+        },
+        categories: {
+          title: 'Categorías',
+          description: 'Necesitas tener categorías creadas para organizar los equipos por nivel o tipo de competencia.'
+        },
+        users: {
+          title: 'Usuarios',
+          description: 'Los usuarios deben estar registrados en el sistema para poder inscribirse en ligas o torneos.'
+        }
+      },
+      createLeague: {
+        title: 'Cómo Crear una Liga',
+        description: 'Sigue estos pasos para crear una liga exitosamente',
+        step1: {
+          title: 'Información Básica',
+          name: 'Nombre: Asigna un nombre descriptivo a tu liga',
+          categories: 'Categorías: Selecciona una o más categorías para la liga',
+          description: 'Descripción: Agrega una descripción detallada (opcional)',
+          image: 'Imagen: Sube una imagen representativa (opcional)',
+          cost: 'Costo de Inscripción: Define el precio para participar',
+          teams: 'Número de Equipos: Establece cuántos equipos pueden inscribirse por categoría'
+        },
+        step2: {
+          title: 'Configuración de Fechas y Frecuencia',
+          startDate: 'Fecha de Inicio: Selecciona cuándo comenzará la liga',
+          endDate: 'Fecha de Fin: Define cuándo finalizará la liga',
+          frequency: 'Frecuencia: Elige entre Semanal, Quincenal o Mensual',
+          playDay: 'Día de Juego por Categoría: Asigna un día específico para cada categoría (Lunes, Martes, etc.)'
+        },
+        step3: {
+          title: 'Sedes y Canchas',
+          selectVenues: 'Seleccionar Sedes: Elige una o más sedes donde se jugará la liga',
+          selectCourts: 'Seleccionar Canchas: Para cada sede, selecciona las canchas disponibles',
+          primaryVenue: 'Sede Primaria: Marca una sede como primaria (opcional)'
+        },
+        step4: {
+          title: 'Horarios y Configuración Avanzada',
+          matchTimes: 'Horarios de Partidos: Define los horarios específicos (ej: 22:30, 23:15)',
+          courtsPerTime: 'Canchas por Horario: Indica cuántas canchas se usarán simultáneamente',
+          leagueType: 'Tipo de Liga: Elige Round Robin, Eliminación, Grupos o Personalizado',
+          rounds: 'Vueltas: 1 vuelta (solo ida) o 2 vueltas (ida y vuelta)'
+        },
+        tip: '💡 Tip: Una vez creada la liga, los equipos podrán inscribirse. Después de las inscripciones, podrás generar los partidos automáticamente desde la página de detalles de la liga.'
+      },
+      createTournament: {
+        title: 'Cómo Crear un Torneo',
+        description: 'Guía paso a paso para crear un torneo',
+        step1: {
+          title: 'Información Básica',
+          description: 'Define el nombre, categorías, fechas, descripción e imagen del torneo.'
+        },
+        step2: {
+          title: 'Configuración',
+          description: 'Establece el número de participantes, formato de competencia y reglas especiales.'
+        },
+        step3: {
+          title: 'Sedes y Canchas',
+          description: 'Selecciona las sedes y canchas donde se realizará el torneo.'
+        },
+        step4: {
+          title: 'Patrocinadores',
+          description: 'Asocia patrocinadores al torneo (opcional).'
+        }
+      },
+      resources: {
+        title: 'Gestión de Recursos',
+        description: 'Aprende a gestionar sedes, canchas, categorías y más',
+        venues: {
+          title: 'Sedes',
+          description: 'Las sedes son los lugares físicos donde se realizan las competencias. Cada sede puede tener múltiples canchas.',
+          contact: 'Agrega información de contacto (dirección, teléfono, email)',
+          default: 'Marca una sede como predeterminada',
+          status: 'Gestiona el estado activo/inactivo'
+        },
+        courts: {
+          title: 'Canchas',
+          description: 'Las canchas son los espacios específicos dentro de una sede donde se juegan los partidos.',
+          assign: 'Asigna cada cancha a una sede específica',
+          photo: 'Sube una foto de la cancha para identificación visual',
+          status: 'Gestiona el estado activo/inactivo'
+        },
+        categories: {
+          title: 'Categorías',
+          description: 'Las categorías organizan los equipos por nivel, edad o tipo de competencia.',
+          define: 'Define el nombre y descripción de cada categoría',
+          associate: 'Asocia categorías a ligas y torneos',
+          manage: 'Gestiona múltiples categorías simultáneamente'
+        },
+        users: {
+          title: 'Usuarios',
+          description: 'Gestiona los usuarios del sistema, incluyendo jugadores y administradores.',
+          view: 'Visualiza y gestiona todos los usuarios registrados',
+          roles: 'Asigna roles (Jugador, Administrador)',
+          status: 'Gestiona el estado activo/inactivo de usuarios'
+        }
+      },
+      tips: {
+        title: '💡 Tips y Mejores Prácticas',
+        planning: {
+          title: 'Planificación Anticipada',
+          description: 'Crea las sedes, canchas y categorías antes de crear ligas o torneos para tener todo listo.'
+        },
+        schedules: {
+          title: 'Horarios Equitativos',
+          description: 'El sistema distribuye automáticamente los horarios de manera equitativa entre todos los equipos.'
+        },
+        verification: {
+          title: 'Verificación de Datos',
+          description: 'Revisa siempre la información antes de crear ligas o torneos para evitar errores.'
+        }
+      }
+    },
   // Loading Screen
   loading: {
     defaultMessage: 'Cargando...',
@@ -899,6 +1025,7 @@ const translations: Record<Locale, Record<string, any>> = {
       sponsors: 'Sponsors',
       users: 'Users',
       settings: 'Settings',
+      guide: 'Guide',
       viewTournaments: 'View tournaments',
       createTournament: 'Create tournament',
       viewLeagues: 'View leagues',
@@ -1039,6 +1166,131 @@ const translations: Record<Locale, Record<string, any>> = {
     errorCreatingProfessor: 'Error creating professor',
     errorUpdatingProfessor: 'Error updating professor',
     error: 'Error'
+  },
+  guide: {
+    title: 'System Guide',
+    subtitle: 'Learn how to use all the features of the administration panel',
+    prerequisites: {
+      title: 'Prerequisites',
+      description: 'Before creating leagues or tournaments, make sure you have the following configured:',
+      venues: {
+        title: 'Venues',
+        description: 'You must have at least one venue created. Venues are the physical locations where matches are played.'
+      },
+      courts: {
+        title: 'Courts',
+        description: 'Each venue must have at least one court assigned. Courts are the spaces where matches are played.'
+      },
+      categories: {
+        title: 'Categories',
+        description: 'You need to have categories created to organize teams by level or type of competition.'
+      },
+      users: {
+        title: 'Users',
+        description: 'Users must be registered in the system to be able to register for leagues or tournaments.'
+      }
+    },
+    createLeague: {
+      title: 'How to Create a League',
+      description: 'Follow these steps to successfully create a league',
+      step1: {
+        title: 'Basic Information',
+        name: 'Name: Assign a descriptive name to your league',
+        categories: 'Categories: Select one or more categories for the league',
+        description: 'Description: Add a detailed description (optional)',
+        image: 'Image: Upload a representative image (optional)',
+        cost: 'Registration Cost: Define the price to participate',
+        teams: 'Number of Teams: Set how many teams can register per category'
+      },
+      step2: {
+        title: 'Date and Frequency Configuration',
+        startDate: 'Start Date: Select when the league will begin',
+        endDate: 'End Date: Define when the league will end',
+        frequency: 'Frequency: Choose between Weekly, Bi-weekly or Monthly',
+        playDay: 'Play Day per Category: Assign a specific day for each category (Monday, Tuesday, etc.)'
+      },
+      step3: {
+        title: 'Venues and Courts',
+        selectVenues: 'Select Venues: Choose one or more venues where the league will be played',
+        selectCourts: 'Select Courts: For each venue, select the available courts',
+        primaryVenue: 'Primary Venue: Mark a venue as primary (optional)'
+      },
+      step4: {
+        title: 'Schedules and Advanced Configuration',
+        matchTimes: 'Match Times: Define specific times (e.g., 22:30, 23:15)',
+        courtsPerTime: 'Courts per Time: Indicate how many courts will be used simultaneously',
+        leagueType: 'League Type: Choose Round Robin, Elimination, Groups or Custom',
+        rounds: 'Rounds: 1 round (single leg) or 2 rounds (home and away)'
+      },
+      tip: '💡 Tip: Once the league is created, teams will be able to register. After registrations, you can automatically generate matches from the league details page.'
+    },
+    createTournament: {
+      title: 'How to Create a Tournament',
+      description: 'Step-by-step guide to create a tournament',
+      step1: {
+        title: 'Basic Information',
+        description: 'Define the name, categories, dates, description and image of the tournament.'
+      },
+      step2: {
+        title: 'Configuration',
+        description: 'Set the number of participants, competition format and special rules.'
+      },
+      step3: {
+        title: 'Venues and Courts',
+        description: 'Select the venues and courts where the tournament will take place.'
+      },
+      step4: {
+        title: 'Sponsors',
+        description: 'Associate sponsors to the tournament (optional).'
+      }
+    },
+    resources: {
+      title: 'Resource Management',
+      description: 'Learn how to manage venues, courts, categories and more',
+      venues: {
+        title: 'Venues',
+        description: 'Venues are the physical locations where competitions take place. Each venue can have multiple courts.',
+        contact: 'Add contact information (address, phone, email)',
+        default: 'Mark a venue as default',
+        status: 'Manage active/inactive status'
+      },
+      courts: {
+        title: 'Courts',
+        description: 'Courts are the specific spaces within a venue where matches are played.',
+        assign: 'Assign each court to a specific venue',
+        photo: 'Upload a photo of the court for visual identification',
+        status: 'Manage active/inactive status'
+      },
+      categories: {
+        title: 'Categories',
+        description: 'Categories organize teams by level, age or type of competition.',
+        define: 'Define the name and description of each category',
+        associate: 'Associate categories to leagues and tournaments',
+        manage: 'Manage multiple categories simultaneously'
+      },
+      users: {
+        title: 'Users',
+        description: 'Manage system users, including players and administrators.',
+        view: 'View and manage all registered users',
+        roles: 'Assign roles (Player, Administrator)',
+        status: 'Manage active/inactive status of users'
+      }
+    },
+    tips: {
+      title: '💡 Tips and Best Practices',
+      planning: {
+        title: 'Advance Planning',
+        description: 'Create venues, courts and categories before creating leagues or tournaments to have everything ready.'
+      },
+      schedules: {
+        title: 'Equitable Schedules',
+        description: 'The system automatically distributes schedules equitably among all teams.'
+      },
+      verification: {
+        title: 'Data Verification',
+        description: 'Always review the information before creating leagues or tournaments to avoid errors.'
+      }
+    }
   },
   // Loading Screen
   loading: {

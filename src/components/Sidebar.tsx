@@ -15,6 +15,7 @@ import {
   PlusIcon,
   TableCellsIcon,
   AcademicCapIcon,
+  BookOpenIcon,
 } from '@heroicons/react/24/outline';
 import { ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -248,6 +249,13 @@ const Sidebar = () => {
       icon: CogIcon,
       iconColor: 'text-gray-500',
       hoverColor: 'hover:bg-gray-50'
+    },
+    { 
+      name: t('guide'), 
+      href: '/guide', 
+      icon: BookOpenIcon,
+      iconColor: 'text-indigo-500',
+      hoverColor: 'hover:bg-indigo-50'
     },
   ];
 
