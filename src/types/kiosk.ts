@@ -13,6 +13,16 @@ export interface ProductCategory {
   updated_at: string;
 }
 
+export interface ProductSize {
+  id?: string;
+  product_id?: string;
+  size: string;
+  size_type: 'clothing' | 'shoes';
+  stock_quantity: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Product {
   id: string;
   category_id: string;
@@ -37,6 +47,7 @@ export interface Product {
     id: string;
     name: string;
   };
+  sizes?: ProductSize[]; // Talles del producto (solo para indumentaria)
 }
 
 export interface SaleItem {
@@ -49,7 +60,15 @@ export interface SaleItem {
   total: number;
   product_name: string;
   product_sku?: string;
+  product_size_id?: string;
+  size?: string;
+  size_type?: 'clothing' | 'shoes';
   created_at: string;
+  // Relaciones
+  product?: {
+    id: string;
+    image_url?: string;
+  };
 }
 
 export interface Sale {
@@ -63,7 +82,7 @@ export interface Sale {
   discount_amount: number;
   discount_percent: number;
   total: number;
-  payment_method: 'cash' | 'transfer' | 'card' | 'mixed' | 'pending';
+  payment_method: 'cash' | 'transfer' | 'card' | 'mercadopago' | 'pending';
   payment_status: 'pending' | 'completed' | 'refunded' | 'cancelled';
   payment_reference?: string;
   sale_context: 'general' | 'tournament' | 'league' | 'class' | 'booking';
@@ -149,6 +168,7 @@ export interface CreateProductData {
   is_active?: boolean;
   is_featured?: boolean;
   venue_id?: string;
+  sizes?: ProductSize[]; // Talles para productos de indumentaria
 }
 
 export type UpdateProductData = Partial<CreateProductData>;
@@ -159,11 +179,14 @@ export interface CreateSaleData {
     quantity: number;
     unit_price?: number;
     discount_amount?: number;
+    product_size_id?: string;
+    size?: string;
+    size_type?: 'clothing' | 'shoes';
   }>;
   venue_id?: string;
   customer_id?: string;
   customer_name?: string;
-  payment_method: 'cash' | 'transfer' | 'card' | 'mixed' | 'pending';
+  payment_method: 'cash' | 'transfer' | 'card' | 'mercadopago' | 'pending';
   payment_reference?: string;
   sale_context?: 'general' | 'tournament' | 'league' | 'class' | 'booking';
   tournament_id?: string;

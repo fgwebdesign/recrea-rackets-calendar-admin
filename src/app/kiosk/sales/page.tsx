@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Receipt, Search, X } from "lucide-react";
+import { Receipt, Search, Package } from "lucide-react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import { Sale, SaleFilters } from "@/types/kiosk";
 import { useTranslations } from '@/contexts/TranslationContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Image from 'next/image';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function SalesPage() {
   const t = useTranslations('kiosk');
@@ -43,7 +45,7 @@ export default function SalesPage() {
       cash: t('sales.paymentMethods.cash'),
       transfer: t('sales.paymentMethods.transfer'),
       card: t('sales.paymentMethods.card'),
-      mixed: t('sales.paymentMethods.mixed'),
+      mercadopago: t('sales.paymentMethods.mercadopago'),
       pending: t('sales.paymentMethods.pending')
     };
     return labels[method] || method;
@@ -109,7 +111,7 @@ export default function SalesPage() {
               <SelectItem value="cash">{t('sales.paymentMethods.cash')}</SelectItem>
               <SelectItem value="transfer">{t('sales.paymentMethods.transfer')}</SelectItem>
               <SelectItem value="card">{t('sales.paymentMethods.card')}</SelectItem>
-              <SelectItem value="mixed">{t('sales.paymentMethods.mixed')}</SelectItem>
+              <SelectItem value="mercadopago">{t('sales.paymentMethods.mercadopago')}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -155,6 +157,9 @@ export default function SalesPage() {
                     {t('sales.saleNumber')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Producto
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {t('sales.date')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -178,10 +183,32 @@ export default function SalesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {sales.map((sale) => (
+                {sales.map((sale) => {
+                  const firstItem = sale.items && sale.items.length > 0 ? sale.items[0] : null;
+                  const productImage = firstItem?.product?.image_url;
+                  
+                  return (
                   <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                       #{sale.sale_number}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      {productImage ? (
+                        <div className="relative w-12 h-12 rounded-md overflow-hidden">
+                          <Image
+                            src={productImage}
+                            alt={firstItem?.product_name || 'Producto'}
+                            fill
+                            className="object-cover"
+                            sizes="48px"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 rounded-md bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                          <Package className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                       {format(new Date(sale.sale_date), 'dd/MM/yyyy HH:mm', { locale: es })}
@@ -224,7 +251,7 @@ export default function SalesPage() {
                       </Button>
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
@@ -232,24 +259,21 @@ export default function SalesPage() {
       )}
 
       {/* Modal de Detalle de Venta */}
-      {selectedSale && (
-        <div className={`fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 ${showSaleModal ? '' : 'hidden'}`}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {t('sales.saleDetails')} #{selectedSale.sale_number}
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowSaleModal(false);
-                    setSelectedSale(null);
-                  }}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
+      <Dialog open={showSaleModal} onOpenChange={(open) => {
+        if (!open) {
+          setShowSaleModal(false);
+          setSelectedSale(null);
+        }
+      }}>
+        <DialogContent className="bg-white dark:bg-gray-800 max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-gray-900 dark:text-white">
+              {t('sales.saleDetails')} #{selectedSale?.sale_number}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedSale && (
+            <div className="space-y-6">
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -282,20 +306,59 @@ export default function SalesPage() {
                 {selectedSale.items && selectedSale.items.length > 0 && (
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">{t('sales.items')}</h3>
-                    <div className="space-y-2">
-                      {selectedSale.items.map((item) => (
-                        <div key={item.id} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
-                          <div>
+                    <div className="space-y-3">
+                      {selectedSale.items.map((item) => {
+                        const productImage = item.product?.image_url;
+                        return (
+                        <div key={item.id} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                          {/* Imagen del producto */}
+                          <div className="flex-shrink-0">
+                            {productImage ? (
+                              <div className="relative w-16 h-16 rounded-md overflow-hidden">
+                                <Image
+                                  src={productImage}
+                                  alt={item.product_name}
+                                  fill
+                                  className="object-cover"
+                                  sizes="64px"
+                                  unoptimized
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-16 h-16 rounded-md bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                                <Package className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Información del producto */}
+                          <div className="flex-1 min-w-0">
                             <p className="font-medium text-gray-900 dark:text-gray-100">{item.product_name}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {item.quantity} x ${item.unit_price.toLocaleString('es-UY')}
+                            <div className="flex items-center gap-2 mt-1">
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {item.quantity} x ${item.unit_price.toLocaleString('es-UY')}
+                              </p>
+                              {item.size && (
+                                <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full font-medium">
+                                  Talle: {item.size}
+                                </span>
+                              )}
+                            </div>
+                            {item.product_sku && (
+                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                SKU: {item.product_sku}
+                              </p>
+                            )}
+                          </div>
+                          
+                          {/* Total del item */}
+                          <div className="flex-shrink-0">
+                            <p className="font-semibold text-gray-900 dark:text-gray-100 text-right">
+                              ${item.total.toLocaleString('es-UY')}
                             </p>
                           </div>
-                          <p className="font-semibold text-gray-900 dark:text-gray-100">
-                            ${item.total.toLocaleString('es-UY')}
-                          </p>
                         </div>
-                      ))}
+                      )})}
                     </div>
                   </div>
                 )}
@@ -310,9 +373,9 @@ export default function SalesPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

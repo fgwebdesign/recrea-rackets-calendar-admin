@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useProducts } from "@/hooks/useProducts";
 import { useProductCategories } from "@/hooks/useProductCategories";
 import { useSales } from "@/hooks/useSales";
@@ -18,11 +18,26 @@ import { toast } from '@/components/ui/use-toast';
 import Image from 'next/image';
 import { Package } from 'lucide-react';
 import { CategoryIcon } from "@/lib/categoryIcons";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { cn } from "@/lib/utils";
 
 interface CartItem {
   product: Product;
   quantity: number;
   unit_price: number;
+  selectedSize?: {
+    size: string;
+    size_type: 'clothing' | 'shoes';
+    size_id?: string;
+    stock_quantity: number;
+  };
 }
 
 export default function KioskPOSPage() {
@@ -36,11 +51,17 @@ export default function KioskPOSPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedVenue, setSelectedVenue] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'card' | 'mixed' | 'pending'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'card' | 'mercadopago' | 'pending'>('cash');
   const [customerName, setCustomerName] = useState('');
   const [saleContext, setSaleContext] = useState<'general' | 'tournament' | 'league' | 'class' | 'booking'>('general');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showSizeModal, setShowSizeModal] = useState(false);
+  const [productToAdd, setProductToAdd] = useState<Product | null>(null);
+  const [selectedSizeForAdd, setSelectedSizeForAdd] = useState<{size: string; size_type: 'clothing' | 'shoes'; size_id?: string; stock_quantity: number} | null>(null);
+  
+  const PRODUCTS_PER_PAGE = 8;
 
   useEffect(() => {
     fetchProducts({ is_active: true });
@@ -66,45 +87,158 @@ export default function KioskPOSPage() {
     });
   }, [products, selectedCategory, searchQuery]);
 
-  const addToCart = (product: Product) => {
-    if (product.track_inventory && product.stock_quantity <= 0) {
+  // Resetear página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchQuery]);
+
+  // Calcular productos paginados
+  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+    const endIndex = startIndex + PRODUCTS_PER_PAGE;
+    return filteredProducts.slice(startIndex, endIndex);
+  }, [filteredProducts, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll al inicio del grid de productos
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const addToCart = (product: Product, selectedSize?: {size: string; size_type: 'clothing' | 'shoes'; size_id?: string; stock_quantity: number}) => {
+    // Si el producto tiene talles, abrir modal de selección
+    if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+      setProductToAdd(product);
+      setShowSizeModal(true);
       return;
     }
 
-    setCart(prev => {
-      const existingItem = prev.find(item => item.product.id === product.id);
-      if (existingItem) {
-        const newQuantity = existingItem.quantity + 1;
-        if (product.track_inventory && newQuantity > product.stock_quantity) {
-          return prev;
+    if (product.track_inventory) {
+      // Si tiene talles, verificar stock del talle seleccionado
+      if (product.sizes && product.sizes.length > 0 && selectedSize) {
+        if (selectedSize.stock_quantity <= 0) {
+          toast({
+            title: "Error",
+            description: `No hay stock disponible para el talle ${selectedSize.size}`,
+            variant: "destructive",
+          });
+          return;
         }
-        return prev.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: newQuantity }
-            : item
+      } else if (product.stock_quantity <= 0) {
+        toast({
+          title: "Error",
+          description: "No hay stock disponible",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    setCart(prev => {
+      // Si tiene talles, buscar por producto Y talle
+      if (product.sizes && product.sizes.length > 0 && selectedSize) {
+        const existingItem = prev.find(item => 
+          item.product.id === product.id && 
+          item.selectedSize?.size === selectedSize.size &&
+          item.selectedSize?.size_type === selectedSize.size_type
         );
+        
+        if (existingItem) {
+          const newQuantity = existingItem.quantity + 1;
+          if (selectedSize.stock_quantity < newQuantity) {
+            toast({
+              title: "Error",
+              description: `Stock insuficiente para el talle ${selectedSize.size}. Disponible: ${selectedSize.stock_quantity}`,
+              variant: "destructive",
+            });
+            return prev;
+          }
+          return prev.map(item =>
+            item.product.id === product.id && 
+            item.selectedSize?.size === selectedSize.size &&
+            item.selectedSize?.size_type === selectedSize.size_type
+              ? { ...item, quantity: newQuantity }
+              : item
+          );
+        } else {
+          return [...prev, { 
+            product, 
+            quantity: 1, 
+            unit_price: product.price,
+            selectedSize: {
+              size: selectedSize.size,
+              size_type: selectedSize.size_type,
+              size_id: selectedSize.size_id,
+              stock_quantity: selectedSize.stock_quantity
+            }
+          }];
+        }
       } else {
-        return [...prev, { product, quantity: 1, unit_price: product.price }];
+        // Producto sin talles
+        const existingItem = prev.find(item => item.product.id === product.id && !item.selectedSize);
+        if (existingItem) {
+          const newQuantity = existingItem.quantity + 1;
+          if (product.track_inventory && newQuantity > product.stock_quantity) {
+            return prev;
+          }
+          return prev.map(item =>
+            item.product.id === product.id && !item.selectedSize
+              ? { ...item, quantity: newQuantity }
+              : item
+          );
+        } else {
+          return [...prev, { product, quantity: 1, unit_price: product.price }];
+        }
       }
     });
   };
 
-  const updateCartQuantity = (productId: string, delta: number) => {
+  const handleSizeSelection = () => {
+    if (productToAdd && selectedSizeForAdd) {
+      addToCart(productToAdd, selectedSizeForAdd);
+      setShowSizeModal(false);
+      setProductToAdd(null);
+      setSelectedSizeForAdd(null);
+    }
+  };
+
+  const updateCartQuantity = (productId: string, delta: number, selectedSize?: {size: string; size_type: string}) => {
     setCart(prev => {
-      const item = prev.find(i => i.product.id === productId);
+      const item = prev.find(i => 
+        i.product.id === productId && 
+        (!selectedSize || (i.selectedSize?.size === selectedSize.size && i.selectedSize?.size_type === selectedSize.size_type))
+      );
       if (!item) return prev;
 
       const newQuantity = item.quantity + delta;
       if (newQuantity <= 0) {
-        return prev.filter(i => i.product.id !== productId);
+        return prev.filter(i => 
+          !(i.product.id === productId && 
+            (!selectedSize || (i.selectedSize?.size === selectedSize.size && i.selectedSize?.size_type === selectedSize.size_type)))
+        );
       }
 
-      if (item.product.track_inventory && newQuantity > item.product.stock_quantity) {
-        return prev;
+      // Verificar stock
+      if (item.product.track_inventory) {
+        if (item.selectedSize) {
+          // Verificar stock del talle
+          if (newQuantity > item.selectedSize.stock_quantity) {
+            toast({
+              title: "Error",
+              description: `Stock insuficiente para el talle ${item.selectedSize.size}. Disponible: ${item.selectedSize.stock_quantity}`,
+              variant: "destructive",
+            });
+            return prev;
+          }
+        } else if (newQuantity > item.product.stock_quantity) {
+          return prev;
+        }
       }
 
       return prev.map(i =>
-        i.product.id === productId
+        i.product.id === productId && 
+        (!selectedSize || (i.selectedSize?.size === selectedSize.size && i.selectedSize?.size_type === selectedSize.size_type))
           ? { ...i, quantity: newQuantity }
           : i
       );
@@ -146,7 +280,10 @@ export default function KioskPOSPage() {
         items: cart.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
-          unit_price: item.unit_price
+          unit_price: item.unit_price,
+          product_size_id: item.selectedSize?.size_id,
+          size: item.selectedSize?.size,
+          size_type: item.selectedSize?.size_type
         })),
         venue_id: selectedVenue,
         customer_name: customerName || undefined,
@@ -282,8 +419,8 @@ export default function KioskPOSPage() {
 
           {/* Grid de Productos */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[600px] overflow-y-auto">
-              {filteredProducts.map((product) => {
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {paginatedProducts.map((product) => {
                 const cartItem = cart.find(item => item.product.id === product.id);
                 const isOutOfStock = product.track_inventory && product.stock_quantity <= 0;
                 
@@ -301,7 +438,7 @@ export default function KioskPOSPage() {
                     }`}
                   >
                     {product.image_url && product.image_url.trim() !== '' ? (
-                      <div className="relative w-full h-24 mb-2 rounded">
+                      <div className="relative w-full aspect-square mb-2 rounded overflow-hidden">
                         <Image
                           src={product.image_url}
                           alt={product.name}
@@ -320,7 +457,7 @@ export default function KioskPOSPage() {
                         />
                       </div>
                     ) : (
-                      <div className="w-full h-24 mb-2 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                      <div className="w-full aspect-square mb-2 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                         <Package className="h-8 w-8 text-gray-400 dark:text-gray-500" />
                       </div>
                     )}
@@ -349,6 +486,45 @@ export default function KioskPOSPage() {
                 );
               })}
             </div>
+            
+            {/* Paginación */}
+            {totalPages > 1 && (
+              <Pagination className="mt-6">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                      className={cn(
+                        "cursor-pointer",
+                        currentPage === 1 && "pointer-events-none opacity-50"
+                      )}
+                    />
+                  </PaginationItem>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(page)}
+                        isActive={currentPage === page}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                      className={cn(
+                        "cursor-pointer",
+                        currentPage === totalPages && "pointer-events-none opacity-50"
+                      )}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
           </div>
         </div>
 
@@ -385,15 +561,21 @@ export default function KioskPOSPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => updateCartQuantity(item.product.id, -1)}
+                          onClick={() => updateCartQuantity(item.product.id, -1, item.selectedSize)}
                           className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
                         >
                           <Minus className="w-4 h-4" />
                         </button>
                         <span className="font-semibold w-8 text-center">{item.quantity}</span>
                         <button
-                          onClick={() => updateCartQuantity(item.product.id, 1)}
-                          disabled={item.product.track_inventory && item.quantity >= item.product.stock_quantity}
+                          onClick={() => updateCartQuantity(item.product.id, 1, item.selectedSize)}
+                          disabled={
+                            item.product.track_inventory && 
+                            (item.selectedSize 
+                              ? item.quantity >= item.selectedSize.stock_quantity
+                              : item.quantity >= item.product.stock_quantity
+                            )
+                          }
                           className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
                         >
                           <Plus className="w-4 h-4" />
@@ -533,11 +715,11 @@ export default function KioskPOSPage() {
                 </Button>
                 <Button
                   type="button"
-                  variant={paymentMethod === 'mixed' ? 'default' : 'outline'}
-                  onClick={() => setPaymentMethod('mixed')}
-                  className={paymentMethod === 'mixed' ? 'bg-green-600' : ''}
+                  variant={paymentMethod === 'mercadopago' ? 'default' : 'outline'}
+                  onClick={() => setPaymentMethod('mercadopago')}
+                  className={paymentMethod === 'mercadopago' ? 'bg-green-600' : ''}
                 >
-                  {t('pos.mixed')}
+                  Mercado Pago
                 </Button>
               </div>
             </div>
@@ -573,6 +755,98 @@ export default function KioskPOSPage() {
                 {isProcessing ? t('pos.processing') : t('pos.confirmSale')}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Selección de Talle */}
+      <Dialog open={showSizeModal} onOpenChange={setShowSizeModal}>
+        <DialogContent className="bg-white dark:bg-gray-800 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-gray-900 dark:text-white">
+              Seleccionar Talle
+            </DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
+              {productToAdd?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {productToAdd?.sizes && productToAdd.sizes.length > 0 ? (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-gray-700 dark:text-gray-300">Selecciona un talle:</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {productToAdd.sizes.map((size) => (
+                      <button
+                        key={size.id || size.size}
+                        type="button"
+                        onClick={() => setSelectedSizeForAdd({
+                          size: size.size,
+                          size_type: size.size_type,
+                          size_id: size.id,
+                          stock_quantity: size.stock_quantity
+                        })}
+                        className={`
+                          p-3 rounded-lg border-2 transition-all
+                          ${selectedSizeForAdd?.size === size.size && selectedSizeForAdd?.size_type === size.size_type
+                            ? 'border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                            : size.stock_quantity > 0
+                              ? 'border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-700 bg-white dark:bg-gray-700'
+                              : 'border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed'
+                          }
+                        `}
+                        disabled={size.stock_quantity <= 0}
+                      >
+                        <div className="text-center">
+                          <div className="font-semibold text-lg">{size.size}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Stock: {size.stock_quantity}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {selectedSizeForAdd && (
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <p className="text-sm text-green-700 dark:text-green-400">
+                      Talle seleccionado: <span className="font-semibold">{selectedSizeForAdd.size}</span>
+                      {selectedSizeForAdd.stock_quantity > 0 && (
+                        <span className="ml-2">(Stock disponible: {selectedSizeForAdd.stock_quantity})</span>
+                      )}
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                No hay talles disponibles para este producto
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowSizeModal(false);
+                setProductToAdd(null);
+                setSelectedSizeForAdd(null);
+              }}
+              className="border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSizeSelection}
+              disabled={!selectedSizeForAdd || selectedSizeForAdd.stock_quantity <= 0}
+              className="bg-green-600 text-white hover:bg-green-700"
+            >
+              Agregar al Carrito
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

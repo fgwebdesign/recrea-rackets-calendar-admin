@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, Plus, Trash2 } from "lucide-react";
 import Image from 'next/image';
-import { Product, CreateProductData, UpdateProductData } from "@/types/kiosk";
+import { Product, CreateProductData, UpdateProductData, ProductSize } from "@/types/kiosk";
 import { useProductCategories } from "@/hooks/useProductCategories";
 import { useVenues } from "@/hooks/useVenues";
 import { useTranslations } from '@/contexts/TranslationContext';
@@ -56,6 +56,11 @@ export default function ProductModal({
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [sizes, setSizes] = useState<ProductSize[]>([]);
+  const [sizeType, setSizeType] = useState<'clothing' | 'shoes'>('clothing');
+
+  // Detectar si la categoría es Indumentaria
+  const isClothingCategory = formData.category_id && categories.find(c => c.id === formData.category_id)?.name?.toLowerCase() === 'indumentaria';
 
   useEffect(() => {
     if (isOpen) {
@@ -77,6 +82,14 @@ export default function ProductModal({
         });
         setPreviewUrl(product.image_url || '');
         setImageFile(null);
+        // Cargar talles si existen
+        if (product.sizes && product.sizes.length > 0) {
+          setSizes(product.sizes);
+          setSizeType(product.sizes[0].size_type || 'clothing');
+        } else {
+          setSizes([]);
+          setSizeType('clothing');
+        }
       } else {
         setFormData({
           category_id: '',
@@ -95,9 +108,11 @@ export default function ProductModal({
         });
         setPreviewUrl('');
         setImageFile(null);
+        setSizes([]);
+        setSizeType('clothing');
       }
     }
-  }, [isOpen, product]);
+  }, [isOpen, product, categories]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -156,7 +171,13 @@ export default function ProductModal({
         ...formData,
         venue_id: formData.venue_id && formData.venue_id !== 'none' ? formData.venue_id : undefined,
         // No incluir image_url si hay un archivo nuevo, se subirá después
-        image_url: isEditing && !imageFile ? previewUrl : undefined
+        image_url: isEditing && !imageFile ? previewUrl : undefined,
+        // Incluir talles si la categoría es Indumentaria
+        sizes: isClothingCategory && sizes.length > 0 ? sizes.map(s => ({
+          size: s.size,
+          size_type: s.size_type,
+          stock_quantity: s.stock_quantity
+        })) : undefined
       };
 
       // Primero crear/actualizar el producto
@@ -204,8 +225,36 @@ export default function ProductModal({
     });
     setPreviewUrl('');
     setImageFile(null);
+    setSizes([]);
+    setSizeType('clothing');
     onClose();
   };
+
+  // Funciones para manejar talles
+  const addSize = () => {
+    const newSize: ProductSize = {
+      size: '',
+      size_type: sizeType,
+      stock_quantity: 0
+    };
+    setSizes([...sizes, newSize]);
+  };
+
+  const removeSize = (index: number) => {
+    setSizes(sizes.filter((_, i) => i !== index));
+  };
+
+  const updateSize = (index: number, field: keyof ProductSize, value: string | number) => {
+    const updatedSizes = [...sizes];
+    updatedSizes[index] = { ...updatedSizes[index], [field]: value };
+    setSizes(updatedSizes);
+  };
+
+  // Opciones de talles según el tipo
+  const clothingSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+  const shoeSizes = Array.from({ length: 20 }, (_, i) => (36 + i).toString()); // 36-55
+
+  const availableSizes = sizeType === 'clothing' ? clothingSizes : shoeSizes;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -426,15 +475,29 @@ export default function ProductModal({
                   <div className="space-y-2">
                     <Label htmlFor="stock_quantity" className="text-gray-700 dark:text-gray-300">
                       {t('products.stockQuantity')}
+                      {isClothingCategory && sizes.length > 0 && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                          (Calculado automáticamente)
+                        </span>
+                      )}
                     </Label>
                     <Input
                       id="stock_quantity"
                       type="number"
                       min="0"
-                      value={formData.stock_quantity}
+                      value={isClothingCategory && sizes.length > 0 
+                        ? sizes.reduce((sum, size) => sum + (size.stock_quantity || 0), 0)
+                        : formData.stock_quantity
+                      }
                       onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: parseInt(e.target.value) || 0 }))}
-                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                      disabled={!!(isClothingCategory && sizes.length > 0)}
+                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
                     />
+                    {isClothingCategory && sizes.length > 0 && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        El stock total se calcula automáticamente sumando el stock de todos los talles
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="min_stock_alert" className="text-gray-700 dark:text-gray-300">
@@ -492,6 +555,101 @@ export default function ProductModal({
               </div>
             </div>
           </div>
+
+          {/* Sección de Talles para Indumentaria */}
+          {isClothingCategory && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                    Talles del Producto
+                  </Label>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Agrega los talles disponibles y el stock de cada uno
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm text-gray-700 dark:text-gray-300">Tipo:</Label>
+                    <Select value={sizeType} onValueChange={(value: 'clothing' | 'shoes') => {
+                      setSizeType(value);
+                      // Actualizar el tipo de todos los talles existentes
+                      setSizes(sizes.map(s => ({ ...s, size_type: value })));
+                    }}>
+                      <SelectTrigger className="w-[140px] bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="clothing">Ropa</SelectItem>
+                        <SelectItem value="shoes">Zapatillas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={addSize}
+                    variant="outline"
+                    className="border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar Talle
+                  </Button>
+                </div>
+              </div>
+
+              {sizes.length > 0 && (
+                <div className="space-y-3">
+                  {sizes.map((size, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                      <div className="flex-1">
+                        <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">Talle</Label>
+                        <Select
+                          value={size.size}
+                          onValueChange={(value) => updateSize(index, 'size', value)}
+                        >
+                          <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                            <SelectValue placeholder="Seleccionar talle" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableSizes.map((s) => (
+                              <SelectItem key={s} value={s}>
+                                {s}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-sm text-gray-700 dark:text-gray-300 mb-1 block">Stock</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={size.stock_quantity}
+                          onChange={(e) => updateSize(index, 'stock_quantity', parseInt(e.target.value) || 0)}
+                          className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={() => removeSize(index)}
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 mt-6"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {sizes.length === 0 && (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                  <p className="text-sm">No hay talles agregados. Haz clic en &quot;Agregar Talle&quot; para comenzar.</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button

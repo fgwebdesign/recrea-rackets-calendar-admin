@@ -190,7 +190,8 @@ export const getProducts = async (req, res) => {
       .select(`
         *,
         category:product_categories(id, name, slug, icon, color),
-        venue:venues(id, name)
+        venue:venues(id, name),
+        sizes:product_sizes(id, size, size_type, stock_quantity)
       `)
       .order('name', { ascending: true });
 
@@ -239,7 +240,8 @@ export const getProductById = async (req, res) => {
       .select(`
         *,
         category:product_categories(id, name, slug, icon, color),
-        venue:venues(id, name)
+        venue:venues(id, name),
+        sizes:product_sizes(id, size, size_type, stock_quantity)
       `)
       .eq('id', id)
       .single();
@@ -286,7 +288,8 @@ export const createProduct = async (req, res) => {
       image_url,
       is_active,
       is_featured,
-      venue_id
+      venue_id,
+      sizes // Array de talles: [{ size: "S", size_type: "clothing", stock_quantity: 10 }, ...]
     } = req.body;
 
     // Validaciones
@@ -325,6 +328,12 @@ export const createProduct = async (req, res) => {
       });
     }
 
+    // Calcular stock total si hay talles
+    let totalStock = stock_quantity || 0;
+    if (sizes && Array.isArray(sizes) && sizes.length > 0) {
+      totalStock = sizes.reduce((sum, size) => sum + (size.stock_quantity || 0), 0);
+    }
+
     const { data, error } = await supabase
       .from('products')
       .insert({
@@ -335,7 +344,7 @@ export const createProduct = async (req, res) => {
         barcode,
         price,
         cost_price: cost_price || 0,
-        stock_quantity: stock_quantity || 0,
+        stock_quantity: totalStock, // Usar el stock total de talles si existen
         min_stock_alert: min_stock_alert || 5,
         track_inventory: track_inventory !== false,
         image_url,
@@ -350,6 +359,33 @@ export const createProduct = async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    // Si hay talles, insertarlos
+    if (sizes && Array.isArray(sizes) && sizes.length > 0) {
+      const sizesToInsert = sizes.map(size => ({
+        product_id: data.id,
+        size: size.size,
+        size_type: size.size_type || 'clothing',
+        stock_quantity: size.stock_quantity || 0
+      }));
+
+      const { error: sizesError } = await supabase
+        .from('product_sizes')
+        .insert(sizesToInsert);
+
+      if (sizesError) {
+        console.error('Error al insertar talles:', sizesError);
+        // No fallar la creación del producto, solo loguear el error
+      } else {
+        // Obtener los talles insertados para incluirlos en la respuesta
+        const { data: insertedSizes } = await supabase
+          .from('product_sizes')
+          .select('*')
+          .eq('product_id', data.id);
+
+        data.sizes = insertedSizes || [];
+      }
+    }
 
     return res.status(201).json({
       success: true,
@@ -386,7 +422,8 @@ export const updateProduct = async (req, res) => {
       image_url,
       is_active,
       is_featured,
-      venue_id
+      venue_id,
+      sizes // Array de talles para actualizar
     } = req.body;
 
     const updateData = { updated_at: new Date().toISOString() };
@@ -406,6 +443,12 @@ export const updateProduct = async (req, res) => {
     if (is_featured !== undefined) updateData.is_featured = is_featured;
     if (venue_id !== undefined) updateData.venue_id = venue_id;
 
+    // Calcular stock total si hay talles
+    if (sizes && Array.isArray(sizes) && sizes.length > 0) {
+      const totalStock = sizes.reduce((sum, size) => sum + (size.stock_quantity || 0), 0);
+      updateData.stock_quantity = totalStock;
+    }
+
     const { data, error } = await supabase
       .from('products')
       .update(updateData)
@@ -417,6 +460,41 @@ export const updateProduct = async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    // Si se enviaron talles, actualizar/eliminar/crear según corresponda
+    if (sizes !== undefined) {
+      // Eliminar todos los talles existentes
+      await supabase
+        .from('product_sizes')
+        .delete()
+        .eq('product_id', id);
+
+      // Insertar los nuevos talles si hay alguno
+      if (Array.isArray(sizes) && sizes.length > 0) {
+        const sizesToInsert = sizes.map(size => ({
+          product_id: id,
+          size: size.size,
+          size_type: size.size_type || 'clothing',
+          stock_quantity: size.stock_quantity || 0
+        }));
+
+        const { error: sizesError } = await supabase
+          .from('product_sizes')
+          .insert(sizesToInsert);
+
+        if (sizesError) {
+          console.error('Error al actualizar talles:', sizesError);
+        }
+      }
+
+      // Obtener los talles actualizados
+      const { data: updatedSizes } = await supabase
+        .from('product_sizes')
+        .select('*')
+        .eq('product_id', id);
+
+      data.sizes = updatedSizes || [];
+    }
 
     return res.status(200).json({
       success: true,
@@ -614,16 +692,24 @@ export const createSale = async (req, res) => {
       });
     }
 
-    // Obtener información de los productos
+    // Obtener información de los productos con sus talles
     const productIds = items.map(item => item.product_id);
     const { data: products, error: productsError } = await supabase
       .from('products')
-      .select('id, name, sku, price, stock_quantity, track_inventory')
+      .select(`
+        id, 
+        name, 
+        sku, 
+        price, 
+        stock_quantity, 
+        track_inventory,
+        sizes:product_sizes(id, size, size_type, stock_quantity)
+      `)
       .in('id', productIds);
 
     if (productsError) throw productsError;
 
-    // Validar que todos los productos existan
+    // Validar que todos los productos existan y verificar stock
     const productMap = new Map(products.map(p => [p.id, p]));
     for (const item of items) {
       if (!productMap.has(item.product_id)) {
@@ -634,7 +720,29 @@ export const createSale = async (req, res) => {
       }
 
       const product = productMap.get(item.product_id);
-      if (product.track_inventory && product.stock_quantity < item.quantity) {
+      
+      // Si el item tiene un talle específico, validar stock del talle
+      if (item.product_size_id || item.size) {
+        const productSizes = product.sizes || [];
+        const selectedSize = item.product_size_id 
+          ? productSizes.find(s => s.id === item.product_size_id)
+          : productSizes.find(s => s.size === item.size && s.size_type === item.size_type);
+        
+        if (!selectedSize) {
+          return res.status(400).json({
+            success: false,
+            message: `Talle ${item.size || 'seleccionado'} no encontrado para ${product.name}`
+          });
+        }
+        
+        if (product.track_inventory && selectedSize.stock_quantity < item.quantity) {
+          return res.status(400).json({
+            success: false,
+            message: `Stock insuficiente para ${product.name} talle ${selectedSize.size}. Disponible: ${selectedSize.stock_quantity}`
+          });
+        }
+      } else if (product.track_inventory && product.stock_quantity < item.quantity) {
+        // Validar stock general si no tiene talles
         return res.status(400).json({
           success: false,
           message: `Stock insuficiente para ${product.name}. Disponible: ${product.stock_quantity}`
@@ -658,7 +766,10 @@ export const createSale = async (req, res) => {
         discount_amount: itemDiscount,
         total: itemTotal,
         product_name: product.name,
-        product_sku: product.sku
+        product_sku: product.sku,
+        product_size_id: item.product_size_id || undefined,
+        size: item.size || undefined,
+        size_type: item.size_type || undefined
       };
     });
 
@@ -752,10 +863,15 @@ export const getSales = async (req, res) => {
           id,
           product_id,
           product_name,
+          product_sku,
           quantity,
           unit_price,
           discount_amount,
-          total
+          total,
+          product_size_id,
+          size,
+          size_type,
+          product:products(id, image_url)
         )
       `, { count: 'exact' })
       .order('sale_date', { ascending: false })
@@ -813,7 +929,11 @@ export const getSaleById = async (req, res) => {
           quantity,
           unit_price,
           discount_amount,
-          total
+          total,
+          product_size_id,
+          size,
+          size_type,
+          product:products(id, image_url)
         )
       `)
       .eq('id', id)

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { PlusCircle, Search, Filter } from "lucide-react";
+import { PlusCircle, Search, Filter, Package } from "lucide-react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,15 @@ import { useVenues } from "@/hooks/useVenues";
 import { Product, CreateProductData, UpdateProductData, ProductFilters } from "@/types/kiosk";
 import { useTranslations } from '@/contexts/TranslationContext';
 import { CategoryIcon } from "@/lib/categoryIcons";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { cn } from "@/lib/utils";
 
 export default function ProductsPage() {
   const t = useTranslations('kiosk');
@@ -37,9 +46,12 @@ export default function ProductsPage() {
     isOpen: false,
     product: null as Product | null
   });
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Debounce para la búsqueda
   const [searchInput, setSearchInput] = useState('');
+  
+  const PRODUCTS_PER_PAGE = 8;
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -100,6 +112,25 @@ export default function ProductsPage() {
   // Solo mantenemos la lista tal cual viene del hook
   const displayProducts = useMemo(() => products, [products]);
 
+  // Resetear página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.category_id, filters.venue_id, filters.search, filters.low_stock]);
+
+  // Calcular productos paginados
+  const totalPages = Math.ceil(displayProducts.length / PRODUCTS_PER_PAGE);
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+    const endIndex = startIndex + PRODUCTS_PER_PAGE;
+    return displayProducts.slice(startIndex, endIndex);
+  }, [displayProducts, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll al inicio del grid de productos
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <Header
@@ -110,69 +141,129 @@ export default function ProductsPage() {
 
       {/* Filtros */}
       <div className="mt-6 mb-6 space-y-4">
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[200px]">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder={t('products.searchPlaceholder')}
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-              />
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700 space-y-4">
+          {/* Barra de búsqueda y otros filtros */}
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder={t('products.searchPlaceholder')}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="pl-10 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                />
+              </div>
             </div>
+            
+            <Select
+              value={filters.venue_id || 'all'}
+              onValueChange={(value) => setFilters(prev => ({ ...prev, venue_id: value === 'all' ? '' : value }))}
+            >
+              <SelectTrigger className="w-[200px] bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <SelectValue placeholder={t('products.allVenues')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('products.allVenues')}</SelectItem>
+                {venues.map((venue) => (
+                  <SelectItem key={venue.id} value={venue.id}>
+                    {venue.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              onClick={() => setFilters(prev => ({ ...prev, low_stock: !prev.low_stock }))}
+              className={filters.low_stock ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : ''}
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              {t('products.lowStock')}
+            </Button>
           </div>
-          
-          <Select
-            value={filters.category_id || 'all'}
-            onValueChange={(value) => setFilters(prev => ({ ...prev, category_id: value === 'all' ? '' : value }))}
-          >
-            <SelectTrigger className="w-[200px] bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <SelectValue placeholder={t('products.allCategories')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('products.allCategories')}</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  <span className="flex items-center gap-2">
-                    <CategoryIcon 
-                      iconName={cat.icon} 
-                      categoryName={cat.name}
-                      className="w-4 h-4"
-                      color={cat.color}
-                    />
-                    {cat.name}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
-          <Select
-            value={filters.venue_id || 'all'}
-            onValueChange={(value) => setFilters(prev => ({ ...prev, venue_id: value === 'all' ? '' : value }))}
-          >
-            <SelectTrigger className="w-[200px] bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <SelectValue placeholder={t('products.allVenues')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('products.allVenues')}</SelectItem>
-              {venues.map((venue) => (
-                <SelectItem key={venue.id} value={venue.id}>
-                  {venue.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button
-            variant="outline"
-            onClick={() => setFilters(prev => ({ ...prev, low_stock: !prev.low_stock }))}
-            className={filters.low_stock ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : ''}
-          >
-            <Filter className="w-4 h-4 mr-2" />
-            {t('products.lowStock')}
-          </Button>
+          {/* Selector de Categorías estilo PedidosYa con blur */}
+          <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+            <button
+              onClick={() => setFilters(prev => ({ ...prev, category_id: '' }))}
+              className={`
+                group relative
+                flex flex-col items-center justify-center gap-1.5
+                px-4 py-3
+                min-w-[90px]
+                rounded-2xl
+                transition-all duration-300
+                whitespace-nowrap
+                overflow-hidden
+                ${!filters.category_id
+                  ? 'bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500/50'
+                  : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-md text-gray-800 dark:text-gray-200 hover:bg-white/90 dark:hover:bg-gray-800/90 border border-gray-200/50 dark:border-gray-700/50 shadow-sm'
+                }
+              `}
+            >
+              {/* Background blur effect */}
+              {!filters.category_id && (
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-sm" />
+              )}
+              <div className={`
+                relative z-10
+                p-2 rounded-xl
+                ${!filters.category_id
+                  ? 'bg-white/20 backdrop-blur-sm'
+                  : 'bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm'
+                }
+              `}>
+                <Package className={`w-4 h-4 ${!filters.category_id ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
+              </div>
+              <span className={`relative z-10 text-xs font-semibold ${!filters.category_id ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
+                Todas
+              </span>
+            </button>
+            {categories.filter(c => c.is_active).map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setFilters(prev => ({ ...prev, category_id: cat.id }))}
+                className={`
+                  group relative
+                  flex flex-col items-center justify-center gap-1.5
+                  px-4 py-3
+                  min-w-[90px]
+                  rounded-2xl
+                  transition-all duration-300
+                  whitespace-nowrap
+                  overflow-hidden
+                  ${filters.category_id === cat.id
+                    ? 'bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500/50'
+                    : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-md text-gray-800 dark:text-gray-200 hover:bg-white/90 dark:hover:bg-gray-800/90 border border-gray-200/50 dark:border-gray-700/50 shadow-sm'
+                  }
+                `}
+              >
+                {/* Background blur effect */}
+                {filters.category_id === cat.id && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-sm" />
+                )}
+                <div className={`
+                  relative z-10
+                  p-2 rounded-xl
+                  ${filters.category_id === cat.id
+                    ? 'bg-white/20 backdrop-blur-sm'
+                    : 'bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm'
+                  }
+                `}>
+                  <CategoryIcon
+                    iconName={cat.icon}
+                    categoryName={cat.name}
+                    className={`w-4 h-4 ${filters.category_id === cat.id ? 'text-white' : ''}`}
+                    color={filters.category_id === cat.id ? undefined : cat.color}
+                  />
+                </div>
+                <span className={`relative z-10 text-xs font-semibold ${filters.category_id === cat.id ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
+                  {cat.name}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -212,16 +303,57 @@ export default function ProductsPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {displayProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onEdit={handleEdit}
-              onDelete={(prod) => setDeleteModal({ isOpen: true, product: prod })}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {paginatedProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onEdit={handleEdit}
+                onDelete={(prod) => setDeleteModal({ isOpen: true, product: prod })}
+              />
+            ))}
+          </div>
+          
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <Pagination className="mt-6">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                    className={cn(
+                      "cursor-pointer",
+                      currentPage === 1 && "pointer-events-none opacity-50"
+                    )}
+                  />
+                </PaginationItem>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => handlePageChange(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                    className={cn(
+                      "cursor-pointer",
+                      currentPage === totalPages && "pointer-events-none opacity-50"
+                    )}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </>
       )}
 
       <ProductModal

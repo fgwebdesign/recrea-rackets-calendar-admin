@@ -206,7 +206,7 @@ const translations: Record<Locale, Record<string, any>> = {
         cash: 'Efectivo',
         transfer: 'Transferencia',
         card: 'Tarjeta',
-        mixed: 'Mixto',
+        mercadopago: 'Mercado Pago',
         saleContext: 'Contexto de Venta',
         contextGeneral: 'General',
         contextTournament: 'Torneo',
@@ -299,7 +299,7 @@ const translations: Record<Locale, Record<string, any>> = {
           cash: 'Efectivo',
           transfer: 'Transferencia',
           card: 'Tarjeta',
-          mixed: 'Mixto',
+          mercadopago: 'Mercado Pago',
           pending: 'Pendiente'
         },
         paymentStatus: {
@@ -1275,7 +1275,7 @@ const translations: Record<Locale, Record<string, any>> = {
         cash: 'Cash',
         transfer: 'Transfer',
         card: 'Card',
-        mixed: 'Mixed',
+        mercadopago: 'Mercado Pago',
         saleContext: 'Sale Context',
         contextGeneral: 'General',
         contextTournament: 'Tournament',
@@ -1368,7 +1368,7 @@ const translations: Record<Locale, Record<string, any>> = {
           cash: 'Cash',
           transfer: 'Transfer',
           card: 'Card',
-          mixed: 'Mixed',
+          mercadopago: 'Mercado Pago',
           pending: 'Pending'
         },
         paymentStatus: {
