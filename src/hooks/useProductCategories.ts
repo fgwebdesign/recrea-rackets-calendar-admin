@@ -66,6 +66,7 @@ export function useProductCategories() {
       toast({
         title: "Éxito",
         description: "Categoría creada exitosamente",
+        variant: "success",
       });
       return true;
     } catch (error) {
@@ -107,6 +108,7 @@ export function useProductCategories() {
       toast({
         title: "Éxito",
         description: "Categoría actualizada exitosamente",
+        variant: "success",
       });
 
       return true;
@@ -145,6 +147,7 @@ export function useProductCategories() {
       toast({
         title: "Éxito",
         description: "Categoría eliminada exitosamente",
+        variant: "success",
       });
       return true;
     } catch (error) {

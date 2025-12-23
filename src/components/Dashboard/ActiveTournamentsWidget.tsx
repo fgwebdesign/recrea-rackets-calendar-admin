@@ -288,71 +288,216 @@ export function ActiveTournamentsWidget() {
         <Collapsible.Content>
           <CardContent className="p-6 space-y-6">
         {activeTournaments.map((tournament) => (
-          <div key={tournament.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-4">
-            {/* Header del Torneo */}
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center gap-3">
-                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-                    {tournament.name}
-                  </h3>
-                  {tournament.categoryName && (
-                    <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800">
-                      {tournament.categoryName}
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                  <div className="flex items-center gap-1">
-                    <Users className="h-4 w-4" />
-                    {tournament.teams_count}/{tournament.max_teams} {t('teams')}
+          <div 
+            key={tournament.id} 
+            className="group relative overflow-hidden bg-gradient-to-br from-white via-blue-50/30 to-purple-50/20 dark:from-gray-800 dark:via-blue-900/10 dark:to-purple-900/10 border-2 border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            {/* Decorative background pattern */}
+            <div className="absolute inset-0 opacity-5 dark:opacity-10">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-400 to-pink-400 rounded-full blur-3xl"></div>
+            </div>
+
+            <div className="relative p-6 space-y-6">
+              {/* Header del Torneo */}
+              <div className="flex items-start justify-between">
+                <div className="flex-1 space-y-3">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
+                      <Trophy className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl text-gray-900 dark:text-white mb-1">
+                        {tournament.name}
+                      </h3>
+                      {tournament.categoryName && (
+                        <Badge className="text-xs font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 shadow-md">
+                          {tournament.categoryName}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Estadísticas del Torneo */}
+                  <div className="flex items-center gap-6 flex-wrap">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
+                      <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-md">
+                        <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Equipos</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">
+                          {tournament.teams_count}/{tournament.max_teams}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Barra de progreso de inscripciones */}
+                    <div className="flex-1 min-w-[200px] max-w-md">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Progreso</span>
+                        <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                          {Math.round((tournament.teams_count / tournament.max_teams) * 100)}%
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min((tournament.teams_count / tournament.max_teams) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-              <Badge className={getPhaseStatusIcon(tournament.current_phase) ? 'bg-blue-100 text-blue-800 border-blue-200' : ''}>
-                {tournament.current_phase.charAt(0).toUpperCase() + tournament.current_phase.slice(1)}
-              </Badge>
-            </div>
 
-
-            {/* Fases del Torneo */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {tournament.phases.map((phase) => (
-                <div 
-                  key={phase.id} 
-                  className={`p-3 rounded-lg border transition-all ${
-                    phase.status === 'completed' 
-                      ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
-                      : phase.status === 'current'
-                      ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800'
-                      : 'bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    {getPhaseIcon(phase.id)}
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {phase.name}
-                    </span>
-                    {getPhaseStatusIcon(phase.status)}
-                  </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                    {phase.description}
-                  </p>
-                  {phase.action && (
-                    <Button
-                      size="sm"
-                      variant={phase.action.variant || 'outline'}
-                      className="w-full text-xs"
-                      onClick={() => router.push(phase.action!.href)}
+              {/* Fases del Torneo - Rediseñadas */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {tournament.phases.map((phase, index) => {
+                  const isCompleted = phase.status === 'completed';
+                  const isCurrent = phase.status === 'current';
+                  const isPending = phase.status === 'pending';
+                  
+                  // Colores específicos por fase
+                  const phaseColors = {
+                    inscripciones: {
+                      bg: 'from-orange-50 via-amber-50 to-yellow-50',
+                      bgDark: 'from-orange-900/20 via-amber-900/20 to-yellow-900/20',
+                      border: 'border-orange-300',
+                      borderDark: 'dark:border-orange-700',
+                      iconBg: 'bg-orange-100 dark:bg-orange-900/50',
+                      iconColor: 'text-orange-600 dark:text-orange-400',
+                      badge: 'bg-orange-500',
+                      button: 'from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600'
+                    },
+                    grupos: {
+                      bg: 'from-blue-50 via-cyan-50 to-sky-50',
+                      bgDark: 'from-blue-900/20 via-cyan-900/20 to-sky-900/20',
+                      border: 'border-blue-300',
+                      borderDark: 'dark:border-blue-700',
+                      iconBg: 'bg-blue-100 dark:bg-blue-900/50',
+                      iconColor: 'text-blue-600 dark:text-blue-400',
+                      badge: 'bg-blue-500',
+                      button: 'from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600'
+                    },
+                    clasificaciones: {
+                      bg: 'from-purple-50 via-pink-50 to-rose-50',
+                      bgDark: 'from-purple-900/20 via-pink-900/20 to-rose-900/20',
+                      border: 'border-purple-300',
+                      borderDark: 'dark:border-purple-700',
+                      iconBg: 'bg-purple-100 dark:bg-purple-900/50',
+                      iconColor: 'text-purple-600 dark:text-purple-400',
+                      badge: 'bg-purple-500',
+                      button: 'from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
+                    },
+                    bracket: {
+                      bg: 'from-emerald-50 via-teal-50 to-green-50',
+                      bgDark: 'from-emerald-900/20 via-teal-900/20 to-green-900/20',
+                      border: 'border-emerald-300',
+                      borderDark: 'dark:border-emerald-700',
+                      iconBg: 'bg-emerald-100 dark:bg-emerald-900/50',
+                      iconColor: 'text-emerald-600 dark:text-emerald-400',
+                      badge: 'bg-emerald-500',
+                      button: 'from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600'
+                    }
+                  };
+                  
+                  const colors = phaseColors[phase.id as keyof typeof phaseColors] || phaseColors.inscripciones;
+                  
+                  return (
+                    <div 
+                      key={phase.id} 
+                      className={`group/phase relative overflow-hidden rounded-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-lg ${
+                        isCompleted 
+                          ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-300 dark:from-green-900/30 dark:to-emerald-900/20 dark:border-green-700 shadow-md' 
+                          : isCurrent
+                          ? `bg-gradient-to-br ${colors.bg} ${colors.border} dark:${colors.bgDark} dark:${colors.borderDark} shadow-lg ring-2 ring-opacity-50`
+                          : `bg-gradient-to-br ${colors.bg} ${colors.border} dark:${colors.bgDark} dark:${colors.borderDark}`
+                      }`}
                     >
-                      {phase.action.icon}
-                      <span className="ml-1">{phase.action.label}</span>
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
+                      {/* Indicador de número de fase */}
+                      <div className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                        isCompleted 
+                          ? 'bg-green-500 text-white' 
+                          : isCurrent
+                          ? `${colors.badge} text-white animate-pulse`
+                          : `${colors.badge} text-white`
+                      }`}>
+                        {index + 1}
+                      </div>
 
+                      <div className="p-4 space-y-3">
+                        {/* Icono y título */}
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2.5 rounded-lg ${
+                            isCompleted 
+                              ? 'bg-green-100 dark:bg-green-900/50' 
+                              : isCurrent
+                              ? colors.iconBg
+                              : colors.iconBg
+                          }`}>
+                            <div className={`${
+                              isCompleted 
+                                ? 'text-green-600 dark:text-green-400' 
+                                : isCurrent
+                                ? colors.iconColor
+                                : colors.iconColor
+                            }`}>
+                              {getPhaseIcon(phase.id)}
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                              {phase.name}
+                            </h4>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {getPhaseStatusIcon(phase.status)}
+                              <span className={`text-xs font-medium ${
+                                isCompleted 
+                                  ? 'text-green-600 dark:text-green-400' 
+                                  : isCurrent
+                                  ? colors.iconColor
+                                  : colors.iconColor
+                              }`}>
+                                {isCompleted ? 'Completado' : isCurrent ? 'En curso' : 'Pendiente'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Descripción */}
+                        <p className={`text-xs leading-relaxed line-clamp-2 ${
+                          isCompleted 
+                            ? 'text-gray-600 dark:text-gray-400'
+                            : 'text-gray-700 dark:text-gray-300'
+                        }`}>
+                          {phase.description}
+                        </p>
+
+                        {/* Botón de acción */}
+                        {phase.action && (
+                          <Button
+                            size="sm"
+                            variant={isCurrent ? 'default' : 'default'}
+                            className={`w-full text-xs font-semibold transition-all text-white border-0 shadow-md ${
+                              isCurrent
+                                ? `bg-gradient-to-r ${colors.button}`
+                                : isCompleted
+                                ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600'
+                                : `bg-gradient-to-r ${colors.button}`
+                            }`}
+                            onClick={() => router.push(phase.action!.href)}
+                          >
+                            <span className="mr-1.5">{phase.action.icon}</span>
+                            {phase.action.label}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         ))}
           </CardContent>

@@ -159,6 +159,7 @@ export function useSales(filters?: SaleFilters) {
       toast({
         title: "Éxito",
         description: "Venta registrada exitosamente",
+        variant: "success",
       });
       return sale;
     } catch (error) {
@@ -200,6 +201,7 @@ export function useSales(filters?: SaleFilters) {
       toast({
         title: "Éxito",
         description: "Venta cancelada exitosamente",
+        variant: "success",
       });
 
       return true;

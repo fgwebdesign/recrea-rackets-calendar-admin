@@ -419,7 +419,11 @@ const translations: Record<Locale, Record<string, any>> = {
           completed: 'Completado',
           refunded: 'Reembolsado',
           cancelled: 'Cancelado'
-        }
+        },
+        showing: 'Mostrando',
+        to: 'a',
+        of: 'de',
+        sales: 'ventas'
       },
       reports: {
         title: 'Reportes',
@@ -1668,7 +1672,11 @@ const translations: Record<Locale, Record<string, any>> = {
           completed: 'Completed',
           refunded: 'Refunded',
           cancelled: 'Cancelled'
-        }
+        },
+        showing: 'Showing',
+        to: 'to',
+        of: 'of',
+        sales: 'sales'
       },
       reports: {
         title: 'Reports',

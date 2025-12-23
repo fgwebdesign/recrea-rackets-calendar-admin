@@ -6,6 +6,14 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { useSales } from "@/hooks/useSales";
 import { useVenues } from "@/hooks/useVenues";
 import { Sale, SaleFilters } from "@/types/kiosk";
@@ -14,24 +22,48 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 export default function SalesPage() {
   const t = useTranslations('kiosk');
+  const SALES_PER_PAGE = 20;
+  const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<SaleFilters>({
-    limit: 50,
+    limit: SALES_PER_PAGE,
     offset: 0
   });
   
-  const { sales, isLoading, fetchSales, getSaleById } = useSales(filters);
+  const { sales, isLoading, fetchSales, getSaleById, pagination } = useSales(filters);
   const { venues } = useVenues({ includeCourts: false });
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [showSaleModal, setShowSaleModal] = useState(false);
+
+  // Actualizar offset cuando cambia la página
+  useEffect(() => {
+    setFilters(prev => ({
+      ...prev,
+      offset: (currentPage - 1) * SALES_PER_PAGE
+    }));
+  }, [currentPage]);
+
+  // Resetear a página 1 cuando cambian otros filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.venue_id, filters.payment_method, filters.payment_status]);
 
   useEffect(() => {
     // Solo hacer fetch si los filters realmente cambiaron
     fetchSales(filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filters)]);
+
+  // Calcular total de páginas
+  const totalPages = pagination ? Math.ceil(pagination.total / SALES_PER_PAGE) : 1;
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleViewSale = async (saleId: string) => {
     const sale = await getSaleById(saleId);
@@ -256,6 +288,64 @@ export default function SalesPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {t('sales.showing')} {((currentPage - 1) * SALES_PER_PAGE) + 1} {t('sales.to')} {Math.min(currentPage * SALES_PER_PAGE, pagination?.total || 0)} {t('sales.of')} {pagination?.total || 0} {t('sales.sales')}
+                </div>
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                        className={cn(
+                          "cursor-pointer",
+                          currentPage === 1 && "pointer-events-none opacity-50"
+                        )}
+                      />
+                    </PaginationItem>
+
+                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 7) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 4) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 3) {
+                        pageNum = totalPages - 6 + i;
+                      } else {
+                        pageNum = currentPage - 3 + i;
+                      }
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(pageNum)}
+                            isActive={currentPage === pageNum}
+                            className="cursor-pointer"
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                        className={cn(
+                          "cursor-pointer",
+                          currentPage === totalPages && "pointer-events-none opacity-50"
+                        )}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

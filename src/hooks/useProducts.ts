@@ -102,6 +102,7 @@ export function useProducts(filters?: ProductFilters) {
       toast({
         title: "Éxito",
         description: "Producto creado exitosamente",
+        variant: "success",
       });
       return { success: true, product };
     } catch (error) {
@@ -143,6 +144,7 @@ export function useProducts(filters?: ProductFilters) {
       toast({
         title: "Éxito",
         description: "Producto actualizado exitosamente",
+        variant: "success",
       });
 
       return true;
@@ -181,6 +183,7 @@ export function useProducts(filters?: ProductFilters) {
       toast({
         title: "Éxito",
         description: "Producto eliminado exitosamente",
+        variant: "success",
       });
       return true;
     } catch (error) {
@@ -222,6 +225,7 @@ export function useProducts(filters?: ProductFilters) {
       toast({
         title: "Éxito",
         description: "Stock actualizado exitosamente",
+        variant: "success",
       });
 
       return true;
