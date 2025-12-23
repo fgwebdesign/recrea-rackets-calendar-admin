@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from '@/components/ui/use-toast';
-import { SalesSummary, TopProduct } from '@/types/kiosk';
+import { SalesSummary, TopProduct, DashboardStats, LowStockAlert } from '@/types/kiosk';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -91,10 +91,145 @@ export function useKioskReports() {
     }
   }, []);
 
+  const getDashboardStats = useCallback(async (venueId?: string): Promise<DashboardStats | null> => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('adminToken');
+      if (!token) throw new Error('No estás autenticado');
+
+      const params = new URLSearchParams();
+      if (venueId) params.append('venue_id', venueId);
+
+      const queryString = params.toString();
+      const url = `${API_URL}/kiosk/reports/dashboard${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Error fetching dashboard stats');
+      const data = await response.json();
+      return data.dashboard || null;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al obtener estadísticas del dashboard",
+        variant: "destructive",
+      });
+      console.error('Error fetching dashboard stats:', error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const getLowStockAlerts = useCallback(async (venueId?: string): Promise<{
+    summary: {
+      total_alerts: number;
+      out_of_stock_count: number;
+      low_stock_count: number;
+      value_at_risk: number;
+    };
+    out_of_stock: LowStockAlert[];
+    low_stock: LowStockAlert[];
+  } | null> => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('adminToken');
+      if (!token) throw new Error('No estás autenticado');
+
+      const params = new URLSearchParams();
+      if (venueId) params.append('venue_id', venueId);
+
+      const queryString = params.toString();
+      const url = `${API_URL}/kiosk/inventory/alerts${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Error fetching low stock alerts');
+      const data = await response.json();
+      return data.alerts || null;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al obtener alertas de stock",
+        variant: "destructive",
+      });
+      console.error('Error fetching low stock alerts:', error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const getSalesTrend = useCallback(async (days: number = 30, venueId?: string): Promise<{
+    period: {
+      days: number;
+      start_date: string;
+      end_date: string;
+    };
+    summary: {
+      total_revenue: number;
+      total_sales: number;
+      average_per_day: number;
+      average_per_active_day: number;
+      active_days: number;
+    };
+    data: Array<{
+      date: string;
+      day_name: string;
+      sales_count: number;
+      total: number;
+      moving_avg: number | null;
+    }>;
+  } | null> => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('adminToken');
+      if (!token) throw new Error('No estás autenticado');
+
+      const params = new URLSearchParams();
+      params.append('days', String(days));
+      if (venueId) params.append('venue_id', venueId);
+
+      const queryString = params.toString();
+      const url = `${API_URL}/kiosk/reports/trend?${queryString}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Error fetching sales trend');
+      const data = await response.json();
+      return data.trend || null;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al obtener tendencia de ventas",
+        variant: "destructive",
+      });
+      console.error('Error fetching sales trend:', error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     isLoading,
     getSalesSummary,
-    getTopProducts
+    getTopProducts,
+    getDashboardStats,
+    getLowStockAlerts,
+    getSalesTrend
   };
 }
 

@@ -154,5 +154,58 @@
     "noMatchesForLeague": "No hay partidos programados para esta liga",
     "noTournamentsForCategory": "Sin torneos en esta categoría",
     "noTournamentsForCategoryDescription": "No hay torneos disponibles para la categoría seleccionada."
+  },
+  "kiosk": {
+    "reports": {
+      "title": "Reportes",
+      "description": "Análisis de ventas y productos",
+      "venue": "Sede",
+      "allVenues": "Todas las sedes",
+      "startDate": "Fecha Inicio",
+      "endDate": "Fecha Fin",
+      "generate": "Generar Reporte",
+      "totalRevenue": "Ingresos Totales",
+      "averageTicket": "Ticket Promedio",
+      "totalSales": "Total Ventas",
+      "sales": "ventas",
+      "perSale": "por venta",
+      "completedSales": "ventas completadas",
+      "topProducts": "Productos Más Vendidos",
+      "topProductsDescription": "Los productos con mayor cantidad de ventas en el período seleccionado",
+      "unitsSold": "unidades vendidas",
+      "revenue": "Ingresos",
+      "noData": "Sin datos",
+      "noDataDescription": "Selecciona un período y genera un reporte para ver los datos",
+      "dashboard": {
+        "title": "Dashboard de Ventas",
+        "salesToday": "Ventas Hoy",
+        "thisWeek": "Esta Semana",
+        "thisMonth": "Este Mes",
+        "averageTicket": "Ticket Promedio",
+        "transactions": "transacciones",
+        "averageTicketLabel": "Ticket promedio",
+        "monthlyAverage": "Promedio mensual",
+        "vsPreviousMonth": "vs mes anterior",
+        "paymentMethods": "Métodos de Pago (Este Mes)",
+        "cash": "Efectivo",
+        "transfer": "Transferencia",
+        "card": "Tarjeta",
+        "mercadopago": "Mercadopago"
+      },
+      "stockAlerts": {
+        "title": "Alertas de Stock",
+        "outOfStock": "sin stock",
+        "lowStock": "con stock bajo",
+        "outOfStockTitle": "Sin Stock",
+        "lowStockTitle": "Stock Bajo",
+        "units": "unidades",
+        "minimum": "Mínimo",
+        "noAlerts": "Stock Saludable",
+        "noAlertsDescription": "Todos los productos tienen stock suficiente"
+      },
+      "periodReports": {
+        "title": "Reportes por Período"
+      }
+    }
   }
 }

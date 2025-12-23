@@ -436,12 +436,56 @@ const translations: Record<Locale, Record<string, any>> = {
         perSale: 'por venta',
         completedSales: 'ventas completadas',
         topProducts: 'Productos Más Vendidos',
-        topProductsDescription: 'Los productos con mayor cantidad de ventas',
+        topProductsDescription: 'Los productos con mayor cantidad de ventas en el período seleccionado',
         unitsSold: 'unidades vendidas',
         revenue: 'Ingresos',
-        noData: 'No hay datos',
-        noDataDescription: 'Genera un reporte para ver las estadísticas',
-        loading: 'Cargando...'
+        noData: 'Sin datos',
+        noDataDescription: 'Selecciona un período y genera un reporte para ver los datos',
+        loading: 'Cargando...',
+        dashboard: {
+          title: 'Dashboard de Ventas',
+          salesToday: 'Ventas Hoy',
+          thisWeek: 'Esta Semana',
+          thisMonth: 'Este Mes',
+          averageTicket: 'Ticket Promedio',
+          transactions: 'transacciones',
+          averageTicketLabel: 'Ticket promedio',
+          monthlyAverage: 'Promedio mensual',
+          vsPreviousMonth: 'vs mes anterior',
+          paymentMethods: 'Métodos de Pago (Este Mes)',
+          cash: 'Efectivo',
+          transfer: 'Transferencia',
+          card: 'Tarjeta',
+          mercadopago: 'Mercadopago'
+        },
+        stockAlerts: {
+          title: 'Alertas de Stock',
+          outOfStock: 'sin stock',
+          lowStock: 'con stock bajo',
+          outOfStockTitle: 'Sin Stock',
+          lowStockTitle: 'Stock Bajo',
+          units: 'unidades',
+          minimum: 'Mínimo',
+          noAlerts: 'Stock Saludable',
+          noAlertsDescription: 'Todos los productos tienen stock suficiente'
+        },
+        periodReports: {
+          title: 'Reportes por Período'
+        },
+        charts: {
+          title: 'Gráficas de Ventas',
+          trendTitle: 'Tendencia de Ventas',
+          period: 'Período',
+          days: 'días',
+          totalPeriod: 'Total período',
+          transactions: 'Transacciones',
+          averagePerDay: 'Promedio/día',
+          dailyRevenue: 'Ingresos Diarios',
+          movingAverage: 'Promedio Móvil (7 días)',
+          noData: 'Sin datos de tendencia',
+          noDataDescription: 'Los gráficos aparecerán aquí cuando haya datos de ventas',
+          loading: 'Cargando datos...'
+        }
       },
       common: {
         save: 'Guardar',
@@ -1641,12 +1685,56 @@ const translations: Record<Locale, Record<string, any>> = {
         perSale: 'per sale',
         completedSales: 'completed sales',
         topProducts: 'Top Products',
-        topProductsDescription: 'Products with highest sales',
+        topProductsDescription: 'Products with the highest sales volume in the selected period',
         unitsSold: 'units sold',
         revenue: 'Revenue',
         noData: 'No data',
-        noDataDescription: 'Generate a report to see statistics',
-        loading: 'Loading...'
+        noDataDescription: 'Select a period and generate a report to view data',
+        loading: 'Loading...',
+        dashboard: {
+          title: 'Sales Dashboard',
+          salesToday: 'Sales Today',
+          thisWeek: 'This Week',
+          thisMonth: 'This Month',
+          averageTicket: 'Average Ticket',
+          transactions: 'transactions',
+          averageTicketLabel: 'Average ticket',
+          monthlyAverage: 'Monthly average',
+          vsPreviousMonth: 'vs previous month',
+          paymentMethods: 'Payment Methods (This Month)',
+          cash: 'Cash',
+          transfer: 'Transfer',
+          card: 'Card',
+          mercadopago: 'Mercadopago'
+        },
+        stockAlerts: {
+          title: 'Stock Alerts',
+          outOfStock: 'out of stock',
+          lowStock: 'low stock',
+          outOfStockTitle: 'Out of Stock',
+          lowStockTitle: 'Low Stock',
+          units: 'units',
+          minimum: 'Minimum',
+          noAlerts: 'Healthy Stock',
+          noAlertsDescription: 'All products have sufficient stock'
+        },
+        periodReports: {
+          title: 'Period Reports'
+        },
+        charts: {
+          title: 'Sales Charts',
+          trendTitle: 'Sales Trend',
+          period: 'Period',
+          days: 'days',
+          totalPeriod: 'Total period',
+          transactions: 'Transactions',
+          averagePerDay: 'Average/day',
+          dailyRevenue: 'Daily Revenue',
+          movingAverage: 'Moving Average (7 days)',
+          noData: 'No trend data',
+          noDataDescription: 'Charts will appear here when there is sales data',
+          loading: 'Loading data...'
+        }
       },
       common: {
         save: 'Save',

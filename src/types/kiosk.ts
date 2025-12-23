@@ -218,6 +218,48 @@ export interface TopProduct {
   total_revenue: number;
 }
 
+export interface DashboardStats {
+  today: {
+    sales_count: number;
+    total_revenue: number;
+    average_ticket: number;
+  };
+  week: {
+    sales_count: number;
+    total_revenue: number;
+    average_ticket: number;
+  };
+  month: {
+    sales_count: number;
+    total_revenue: number;
+    average_ticket: number;
+    variation_percent: number;
+    previous_month_total: number;
+  };
+  payment_methods: Record<string, { count: number; total: number }>;
+  low_stock_count: number;
+  low_stock_products: Array<{
+    id: string;
+    name: string;
+    stock_quantity: number;
+    min_stock_alert: number;
+    category?: {
+      name: string;
+    };
+  }>;
+}
+
+export interface LowStockAlert {
+  id: string;
+  name: string;
+  sku?: string;
+  stock_quantity: number;
+  min_stock_alert: number;
+  category?: string;
+  venue?: string;
+  urgency: 'critical' | 'high' | 'medium';
+}
+
 // Filtros
 export interface ProductFilters {
   category_id?: string;

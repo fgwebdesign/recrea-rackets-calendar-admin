@@ -154,5 +154,58 @@
     "noMatchesForLeague": "No matches scheduled for this league",
     "noTournamentsForCategory": "No tournaments in this category",
     "noTournamentsForCategoryDescription": "No tournaments available for the selected category."
+  },
+  "kiosk": {
+    "reports": {
+      "title": "Reports",
+      "description": "Sales and product analysis",
+      "venue": "Venue",
+      "allVenues": "All venues",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "generate": "Generate Report",
+      "totalRevenue": "Total Revenue",
+      "averageTicket": "Average Ticket",
+      "totalSales": "Total Sales",
+      "sales": "sales",
+      "perSale": "per sale",
+      "completedSales": "completed sales",
+      "topProducts": "Top Products",
+      "topProductsDescription": "Products with the highest sales volume in the selected period",
+      "unitsSold": "units sold",
+      "revenue": "Revenue",
+      "noData": "No data",
+      "noDataDescription": "Select a period and generate a report to view data",
+      "dashboard": {
+        "title": "Sales Dashboard",
+        "salesToday": "Sales Today",
+        "thisWeek": "This Week",
+        "thisMonth": "This Month",
+        "averageTicket": "Average Ticket",
+        "transactions": "transactions",
+        "averageTicketLabel": "Average ticket",
+        "monthlyAverage": "Monthly average",
+        "vsPreviousMonth": "vs previous month",
+        "paymentMethods": "Payment Methods (This Month)",
+        "cash": "Cash",
+        "transfer": "Transfer",
+        "card": "Card",
+        "mercadopago": "Mercadopago"
+      },
+      "stockAlerts": {
+        "title": "Stock Alerts",
+        "outOfStock": "out of stock",
+        "lowStock": "low stock",
+        "outOfStockTitle": "Out of Stock",
+        "lowStockTitle": "Low Stock",
+        "units": "units",
+        "minimum": "Minimum",
+        "noAlerts": "Healthy Stock",
+        "noAlertsDescription": "All products have sufficient stock"
+      },
+      "periodReports": {
+        "title": "Period Reports"
+      }
+    }
   }
 }
