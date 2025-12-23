@@ -156,8 +156,32 @@ function getSlotsForDay(tournament, day) {
 }
 
 /**
+ * Normaliza un horario a formato HH:MM para comparación
+ * @param {string} time - Horario en cualquier formato (ej: "17:00", "17:00:00", "slot_day1_1700")
+ * @returns {string|null} Horario normalizado en formato HH:MM o null si no se puede parsear
+ */
+function normalizeTimeToHHMM(time) {
+  if (!time || typeof time !== 'string') return null;
+  
+  // Si es formato slot_dayX_HHMM, extraer la hora
+  const slotMatch = time.match(/slot_day\d+_(\d{4})/);
+  if (slotMatch) {
+    const timeStr = slotMatch[1]; // "1700" o "1830"
+    return `${timeStr.slice(0, 2)}:${timeStr.slice(2, 4)}`; // "17:00" o "18:30"
+  }
+  
+  // Si ya es formato HH:MM o HH:MM:SS, normalizar
+  const timeMatch = time.match(/(\d{2}):(\d{2})/);
+  if (timeMatch) {
+    return `${timeMatch[1]}:${timeMatch[2]}`; // "17:00" o "18:30"
+  }
+  
+  return null;
+}
+
+/**
  * Verifica si un equipo puede jugar en un slot específico
- * @param {Array} unavailableTimes - Array de slot IDs no disponibles (ej: ["slot_day1_1700", "slot_day2_0800"])
+ * @param {Array} unavailableTimes - Array de slot IDs no disponibles (ej: ["slot_day1_1700", "slot_day2_0800", "18:30"])
  * @param {string} slotId - ID único del slot (ej: "slot_day1_1700")
  * @param {string} slotStart - Hora de inicio del slot (HH:MM) - para retrocompatibilidad
  * @returns {boolean} true si puede jugar, false si tiene restricción
@@ -167,14 +191,33 @@ function canTeamPlayInSlot(unavailableTimes, slotId, slotStart = null) {
     return true; // Sin restricciones
   }
 
-  // Verificar por slot ID completo (formato nuevo: "slot_day1_1700")
-  if (unavailableTimes.includes(slotId)) {
-    return false;
-  }
+  // Normalizar el horario del slot a HH:MM para comparación
+  const normalizedSlotTime = slotStart ? normalizeTimeToHHMM(slotStart) : normalizeTimeToHHMM(slotId);
   
-  // Retrocompatibilidad: verificar por hora simple (formato viejo: "17:00")
-  if (slotStart && unavailableTimes.includes(slotStart)) {
-    return false;
+  if (!normalizedSlotTime) {
+    console.warn(`⚠️  No se pudo normalizar el horario del slot: ${slotId} / ${slotStart}`);
+    // Fallback: verificación exacta por slot ID
+    if (unavailableTimes.includes(slotId)) {
+      return false;
+    }
+    return true;
+  }
+
+  // Verificar cada restricción normalizando a HH:MM
+  for (const restriction of unavailableTimes) {
+    const normalizedRestriction = normalizeTimeToHHMM(restriction);
+    
+    // Comparar horarios normalizados
+    if (normalizedRestriction === normalizedSlotTime) {
+      console.log(`   🚫 Restricción detectada: ${restriction} (${normalizedRestriction}) coincide con slot ${slotId} (${normalizedSlotTime})`);
+      return false;
+    }
+    
+    // También verificar coincidencia exacta por slot ID (por si acaso)
+    if (restriction === slotId) {
+      console.log(`   🚫 Restricción detectada: ${restriction} coincide exactamente con slot ${slotId}`);
+      return false;
+    }
   }
 
   return true;

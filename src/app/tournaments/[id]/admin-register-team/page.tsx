@@ -195,11 +195,17 @@ export default function AdminRegisterTeamPage() {
     } else if (selectedSlots.length > 2) {
       errors.slot = 'Máximo 2 slots por equipo';
     } else {
-      // Validar que todos los slots seleccionados existan
+      // Validar que todos los slots seleccionados existan y tengan disponibilidad
       for (const slotId of selectedSlots) {
         const slot = availableSlots.find(s => s.id === slotId);
         if (!slot) {
           errors.slot = `Slot ${slotId} no encontrado`;
+          break;
+        }
+        // Validar que el slot tenga disponibilidad
+        const availableSlotsCount = slot.capacity - slot.current_restrictions;
+        if (availableSlotsCount <= 0) {
+          errors.slot = `El horario ${slot.start} no tiene disponibilidad`;
           break;
         }
       }
@@ -506,32 +512,45 @@ export default function AdminRegisterTeamPage() {
                         Día 1 - {day1Name}
                       </h4>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {slotsByDay.day1.map((slot) => (
-                          <button
-                            key={slot.id}
-                            type="button"
-                            onClick={() => {
-                              if (selectedSlots.includes(slot.id)) {
-                                setSelectedSlots(selectedSlots.filter(id => id !== slot.id));
-                              } else if (selectedSlots.length < 2) {
-                                setSelectedSlots([...selectedSlots, slot.id]);
-                              }
-                            }}
-                            disabled={!selectedPlayer1 || !selectedPlayer2}
-                            className={`p-3 rounded-lg border text-sm font-medium transition-all ${
-                              selectedSlots.includes(slot.id)
-                                ? 'bg-blue-100 border-blue-300 text-blue-900 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-100'
-                                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
-                            }`}
-                          >
-                            <div className="text-center">
-                              <div className="font-medium">{slot.start}</div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                {slot.capacity - slot.current_restrictions} disponibles
+                        {slotsByDay.day1.map((slot) => {
+                          const availableSlots = slot.capacity - slot.current_restrictions;
+                          const isAvailable = availableSlots > 0;
+                          const isDisabled = !selectedPlayer1 || !selectedPlayer2 || !isAvailable;
+                          
+                          return (
+                            <button
+                              key={slot.id}
+                              type="button"
+                              onClick={() => {
+                                if (!isAvailable) return; // Prevenir selección si no hay disponibilidad
+                                if (selectedSlots.includes(slot.id)) {
+                                  setSelectedSlots(selectedSlots.filter(id => id !== slot.id));
+                                } else if (selectedSlots.length < 2) {
+                                  setSelectedSlots([...selectedSlots, slot.id]);
+                                }
+                              }}
+                              disabled={isDisabled}
+                              className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                                !isAvailable
+                                  ? 'bg-gray-100 border-gray-200 text-gray-400 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
+                                  : selectedSlots.includes(slot.id)
+                                    ? 'bg-blue-100 border-blue-300 text-blue-900 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-100'
+                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
+                              }`}
+                            >
+                              <div className="text-center">
+                                <div className="font-medium">{slot.start}</div>
+                                <div className={`text-xs mt-1 ${
+                                  !isAvailable 
+                                    ? 'text-red-500 dark:text-red-400 font-semibold' 
+                                    : 'text-gray-500 dark:text-gray-400'
+                                }`}>
+                                  {availableSlots > 0 ? `${availableSlots} disponibles` : 'Sin disponibilidad'}
+                                </div>
                               </div>
-                            </div>
-                          </button>
-                        ))}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -544,32 +563,45 @@ export default function AdminRegisterTeamPage() {
                         Día 2 - {day2Name}
                       </h4>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {slotsByDay.day2.map((slot) => (
-                          <button
-                            key={slot.id}
-                            type="button"
-                            onClick={() => {
-                              if (selectedSlots.includes(slot.id)) {
-                                setSelectedSlots(selectedSlots.filter(id => id !== slot.id));
-                              } else if (selectedSlots.length < 2) {
-                                setSelectedSlots([...selectedSlots, slot.id]);
-                              }
-                            }}
-                            disabled={!selectedPlayer1 || !selectedPlayer2}
-                            className={`p-3 rounded-lg border text-sm font-medium transition-all ${
-                              selectedSlots.includes(slot.id)
-                                ? 'bg-green-100 border-green-300 text-green-900 dark:bg-green-900/30 dark:border-green-700 dark:text-green-100'
-                                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
-                            }`}
-                          >
-                            <div className="text-center">
-                              <div className="font-medium">{slot.start}</div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                {slot.capacity - slot.current_restrictions} disponibles
+                        {slotsByDay.day2.map((slot) => {
+                          const availableSlots = slot.capacity - slot.current_restrictions;
+                          const isAvailable = availableSlots > 0;
+                          const isDisabled = !selectedPlayer1 || !selectedPlayer2 || !isAvailable;
+                          
+                          return (
+                            <button
+                              key={slot.id}
+                              type="button"
+                              onClick={() => {
+                                if (!isAvailable) return; // Prevenir selección si no hay disponibilidad
+                                if (selectedSlots.includes(slot.id)) {
+                                  setSelectedSlots(selectedSlots.filter(id => id !== slot.id));
+                                } else if (selectedSlots.length < 2) {
+                                  setSelectedSlots([...selectedSlots, slot.id]);
+                                }
+                              }}
+                              disabled={isDisabled}
+                              className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                                !isAvailable
+                                  ? 'bg-gray-100 border-gray-200 text-gray-400 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
+                                  : selectedSlots.includes(slot.id)
+                                    ? 'bg-green-100 border-green-300 text-green-900 dark:bg-green-900/30 dark:border-green-700 dark:text-green-100'
+                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
+                              }`}
+                            >
+                              <div className="text-center">
+                                <div className="font-medium">{slot.start}</div>
+                                <div className={`text-xs mt-1 ${
+                                  !isAvailable 
+                                    ? 'text-red-500 dark:text-red-400 font-semibold' 
+                                    : 'text-gray-500 dark:text-gray-400'
+                                }`}>
+                                  {availableSlots > 0 ? `${availableSlots} disponibles` : 'Sin disponibilidad'}
+                                </div>
                               </div>
-                            </div>
-                          </button>
-                        ))}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
