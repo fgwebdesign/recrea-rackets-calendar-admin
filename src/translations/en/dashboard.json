@@ -15,6 +15,7 @@
     "lastUpdated": "Last updated",
     "refreshData": "Refresh Data",
     "exportReport": "Export Report",
-    "customizeDashboard": "Customize Dashboard"
+    "customizeDashboard": "Customize Dashboard",
+    "goToTournament": "Go"
   }
 }

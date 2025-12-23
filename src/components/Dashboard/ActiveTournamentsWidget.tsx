@@ -12,7 +12,8 @@ import {
   AlertCircle,
   Target,
   BarChart3,
-  ChevronDown
+  ChevronDown,
+  ArrowRight
 } from 'lucide-react';
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { useTournaments } from '@/hooks/useTournaments';
@@ -317,15 +318,31 @@ export function ActiveTournamentsWidget() {
                       )}
                     </div>
                   </div>
-                  
-                  {/* Estadísticas del Torneo */}
-                  <div className="flex items-center gap-6 flex-wrap">
+                </div>
+                
+                {/* Botón Ir al Torneo */}
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/tournaments/${tournament.id}`);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="ml-4 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
+                >
+                  <span>{t('goToTournament')}</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Estadísticas del Torneo */}
+              <div className="flex items-center gap-6 flex-wrap">
                     <div className="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
                       <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-md">
                         <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Equipos</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('teams')}</p>
                         <p className="text-sm font-bold text-gray-900 dark:text-white">
                           {tournament.teams_count}/{tournament.max_teams}
                         </p>
@@ -335,7 +352,7 @@ export function ActiveTournamentsWidget() {
                     {/* Barra de progreso de inscripciones */}
                     <div className="flex-1 min-w-[200px] max-w-md">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Progreso</span>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('progress')}</span>
                         <span className="text-xs font-semibold text-gray-900 dark:text-white">
                           {Math.round((tournament.teams_count / tournament.max_teams) * 100)}%
                         </span>
@@ -348,15 +365,12 @@ export function ActiveTournamentsWidget() {
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
               {/* Fases del Torneo - Rediseñadas */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {tournament.phases.map((phase, index) => {
                   const isCompleted = phase.status === 'completed';
                   const isCurrent = phase.status === 'current';
-                  const isPending = phase.status === 'pending';
                   
                   // Colores específicos por fase
                   const phaseColors = {
@@ -459,7 +473,7 @@ export function ActiveTournamentsWidget() {
                                   ? colors.iconColor
                                   : colors.iconColor
                               }`}>
-                                {isCompleted ? 'Completado' : isCurrent ? 'En curso' : 'Pendiente'}
+                                {isCompleted ? t('phaseCompleted') : isCurrent ? t('phaseInProgress') : t('phasePending')}
                               </span>
                             </div>
                           </div>

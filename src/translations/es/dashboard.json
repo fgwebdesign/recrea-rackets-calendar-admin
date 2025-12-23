@@ -15,6 +15,12 @@
     "lastUpdated": "Última actualización",
     "refreshData": "Actualizar Datos",
     "exportReport": "Exportar Reporte",
-    "customizeDashboard": "Personalizar Panel"
+    "customizeDashboard": "Personalizar Panel",
+    "goToTournament": "Ir",
+    "teams": "Equipos",
+    "progress": "Progreso",
+    "phaseCompleted": "Completado",
+    "phaseInProgress": "En curso",
+    "phasePending": "Pendiente"
   }
 }

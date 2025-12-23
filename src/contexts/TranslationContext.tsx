@@ -129,7 +129,12 @@ const translations: Record<Locale, Record<string, any>> = {
       viewMatches: 'Ver Partidos',
       viewStandingsButton: 'Ver Clasificaciones',
       viewBracketButton: 'Ver Bracket',
-      teams: 'equipos',
+      goToTournament: 'Ir',
+      teams: 'Equipos',
+      progress: 'Progreso',
+      phaseCompleted: 'Completado',
+      phaseInProgress: 'En curso',
+      phasePending: 'Pendiente',
       noCategory: 'Sin categoría',
       // Dashboard Stats
       totalUsers: 'Usuarios Totales',
@@ -281,6 +286,12 @@ const translations: Record<Locale, Record<string, any>> = {
       // Dashboard Widget
       lowStock: 'Stock Bajo',
       totalSales: 'Total Ventas',
+      requiresAttention: 'Requiere atención',
+      thisMonth: 'este mes',
+      today: 'Hoy',
+      week: 'Semana',
+      salesCount: 'ventas',
+      vsPreviousMonth: 'vs mes anterior',
       pos: {
         title: 'Registrar Venta',
         description: 'Registra ventas y gestiona el inventario',
@@ -1382,7 +1393,12 @@ const translations: Record<Locale, Record<string, any>> = {
       viewMatches: 'View Matches',
       viewStandingsButton: 'View Standings',
       viewBracketButton: 'View Bracket',
-      teams: 'teams',
+      goToTournament: 'Go',
+      teams: 'Teams',
+      progress: 'Progress',
+      phaseCompleted: 'Completed',
+      phaseInProgress: 'In Progress',
+      phasePending: 'Pending',
       noCategory: 'No category',
       // Dashboard Stats
       totalUsers: 'Total Users',
@@ -1534,6 +1550,12 @@ const translations: Record<Locale, Record<string, any>> = {
       // Dashboard Widget
       lowStock: 'Low Stock',
       totalSales: 'Total Sales',
+      requiresAttention: 'Requires attention',
+      thisMonth: 'this month',
+      today: 'Today',
+      week: 'Week',
+      salesCount: 'sales',
+      vsPreviousMonth: 'vs previous month',
       pos: {
         title: 'Register Sale',
         description: 'Register sales and manage inventory',

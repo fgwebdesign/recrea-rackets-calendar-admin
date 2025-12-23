@@ -123,7 +123,7 @@ export function KioskWidget() {
             </div>
             <p className="text-3xl font-bold text-red-700 dark:text-red-400 mb-1">{lowStockProducts}</p>
             {lowStockProducts > 0 && (
-              <p className="text-xs text-gray-600 dark:text-gray-400">Requiere atención</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{t('requiresAttention')}</p>
             )}
           </div>
 
@@ -138,7 +138,7 @@ export function KioskWidget() {
             </p>
             {dashboard?.month && (
               <p className="text-xs text-gray-600 dark:text-gray-400">
-                {formatCurrency(dashboard.month.total_revenue)} este mes
+                {formatCurrency(dashboard.month.total_revenue)} {t('thisMonth')}
               </p>
             )}
           </div>
@@ -151,13 +151,13 @@ export function KioskWidget() {
             <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
               <div className="flex items-center gap-1.5 mb-1">
                 <Calendar className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                <p className="text-xs text-gray-600 dark:text-gray-400">Hoy</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{t('today')}</p>
               </div>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
                 {formatCurrency(dashboard.today?.total_revenue || 0)}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-500">
-                {dashboard.today?.sales_count || 0} ventas
+                {dashboard.today?.sales_count || 0} {t('salesCount')}
               </p>
             </div>
 
@@ -165,13 +165,13 @@ export function KioskWidget() {
             <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
               <div className="flex items-center gap-1.5 mb-1">
                 <Calendar className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                <p className="text-xs text-gray-600 dark:text-gray-400">Semana</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{t('week')}</p>
               </div>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
                 {formatCurrency(dashboard.week?.total_revenue || 0)}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-500">
-                {dashboard.week?.sales_count || 0} ventas
+                {dashboard.week?.sales_count || 0} {t('salesCount')}
               </p>
             </div>
 
@@ -183,7 +183,7 @@ export function KioskWidget() {
                 ) : (
                   <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400" />
                 )}
-                <p className="text-xs text-gray-600 dark:text-gray-400">vs mes anterior</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{t('vsPreviousMonth')}</p>
               </div>
               <p className={`text-lg font-bold ${
                 dashboard.month?.variation_percent >= 0 
