@@ -1,26 +1,28 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ShoppingCart, 
   AlertTriangle, 
   Receipt,
   BarChart3,
-  Box
+  Box,
+  TrendingUp,
+  TrendingDown,
+  Calendar
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
+import { useKioskReports } from '@/hooks/useKioskReports';
 import { useTranslations } from '@/contexts/TranslationContext';
-import { useState, useEffect } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function KioskWidget() {
   const router = useRouter();
   const t = useTranslations('kiosk');
   const { products } = useProducts({ is_active: true, low_stock: true });
-  const [totalSales, setTotalSales] = useState<number>(0);
-  const [isLoadingSales, setIsLoadingSales] = useState(false);
+  const { getDashboardStats } = useKioskReports();
+  const [dashboard, setDashboard] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Calcular productos con stock bajo
   const lowStockProducts = useMemo(() => {
@@ -30,60 +32,33 @@ export function KioskWidget() {
     ).length;
   }, [products]);
 
-  // Obtener solo el total de ventas (más eficiente que cargar todas)
+  // Cargar datos del dashboard
+  const loadDashboardData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const dashboardData = await getDashboardStats();
+
+      if (dashboardData) {
+        setDashboard(dashboardData);
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getDashboardStats]);
+
   useEffect(() => {
-    let abortController: AbortController | null = null;
-    
-    const fetchTotalSales = async () => {
-      try {
-        // Cancelar request anterior si existe
-        if (abortController) {
-          abortController.abort();
-        }
-        
-        abortController = new AbortController();
-        setIsLoadingSales(true);
-        
-        const token = localStorage.getItem('adminToken');
-        if (!token) return;
+    loadDashboardData();
+  }, [loadDashboardData]);
 
-        // Usar el endpoint de resumen que es más eficiente
-        const response = await fetch(`${API_URL}/kiosk/reports/summary`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          signal: abortController.signal
-        });
-
-        if (!response.ok || abortController.signal.aborted) return;
-        
-        const data = await response.json();
-        if (data.success && !abortController.signal.aborted) {
-          setTotalSales(data.summary?.total_sales || 0);
-        }
-      } catch (error) {
-        // Ignorar errores de cancelación y red cuando la app está en standby
-        if (error instanceof Error && 
-            error.name !== 'AbortError' && 
-            !error.message.includes('Failed to fetch') &&
-            !error.message.includes('NetworkError')) {
-          console.error('Error fetching sales summary:', error);
-        }
-      } finally {
-        if (!abortController?.signal.aborted) {
-          setIsLoadingSales(false);
-        }
-      }
-    };
-
-    fetchTotalSales();
-
-    // Cleanup: cancelar request al desmontar
-    return () => {
-      if (abortController) {
-        abortController.abort();
-      }
-    };
+  const formatCurrency = useCallback((value: number) => {
+    return new Intl.NumberFormat('es-UY', {
+      style: 'currency',
+      currency: 'UYU',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
   }, []);
 
   const quickActions = [
@@ -128,7 +103,7 @@ export function KioskWidget() {
   return (
     <div className="bg-white dark:bg-[#0E1629] border border-gray-200 dark:border-gray-700/50 rounded-xl shadow-sm overflow-hidden">
       <div className="p-6">
-        {/* Header Minimalista */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
@@ -138,28 +113,94 @@ export function KioskWidget() {
           </div>
         </div>
 
-        {/* Estadísticas Minimalistas */}
+        {/* Estadísticas Mejoradas */}
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+          {/* Stock Bajo */}
+          <div className="p-4 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border-2 border-red-200 dark:border-red-800">
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-              <p className="text-xs text-gray-600 dark:text-gray-400">{t('lowStock')}</p>
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{t('lowStock')}</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{lowStockProducts}</p>
+            <p className="text-3xl font-bold text-red-700 dark:text-red-400 mb-1">{lowStockProducts}</p>
+            {lowStockProducts > 0 && (
+              <p className="text-xs text-gray-600 dark:text-gray-400">Requiere atención</p>
+            )}
           </div>
 
-          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+          {/* Total Ventas */}
+          <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-800">
             <div className="flex items-center gap-2 mb-2">
               <Receipt className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <p className="text-xs text-gray-600 dark:text-gray-400">{t('totalSales')}</p>
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{t('totalSales')}</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {isLoadingSales ? '...' : totalSales}
+            <p className="text-3xl font-bold text-purple-700 dark:text-purple-400 mb-1">
+              {isLoading ? '...' : (dashboard?.month?.sales_count || 0)}
             </p>
+            {dashboard?.month && (
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {formatCurrency(dashboard.month.total_revenue)} este mes
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Atajos Rápidos Mejorados */}
+        {/* Información Adicional */}
+        {dashboard && (
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            {/* Ventas Hoy */}
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Calendar className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                <p className="text-xs text-gray-600 dark:text-gray-400">Hoy</p>
+              </div>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">
+                {formatCurrency(dashboard.today?.total_revenue || 0)}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500">
+                {dashboard.today?.sales_count || 0} ventas
+              </p>
+            </div>
+
+            {/* Esta Semana */}
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Calendar className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                <p className="text-xs text-gray-600 dark:text-gray-400">Semana</p>
+              </div>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">
+                {formatCurrency(dashboard.week?.total_revenue || 0)}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500">
+                {dashboard.week?.sales_count || 0} ventas
+              </p>
+            </div>
+
+            {/* Variación Mensual */}
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
+              <div className="flex items-center gap-1.5 mb-1">
+                {dashboard.month?.variation_percent >= 0 ? (
+                  <TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400" />
+                ) : (
+                  <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400" />
+                )}
+                <p className="text-xs text-gray-600 dark:text-gray-400">vs mes anterior</p>
+              </div>
+              <p className={`text-lg font-bold ${
+                dashboard.month?.variation_percent >= 0 
+                  ? 'text-green-600 dark:text-green-400' 
+                  : 'text-red-600 dark:text-red-400'
+              }`}>
+                {dashboard.month?.variation_percent >= 0 ? '+' : ''}
+                {dashboard.month?.variation_percent?.toFixed(1) || '0.0'}%
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500">
+                {formatCurrency(dashboard.month?.total_revenue || 0)}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Atajos Rápidos */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {quickActions.map((action) => {
             const Icon = action.icon;
@@ -200,4 +241,3 @@ export function KioskWidget() {
     </div>
   );
 }
-
