@@ -27,6 +27,7 @@ interface TournamentMatch {
   match_date?: string;
   court_name?: string;
   court_id?: string;
+  venue_name?: string; // Nombre de la sede
   status: "pending" | "scheduled" | "completed" | "in_progress";
   group_name?: string;
   group_number?: number;
@@ -65,6 +66,17 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
   const categories = availableCategories;
   const { tournaments } = useTournaments();
   const sliderRef = useRef<HTMLDivElement>(null);
+  
+  // Crear mapa de torneos por ID para acceso rápido a start_date
+  const tournamentsMap = useMemo(() => {
+    const map = new Map();
+    if (tournaments && Array.isArray(tournaments)) {
+      tournaments.forEach(tournament => {
+        map.set(tournament.id, tournament);
+      });
+    }
+    return map;
+  }, [tournaments]);
 
   useEffect(() => {
     const fetchTournamentMatches = async () => {
@@ -324,46 +336,104 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
     return 'Equipo desconocido';
   };
 
+  // Función para obtener la fecha del calendario según el día del torneo
+  const getCalendarDateForTournamentDay = (tournamentDay: number | null | undefined, tournamentId?: string): string | null => {
+    if (!tournamentDay || !tournamentId) return null;
+    
+    const tournament = tournamentsMap.get(tournamentId);
+    if (!tournament?.start_date) return null;
+    
+    try {
+      // Parsear la fecha sin problemas de zona horaria
+      const dateParts = tournament.start_date.split('T')[0].split('-');
+      if (dateParts.length !== 3) return null;
+      
+      const year = parseInt(dateParts[0], 10);
+      const month = parseInt(dateParts[1], 10) - 1; // Los meses en JS son 0-indexed
+      const day = parseInt(dateParts[2], 10);
+      
+      // Crear fecha en zona horaria local
+      const startDate = new Date(year, month, day);
+      
+      // Día 1 = start_date, Día 2 = start_date + 1 día, Día 3 = start_date + 2 días
+      const matchDate = new Date(startDate);
+      matchDate.setDate(startDate.getDate() + (tournamentDay - 1));
+      
+      // Formatear como "6 feb" (día y mes abreviado)
+      return matchDate.toLocaleDateString('es-ES', { 
+        day: 'numeric', 
+        month: 'short' 
+      });
+    } catch (error) {
+      console.error('Error calculando fecha:', error);
+      return null;
+    }
+  };
+
   const formatDateTime = (match: TournamentMatch) => {
     // Si no tiene hora, mostrar estado sin programar
     if (!match.start_time) {
       return {
         time: 'Sin hora',
         date: 'Sin fecha',
+        tournamentDayLabel: null,
         relativeDate: 'Sin programar'
       };
     }
     
     // Para partidos de fase eliminatoria: usar match_day
-    // Para partidos de fase de grupos: usar tournament_day (necesitamos calcular la fecha)
+    // Para partidos de fase de grupos: usar tournament_day
     let matchDate: Date;
+    let tournamentDayLabel: string | null = null;
     
     if (match.match_day) {
       // Fase eliminatoria: tiene fecha específica
       matchDate = new Date(`${match.match_day} ${match.start_time}`);
     } else if (match.tournament_day && match.tournament_id) {
       // Fase de grupos: usar tournament_day y calcular fecha basada en el torneo
-      // Por ahora, asumimos que el torneo empieza hoy o mañana
-      // TODO: Obtener la fecha de inicio del torneo desde tournament.start_date
-      const today = new Date();
-      const tournamentDay = match.tournament_day;
+      const tournament = tournamentsMap.get(match.tournament_id);
+      if (!tournament?.start_date) {
+        return {
+          time: match.start_time.substring(0, 5),
+          date: 'Sin fecha',
+          tournamentDayLabel: `Día ${match.tournament_day}`,
+          relativeDate: 'Sin programar'
+        };
+      }
       
-      // Asumir que el torneo empieza mañana para el cálculo
-      const tournamentStartDate = new Date(today);
-      tournamentStartDate.setDate(today.getDate() + 1);
-      tournamentStartDate.setDate(tournamentStartDate.getDate() + (tournamentDay - 1));
+      // Parsear fecha sin problemas de zona horaria
+      const dateParts = tournament.start_date.split('T')[0].split('-');
+      if (dateParts.length !== 3) {
+        return {
+          time: match.start_time.substring(0, 5),
+          date: 'Sin fecha',
+          tournamentDayLabel: `Día ${match.tournament_day}`,
+          relativeDate: 'Sin programar'
+        };
+      }
       
-      matchDate = new Date(`${tournamentStartDate.toISOString().split('T')[0]} ${match.start_time}`);
+      const year = parseInt(dateParts[0], 10);
+      const month = parseInt(dateParts[1], 10) - 1;
+      const day = parseInt(dateParts[2], 10);
+      
+      const startDate = new Date(year, month, day);
+      const matchDateCalc = new Date(startDate);
+      matchDateCalc.setDate(startDate.getDate() + (match.tournament_day - 1));
+      
+      matchDate = new Date(`${matchDateCalc.toISOString().split('T')[0]} ${match.start_time}`);
+      
+      // Crear label con día y fecha
+      const calendarDate = getCalendarDateForTournamentDay(match.tournament_day, match.tournament_id);
+      tournamentDayLabel = calendarDate ? `Día ${match.tournament_day} (${calendarDate})` : `Día ${match.tournament_day}`;
     } else {
       // Sin información de fecha
       return {
-        time: 'Sin hora',
+        time: match.start_time.substring(0, 5),
         date: 'Sin fecha',
+        tournamentDayLabel: null,
         relativeDate: 'Sin programar'
       };
     }
-    
-    // Eliminamos el cálculo de fecha relativa
 
     return {
       time: new Intl.DateTimeFormat('es', {  
@@ -375,6 +445,7 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
         month: 'numeric',
         year: 'numeric'
       }).format(matchDate),
+      tournamentDayLabel: tournamentDayLabel,
       relativeDate: '' // Ya no usamos fecha relativa
     };
   };
@@ -578,11 +649,11 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
                 <div 
                   key={match.id}
                   onClick={() => router.push(`/tournaments/${match.tournament_id}/matches`)}
-                  className="relative bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#1D283A]/80 dark:to-[#1D283A] 
-                           rounded-2xl p-5 hover:shadow-xl transition-all duration-300
-                           border border-gray-200/50 dark:border-gray-700/30
-                           backdrop-blur-sm cursor-pointer hover:scale-[1.02] hover:border-blue-300 dark:hover:border-blue-600
-                           group"
+                  className="relative bg-white dark:bg-[#1D283A] 
+                           rounded-xl p-6 hover:shadow-2xl transition-all duration-300
+                           border border-gray-200 dark:border-gray-700
+                           cursor-pointer hover:scale-[1.01] hover:border-blue-400 dark:hover:border-blue-600
+                           group shadow-sm"
                 >
                   {/* Torneo Badge */}
                   {match.tournament_name && (
@@ -612,11 +683,11 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
 
                   {/* Grupo Badge */}
                   {(match.group_name || match.group_number) && (
-                    <div className="absolute top-2 right-4">
-                      <span className="px-3 py-1 rounded-full text-xs font-medium
-                                   bg-gray-900/5 dark:bg-white/5 
+                    <div className="absolute top-3 right-4">
+                      <span className="px-2.5 py-1 rounded-md text-xs font-semibold
+                                   bg-gray-100 dark:bg-gray-800 
                                    text-gray-700 dark:text-gray-300
-                                   border border-gray-200/50 dark:border-gray-700/30">
+                                   border border-gray-200 dark:border-gray-700">
                         {match.group_name || `Grupo ${match.group_number}`}
                       </span>
                     </div>
@@ -630,28 +701,90 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
                   </div>
 
                   {/* Match Content */}
-                  <div className="mt-4 space-y-6">
-                    {/* Teams */}
-                    <div className="space-y-4">
+                  <div className="mt-8 space-y-5">
+                    {/* Información de fecha y hora - Primero para mejor jerarquía */}
+                    {(() => {
+                      const dateTimeInfo = formatDateTime(match);
+                      return (
+                        <div className="space-y-2.5">
+                          {/* Día del torneo (si es fase de grupos) */}
+                          {dateTimeInfo.tournamentDayLabel && (
+                            <div className="flex items-center justify-center mb-1">
+                              <div className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg px-3 py-2 border border-blue-200/50 dark:border-blue-700/50">
+                                <CalendarDays className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                  {dateTimeInfo.tournamentDayLabel}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Hora y fecha */}
+                          <div className="flex items-center justify-center gap-4">
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                {dateTimeInfo.time}
+                              </span>
+                            </div>
+                            {!dateTimeInfo.tournamentDayLabel && dateTimeInfo.date && (
+                              <div className="flex items-center gap-1.5">
+                                <CalendarDays className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                  {dateTimeInfo.date}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    
+                    {/* Court Information */}
+                    {match.court_name && (
+                      <div className="flex items-center justify-center">
+                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg px-3 py-1.5 border border-gray-200/50 dark:border-gray-700/30">
+                          <Building className="w-4 h-4 text-gray-600 dark:text-gray-400 flex-shrink-0" />
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                            {match.court_name}
+                          </span>
+                          {match.venue_name && (
+                            <>
+                              <span className="text-gray-400 dark:text-gray-500">•</span>
+                              <span className="text-xs text-gray-600 dark:text-gray-400">
+                                {match.venue_name}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Divider */}
+                    <div className="border-t border-gray-200 dark:border-gray-700/30"></div>
+
+                    {/* Teams - Más destacados */}
+                    <div className="space-y-3.5">
                       {/* Team 1 */}
-                      <div className="flex items-center justify-between space-x-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={getTeamName(match.home_team_data || match.team1 || match.team1_name, match.home_team_id)}>
+                      <div className="flex items-center">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-bold text-gray-900 dark:text-gray-100 truncate leading-tight" 
+                             title={getTeamName(match.home_team_data || match.team1 || match.team1_name, match.home_team_id)}>
                             {getTeamName(match.home_team_data || match.team1 || match.team1_name, match.home_team_id)}
                           </p>
                         </div>
                       </div>
 
                       {/* VS Divider */}
-                      <div className="flex items-center justify-center">
+                      <div className="flex items-center justify-center py-1">
                         <div className="relative w-full">
                           <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-200 dark:border-gray-700/30"></div>
+                            <div className="w-full border-t-2 border-gray-300 dark:border-gray-600"></div>
                           </div>
                           <div className="relative flex justify-center">
-                            <span className="px-3 text-sm font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 
-                                         text-white rounded-full py-1 shadow-lg shadow-emerald-500/20
-                                         dark:shadow-emerald-900/30">
+                            <span className="px-4 py-1.5 text-xs font-extrabold bg-gradient-to-r from-emerald-500 to-emerald-600 
+                                         text-white rounded-full shadow-md shadow-emerald-500/30
+                                         dark:shadow-emerald-900/40 uppercase tracking-wider">
                               VS
                             </span>
                           </div>
@@ -659,45 +792,14 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
                       </div>
 
                       {/* Team 2 */}
-                      <div className="flex items-center justify-between space-x-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={getTeamName(match.away_team_data || match.team2 || match.team2_name, match.away_team_id)}>
+                      <div className="flex items-center">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-bold text-gray-900 dark:text-gray-100 truncate leading-tight" 
+                             title={getTeamName(match.away_team_data || match.team2 || match.team2_name, match.away_team_id)}>
                             {getTeamName(match.away_team_data || match.team2 || match.team2_name, match.away_team_id)}
                           </p>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Date and Time */}
-                    <div className="space-y-3 pt-4 border-t border-gray-200/50 dark:border-gray-700/30">
-                      {/* Información de fecha y hora */}
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                          <span className="text-sm text-gray-600 dark:text-gray-300">
-                            {formatDateTime(match).time}h
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <CalendarDays className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                          <span className="text-sm text-gray-600 dark:text-gray-300">
-                            {formatDateTime(match).date}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* Court Information */}
-                      {match.court_name && (
-                        <div className="flex items-center justify-center">
-                          <div className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 rounded-full px-3 py-1">
-                            <Building className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                              {match.court_name}
-                            </span>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>

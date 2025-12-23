@@ -343,14 +343,16 @@ export default function AdminRegisterTeamPage() {
         variant: "default",
       });
       
-      // Limpiar formulario
       setSelectedPlayer1('');
       setSelectedPlayer2('');
       setSelectedSlots([]);
       setSelectedShirtSizes([]);
       
-      // Recargar slots disponibles
-      await loadAvailableSlots();
+      // Recargar slots disponibles y lista de jugadores para actualizar estados
+      await Promise.all([
+        loadAvailableSlots(),
+        loadPlayers()
+      ]);
 
     } catch (err: unknown) {
       console.error('Error en registro:', err);

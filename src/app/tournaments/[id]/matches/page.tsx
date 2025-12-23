@@ -133,6 +133,38 @@ export default function TournamentMatchesPage() {
     return `${name1} / ${name2}`;
   };
 
+  // Función para obtener la fecha del calendario según el día del torneo
+  const getCalendarDateForTournamentDay = (tournamentDay: number | null | undefined): string | null => {
+    if (!tournamentDay || !tournament?.start_date) return null;
+    
+    try {
+      // Parsear la fecha sin problemas de zona horaria
+      // Si viene como "2025-02-06", crear la fecha directamente sin conversión UTC
+      const dateParts = tournament.start_date.split('T')[0].split('-');
+      if (dateParts.length !== 3) return null;
+      
+      const year = parseInt(dateParts[0], 10);
+      const month = parseInt(dateParts[1], 10) - 1; // Los meses en JS son 0-indexed
+      const day = parseInt(dateParts[2], 10);
+      
+      // Crear fecha en zona horaria local
+      const startDate = new Date(year, month, day);
+      
+      // Día 1 = start_date, Día 2 = start_date + 1 día, Día 3 = start_date + 2 días
+      const matchDate = new Date(startDate);
+      matchDate.setDate(startDate.getDate() + (tournamentDay - 1));
+      
+      // Formatear como "6 feb" (día y mes abreviado)
+      return matchDate.toLocaleDateString('es-ES', { 
+        day: 'numeric', 
+        month: 'short' 
+      });
+    } catch (error) {
+      console.error('Error calculando fecha:', error);
+      return null;
+    }
+  };
+
   // Determinar quién ganó el partido
   const getMatchWinner = (match: TournamentMatch): 'home' | 'away' | null => {
     if (match.status !== 'completed') return null;
@@ -694,10 +726,17 @@ export default function TournamentMatchesPage() {
                                   </div>
                                   
                                   <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                    {match.match_day && (
+                                    {match.tournament_day && (
                                       <div className="flex items-center gap-1">
                                         <Calendar className="h-3 w-3" />
-                                        {match.match_day}
+                                        <span className="font-medium">
+                                          Día {match.tournament_day}
+                                          {getCalendarDateForTournamentDay(match.tournament_day) && (
+                                            <span className="text-gray-500 dark:text-gray-400 ml-1">
+                                              ({getCalendarDateForTournamentDay(match.tournament_day)})
+                                            </span>
+                                          )}
+                                        </span>
                                       </div>
                                     )}
                                     
@@ -1205,11 +1244,20 @@ export default function TournamentMatchesPage() {
                                       </td>
                                       
                                       <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-600 dark:text-gray-400">
-                                        {match.match_day && match.start_time ? (
-                                          <div>
-                                            <div>{match.match_day}</div>
+                                        {match.tournament_day && match.start_time ? (
+                                          <div className="flex flex-col gap-1">
+                                            <div className="font-medium">
+                                              Día {match.tournament_day}
+                                              {getCalendarDateForTournamentDay(match.tournament_day) && (
+                                                <span className="text-gray-500 dark:text-gray-400 text-xs ml-1">
+                                                  ({getCalendarDateForTournamentDay(match.tournament_day)})
+                                                </span>
+                                              )}
+                                            </div>
                                             <div>{match.start_time.substring(0, 5)}</div>
                                           </div>
+                                        ) : match.start_time ? (
+                                          <div>{match.start_time.substring(0, 5)}</div>
                                         ) : (
                                           <span className="text-gray-400">-</span>
                                         )}

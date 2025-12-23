@@ -174,7 +174,7 @@ export interface TournamentTeam {
   payment_date?: string
   payment_amount?: number
   unavailable_group_slot_id?: string
-  unavailable_times?: string
+  unavailable_times?: string | string[] // Puede ser string (legacy) o array de strings
   // Relaciones expandidas - usando 'teams' para coincidir con el backend
   teams?: {
     id: string
@@ -232,7 +232,8 @@ export interface TournamentMatch {
   group_number?: number
   round: MatchRound
   match_number?: number
-  match_day?: string
+  match_day?: string // Fecha del partido (YYYY-MM-DD)
+  tournament_day?: number // ✨ NUEVO: Día del torneo (1, 2 o 3)
   start_time?: string
   court_id?: string
   court_name?: string // Nombre de la cancha

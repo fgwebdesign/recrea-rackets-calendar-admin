@@ -3425,19 +3425,6 @@ export async function getAvailableGroupHours(req, res) {
       .select('unavailable_times')
       .in('tournament_id', eventTournamentIds);
 
-    // Contar restricciones por horario
-    const restrictionCounts = {};
-
-    if (allTeamsInEvent) {
-      allTeamsInEvent.forEach(team => {
-        if (team.unavailable_times && Array.isArray(team.unavailable_times)) {
-          team.unavailable_times.forEach(timeSlot => {
-            restrictionCounts[timeSlot] = (restrictionCounts[timeSlot] || 0) + 1;
-          });
-        }
-      });
-    }
-
     // 5. ✨ FILTRAR: Solo slots de días 1 y 2 (fase de grupos)
     // El día 3 es para eliminatorias y no debe aparecer en inscripciones
     const allSlots = tournament.group_time_slots || [];
@@ -3446,6 +3433,35 @@ export async function getAvailableGroupHours(req, res) {
     );
     
     console.log(`📅 [FILTRO] Total slots: ${allSlots.length}, Slots fase grupos (días 1-2): ${slots.length}`);
+    
+    // ✨ CREAR MAPA DE NORMALIZACIÓN: ID de slot -> start time
+    // Esto permite que las restricciones guardadas como IDs coincidan con los start times
+    const slotIdToStartMap = {};
+    slots.forEach(slot => {
+      if (slot.id) slotIdToStartMap[slot.id] = slot.start;
+      // También mapear por start time para compatibilidad
+      if (slot.start) slotIdToStartMap[slot.start] = slot.start;
+    });
+    
+    console.log(`🔍 [NORMALIZACIÓN] Mapa de slots creado: ${Object.keys(slotIdToStartMap).length} entradas`);
+    
+    // Contar restricciones por horario (normalizando IDs a start times)
+    const restrictionCounts = {};
+
+    if (allTeamsInEvent) {
+      allTeamsInEvent.forEach(team => {
+        if (team.unavailable_times && Array.isArray(team.unavailable_times)) {
+          team.unavailable_times.forEach(timeSlot => {
+            // Normalizar: convertir ID de slot a start time si es necesario
+            const normalizedTimeSlot = slotIdToStartMap[timeSlot] || timeSlot;
+            restrictionCounts[normalizedTimeSlot] = (restrictionCounts[normalizedTimeSlot] || 0) + 1;
+          });
+        }
+      });
+    }
+    
+    console.log(`📊 [RESTRICCIONES] Total restricciones contadas: ${Object.keys(restrictionCounts).length} slots únicos`);
+    console.log(`📊 [RESTRICCIONES] Detalle:`, Object.entries(restrictionCounts).map(([slot, count]) => `${slot}: ${count}`).join(', '));
     
     const courts = slots[0]?.courts || 2;
     const MAX_TEAMS_PER_SLOT = MAX_RESTRICTIONS_PER_SLOT_PER_COURT * courts;

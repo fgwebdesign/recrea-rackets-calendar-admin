@@ -9,7 +9,7 @@ import { useTranslations } from '@/contexts/TranslationContext';
 interface Team {
   team_id: string;
   payment_status: 'pending' | 'paid' | 'failed';
-  unavailable_times?: string;
+  unavailable_times?: string | string[]; // Puede ser string o array de strings
   shirt_sizes?: string[];
   slot_id?: string; // Campo para el slot seleccionado
   selected_slot?: string; // Otro posible campo
@@ -34,7 +34,7 @@ interface TeamCardProps {
 export function TeamCard({ team, index }: TeamCardProps) {
   const t = useTranslations('tournaments');
   
-  const getPlayerInitials = (player: any) => {
+  const getPlayerInitials = (player: { first_name?: string; last_name?: string } | undefined) => {
     if (!player?.first_name) return '?';
     return `${player.first_name[0]}${player.last_name?.[0] || ''}`.toUpperCase();
   };
@@ -69,36 +69,24 @@ export function TeamCard({ team, index }: TeamCardProps) {
     }
   };
 
-  const formatUnavailableTimes = (unavailableTimes?: string) => {
-    console.log('🔍 formatUnavailableTimes called with:', unavailableTimes, typeof unavailableTimes);
-    console.log('🔍 Full team object:', team);
-    
+  const formatUnavailableTimes = (unavailableTimes?: string | string[]) => {
     // Buscar el slot en diferentes campos posibles
     const slotValue = unavailableTimes || team.slot_id || team.selected_slot || team.time_slot;
-    console.log('🔍 Slot value found:', slotValue);
     
     if (!slotValue) return t('teamsPage.noRestrictions');
     
-    // Función para formatear slots del tipo "slot_day1_1700"
-    const formatSlotTime = (slotId: any) => {
-      console.log('🔍 formatSlotTime called with:', slotId, typeof slotId);
-      
-      // Validar que slotId sea una string antes de usar .match()
-      if (typeof slotId !== 'string') {
-        console.warn('slotId is not a string:', slotId, typeof slotId);
-        return slotId?.toString() || t('teamsPage.noRestrictions');
-      }
-      
-      // Extraer día y hora del formato "slot_day1_1700"
+    // Función para formatear un slot individual del tipo "slot_day1_1700"
+    const formatSingleSlot = (slotId: string): string => {
+      // Extraer día y hora del formato "slot_day1_1700" o "slot_day1_1745"
       const slotMatch = slotId.match(/slot_day(\d+)_(\d+)/);
       if (slotMatch) {
         const day = slotMatch[1];
         const time = slotMatch[2];
         
-        // Formatear la hora (1700 -> 17:00)
+        // Formatear la hora (1700 -> 17:00, 1745 -> 17:45)
         const formattedTime = `${time.slice(0, 2)}:${time.slice(2, 4)}`;
         
-        // Mapear el día
+        // Mapear el día con nombre del día de la semana si es posible
         const dayText = day === '1' ? 'Día 1' : day === '2' ? 'Día 2' : `Día ${day}`;
         
         return `${dayText} - ${formattedTime}`;
@@ -135,24 +123,19 @@ export function TeamCard({ team, index }: TeamCardProps) {
       return timeSlotMap[slotId] || slotId;
     };
 
-    return formatSlotTime(slotValue);
-  };
-
-  const formatPlayerNames = (team: Team) => {
-    if (!team?.teams) return t('teamsPage.unknownTeam');
-    
-    const player1 = team.teams.player1;
-    const player2 = team.teams.player2;
-    
-    if (player1?.first_name && player2?.first_name) {
-      return `${player1.first_name} ${player1.last_name || ''} / ${player2.first_name} ${player2.last_name || ''}`;
-    } else if (player1?.first_name) {
-      return `${player1.first_name} ${player1.last_name || ''}`;
-    } else if (player2?.first_name) {
-      return `${player2.first_name} ${player2.last_name || ''}`;
+    // Si es un array, formatear cada slot y unirlos
+    if (Array.isArray(slotValue)) {
+      if (slotValue.length === 0) return t('teamsPage.noRestrictions');
+      return slotValue.map(formatSingleSlot).join(', ');
     }
     
-    return `${t('teamsPage.team')} #${team.team_id?.slice(-4) || 'N/A'}`;
+    // Si es un string, formatearlo directamente
+    if (typeof slotValue === 'string') {
+      return formatSingleSlot(slotValue);
+    }
+    
+    // Fallback
+    return String(slotValue) || t('teamsPage.noRestrictions');
   };
 
   const paymentStatus = getPaymentStatusBadge(team.payment_status);
