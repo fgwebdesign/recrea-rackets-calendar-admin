@@ -16,6 +16,11 @@
     "refreshData": "Refresh Data",
     "exportReport": "Export Report",
     "customizeDashboard": "Customize Dashboard",
-    "goToTournament": "Go"
+    "goToTournament": "Go",
+    "teams": "Teams",
+    "progress": "Progress",
+    "phaseCompleted": "Completed",
+    "phaseInProgress": "In Progress",
+    "phasePending": "Pending"
   }
 }
