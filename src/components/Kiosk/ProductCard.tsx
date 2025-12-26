@@ -7,9 +7,10 @@ interface ProductCardProps {
   product: Product;
   onDelete: (product: Product) => void;
   onEdit: (product: Product) => void;
+  priority?: boolean; // Para las primeras imágenes visibles
 }
 
-export default function ProductCard({ product, onDelete, onEdit }: ProductCardProps) {
+export default function ProductCard({ product, onDelete, onEdit, priority = false }: ProductCardProps) {
   const t = useTranslations('kiosk');
   const tCommon = useTranslations('common');
   const isLowStock = product.track_inventory && product.stock_quantity <= product.min_stock_alert;
@@ -27,8 +28,10 @@ export default function ProductCard({ product, onDelete, onEdit }: ProductCardPr
             alt={product.name}
             fill
             className="object-cover"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            unoptimized
+            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
+            priority={priority}
+            loading={priority ? undefined : "lazy"}
+            quality={85}
             onError={() => {
               console.error('Error loading product image:', product.image_url);
             }}

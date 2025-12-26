@@ -421,9 +421,11 @@ export default function KioskPOSPage() {
           {/* Grid de Productos */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {paginatedProducts.map((product) => {
+              {paginatedProducts.map((product, index) => {
                 const cartItem = cart.find(item => item.product.id === product.id);
                 const isOutOfStock = product.track_inventory && product.stock_quantity <= 0;
+                // Prioridad para las primeras 8 imágenes (primera página completa)
+                const hasPriority = index < 8;
                 
                 return (
                   <button
@@ -445,8 +447,10 @@ export default function KioskPOSPage() {
                           alt={product.name}
                           fill
                           className="object-cover rounded"
-                          sizes="(max-width: 768px) 50vw, 25vw"
-                          unoptimized
+                          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                          priority={hasPriority}
+                          loading={hasPriority ? undefined : "lazy"}
+                          quality={85}
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';

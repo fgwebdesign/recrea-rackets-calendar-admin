@@ -308,7 +308,10 @@ export default function ProductModal({
                       alt="Preview"
                       fill
                       className="object-cover rounded-md"
-                      unoptimized
+                      priority
+                      quality={90}
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      unoptimized={previewUrl.startsWith('blob:') || previewUrl.startsWith('data:')}
                     />
                   </div>
                 ) : (

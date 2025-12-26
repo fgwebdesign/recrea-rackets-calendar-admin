@@ -412,7 +412,8 @@ export default function SalesPage() {
                                   fill
                                   className="object-cover"
                                   sizes="64px"
-                                  unoptimized
+                                  loading="lazy"
+                                  quality={75}
                                 />
                               </div>
                             ) : (

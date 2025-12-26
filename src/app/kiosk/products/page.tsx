@@ -284,12 +284,13 @@ export default function ProductsPage() {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {paginatedProducts.map((product) => (
+            {paginatedProducts.map((product, index) => (
               <ProductCard
                 key={product.id}
                 product={product}
                 onEdit={handleEdit}
                 onDelete={(prod) => setDeleteModal({ isOpen: true, product: prod })}
+                priority={index < 5} // Prioridad para las primeras 5 imágenes visibles
               />
             ))}
           </div>
