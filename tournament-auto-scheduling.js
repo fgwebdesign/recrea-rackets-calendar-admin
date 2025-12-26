@@ -347,6 +347,20 @@ export async function autoScheduleMatches(tournamentId) {
 
   console.log(`\n🌍 Verificando partidos de ${eventTournamentIds.length} categorías del mismo evento (mismas fechas)...`);
 
+  // ✨ IMPORTANTE: Obtener partidos YA PROGRAMADOS del MISMO TORNEO (para evitar conflictos internos)
+  const { data: alreadyScheduledMatches, error: alreadyScheduledErr } = await supabase
+    .from('tournament_matches')
+    .select('id, start_time, court_id, tournament_id, tournament_day')
+    .eq('tournament_id', tournamentId)
+    .not('start_time', 'is', null)
+    .in('tournament_day', [1, 2]);
+
+  if (alreadyScheduledErr) {
+    console.error(`⚠️  Error obteniendo partidos ya programados del mismo torneo:`, alreadyScheduledErr);
+  }
+
+  console.log(`   📊 Partidos ya programados en ESTE torneo: ${alreadyScheduledMatches?.length || 0}`);
+
   // Obtener partidos YA PROGRAMADOS de otras categorías del MISMO EVENTO
   const { data: allScheduledMatches, error: allMatchesErr } = await supabase
     .from('tournament_matches')
@@ -364,12 +378,30 @@ export async function autoScheduleMatches(tournamentId) {
   const globalSlotUsage = new Map();
   (allScheduledMatches || []).forEach(match => {
     // Normalizar start_time a formato HH:MM (cortar segundos si existen)
-    const normalizedTime = match.start_time.substring(0, 5); // "17:00:00" → "17:00"
+    // Asegurar formato consistente HH:MM
+    let normalizedTime = match.start_time;
+    if (normalizedTime && normalizedTime.length > 5) {
+      normalizedTime = normalizedTime.substring(0, 5); // "17:00:00" → "17:00"
+    }
     const key = `${match.tournament_day}:${normalizedTime}:${match.court_id.trim()}`;
     globalSlotUsage.set(key, match);
+    console.log(`   🔒 Slot bloqueado globalmente: ${key} (categoría ${match.tournament_id.slice(0, 8)})`);
+  });
+
+  // ✨ NUEVO: Crear mapa de slots ocupados por partidos YA PROGRAMADOS del MISMO TORNEO
+  const localSlotUsage = new Map();
+  (alreadyScheduledMatches || []).forEach(match => {
+    let normalizedTime = match.start_time;
+    if (normalizedTime && normalizedTime.length > 5) {
+      normalizedTime = normalizedTime.substring(0, 5);
+    }
+    const key = `${match.tournament_day}:${normalizedTime}:${match.court_id.trim()}`;
+    localSlotUsage.set(key, match);
+    console.log(`   🔒 Slot bloqueado localmente: ${key} (partido ya programado)`);
   });
 
   console.log(`   🔒 Slots bloqueados por otras categorías (por día): ${globalSlotUsage.size}`);
+  console.log(`   🔒 Slots bloqueados por partidos ya programados (mismo torneo): ${localSlotUsage.size}`);
 
   // 7. Programar partidos por día
   const scheduledMatches = [];
@@ -398,10 +430,14 @@ export async function autoScheduleMatches(tournamentId) {
       const awayRestrictions = restrictionsMap.get(match.away_team_id);
 
       let scheduled = false;
+      let debugAttempts = [];
 
       // Intentar asignar en cada slot disponible
       for (const slot of daySlots) {
-        if (!canMatchBeScheduledInSlot(homeRestrictions, awayRestrictions, slot.id, slot.start)) {
+        // Verificar restricciones de equipos
+        const canPlay = canMatchBeScheduledInSlot(homeRestrictions, awayRestrictions, slot.id, slot.start);
+        if (!canPlay) {
+          debugAttempts.push(`${slot.start}: restricción de equipos`);
           continue; // Equipos tienen restricción en este slot
         }
 
@@ -413,10 +449,15 @@ export async function autoScheduleMatches(tournamentId) {
           const matchesInCourt = usageInSlot.get(court.id) || [];
 
           // ✨ VERIFICAR CONFLICTO GLOBAL: Verificar si otra categoría ya usa este slot+cancha EN EL MISMO DÍA
-          const globalKey = `${day}:${slot.start}:${court.id.trim()}`;
+          // Normalizar el tiempo para evitar problemas de formato
+          const normalizedTime = slot.start.substring(0, 5); // Asegurar formato HH:MM
+          const globalKey = `${day}:${normalizedTime}:${court.id.trim()}`;
           const isOccupiedByOtherCategory = globalSlotUsage.has(globalKey);
+          
+          // ✨ NUEVO: Verificar si un partido YA PROGRAMADO del mismo torneo usa este slot+cancha
+          const isOccupiedByLocalMatch = localSlotUsage.has(globalKey);
 
-          if (matchesInCourt.length === 0 && !isOccupiedByOtherCategory) {
+          if (matchesInCourt.length === 0 && !isOccupiedByOtherCategory && !isOccupiedByLocalMatch) {
             // ✅ Cancha disponible en este slot (sin conflictos globales)
             scheduledMatches.push({
               match_id: match.id,
@@ -438,9 +479,16 @@ export async function autoScheduleMatches(tournamentId) {
 
             scheduled = true;
             break;
-          } else if (isOccupiedByOtherCategory) {
-            const occupyingMatch = globalSlotUsage.get(globalKey);
-            console.log(`   ⏭️  Slot ${slot.start} - ${court.name} ocupado por categoría ${occupyingMatch.tournament_id.slice(0, 8)}`);
+          } else {
+            if (matchesInCourt.length > 0) {
+              debugAttempts.push(`${slot.start} - ${court.name}: ocupado localmente (en esta ejecución)`);
+            } else if (isOccupiedByLocalMatch) {
+              const occupyingMatch = localSlotUsage.get(globalKey);
+              debugAttempts.push(`${slot.start} - ${court.name}: ocupado por partido ya programado (${occupyingMatch?.id?.slice(0, 8) || 'unknown'})`);
+            } else if (isOccupiedByOtherCategory) {
+              const occupyingMatch = globalSlotUsage.get(globalKey);
+              debugAttempts.push(`${slot.start} - ${court.name}: ocupado por categoría ${occupyingMatch?.tournament_id?.slice(0, 8) || 'unknown'}`);
+            }
           }
         }
 
@@ -450,6 +498,7 @@ export async function autoScheduleMatches(tournamentId) {
       if (!scheduled) {
         failedMatches.push({ match, reason: 'No hay slots disponibles sin conflictos' });
         console.log(`   ❌ Partido ${match.group_number}-${match.match_number}: No se pudo programar`);
+        console.log(`      Intentos: ${debugAttempts.slice(0, 5).join(', ')}${debugAttempts.length > 5 ? '...' : ''}`);
       }
     }
   }

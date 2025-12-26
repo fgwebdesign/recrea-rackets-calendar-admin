@@ -51,7 +51,8 @@ const translations: Record<Locale, Record<string, any>> = {
       available: 'Disponible',
       noVenuesAvailable: 'No hay sedes disponibles',
       mustSelectVenue: 'Debes seleccionar una sede para continuar',
-      error: 'Error'
+      error: 'Error',
+      understood: 'Entendido'
     },
     dashboard: {
       title: 'Panel de Control',
@@ -710,7 +711,50 @@ const translations: Record<Locale, Record<string, any>> = {
       tabs: {
         profile: 'Perfil',
         integrations: 'Integraciones',
-        subscription: 'Suscripción'
+        subscription: 'Suscripción',
+        password: 'Contraseña'
+      },
+      profile: {
+        title: 'Perfil',
+        personalInfo: 'Información personal',
+        firstName: 'Nombre',
+        lastName: 'Apellido',
+        email: 'Email',
+        tokenNotFound: 'No se encontró token',
+        errorLoadingProfile: 'Error al cargar el perfil',
+        error: 'Error'
+      },
+      integrations: {
+        title: 'Integraciones',
+        description: 'Conecta tus aplicaciones y servicios favoritos',
+        whatsappDescription: 'Conecta con tu cuenta de WhatsApp Business',
+        configured: 'Configurado',
+        connect: 'Conectar',
+        configuredNumber: 'Número configurado:',
+        edit: 'Editar',
+        whatsappConfigured: 'WhatsApp configurado',
+        whatsappUpdated: 'El número de WhatsApp Business se ha actualizado correctamente.',
+        error: 'Error',
+        errorSavingWhatsapp: 'Error al guardar el número de WhatsApp',
+        noAuthToken: 'No hay token de autenticación',
+        errorSavingNumber: 'Error al guardar el número'
+      },
+      subscription: {
+        title: 'Suscripción',
+        membershipStatus: 'Estado de tu membresía',
+        active: 'Activa',
+        annualContract: 'Contrato Anual',
+        annualContractDescription: 'Tu suscripción tiene un compromiso mínimo de 12 meses. Este período garantiza la continuidad del servicio y el acceso a todas las funcionalidades de la plataforma.',
+        premiumPlan: 'Plan Premium',
+        perMonth: 'por mes',
+        billing: 'Facturación',
+        monthly: 'Mensual',
+        autoCharge: 'Cargo automático',
+        includedFeatures: 'Características incluidas',
+        fullPlatformAccess: 'Acceso completo a la plataforma',
+        prioritySupport: 'Soporte prioritario 24/7',
+        autoBackup: 'Backup automático',
+        premiumUpdates: 'Actualizaciones premium'
       }
     },
   // Loading Screen
@@ -1266,6 +1310,18 @@ const translations: Record<Locale, Record<string, any>> = {
         createTournament: 'Error al crear el torneo',
         notAuthenticated: 'No estás autenticado'
       }
+    },
+    autoScheduling: {
+      incompleteCategories: {
+        title: 'Categorías Incompletas',
+        description: 'No se puede ejecutar el auto-scheduling hasta que todas las categorías tengan sus cupos completos.',
+        alertTitle: 'Auto-scheduling bloqueado',
+        alertDescription: '{incomplete} de {total} categoría(s) aún no tienen sus cupos completos.',
+        categoriesList: 'Categorías que necesitan más equipos:',
+        registered: '{registered}/{max} equipos',
+        missing: 'Faltan {missing}',
+        helpText: 'Por favor, completa los cupos de todas las categorías antes de ejecutar el auto-scheduling. Esto asegura una mejor distribución de horarios entre todas las categorías del evento.'
+      }
     }
   }
   },
@@ -1315,7 +1371,8 @@ const translations: Record<Locale, Record<string, any>> = {
       available: 'Available',
       noVenuesAvailable: 'No venues available',
       mustSelectVenue: 'You must select a venue to continue',
-      error: 'Error'
+      error: 'Error',
+      understood: 'Understood'
     },
     dashboard: {
       title: 'Dashboard',
@@ -1480,6 +1537,58 @@ const translations: Record<Locale, Record<string, any>> = {
       clubName: 'BayPadel San Francisco',
       logout: 'Log out',
       loggingOut: 'Logging out...'
+    },
+    settings: {
+      title: 'Settings',
+      description: 'Manage application settings.',
+      tabs: {
+        profile: 'Profile',
+        integrations: 'Integrations',
+        subscription: 'Subscription',
+        password: 'Password'
+      },
+      profile: {
+        title: 'Profile',
+        personalInfo: 'Personal information',
+        firstName: 'First Name',
+        lastName: 'Last Name',
+        email: 'Email',
+        tokenNotFound: 'Token not found',
+        errorLoadingProfile: 'Error loading profile',
+        error: 'Error'
+      },
+      integrations: {
+        title: 'Integrations',
+        description: 'Connect your favorite apps and services',
+        whatsappDescription: 'Connect with your WhatsApp Business account',
+        configured: 'Configured',
+        connect: 'Connect',
+        configuredNumber: 'Configured number:',
+        edit: 'Edit',
+        whatsappConfigured: 'WhatsApp configured',
+        whatsappUpdated: 'WhatsApp Business number has been updated successfully.',
+        error: 'Error',
+        errorSavingWhatsapp: 'Error saving WhatsApp number',
+        noAuthToken: 'No authentication token',
+        errorSavingNumber: 'Error saving number'
+      },
+      subscription: {
+        title: 'Subscription',
+        membershipStatus: 'Your membership status',
+        active: 'Active',
+        annualContract: 'Annual Contract',
+        annualContractDescription: 'Your subscription has a minimum commitment of 12 months. This period ensures service continuity and access to all platform features.',
+        premiumPlan: 'Premium Plan',
+        perMonth: 'per month',
+        billing: 'Billing',
+        monthly: 'Monthly',
+        autoCharge: 'Auto charge',
+        includedFeatures: 'Included features',
+        fullPlatformAccess: 'Full platform access',
+        prioritySupport: 'Priority support 24/7',
+        autoBackup: 'Automatic backup',
+        premiumUpdates: 'Premium updates'
+      }
     },
     users: {
       title: 'Users',
@@ -2628,6 +2737,18 @@ const translations: Record<Locale, Record<string, any>> = {
         uploadImage: 'Error uploading image',
         createTournament: 'Error creating tournament',
         notAuthenticated: 'You are not authenticated'
+      }
+    },
+    autoScheduling: {
+      incompleteCategories: {
+        title: 'Incomplete Categories',
+        description: 'Auto-scheduling cannot be executed until all categories have their full quotas.',
+        alertTitle: 'Auto-scheduling blocked',
+        alertDescription: '{incomplete} of {total} categor(ies) do not have their full quotas yet.',
+        categoriesList: 'Categories that need more teams:',
+        registered: '{registered}/{max} teams',
+        missing: 'Missing {missing}',
+        helpText: 'Please complete the quotas for all categories before executing auto-scheduling. This ensures better time slot distribution among all event categories.'
       }
     }
   }

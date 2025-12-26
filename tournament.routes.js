@@ -22,7 +22,12 @@ import {
     scheduleMatchesController,
     getSchedulingStatusController,
     getSlotAvailabilityController,
-    getTournamentVenues
+    getTournamentVenues,
+    assignDayToGroupController,
+    rescheduleMatchController,
+    getUnscheduledMatchesController,
+    getAvailableSlotsForDayController,
+    validateMatchScheduleController
 } from '../controllers/tournament.controller.js'
 import { updateMatchResult } from '../controllers/match.controller.js'
 import { setTournamentRequiredInfo, setTournamentThumbnail, setTournamentPrize, setTournamentSponsors } from '../controllers/tournamentInfo.controller.js'
@@ -858,7 +863,44 @@ router.post('/:id/schedule-matches', verifyToken, verifyAdmin, scheduleMatchesCo
  *       500:
  *         description: Error asignando día
  */
-// router.patch('/:id/groups/:groupId/assign-day', verifyToken, verifyAdmin, assignDayToGroupController) // DEPRECATED - not needed
+/**
+ * @swagger
+ * /tournaments/{id}/groups/{groupId}/assign-day:
+ *   patch:
+ *     summary: Asigna o cambia manualmente el día del torneo a un grupo
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del torneo
+ *       - in: path
+ *         name: groupId
+ *         required: true
+ *         description: ID del grupo
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tournament_day
+ *             properties:
+ *               tournament_day:
+ *                 type: number
+ *                 enum: [1, 2]
+ *     responses:
+ *       200:
+ *         description: Día asignado exitosamente
+ *       400:
+ *         description: Parámetros inválidos
+ *       404:
+ *         description: Grupo no encontrado
+ */
+router.patch('/:id/groups/:groupId/assign-day', verifyToken, verifyAdmin, assignDayToGroupController)
 
 /**
  * @swagger
@@ -1399,5 +1441,134 @@ router.get('/stats/overview', verifyToken, verifyAdmin, getTournamentOverviewSta
  *         description: Error interno del servidor
  */
 router.put('/:tournamentId/matches/:matchId/result', verifyToken, verifyAdmin, updateMatchResult)
+
+/**
+ * @swagger
+ * /tournaments/{id}/matches/{matchId}/schedule:
+ *   put:
+ *     summary: Reasigna manualmente un partido (día, hora, cancha)
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del torneo
+ *       - in: path
+ *         name: matchId
+ *         required: true
+ *         description: ID del partido
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               tournament_day:
+ *                 type: number
+ *                 enum: [1, 2, 3]
+ *               start_time:
+ *                 type: string
+ *                 format: time
+ *               court_id:
+ *                 type: string
+ *               venue_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Partido reasignado exitosamente
+ *       400:
+ *         description: Conflictos o restricciones detectadas
+ *       404:
+ *         description: Partido no encontrado
+ */
+router.put('/:id/matches/:matchId/schedule', verifyToken, verifyAdmin, rescheduleMatchController)
+
+/**
+ * @swagger
+ * /tournaments/{id}/matches/unscheduled:
+ *   get:
+ *     summary: Obtiene partidos sin programar (sin día, hora o cancha)
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del torneo
+ *     responses:
+ *       200:
+ *         description: Lista de partidos sin programar
+ */
+router.get('/:id/matches/unscheduled', verifyToken, verifyAdmin, getUnscheduledMatchesController)
+
+/**
+ * @swagger
+ * /tournaments/{id}/available-slots-for-day:
+ *   get:
+ *     summary: Obtiene slots disponibles para un día específico con información de ocupación
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del torneo
+ *       - in: query
+ *         name: day
+ *         required: true
+ *         schema:
+ *           type: number
+ *           enum: [1, 2]
+ *         description: Día del torneo
+ *     responses:
+ *       200:
+ *         description: Slots disponibles con información de ocupación
+ */
+router.get('/:id/available-slots-for-day', verifyToken, verifyAdmin, getAvailableSlotsForDayController)
+
+/**
+ * @swagger
+ * /tournaments/{id}/matches/{matchId}/validate-schedule:
+ *   post:
+ *     summary: Valida conflictos y restricciones antes de asignar un horario
+ *     tags: [Torneos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del torneo
+ *       - in: path
+ *         name: matchId
+ *         required: true
+ *         description: ID del partido
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tournament_day
+ *               - start_time
+ *               - court_id
+ *             properties:
+ *               tournament_day:
+ *                 type: number
+ *               start_time:
+ *                 type: string
+ *               court_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Validación completada
+ */
+router.post('/:id/matches/:matchId/validate-schedule', verifyToken, verifyAdmin, validateMatchScheduleController)
 
 export default router

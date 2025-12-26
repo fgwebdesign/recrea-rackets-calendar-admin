@@ -3225,8 +3225,8 @@ export async function getTournamentTeams(req, res) {
  * 🕐 GENERAR HORARIOS PARA FASE DE GRUPOS
  *
  * Genera slots de 45 minutos para los días 1 y 2 (fase de grupos).
- * - Día 1: 17:00 - 23:00 (8 slots)
- * - Día 2: 08:00 - 23:00 (20 slots)
+ * - Día 1: 17:00 - 00:30 (10 slots: hasta 23:15 + 23:00, 23:45)
+ * - Día 2: 00:30 (1 slot) y luego 09:00 - 23:45 (20 slots)
  *
  * @param {string} startDate - Fecha de inicio del torneo (YYYY-MM-DD)
  * @param {string} endDate - Fecha de fin del torneo (YYYY-MM-DD)
@@ -3249,22 +3249,33 @@ function generateGroupPhaseTimeSlots(startDate, endDate, courtsAvailable) {
   const day1DateStr = formatDateSafe(day1Date);
   const day1Name = getDayName(day1Date);
 
-  // DÍA 1: 17:00 - 23:00 (8 slots de 45 min)
-  console.log(`📅 [DÍA 1] ${day1Name} ${day1DateStr}: 17:00 - 23:00`);
+  // DÍA 1: 17:00 - 00:30 (10 slots de 45 min: hasta 23:15 + 23:00, 23:45)
+  console.log(`📅 [DÍA 1] ${day1Name} ${day1DateStr}: 17:00 - 00:30`);
 
   const day1StartHour = 17;
   const day1StartMinute = 0;
+  const day1SlotsCount = 10; // 17:00, 17:45, 18:30, 19:15, 20:00, 20:45, 21:30, 22:15, 23:00, 23:45
 
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < day1SlotsCount; i++) {
     const totalMinutes = day1StartHour * 60 + day1StartMinute + (i * slotDuration);
-    const hour = Math.floor(totalMinutes / 60);
+    let hour = Math.floor(totalMinutes / 60);
     const minute = totalMinutes % 60;
+
+    // Manejar horas que pasan de medianoche (23:00, 23:45 → 00:30)
+    if (hour >= 24) {
+      hour = hour % 24;
+    }
 
     const startTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 
     const endTotalMinutes = totalMinutes + slotDuration;
-    const endHour = Math.floor(endTotalMinutes / 60);
+    let endHour = Math.floor(endTotalMinutes / 60);
     const endMinute = endTotalMinutes % 60;
+
+    // Manejar horas que pasan de medianoche
+    if (endHour >= 24) {
+      endHour = endHour % 24;
+    }
     const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
 
     slots.push({
@@ -3281,18 +3292,34 @@ function generateGroupPhaseTimeSlots(startDate, endDate, courtsAvailable) {
     });
   }
 
-  // DÍA 2: 08:00 - 23:00 (20 slots de 45 min)
+  // DÍA 2: 00:30 (1 slot) y luego 09:00 - 23:45 (20 slots de 45 min)
   const day2Date = new Date(day1Date);
   day2Date.setDate(day2Date.getDate() + 1);
   const day2DateStr = formatDateSafe(day2Date);
   const day2Name = getDayName(day2Date);
 
-  console.log(`📅 [DÍA 2] ${day2Name} ${day2DateStr}: 08:00 - 23:00`);
+  console.log(`📅 [DÍA 2] ${day2Name} ${day2DateStr}: 00:30 y luego 09:00 - 23:45`);
 
-  const day2StartHour = 8;
+  // Primer slot: 00:30 - 01:15
+  slots.push({
+    id: `slot_day2_0030`,
+    label: `${day2Name} 00:30 - 01:15`,
+    day: 2,
+    start: '00:30',
+    end: '01:15',
+    date: day2DateStr,
+    tournament_day: 2,
+    duration_minutes: slotDuration,
+    capacity: capacityPerSlot,
+    courts: courtsAvailable
+  });
+
+  // Resto de slots: 09:00 - 23:45 (20 slots)
+  const day2StartHour = 9;
   const day2StartMinute = 0;
+  const day2SlotsCount = 20; // 09:00, 09:45, 10:30, ... hasta 23:45
 
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < day2SlotsCount; i++) {
     const totalMinutes = day2StartHour * 60 + day2StartMinute + (i * slotDuration);
     const hour = Math.floor(totalMinutes / 60);
     const minute = totalMinutes % 60;
@@ -3318,7 +3345,7 @@ function generateGroupPhaseTimeSlots(startDate, endDate, courtsAvailable) {
     });
   }
 
-  console.log(`✅ [HORARIOS GENERADOS] Total: ${slots.length} slots (Día 1: 8, Día 2: 20)`);
+  console.log(`✅ [HORARIOS GENERADOS] Total: ${slots.length} slots (Día 1: ${day1SlotsCount}, Día 2: ${day2SlotsCount + 1})`);
   console.log(`   Capacidad total: ${slots.length} slots × ${capacityPerSlot} cupos = ${slots.length * capacityPerSlot} cupos`);
 
   return slots;
@@ -5214,10 +5241,17 @@ function generateSimpleTimeSlots(startDate, endDate, courtsAvailable = 2) {
 
   console.log(`📅 [GENERAR SLOTS] Generando slots para ${courtsAvailable} canchas`);
 
-  // DÍA 1: 17:00-23:00 (8 bloques de 45 min hasta 23:00)
-  for (let i = 0; i < 8; i++) {
-    const hour = 17 + Math.floor(i * 45 / 60);
-    const minute = (i * 45) % 60;
+  // DÍA 1: 17:00-00:30 (10 bloques de 45 min: hasta 23:15 + 23:00, 23:45)
+  for (let i = 0; i < 10; i++) {
+    const totalMinutes = 17 * 60 + (i * 45);
+    let hour = Math.floor(totalMinutes / 60);
+    const minute = totalMinutes % 60;
+    
+    // Manejar horas que pasan de medianoche (23:00, 23:45 → 00:30)
+    if (hour >= 24) {
+      hour = hour % 24;
+    }
+    
     const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 
     slots.push({
@@ -5233,11 +5267,27 @@ function generateSimpleTimeSlots(startDate, endDate, courtsAvailable = 2) {
     });
   }
 
-  // DÍA 2: 8:00-23:00 (20 bloques de 45 min hasta 23:00)
+  // DÍA 2: 00:30 (1 slot) y luego 09:00-23:45 (20 bloques de 45 min)
   const day2Date = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  
+  // Primer slot: 00:30 - 01:15
+  slots.push({
+    day: 2,
+    start: '00:30',
+    end: '01:15',
+    date: formatDateSafe(day2Date),
+    tournament_day: 2,
+    id: `day2_0`,
+    label: `Día 2 - 00:30`,
+    courts: courtsAvailable,
+    max_capacity: courtsAvailable
+  });
+
+  // Resto de slots: 09:00 - 23:45 (20 slots)
   for (let i = 0; i < 20; i++) {
-    const hour = 8 + Math.floor(i * 45 / 60);
-    const minute = (i * 45) % 60;
+    const totalMinutes = 9 * 60 + (i * 45); // Empieza a las 09:00
+    const hour = Math.floor(totalMinutes / 60);
+    const minute = totalMinutes % 60;
     const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 
     slots.push({
@@ -5246,7 +5296,7 @@ function generateSimpleTimeSlots(startDate, endDate, courtsAvailable = 2) {
       end: addMinutesToTime(timeStr, 45),
       date: formatDateSafe(day2Date),
       tournament_day: 2,
-      id: `day2_${i}`,
+      id: `day2_${i + 1}`,
       label: `Día 2 - ${timeStr}`,
       courts: courtsAvailable, // ✅ Capacidad por slot = número de canchas
       max_capacity: courtsAvailable
@@ -5268,6 +5318,89 @@ export async function scheduleMatchesController(req, res) {
   console.log(`\n🎾 [AUTO-SCHEDULING] Endpoint llamado para torneo: ${tournament_id}`);
 
   try {
+    // ✨ VALIDACIÓN: Verificar que todas las categorías del evento tengan cupos completos
+    const { data: currentTournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('id, name, start_date, end_date, max_teams, tournament_type')
+      .eq('id', tournament_id)
+      .single();
+
+    if (tournamentError || !currentTournament) {
+      return res.status(404).json({
+        message: 'Torneo no encontrado',
+        error: tournamentError?.message
+      });
+    }
+
+    // Obtener todas las categorías del mismo evento (mismas fechas)
+    const { data: eventTournaments, error: eventError } = await supabase
+      .from('tournaments')
+      .select('id, name, max_teams, tournament_type, category_id')
+      .eq('start_date', currentTournament.start_date)
+      .eq('end_date', currentTournament.end_date);
+
+    if (eventError) {
+      return res.status(500).json({
+        message: 'Error obteniendo categorías del evento',
+        error: eventError.message
+      });
+    }
+
+    console.log(`📊 [VALIDACIÓN] Verificando ${eventTournaments?.length || 0} categorías del evento...`);
+
+    // Verificar que cada categoría tenga sus cupos completos
+    const incompleteCategories = [];
+    
+    for (const categoryTournament of eventTournaments || []) {
+      // Obtener número de equipos inscritos en esta categoría
+      const { data: teams, error: teamsError } = await supabase
+        .from('tournament_teams')
+        .select('team_id', { count: 'exact' })
+        .eq('tournament_id', categoryTournament.id);
+
+      if (teamsError) {
+        console.error(`⚠️  Error obteniendo equipos de categoría ${categoryTournament.id}:`, teamsError);
+        continue;
+      }
+
+      const teamsCount = teams?.length || 0;
+      const maxTeams = categoryTournament.max_teams || 12;
+      const isComplete = teamsCount >= maxTeams;
+
+      console.log(`   📋 Categoría ${categoryTournament.id.slice(0, 8)}: ${teamsCount}/${maxTeams} equipos ${isComplete ? '✅' : '❌'}`);
+
+      if (!isComplete) {
+        incompleteCategories.push({
+          tournament_id: categoryTournament.id,
+          category_name: categoryTournament.name || 'Sin nombre',
+          teams_registered: teamsCount,
+          max_teams: maxTeams,
+          missing: maxTeams - teamsCount
+        });
+      }
+    }
+
+    // Si hay categorías incompletas, retornar error
+    if (incompleteCategories.length > 0) {
+      console.log(`❌ [VALIDACIÓN] ${incompleteCategories.length} categoría(s) sin cupos completos`);
+      
+      return res.status(400).json({
+        message: 'No se puede ejecutar el auto-scheduling hasta que todas las categorías tengan sus cupos completos',
+        incomplete_categories: incompleteCategories,
+        total_categories: eventTournaments?.length || 0,
+        incomplete_count: incompleteCategories.length,
+        details: incompleteCategories.map(cat => ({
+          category: cat.category_name,
+          registered: cat.teams_registered,
+          max: cat.max_teams,
+          missing: cat.missing
+        }))
+      });
+    }
+
+    console.log(`✅ [VALIDACIÓN] Todas las categorías tienen cupos completos. Procediendo con auto-scheduling...`);
+
+    // Si todas las categorías están completas, proceder con el auto-scheduling
     const result = await autoScheduleMatches(tournament_id);
 
     return res.status(200).json({
@@ -5414,4 +5547,689 @@ export async function getTournamentVenues(req, res) {
     console.error('Error en getTournamentVenues:', error);
     res.status(500).json({ message: 'Error interno del servidor', error: error.message });
   }
+}
+
+// ========================================
+// 🎛️ GESTIÓN MANUAL DE GRUPOS Y PARTIDOS
+// ========================================
+
+/**
+ * 📅 ASIGNAR/CAMBIAR DÍA A UN GRUPO MANUALMENTE
+ * PATCH /tournaments/:id/groups/:groupId/assign-day
+ */
+export async function assignDayToGroupController(req, res) {
+  const { id: tournamentId, groupId } = req.params;
+  const { tournament_day } = req.body;
+
+  try {
+    // Validaciones
+    if (!tournament_day || ![1, 2].includes(tournament_day)) {
+      return res.status(400).json({ 
+        message: 'tournament_day es requerido y debe ser 1 o 2' 
+      });
+    }
+
+    // 1. Verificar que el grupo existe
+    const { data: group, error: groupError } = await supabase
+      .from('tournament_groups')
+      .select('id, group_number, preferred_day, teams')
+      .eq('id', groupId)
+      .eq('tournament_id', tournamentId)
+      .single();
+
+    if (groupError || !group) {
+      return res.status(404).json({ message: 'Grupo no encontrado en este torneo' });
+    }
+
+    const previousDay = group.preferred_day;
+
+    // 2. Actualizar preferred_day del grupo
+    const { error: updateGroupError } = await supabase
+      .from('tournament_groups')
+      .update({ 
+        preferred_day: tournament_day === 1 ? 'DAY_1' : 'DAY_2',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', groupId);
+
+    if (updateGroupError) {
+      throw updateGroupError;
+    }
+
+    // 3. Actualizar tournament_day de todos los partidos del grupo
+    const { data: groupMatches, error: matchesError } = await supabase
+      .from('tournament_matches')
+      .select('id, start_time, court_id')
+      .eq('group_id', groupId)
+      .eq('tournament_id', tournamentId);
+
+    if (matchesError) {
+      throw matchesError;
+    }
+
+    const previouslyScheduled = groupMatches.filter(m => m.start_time !== null).length;
+    const readyForAutoScheduling = groupMatches.length - previouslyScheduled;
+
+    // Actualizar tournament_day de todos los partidos
+    const { error: updateMatchesError } = await supabase
+      .from('tournament_matches')
+      .update({ 
+        tournament_day: tournament_day,
+        // Si el partido ya tenía hora/cancha asignada, mantenerla
+        // Si no, se puede programar automáticamente después
+      })
+      .eq('group_id', groupId)
+      .eq('tournament_id', tournamentId);
+
+    if (updateMatchesError) {
+      throw updateMatchesError;
+    }
+
+    // 4. Obtener restricciones de los equipos del grupo
+    const teamIds = Array.isArray(group.teams) ? group.teams : [];
+    const { data: teamRestrictions } = await supabase
+      .from('tournament_teams')
+      .select('team_id, unavailable_times')
+      .eq('tournament_id', tournamentId)
+      .in('team_id', teamIds);
+
+    const restrictions = {
+      total_teams: teamIds.length,
+      teams_with_restrictions: teamRestrictions?.filter(tr => tr.unavailable_times && tr.unavailable_times.length > 0).length || 0,
+      total_restrictions: teamRestrictions?.reduce((sum, tr) => sum + (tr.unavailable_times?.length || 0), 0) || 0,
+      restricted_times: [...new Set(teamRestrictions?.flatMap(tr => tr.unavailable_times || []) || [])]
+    };
+
+    // Verificar si hay conflictos con el día asignado
+    const dayRestrictions = restrictions.restricted_times.filter(rt => {
+      if (rt.startsWith(`slot_day${tournament_day}_`)) return true;
+      return false;
+    });
+
+    const warning = dayRestrictions.length > 0 
+      ? `⚠️ Advertencia: ${dayRestrictions.length} equipos tienen restricciones en el día ${tournament_day} asignado`
+      : undefined;
+
+    console.log(`✅ Día asignado manualmente al grupo ${group.group_number}: ${previousDay || 'SIN DÍA'} → DÍA ${tournament_day}`);
+
+    res.json({
+      message: `Día ${tournament_day} asignado exitosamente al grupo ${group.group_number}`,
+      tournament: {
+        id: tournamentId,
+        name: (await supabase.from('tournaments').select('name').eq('id', tournamentId).single()).data?.name
+      },
+      group: {
+        id: group.id,
+        group_number: group.group_number,
+        teams_count: teamIds.length,
+        previous_day: previousDay || 'SIN ASIGNAR',
+        new_day: `DÍA ${tournament_day}`,
+        is_homogeneous: true
+      },
+      matches: {
+        total: groupMatches.length,
+        updated: groupMatches.length,
+        previously_scheduled: previouslyScheduled,
+        ready_for_auto_scheduling: readyForAutoScheduling
+      },
+      restrictions: {
+        ...restrictions,
+        warning
+      },
+      next_steps: {
+        action: readyForAutoScheduling > 0 ? 'Ejecutar auto-scheduling' : 'Listo para jugar',
+        endpoint: readyForAutoScheduling > 0 ? `POST /tournaments/${tournamentId}/schedule-matches` : undefined,
+        description: readyForAutoScheduling > 0 
+          ? `${readyForAutoScheduling} partidos están listos para programación automática`
+          : 'Todos los partidos del grupo ya tienen horario asignado'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error asignando día al grupo:', error);
+    res.status(500).json({ 
+      message: 'Error interno al asignar día al grupo',
+      error: error.message 
+    });
+  }
+}
+
+/**
+ * 🎾 REASIGNAR PARTIDO MANUALMENTE (día, hora, cancha)
+ * PUT /tournaments/:id/matches/:matchId/schedule
+ */
+export async function rescheduleMatchController(req, res) {
+  const { id: tournamentId, matchId } = req.params;
+  const { tournament_day, start_time, court_id, venue_id } = req.body;
+
+  try {
+    // Validaciones básicas
+    if (tournament_day !== undefined && ![1, 2, 3].includes(tournament_day)) {
+      return res.status(400).json({ 
+        message: 'tournament_day debe ser 1, 2 o 3' 
+      });
+    }
+
+    if (start_time && !/^\d{2}:\d{2}(:\d{2})?$/.test(start_time)) {
+      return res.status(400).json({ 
+        message: 'start_time debe estar en formato HH:MM o HH:MM:SS' 
+      });
+    }
+
+    // 1. Obtener el partido actual
+    const { data: match, error: matchError } = await supabase
+      .from('tournament_matches')
+      .select(`
+        id,
+        tournament_id,
+        home_team_id,
+        away_team_id,
+        tournament_day,
+        start_time,
+        court_id,
+        venue_id,
+        group_number,
+        match_number,
+        stage
+      `)
+      .eq('id', matchId)
+      .eq('tournament_id', tournamentId)
+      .single();
+
+    if (matchError || !match) {
+      return res.status(404).json({ message: 'Partido no encontrado en este torneo' });
+    }
+
+    // 2. Validar conflictos si se está cambiando hora/cancha
+    if (start_time || court_id) {
+      const conflicts = await validateMatchScheduleConflict(
+        tournamentId,
+        matchId,
+        tournament_day !== undefined ? tournament_day : match.tournament_day,
+        start_time || match.start_time,
+        court_id || match.court_id
+      );
+
+      if (conflicts.has_conflicts) {
+        return res.status(400).json({
+          message: 'El horario/cancha seleccionado tiene conflictos',
+          conflicts: conflicts.details
+        });
+      }
+    }
+
+    // 3. Validar restricciones de equipos si se está cambiando día/hora
+    if (tournament_day !== undefined || start_time) {
+      const dayToCheck = tournament_day !== undefined ? tournament_day : match.tournament_day;
+      const timeToCheck = start_time || match.start_time;
+
+      if (dayToCheck && timeToCheck) {
+        const teamRestrictions = await checkTeamRestrictions(
+          tournamentId,
+          match.home_team_id,
+          match.away_team_id,
+          dayToCheck,
+          timeToCheck
+        );
+
+        if (teamRestrictions.has_conflicts) {
+          return res.status(400).json({
+            message: 'Uno o ambos equipos tienen restricciones en el horario seleccionado',
+            restrictions: teamRestrictions.details
+          });
+        }
+      }
+    }
+
+    // 4. Preparar datos de actualización
+    const updateData = {
+      updated_at: new Date().toISOString()
+    };
+
+    if (tournament_day !== undefined) {
+      updateData.tournament_day = tournament_day;
+    }
+
+    if (start_time !== undefined) {
+      updateData.start_time = start_time;
+      updateData.status = 'scheduled';
+    }
+
+    if (court_id !== undefined) {
+      updateData.court_id = court_id;
+    }
+
+    if (venue_id !== undefined) {
+      updateData.venue_id = venue_id;
+    }
+
+    // 5. Actualizar el partido
+    const { data: updatedMatch, error: updateError } = await supabase
+      .from('tournament_matches')
+      .update(updateData)
+      .eq('id', matchId)
+      .select(`
+        id,
+        tournament_day,
+        start_time,
+        court_id,
+        venue_id,
+        status
+      `)
+      .single();
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    console.log(`✅ Partido ${match.group_number}-${match.match_number} reasignado:`);
+    console.log(`   Día: ${match.tournament_day} → ${updatedMatch.tournament_day}`);
+    console.log(`   Hora: ${match.start_time || 'SIN HORA'} → ${updatedMatch.start_time || 'SIN HORA'}`);
+    console.log(`   Cancha: ${match.court_id || 'SIN CANCHA'} → ${updatedMatch.court_id || 'SIN CANCHA'}`);
+
+    res.json({
+      message: 'Partido reasignado exitosamente',
+      match: {
+        id: updatedMatch.id,
+        previous: {
+          tournament_day: match.tournament_day,
+          start_time: match.start_time,
+          court_id: match.court_id,
+          venue_id: match.venue_id
+        },
+        current: {
+          tournament_day: updatedMatch.tournament_day,
+          start_time: updatedMatch.start_time,
+          court_id: updatedMatch.court_id,
+          venue_id: updatedMatch.venue_id,
+          status: updatedMatch.status
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error reasignando partido:', error);
+    res.status(500).json({ 
+      message: 'Error interno al reasignar partido',
+      error: error.message 
+    });
+  }
+}
+
+/**
+ * 📋 OBTENER PARTIDOS SIN PROGRAMAR
+ * GET /tournaments/:id/matches/unscheduled
+ */
+export async function getUnscheduledMatchesController(req, res) {
+  const { id: tournamentId } = req.params;
+
+  try {
+    // Obtener partidos sin día, sin hora, o sin cancha
+    const { data: matches, error: matchesError } = await supabase
+      .from('tournament_matches')
+      .select(`
+        id,
+        group_number,
+        match_number,
+        tournament_day,
+        start_time,
+        court_id,
+        home_team_id,
+        away_team_id,
+        stage,
+        status,
+        home_team:teams!home_team_id (
+          id,
+          player1:users!player1_id (first_name, last_name),
+          player2:users!player2_id (first_name, last_name)
+        ),
+        away_team:teams!away_team_id (
+          id,
+          player1:users!player1_id (first_name, last_name),
+          player2:users!player2_id (first_name, last_name)
+        )
+      `)
+      .eq('tournament_id', tournamentId)
+      .eq('stage', 'group')
+      .or('tournament_day.is.null,start_time.is.null,court_id.is.null');
+
+    if (matchesError) {
+      throw matchesError;
+    }
+
+    // Categorizar partidos
+    const categorized = {
+      without_day: matches.filter(m => !m.tournament_day),
+      without_time: matches.filter(m => m.tournament_day && !m.start_time),
+      without_court: matches.filter(m => m.tournament_day && m.start_time && !m.court_id),
+      fully_unscheduled: matches.filter(m => !m.tournament_day && !m.start_time && !m.court_id)
+    };
+
+    res.json({
+      message: 'Partidos sin programar obtenidos exitosamente',
+      summary: {
+        total_unscheduled: matches.length,
+        without_day: categorized.without_day.length,
+        without_time: categorized.without_time.length,
+        without_court: categorized.without_court.length,
+        fully_unscheduled: categorized.fully_unscheduled.length
+      },
+      matches: matches.map(m => ({
+        id: m.id,
+        group_number: m.group_number,
+        match_number: m.match_number,
+        tournament_day: m.tournament_day,
+        start_time: m.start_time,
+        court_id: m.court_id,
+        status: m.status,
+        home_team: m.home_team ? {
+          id: m.home_team.id,
+          players: [
+            `${m.home_team.player1?.first_name} ${m.home_team.player1?.last_name}`,
+            `${m.home_team.player2?.first_name} ${m.home_team.player2?.last_name}`
+          ]
+        } : null,
+        away_team: m.away_team ? {
+          id: m.away_team.id,
+          players: [
+            `${m.away_team.player1?.first_name} ${m.away_team.player1?.last_name}`,
+            `${m.away_team.player2?.first_name} ${m.away_team.player2?.last_name}`
+          ]
+        } : null,
+        needs: {
+          day: !m.tournament_day,
+          time: !m.start_time,
+          court: !m.court_id
+        }
+      })),
+      categorized
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo partidos sin programar:', error);
+    res.status(500).json({ 
+      message: 'Error interno al obtener partidos sin programar',
+      error: error.message 
+    });
+  }
+}
+
+/**
+ * 🕐 OBTENER SLOTS DISPONIBLES PARA UN DÍA ESPECÍFICO
+ * GET /tournaments/:id/available-slots-for-day?day=1
+ */
+export async function getAvailableSlotsForDayController(req, res) {
+  const { id: tournamentId } = req.params;
+  const { day } = req.query;
+
+  try {
+    const tournamentDay = parseInt(day);
+    if (!tournamentDay || ![1, 2].includes(tournamentDay)) {
+      return res.status(400).json({ 
+        message: 'day es requerido y debe ser 1 o 2' 
+      });
+    }
+
+    // 1. Obtener torneo y slots
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('id, name, group_time_slots, start_date, courts_available')
+      .eq('id', tournamentId)
+      .single();
+
+    if (tournamentError || !tournament) {
+      return res.status(404).json({ message: 'Torneo no encontrado' });
+    }
+
+    // 2. Filtrar slots del día solicitado
+    const daySlots = (tournament.group_time_slots || [])
+      .filter(slot => slot.tournament_day === tournamentDay)
+      .sort((a, b) => a.start.localeCompare(b.start));
+
+    // 3. Obtener canchas del torneo
+    const { courts, venueCourtMap } = await getTournamentCourts(tournamentId);
+
+    // 4. Obtener partidos ya programados en este día (de todas las categorías del evento)
+    const { data: eventTournaments } = await supabase
+      .from('tournaments')
+      .select('id')
+      .eq('start_date', tournament.start_date)
+      .eq('end_date', tournament.end_date);
+
+    const eventTournamentIds = eventTournaments?.map(t => t.id) || [];
+
+    const { data: scheduledMatches } = await supabase
+      .from('tournament_matches')
+      .select('start_time, court_id, tournament_day')
+      .in('tournament_id', eventTournamentIds)
+      .eq('tournament_day', tournamentDay)
+      .not('start_time', 'is', null);
+
+    // 5. Calcular disponibilidad por slot
+    const slotsWithAvailability = daySlots.map(slot => {
+      const normalizedTime = slot.start.substring(0, 5); // "17:00:00" → "17:00"
+      
+      // Contar partidos programados en este slot por cancha
+      const usageByCourt = {};
+      courts.forEach(court => {
+        const matchesInSlot = (scheduledMatches || []).filter(m => {
+          const matchTime = m.start_time.substring(0, 5);
+          return matchTime === normalizedTime && m.court_id === court.id;
+        });
+        usageByCourt[court.id] = matchesInSlot.length;
+      });
+
+      const totalOccupied = Object.values(usageByCourt).reduce((sum, count) => sum + count, 0);
+      const totalCapacity = courts.length; // 1 partido por cancha por slot
+      const available = totalCapacity - totalOccupied;
+
+      return {
+        ...slot,
+        availability: {
+          total_capacity: totalCapacity,
+          occupied: totalOccupied,
+          available: available,
+          is_available: available > 0,
+          usage_by_court: usageByCourt
+        }
+      };
+    });
+
+    res.json({
+      message: `Slots disponibles para día ${tournamentDay}`,
+      tournament: {
+        id: tournament.id,
+        name: tournament.name
+      },
+      day: tournamentDay,
+      courts: courts.map(c => ({ id: c.id, name: c.name })),
+      slots: slotsWithAvailability,
+      summary: {
+        total_slots: slotsWithAvailability.length,
+        available_slots: slotsWithAvailability.filter(s => s.availability.is_available).length,
+        fully_occupied_slots: slotsWithAvailability.filter(s => !s.availability.is_available).length,
+        total_capacity: slotsWithAvailability.length * courts.length,
+        total_occupied: slotsWithAvailability.reduce((sum, s) => sum + s.availability.occupied, 0)
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo slots disponibles:', error);
+    res.status(500).json({ 
+      message: 'Error interno al obtener slots disponibles',
+      error: error.message 
+    });
+  }
+}
+
+/**
+ * 🔍 VALIDAR CONFLICTOS DE HORARIO ANTES DE ASIGNAR
+ * POST /tournaments/:id/matches/:matchId/validate-schedule
+ */
+export async function validateMatchScheduleController(req, res) {
+  const { id: tournamentId, matchId } = req.params;
+  const { tournament_day, start_time, court_id } = req.body;
+
+  try {
+    if (!tournament_day || !start_time || !court_id) {
+      return res.status(400).json({ 
+        message: 'tournament_day, start_time y court_id son requeridos' 
+      });
+    }
+
+    const conflicts = await validateMatchScheduleConflict(
+      tournamentId,
+      matchId,
+      tournament_day,
+      start_time,
+      court_id
+    );
+
+    const teamRestrictions = await checkTeamRestrictions(
+      tournamentId,
+      undefined, // Se obtendrá del match
+      undefined,
+      tournament_day,
+      start_time,
+      matchId
+    );
+
+    res.json({
+      valid: !conflicts.has_conflicts && !teamRestrictions.has_conflicts,
+      conflicts: conflicts,
+      team_restrictions: teamRestrictions,
+      can_schedule: !conflicts.has_conflicts && !teamRestrictions.has_conflicts
+    });
+
+  } catch (error) {
+    console.error('❌ Error validando horario:', error);
+    res.status(500).json({ 
+      message: 'Error interno al validar horario',
+      error: error.message 
+    });
+  }
+}
+
+// ========================================
+// 🔧 FUNCIONES AUXILIARES PARA VALIDACIÓN
+// ========================================
+
+/**
+ * Valida conflictos de horario/cancha con otros partidos
+ */
+async function validateMatchScheduleConflict(tournamentId, matchId, tournamentDay, startTime, courtId) {
+  // Normalizar tiempo
+  const normalizedTime = startTime.substring(0, 5); // "17:00:00" → "17:00"
+
+  // Obtener otros partidos en el mismo día, hora y cancha
+  const { data: conflictingMatches, error } = await supabase
+    .from('tournament_matches')
+    .select('id, tournament_id, group_number, match_number, home_team_id, away_team_id')
+    .eq('tournament_day', tournamentDay)
+    .eq('start_time', normalizedTime + ':00') // Normalizar a HH:MM:SS
+    .eq('court_id', courtId)
+    .neq('id', matchId) // Excluir el partido actual
+    .not('status', 'eq', 'cancelled');
+
+  if (error) {
+    throw error;
+  }
+
+  // Verificar también en otras categorías del mismo evento
+  const { data: tournament } = await supabase
+    .from('tournaments')
+    .select('start_date, end_date')
+    .eq('id', tournamentId)
+    .single();
+
+  const { data: eventTournaments } = await supabase
+    .from('tournaments')
+    .select('id')
+    .eq('start_date', tournament.start_date)
+    .eq('end_date', tournament.end_date)
+    .neq('id', tournamentId);
+
+  const eventTournamentIds = eventTournaments?.map(t => t.id) || [];
+
+  const { data: eventConflicts } = await supabase
+    .from('tournament_matches')
+    .select('id, tournament_id, group_number, match_number')
+    .in('tournament_id', eventTournamentIds)
+    .eq('tournament_day', tournamentDay)
+    .eq('start_time', normalizedTime + ':00')
+    .eq('court_id', courtId)
+    .not('status', 'eq', 'cancelled');
+
+  const allConflicts = [...(conflictingMatches || []), ...(eventConflicts || [])];
+
+  return {
+    has_conflicts: allConflicts.length > 0,
+    details: allConflicts.map(m => ({
+      match_id: m.id,
+      tournament_id: m.tournament_id,
+      group: m.group_number,
+      match_number: m.match_number
+    }))
+  };
+}
+
+/**
+ * Verifica restricciones de equipos en un horario específico
+ */
+async function checkTeamRestrictions(tournamentId, homeTeamId, awayTeamId, tournamentDay, startTime, matchId = null) {
+  // Si no se proporcionan team IDs, obtenerlos del match
+  if (!homeTeamId || !awayTeamId) {
+    if (!matchId) {
+      return { has_conflicts: false, details: [] };
+    }
+
+    const { data: match } = await supabase
+      .from('tournament_matches')
+      .select('home_team_id, away_team_id')
+      .eq('id', matchId)
+      .single();
+
+    if (!match) {
+      return { has_conflicts: false, details: [] };
+    }
+
+    homeTeamId = match.home_team_id;
+    awayTeamId = match.away_team_id;
+  }
+
+  // Obtener restricciones de ambos equipos
+  const { data: teamRestrictions } = await supabase
+    .from('tournament_teams')
+    .select('team_id, unavailable_times')
+    .eq('tournament_id', tournamentId)
+    .in('team_id', [homeTeamId, awayTeamId]);
+
+  // Normalizar tiempo para comparación
+  const normalizedTime = startTime.substring(0, 5); // "17:00:00" → "17:00"
+  const slotId = `slot_day${tournamentDay}_${normalizedTime.replace(':', '')}`;
+
+  const conflicts = [];
+
+  teamRestrictions?.forEach(tr => {
+    if (tr.unavailable_times && Array.isArray(tr.unavailable_times)) {
+      const hasConflict = tr.unavailable_times.some(ut => {
+        // Verificar por slot ID o por hora normalizada
+        return ut === slotId || 
+               ut === normalizedTime || 
+               ut.startsWith(`slot_day${tournamentDay}_`) && ut.includes(normalizedTime.replace(':', ''));
+      });
+
+      if (hasConflict) {
+        conflicts.push({
+          team_id: tr.team_id,
+          restrictions: tr.unavailable_times
+        });
+      }
+    }
+  });
+
+  return {
+    has_conflicts: conflicts.length > 0,
+    details: conflicts
+  };
 }

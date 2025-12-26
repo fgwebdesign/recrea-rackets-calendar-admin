@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { FaWhatsapp, FaEdit } from 'react-icons/fa';
 import WhatsAppConfigModal from '../Modals/WhatsAppConfigModal';
 import { toast } from "@/components/ui/use-toast";
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface Integration {
   id: string;
@@ -18,18 +19,19 @@ interface IntegrationPanelState {
   isWhatsAppModalOpen: boolean;
 }
 
-const integrations: Integration[] = [
-  {
-    id: 'whatsapp',
-    name: 'WhatsApp',
-    description: 'Conecta con tu cuenta de WhatsApp Business',
-    icon: '/assets/whatsapp_logo.png',
-    connected: false,
-    phoneNumber: ''
-  }
-];
-
 export default function IntegrationsPanel() {
+  const t = useTranslations('settings');
+  
+  const integrations: Integration[] = [
+    {
+      id: 'whatsapp',
+      name: 'WhatsApp',
+      description: t('integrations.whatsappDescription'),
+      icon: '/assets/whatsapp_logo.png',
+      connected: false,
+      phoneNumber: ''
+    }
+  ];
   const [state, setState] = useState<IntegrationPanelState>({
     whatsappNumber: '',
     isWhatsAppModalOpen: false
@@ -63,7 +65,7 @@ export default function IntegrationsPanel() {
       const token = localStorage.getItem('adminToken');
 
       if (!token) {
-        throw new Error('No hay token de autenticación');
+        throw new Error(t('integrations.noAuthToken'));
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings/whatsapp`, {
@@ -78,7 +80,7 @@ export default function IntegrationsPanel() {
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(responseData.message || 'Error al guardar el número');
+        throw new Error(responseData.message || t('integrations.errorSavingNumber'));
       }
 
       setState(prev => ({ 
@@ -88,16 +90,16 @@ export default function IntegrationsPanel() {
       }));
 
       toast({
-        title: "✅ WhatsApp configurado",
-        description: "El número de WhatsApp Business se ha actualizado correctamente.",
+        title: `✅ ${t('integrations.whatsappConfigured')}`,
+        description: t('integrations.whatsappUpdated'),
         variant: "default",
         className: "border-l-4 border-l-green-500"
       });
 
     } catch (error) {
       toast({
-        title: "❌ Error",
-        description: error instanceof Error ? error.message : 'Error al guardar el número de WhatsApp',
+        title: `❌ ${t('integrations.error')}`,
+        description: error instanceof Error ? error.message : t('integrations.errorSavingWhatsapp'),
         variant: "destructive",
         className: "border-l-4 border-l-red-500"
       });
@@ -109,8 +111,8 @@ export default function IntegrationsPanel() {
       <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Integraciones</h2>
-            <p className="text-gray-600 dark:text-gray-400">Conecta tus aplicaciones y servicios favoritos</p>
+            <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">{t('integrations.title')}</h2>
+            <p className="text-gray-600 dark:text-gray-400">{t('integrations.description')}</p>
           </div>
         </div>
 
@@ -150,7 +152,7 @@ export default function IntegrationsPanel() {
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                 >
-                  {integration.id === 'whatsapp' && state.whatsappNumber ? 'Configurado' : 'Conectar'}
+                  {integration.id === 'whatsapp' && state.whatsappNumber ? t('integrations.configured') : t('integrations.connect')}
                 </button>
               </div>
               {integration.id === 'whatsapp' && state.whatsappNumber && (
@@ -159,7 +161,7 @@ export default function IntegrationsPanel() {
                     <div className="flex items-center space-x-2">
                       <FaWhatsapp className="w-4 h-4 text-green-600 dark:text-green-400" />
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Número configurado:
+                        {t('integrations.configuredNumber')}
                       </span>
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         +598 {state.whatsappNumber}
@@ -171,7 +173,7 @@ export default function IntegrationsPanel() {
                                dark:hover:text-blue-300 flex items-center space-x-1"
                     >
                       <FaEdit className="w-3 h-3" />
-                      <span>Editar</span>
+                      <span>{t('integrations.edit')}</span>
                     </button>
                   </div>
                 </div>

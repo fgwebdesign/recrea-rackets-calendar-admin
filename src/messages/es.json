@@ -18,7 +18,8 @@
     "close": "Cerrar",
     "open": "Abrir",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "understood": "Entendido"
   },
   "navigation": {
     "dashboard": "Panel de Control",
@@ -106,6 +107,18 @@
       "noSponsors": "Sin patrocinadores",
       "registrations": "Inscripciones",
       "full": "¡Completo!"
+    },
+    "autoScheduling": {
+      "incompleteCategories": {
+        "title": "Categorías Incompletas",
+        "description": "No se puede ejecutar el auto-scheduling hasta que todas las categorías tengan sus cupos completos.",
+        "alertTitle": "Auto-scheduling bloqueado",
+        "alertDescription": "{incomplete} de {total} categoría(s) aún no tienen sus cupos completos.",
+        "categoriesList": "Categorías que necesitan más equipos:",
+        "registered": "{registered}/{max} equipos",
+        "missing": "Faltan {missing}",
+        "helpText": "Por favor, completa los cupos de todas las categorías antes de ejecutar el auto-scheduling. Esto asegura una mejor distribución de horarios entre todas las categorías del evento."
+      }
     }
   },
   "leagues": {

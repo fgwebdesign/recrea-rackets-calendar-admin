@@ -18,7 +18,8 @@
     "close": "Close",
     "open": "Open",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "understood": "Understood"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -106,6 +107,18 @@
       "noSponsors": "No sponsors",
       "registrations": "Registrations",
       "full": "Full!"
+    },
+    "autoScheduling": {
+      "incompleteCategories": {
+        "title": "Incomplete Categories",
+        "description": "Auto-scheduling cannot be executed until all categories have their full quotas.",
+        "alertTitle": "Auto-scheduling blocked",
+        "alertDescription": "{incomplete} of {total} categor(ies) do not have their full quotas yet.",
+        "categoriesList": "Categories that need more teams:",
+        "registered": "{registered}/{max} teams",
+        "missing": "Missing {missing}",
+        "helpText": "Please complete the quotas for all categories before executing auto-scheduling. This ensures better time slot distribution among all event categories."
+      }
     }
   },
   "leagues": {

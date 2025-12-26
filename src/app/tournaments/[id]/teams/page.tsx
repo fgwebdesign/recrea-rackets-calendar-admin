@@ -214,7 +214,12 @@ export default function TournamentTeamsPage() {
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {teams.map((team, index) => (
-                    <TeamCard key={team.team_id || team.id || index} team={team} index={index} />
+                    <TeamCard 
+                      key={team.team_id || team.id || index} 
+                      team={team} 
+                      index={index}
+                      tournamentStartDate={tournament?.start_date}
+                    />
                   ))}
                 </div>
               </div>

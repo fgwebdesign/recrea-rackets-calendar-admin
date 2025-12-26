@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from "@/components/ui/use-toast";
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface AdminData {
   first_name: string;
@@ -8,6 +9,7 @@ interface AdminData {
 }
 
 export default function ProfileSettings() {
+  const t = useTranslations('settings');
   const [profile, setProfile] = useState<AdminData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,7 +17,7 @@ export default function ProfileSettings() {
     async function loadProfile() {
       try {
         const token = localStorage.getItem('adminToken');
-        if (!token) throw new Error('No se encontró token');
+        if (!token) throw new Error(t('profile.tokenNotFound'));
 
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
           headers: {
@@ -23,14 +25,15 @@ export default function ProfileSettings() {
           }
         });
 
-        if (!response.ok) throw new Error('Error al cargar el perfil');
+        if (!response.ok) throw new Error(t('profile.errorLoadingProfile'));
         const data = await response.json();
         setProfile(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar el perfil');
+        const errorMessage = err instanceof Error ? err.message : t('profile.errorLoadingProfile');
+        setError(errorMessage);
         toast({
-          title: "❌ Error",
-          description: err instanceof Error ? err.message : 'Error al cargar el perfil',
+          title: `❌ ${t('profile.error')}`,
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -46,17 +49,17 @@ export default function ProfileSettings() {
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
-          Perfil
+          {t('profile.title')}
         </h2>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Información personal
+          {t('profile.personalInfo')}
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Nombre
+            {t('profile.firstName')}
           </label>
           <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                        text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700">
@@ -66,7 +69,7 @@ export default function ProfileSettings() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Apellido
+            {t('profile.lastName')}
           </label>
           <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                        text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700">
@@ -76,7 +79,7 @@ export default function ProfileSettings() {
 
         <div className="col-span-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Email
+            {t('profile.email')}
           </label>
           <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                        text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700">

@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaUser, FaKey, FaPlug } from 'react-icons/fa';
+import { useTranslations } from '@/contexts/TranslationContext';
 
 interface SettingsTabsProps {
   activeTab: string;
@@ -7,10 +8,12 @@ interface SettingsTabsProps {
 }
 
 export default function SettingsTabs({ activeTab, onTabChange }: SettingsTabsProps) {
+  const t = useTranslations('settings');
+  
   const tabs = [
-    { id: 'profile', label: 'Perfil', icon: FaUser },
-    { id: 'integrations', label: 'Integraciones', icon: FaPlug },
-    { id: 'password', label: 'Contraseña', icon: FaKey },
+    { id: 'profile', label: t('tabs.profile'), icon: FaUser },
+    { id: 'integrations', label: t('tabs.integrations'), icon: FaPlug },
+    { id: 'password', label: t('tabs.password'), icon: FaKey },
   ];
 
   return (

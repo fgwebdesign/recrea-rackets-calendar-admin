@@ -1,33 +1,35 @@
 import React from 'react';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
 import { CreditCardIcon, CalendarIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
-
-const subscriptionData = {
-  status: 'active',
-  plan: 'Premium',
-  amount: 90,
-  features: [
-    'Acceso completo a la plataforma',
-    'Soporte prioritario 24/7',
-    'Backup automático',
-    'Actualizaciones premium'
-  ]
-};
+import { useTranslations } from '@/contexts/TranslationContext';
 
 export default function SubscriptionPanel() {
+  const t = useTranslations('settings');
+  
+  const subscriptionData = {
+    status: 'active',
+    plan: 'Premium',
+    amount: 90,
+    features: [
+      t('subscription.fullPlatformAccess'),
+      t('subscription.prioritySupport'),
+      t('subscription.autoBackup'),
+      t('subscription.premiumUpdates')
+    ]
+  };
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
-              Suscripción
+              {t('subscription.title')}
             </h2>
-            <p className="text-gray-600 dark:text-gray-400">Estado de tu membresía</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('subscription.membershipStatus')}</p>
           </div>
           <div className="flex items-center gap-2 bg-green-100 dark:bg-green-900/50 px-4 py-2 rounded-full">
             <CheckCircleIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
-            <span className="text-green-700 dark:text-green-300 font-medium">Activa</span>
+            <span className="text-green-700 dark:text-green-300 font-medium">{t('subscription.active')}</span>
           </div>
         </div>
 
@@ -35,10 +37,9 @@ export default function SubscriptionPanel() {
           <div className="flex gap-3">
             <InformationCircleIcon className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">Contrato Anual</h3>
+              <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">{t('subscription.annualContract')}</h3>
               <p className="text-sm text-blue-600 dark:text-blue-300">
-                Tu suscripción tiene un compromiso mínimo de 12 meses. Este período garantiza la continuidad 
-                del servicio y el acceso a todas las funcionalidades de la plataforma.
+                {t('subscription.annualContractDescription')}
               </p>
             </div>
           </div>
@@ -48,26 +49,26 @@ export default function SubscriptionPanel() {
           <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
             <div className="flex items-center gap-2 mb-2">
               <CreditCardIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              <h3 className="font-medium text-gray-900 dark:text-white">Plan Premium</h3>
+              <h3 className="font-medium text-gray-900 dark:text-white">{t('subscription.premiumPlan')}</h3>
             </div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">$90 USD</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">por mes</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('subscription.perMonth')}</p>
           </div>
 
           <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
             <div className="flex items-center gap-2 mb-2">
               <CalendarIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              <h3 className="font-medium text-gray-900 dark:text-white">Facturación</h3>
+              <h3 className="font-medium text-gray-900 dark:text-white">{t('subscription.billing')}</h3>
             </div>
-            <p className="text-gray-900 dark:text-white">Mensual</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Cargo automático</p>
+            <p className="text-gray-900 dark:text-white">{t('subscription.monthly')}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('subscription.autoCharge')}</p>
           </div>
         </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Características incluidas
+          {t('subscription.includedFeatures')}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {subscriptionData.features.map((feature, index) => (

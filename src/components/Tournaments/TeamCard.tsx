@@ -29,10 +29,42 @@ interface Team {
 interface TeamCardProps {
   team: Team;
   index: number;
+  tournamentStartDate?: string; // Fecha de inicio del torneo (YYYY-MM-DD)
 }
 
-export function TeamCard({ team, index }: TeamCardProps) {
+export function TeamCard({ team, index, tournamentStartDate }: TeamCardProps) {
   const t = useTranslations('tournaments');
+  
+  // Función para obtener la fecha del calendario para un día del torneo
+  const getCalendarDateForTournamentDay = (tournamentDay: number): string | null => {
+    if (!tournamentStartDate) return null;
+    
+    try {
+      // Parsear fecha sin problemas de zona horaria
+      const dateParts = tournamentStartDate.split('T')[0].split('-');
+      if (dateParts.length !== 3) return null;
+      
+      const year = parseInt(dateParts[0], 10);
+      const month = parseInt(dateParts[1], 10) - 1;
+      const day = parseInt(dateParts[2], 10);
+      
+      // Crear fecha en zona horaria local
+      const startDate = new Date(year, month, day);
+      
+      // Día 1 = start_date, Día 2 = start_date + 1 día, Día 3 = start_date + 2 días
+      const matchDate = new Date(startDate);
+      matchDate.setDate(startDate.getDate() + (tournamentDay - 1));
+      
+      // Formatear como "6 feb" (día y mes abreviado)
+      return matchDate.toLocaleDateString('es-ES', { 
+        day: 'numeric', 
+        month: 'short' 
+      });
+    } catch (error) {
+      console.error('Error calculando fecha:', error);
+      return null;
+    }
+  };
   
   const getPlayerInitials = (player: { first_name?: string; last_name?: string } | undefined) => {
     if (!player?.first_name) return '?';
@@ -81,6 +113,7 @@ export function TeamCard({ team, index }: TeamCardProps) {
       const slotMatch = slotId.match(/slot_day(\d+)_(\d+)/);
       if (slotMatch) {
         const day = slotMatch[1];
+        const dayNumber = parseInt(day, 10);
         const time = slotMatch[2];
         
         // Formatear la hora (1700 -> 17:00, 1745 -> 17:45)
@@ -88,6 +121,14 @@ export function TeamCard({ team, index }: TeamCardProps) {
         
         // Mapear el día con nombre del día de la semana si es posible
         const dayText = day === '1' ? 'Día 1' : day === '2' ? 'Día 2' : `Día ${day}`;
+        
+        // Obtener la fecha del calendario si está disponible
+        const calendarDate = getCalendarDateForTournamentDay(dayNumber);
+        
+        // Si hay fecha, mostrarla junto al día
+        if (calendarDate) {
+          return `${dayText} (${calendarDate}) - ${formattedTime}`;
+        }
         
         return `${dayText} - ${formattedTime}`;
       }

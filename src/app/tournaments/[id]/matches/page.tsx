@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTournament } from '@/hooks/useTournaments';
 import { useCategories } from '@/hooks/useCategories';
@@ -26,13 +26,20 @@ import {
   Target,
   AlertCircle,
   ArrowLeft,
-  CalendarDays
+  CalendarDays,
+  Settings
 } from 'lucide-react';
 import { TournamentMatch } from '@/types/tournament';
 import { TournamentMatchModal } from '@/components/Tournaments/TournamentMatchModal';
 import { getCategoryName } from '@/utils/category';
 import EliminationBracketGenerator from '@/components/Tournaments/EliminationBracketGenerator';
 import { useTranslations } from '@/contexts/TranslationContext';
+import { IncompleteCategoriesModal } from '@/components/Tournaments/admin/IncompleteCategoriesModal';
+import { useToast } from '@/hooks/use-toast';
+import { UnscheduledMatchesView } from '@/components/Tournaments/admin/UnscheduledMatchesView';
+import { AvailableSlotsView } from '@/components/Tournaments/admin/AvailableSlotsView';
+import { GroupDayAssigner } from '@/components/Tournaments/admin/GroupDayAssigner';
+import { MatchRescheduler } from '@/components/Tournaments/admin/MatchRescheduler';
 
 interface MatchResult {
   matchId: string;
@@ -57,6 +64,7 @@ export default function TournamentMatchesPage() {
   
   const { tournament, matches, teams, loading, error, refetch } = useTournament(tournamentId);
   const { categories } = useCategories();
+  const { toast } = useToast();
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
   const [isSchedulingMatches, setIsSchedulingMatches] = useState(false);
   const [isUpdatingResult, setIsUpdatingResult] = useState<string | null>(null);
@@ -67,12 +75,57 @@ export default function TournamentMatchesPage() {
   const [savingResult, setSavingResult] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [modalSuccess, setModalSuccess] = useState<string | null>(null);
+  const [showIncompleteCategoriesModal, setShowIncompleteCategoriesModal] = useState(false);
+  const [incompleteCategoriesData, setIncompleteCategoriesData] = useState<{
+    incompleteCategories: Array<{category: string; registered: number; max: number; missing: number}>;
+    totalCategories: number;
+    incompleteCount: number;
+  } | null>(null);
   
   // Estado para la fase eliminatoria
   const [, setBracketData] = useState<unknown>(null);
   
   // Estado para el tab activo
   const [activeTab, setActiveTab] = useState('groups');
+  
+  // Estado para gestión manual
+  interface GroupForDayAssign {
+    id: string;
+    group_number: number;
+    preferred_day: 'DAY_1' | 'DAY_2' | null;
+    is_homogeneous: boolean;
+  }
+
+  interface MatchForReschedule {
+    id: string;
+    group_number: number;
+    match_number: number;
+    tournament_day: number | null;
+    start_time: string | null;
+    court_id: string | null;
+    home_team: {
+      id?: string;
+      team_id?: string;
+      team_name?: string;
+      players?: string[] | {
+        player1?: { first_name?: string; last_name?: string };
+        player2?: { first_name?: string; last_name?: string };
+      };
+    } | null;
+    away_team: {
+      id?: string;
+      team_id?: string;
+      team_name?: string;
+      players?: string[] | {
+        player1?: { first_name?: string; last_name?: string };
+        player2?: { first_name?: string; last_name?: string };
+      };
+    } | null;
+  }
+
+  const [selectedMatchForReschedule, setSelectedMatchForReschedule] = useState<MatchForReschedule | null>(null);
+  const [selectedGroupForDayAssign, setSelectedGroupForDayAssign] = useState<GroupForDayAssign | null>(null);
+  const [groups, setGroups] = useState<GroupForDayAssign[]>([]);
 
   // Calcular estadísticas
   const totalMatches = Array.isArray(matches) ? matches.length : 0;
@@ -82,11 +135,16 @@ export default function TournamentMatchesPage() {
   
   // Verificar si hay partidos sin programar (sin fecha, hora o cancha)
   const unprogrammedMatches = Array.isArray(matches) ? 
-    matches.filter(m => !m.match_day || !m.start_time || !m.court_id).length : 0;
+    matches.filter(m => !m.tournament_day || !m.start_time || !m.court_id).length : 0;
   
   // Verificar si hay partidos con día asignado pero sin programar (para auto-scheduling)
+  // IMPORTANTE: Solo días 1 y 2 (fase de grupos). El día 3 es para eliminatorias.
   const unscheduledMatches = Array.isArray(matches) ? 
-    matches.filter(m => m.match_day && !m.start_time).length : 0;
+    matches.filter(m => 
+      m.stage === 'group' && 
+      (m.tournament_day === 1 || m.tournament_day === 2) && 
+      !m.start_time
+    ).length : 0;
   
   // Detectar si ya existen partidos eliminatorios
   const hasEliminationMatches = Array.isArray(matches) ? 
@@ -96,6 +154,39 @@ export default function TournamentMatchesPage() {
   const handleBracketGenerated = (data: unknown) => {
     setBracketData(data);
   };
+
+  // Cargar grupos
+  const loadGroups = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      if (!token) return;
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/groups`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setGroups(data.groups || []);
+      }
+    } catch (error) {
+      console.error('Error loading groups:', error);
+    }
+  };
+
+  // Cargar grupos cuando se cambia el tab a manual
+  useEffect(() => {
+    if (activeTab === 'manual') {
+      loadGroups();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, tournamentId]);
 
   // Debug: verificar datos de partidos en la página
   console.log('🔍 Matches in page:', matches);
@@ -286,7 +377,7 @@ export default function TournamentMatchesPage() {
       }
 
       // ✅ Usar el endpoint de auto-scheduling del backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/auto-schedule`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/schedule-matches`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -296,6 +387,18 @@ export default function TournamentMatchesPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // ✨ Manejar error de categorías incompletas con modal visual
+        if (response.status === 400 && errorData.incomplete_categories) {
+          setIncompleteCategoriesData({
+            incompleteCategories: errorData.details || [],
+            totalCategories: errorData.total_categories || 0,
+            incompleteCount: errorData.incomplete_count || 0,
+          });
+          setShowIncompleteCategoriesModal(true);
+          return;
+        }
+        
         throw new Error(errorData.message || 'Error al programar partidos automáticamente');
       }
 
@@ -307,6 +410,7 @@ export default function TournamentMatchesPage() {
       alert(`🎾 Auto-scheduling completado!\n\n✅ Partidos programados: ${scheduled}\n❌ Partidos sin programar: ${failed}\n📊 Total procesados: ${total}\n🎯 Tasa de éxito: ${success_rate}`);
       
       // Recargar datos para mostrar los horarios y canchas asignados
+      
       await refetch();
       
     } catch (error: unknown) {
@@ -486,7 +590,7 @@ export default function TournamentMatchesPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <TabsList className="grid grid-cols-2 w-auto bg-gray-100 dark:bg-gray-700">
+              <TabsList className="grid grid-cols-3 w-auto bg-gray-100 dark:bg-gray-700">
                 <TabsTrigger 
                   value="groups" 
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-blue-400"
@@ -501,6 +605,13 @@ export default function TournamentMatchesPage() {
                   <Trophy className="h-4 w-4" />
                   Bracket Eliminatorio
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="manual" 
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-blue-400"
+                >
+                  <Settings className="h-4 w-4" />
+                  Gestión Manual
+                </TabsTrigger>
               </TabsList>
               
               <div className="flex items-center gap-2">
@@ -514,6 +625,22 @@ export default function TournamentMatchesPage() {
                   Actualizar
                 </Button>
                 
+                {unscheduledMatches > 0 && (
+                  <Button
+                    size="sm"
+                    onClick={handleScheduleMatches}
+                    disabled={isSchedulingMatches}
+                    className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                  >
+                    {isSchedulingMatches ? (
+                      <RefreshCw className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <CalendarDays className="h-3 w-3" />
+                    )}
+                    {isSchedulingMatches ? 'Programando...' : `Programar (${unscheduledMatches})`}
+                  </Button>
+                )}
+
                 {activeTab === 'groups' && (
                   <>
                     {totalMatches === 0 && (
@@ -529,22 +656,6 @@ export default function TournamentMatchesPage() {
                           <Plus className="h-3 w-3" />
                         )}
                         {isGeneratingMatches ? 'Generando...' : 'Generar Partidos'}
-                      </Button>
-                    )}
-
-                    {totalMatches > 0 && unscheduledMatches > 0 && (
-                      <Button
-                        size="sm"
-                        onClick={handleScheduleMatches}
-                        disabled={isSchedulingMatches}
-                        className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                      >
-                        {isSchedulingMatches ? (
-                          <RefreshCw className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <CalendarDays className="h-3 w-3" />
-                        )}
-                        {isSchedulingMatches ? 'Programando...' : `Programar (${unscheduledMatches})`}
                       </Button>
                     )}
                   </>
@@ -1342,8 +1453,175 @@ export default function TournamentMatchesPage() {
             )}
             
             </TabsContent>
+
+            {/* Tab Content: Gestión Manual */}
+            <TabsContent value="manual" className="p-4 space-y-6">
+              <div className="space-y-6">
+                {/* Sección: Partidos Sin Programar */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-blue-500" />
+                      Partidos Sin Programar
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <UnscheduledMatchesView
+                      tournamentId={tournamentId}
+                      onMatchSelect={(matchId) => {
+                        // Buscar el partido en los matches
+                        const match = Array.isArray(matches) 
+                          ? matches.find(m => m.id === matchId) 
+                          : null;
+                        
+                        if (match) {
+                          // Convertir a formato esperado por MatchRescheduler
+                          const homeTeam = getTeamById(match.home_team_id);
+                          const awayTeam = getTeamById(match.away_team_id);
+                          
+                          const unscheduledMatch: MatchForReschedule = {
+                            id: match.id,
+                            group_number: match.group_number || 0,
+                            match_number: match.match_number || 0,
+                            tournament_day: match.tournament_day ?? null,
+                            start_time: match.start_time ?? null,
+                            court_id: match.court_id ?? null,
+                            home_team: homeTeam ? {
+                              id: homeTeam.team_id,
+                              players: homeTeam.teams ? {
+                                player1: homeTeam.teams.player1,
+                                player2: homeTeam.teams.player2
+                              } : undefined
+                            } : null,
+                            away_team: awayTeam ? {
+                              id: awayTeam.team_id,
+                              players: awayTeam.teams ? {
+                                player1: awayTeam.teams.player1,
+                                player2: awayTeam.teams.player2
+                              } : undefined
+                            } : null
+                          };
+                          setSelectedMatchForReschedule(unscheduledMatch);
+                        }
+                      }}
+                      onRefresh={refetch}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Sección: Slots Disponibles */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-green-500" />
+                      Slots Disponibles
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <AvailableSlotsView
+                      tournamentId={tournamentId}
+                      onSlotSelect={(slot, court) => {
+                        // Si hay un partido seleccionado, abrir el modal de reasignación
+                        if (selectedMatchForReschedule) {
+                          // El modal ya está abierto, solo mostrar toast
+                          toast({
+                            title: 'Slot seleccionado',
+                            description: `${slot.start} - ${slot.end} en ${court.name}`,
+                          });
+                        }
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Sección: Gestión de Grupos */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-purple-500" />
+                      Gestión de Grupos
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Haz clic en un grupo para cambiar su día asignado.
+                      </p>
+                      {groups.length === 0 ? (
+                        <div className="text-center py-8">
+                          <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            No hay grupos disponibles. Los grupos se generan automáticamente cuando se crean los partidos.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {groups.map((group) => (
+                            <Card
+                              key={group.id}
+                              className="hover:shadow-md transition-all duration-200 cursor-pointer border hover:border-purple-300"
+                              onClick={() => setSelectedGroupForDayAssign(group)}
+                            >
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-medium">
+                                  Grupo {group.group_number}
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant={group.is_homogeneous ? 'default' : 'secondary'}>
+                                    {group.is_homogeneous ? 'Homogéneo' : 'Mixto'}
+                                  </Badge>
+                                  {group.preferred_day && (
+                                    <Badge variant="outline">
+                                      {group.preferred_day === 'DAY_1' ? 'Día 1' : 'Día 2'}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400">
+                                  Haz clic para cambiar el día
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
           </Tabs>
         </div>
+
+        {/* Modal para reasignar partido */}
+        {selectedMatchForReschedule && (
+          <MatchRescheduler
+            tournamentId={tournamentId}
+            match={selectedMatchForReschedule}
+            isOpen={!!selectedMatchForReschedule}
+            onClose={() => setSelectedMatchForReschedule(null)}
+            onSuccess={() => {
+              refetch();
+              setSelectedMatchForReschedule(null);
+            }}
+          />
+        )}
+
+        {/* Modal para asignar día a grupo */}
+        {selectedGroupForDayAssign && (
+          <GroupDayAssigner
+            tournamentId={tournamentId}
+            group={selectedGroupForDayAssign}
+            isOpen={!!selectedGroupForDayAssign}
+            onClose={() => setSelectedGroupForDayAssign(null)}
+            onSuccess={() => {
+              refetch();
+              loadGroups();
+              setSelectedGroupForDayAssign(null);
+            }}
+          />
+        )}
 
         {/* Modal para setear resultados */}
         {selectedMatch && (
@@ -1356,6 +1634,20 @@ export default function TournamentMatchesPage() {
             isLoading={savingResult}
             error={modalError}
             success={modalSuccess}
+          />
+        )}
+
+        {/* Modal para categorías incompletas */}
+        {incompleteCategoriesData && (
+          <IncompleteCategoriesModal
+            open={showIncompleteCategoriesModal}
+            onClose={() => {
+              setShowIncompleteCategoriesModal(false);
+              setIncompleteCategoriesData(null);
+            }}
+            incompleteCategories={incompleteCategoriesData.incompleteCategories}
+            totalCategories={incompleteCategoriesData.totalCategories}
+            incompleteCount={incompleteCategoriesData.incompleteCount}
           />
         )}
       </div>
