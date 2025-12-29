@@ -437,7 +437,10 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                       alt="Preview"
                       fill
                       className="object-cover"
-                      unoptimized={previewUrl?.startsWith('data:')}
+                      priority
+                      quality={90}
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      unoptimized={previewUrl?.startsWith('blob:') || previewUrl?.startsWith('data:')}
                     />
                     <button
                       type="button"

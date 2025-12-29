@@ -145,12 +145,13 @@ export default function VenuesPage() {
               <EmptyState />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {venues.map((venue) => (
+                {venues.map((venue, index) => (
                   <VenueCard
                     key={venue.id}
                     venue={venue}
                     onEdit={handleEditVenue}
                     onDelete={(venue) => setDeleteVenueModal({ isOpen: true, venue })}
+                    priority={index < 3} // Prioridad para las primeras 3 imágenes visibles
                   />
                 ))}
               </div>
@@ -196,7 +197,7 @@ export default function VenuesPage() {
               <EmptyState />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredCourts.map((court) => (
+                {filteredCourts.map((court, index) => (
                   <CourtCard
                     key={court.id}
                     id={court.id}
@@ -209,6 +210,7 @@ export default function VenuesPage() {
                       courtName: court.name
                     })}
                     onEdit={handleEditCourt}
+                    priority={index < 3} // Prioridad para las primeras 3 imágenes visibles
                   />
                 ))}
               </div>

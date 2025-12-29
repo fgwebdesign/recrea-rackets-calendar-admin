@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { User, ImageIcon, GraduationCap, Trophy, Heart, Settings } from "lucide-react";
+import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -493,11 +494,18 @@ export default function EditProfessorModal({ isOpen, onClose, onSubmit, professo
               <div className="flex flex-col items-center">
                 {previewUrl ? (
                   <div className="relative group">
-                    <img
-                      src={previewUrl}
-                      alt="Preview"
-                      className="h-40 w-40 object-cover rounded-lg shadow-lg"
-                    />
+                    <div className="relative h-40 w-40 rounded-lg overflow-hidden shadow-lg">
+                      <Image
+                        src={previewUrl}
+                        alt="Preview"
+                        fill
+                        className="object-cover"
+                        priority
+                        quality={90}
+                        sizes="160px"
+                        unoptimized={previewUrl.startsWith('blob:') || previewUrl.startsWith('data:')}
+                      />
+                    </div>
                     <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                       <button
                         type="button"

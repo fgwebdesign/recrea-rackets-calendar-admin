@@ -47,7 +47,7 @@ export default function ProductsPage() {
   // Debounce para la búsqueda
   const [searchInput, setSearchInput] = useState('');
   
-  const PRODUCTS_PER_PAGE = 8;
+  const PRODUCTS_PER_PAGE = 10;
   
   useEffect(() => {
     const timer = setTimeout(() => {

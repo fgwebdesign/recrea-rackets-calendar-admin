@@ -1,6 +1,5 @@
 import Image from 'next/image';
-import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, Pencil, User, Instagram, Phone, Calendar, Award } from "lucide-react";
+import { Trash2, Pencil, User, Instagram, Phone, Calendar, Award } from "lucide-react";
 import { Professor } from '@/types/professor';
 import { useTranslations } from '@/contexts/TranslationContext';
 
@@ -8,6 +7,7 @@ interface ProfessorCardProps {
   professor: Professor;
   onDelete: (professor: Professor) => void;
   onEdit: (professor: Professor) => void;
+  priority?: boolean; // Para las primeras imágenes visibles
 }
 
 const DEFAULT_PROFESSOR_IMAGE = '/assets/user.png';
@@ -22,7 +22,7 @@ function getImageUrl(photoUrl: string | null) {
   }
 }
 
-export default function ProfessorCard({ professor, onDelete, onEdit }: ProfessorCardProps) {
+export default function ProfessorCard({ professor, onDelete, onEdit, priority = false }: ProfessorCardProps) {
   const t = useTranslations('professors');
   const tDateTime = useTranslations('datetime');
   
@@ -56,13 +56,17 @@ export default function ProfessorCard({ professor, onDelete, onEdit }: Professor
   return (
     <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-lg hover:shadow-xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 group">
       {/* Header con foto */}
-      <div className="relative h-48 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+      <div className="relative w-full aspect-square bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 overflow-hidden">
         {professor.photo_url ? (
           <Image
             src={getImageUrl(professor.photo_url)}
             alt={professor.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            priority={priority}
+            loading={priority ? undefined : "lazy"}
+            quality={85}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

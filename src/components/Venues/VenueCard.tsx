@@ -10,9 +10,10 @@ interface VenueCardProps {
   venue: Venue;
   onEdit: (venue: Venue) => void;
   onDelete: (venue: Venue) => void;
+  priority?: boolean; // Para las primeras imágenes visibles
 }
 
-export default function VenueCard({ venue, onEdit, onDelete }: VenueCardProps) {
+export default function VenueCard({ venue, onEdit, onDelete, priority = false }: VenueCardProps) {
   const t = useTranslations('venues');
   const location = [venue.address, venue.city, venue.state]
     .filter(Boolean)
@@ -30,6 +31,10 @@ export default function VenueCard({ venue, onEdit, onDelete }: VenueCardProps) {
             alt={venue.name}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-110"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            priority={priority}
+            loading={priority ? undefined : "lazy"}
+            quality={85}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

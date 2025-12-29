@@ -216,26 +216,72 @@ export default function SalesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {sales.map((sale) => {
-                  const firstItem = sale.items && sale.items.length > 0 ? sale.items[0] : null;
-                  const productImage = firstItem?.product?.image_url;
+                {sales.map((sale, index) => {
+                  const items = sale.items || [];
+                  const hasMultipleItems = items.length > 1;
+                  // Prioridad para las primeras 10 imágenes visibles (primeras filas de la tabla)
+                  const hasPriority = index < 10;
                   
                   return (
                   <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                       #{sale.sale_number}
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      {productImage ? (
-                        <div className="relative w-12 h-12 rounded-md overflow-hidden">
-                          <Image
-                            src={productImage}
-                            alt={firstItem?.product_name || t('sales.product')}
-                            fill
-                            className="object-cover"
-                            sizes="48px"
-                            unoptimized
-                          />
+                    <td className="px-4 py-4">
+                      {items.length > 0 ? (
+                        <div className="flex items-center gap-1.5">
+                          {/* Contenedor de imágenes con scroll horizontal si hay múltiples */}
+                          <div className={`flex items-center gap-1 ${hasMultipleItems ? 'max-w-[140px] overflow-x-auto scrollbar-hide' : ''}`}>
+                            {items.slice(0, hasMultipleItems ? 3 : 1).map((item, itemIndex) => {
+                              const productImage = item.product?.image_url;
+                              return productImage ? (
+                                <div 
+                                  key={item.id || itemIndex}
+                                  className="relative flex-shrink-0 w-12 h-12 rounded-md overflow-hidden border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:border-green-400 dark:hover:border-green-600 transition-colors"
+                                  title={item.product_name}
+                                >
+                                  <Image
+                                    src={productImage}
+                                    alt={item.product_name || t('sales.product')}
+                                    fill
+                                    className="object-cover"
+                                    sizes="48px"
+                                    priority={hasPriority && itemIndex === 0}
+                                    loading={hasPriority && itemIndex === 0 ? undefined : "lazy"}
+                                    quality={75}
+                                  />
+                                </div>
+                              ) : (
+                                <div 
+                                  key={item.id || itemIndex}
+                                  className="flex-shrink-0 w-12 h-12 rounded-md bg-gray-100 dark:bg-gray-700 flex items-center justify-center border-2 border-gray-200 dark:border-gray-700"
+                                  title={item.product_name}
+                                >
+                                  <Package className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {/* Indicador de más productos si hay más de 3 */}
+                          {items.length > 3 && (
+                            <div 
+                              className="flex-shrink-0 w-12 h-12 rounded-md bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center border-2 border-gray-300 dark:border-gray-600 shadow-sm"
+                              title={`${items.length - 3} productos más`}
+                            >
+                              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                +{items.length - 3}
+                              </span>
+                            </div>
+                          )}
+                          {/* Badge indicador de múltiples productos (solo si hay 2-3 productos) */}
+                          {hasMultipleItems && items.length <= 3 && (
+                            <span 
+                              className="flex-shrink-0 text-xs font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-600"
+                              title={`${items.length} productos`}
+                            >
+                              {items.length}
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <div className="w-12 h-12 rounded-md bg-gray-100 dark:bg-gray-700 flex items-center justify-center">

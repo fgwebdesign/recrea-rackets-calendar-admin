@@ -10,9 +10,10 @@ interface CourtCardProps {
   venue_id?: string;
   onDelete: (court: { id: string; name: string }) => void;
   onEdit: (court: { id: string; name: string; photo_url: string; venue_id?: string }) => void;
+  priority?: boolean; // Para las primeras imágenes visibles
 }
 
-export default function CourtCard({ id, name, photo_url, venue_id, onDelete, onEdit }: CourtCardProps) {
+export default function CourtCard({ id, name, photo_url, venue_id, onDelete, onEdit, priority = false }: CourtCardProps) {
   const { venues } = useVenues({ includeCourts: false });
   const venue = venue_id ? venues.find(v => v.id === venue_id) : null;
 
@@ -26,6 +27,9 @@ export default function CourtCard({ id, name, photo_url, venue_id, onDelete, onE
             fill
             className="object-cover"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            priority={priority}
+            loading={priority ? undefined : "lazy"}
+            quality={85}
           />
         ) : (
           <div className="w-full h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">

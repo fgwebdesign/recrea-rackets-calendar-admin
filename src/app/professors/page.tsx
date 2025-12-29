@@ -80,7 +80,7 @@ export default function ProfessorsPage() {
                 <EmptyState />
               </div>
             ) : (
-              professors.map((professor) => (
+              professors.map((professor, index) => (
                 <ProfessorCard
                   key={professor.id}
                   professor={professor}
@@ -90,6 +90,7 @@ export default function ProfessorsPage() {
                     professorName: professor.name
                   })}
                   onEdit={handleEdit}
+                  priority={index < 3} // Prioridad para las primeras 3 imágenes visibles
                 />
               ))
             )}
