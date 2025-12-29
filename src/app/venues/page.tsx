@@ -37,17 +37,35 @@ export default function VenuesPage() {
     courtName: ''
   });
   const [selectedVenueFilter, setSelectedVenueFilter] = useState<string>("all");
+  const [newlyCreatedVenueId, setNewlyCreatedVenueId] = useState<string | null>(null);
 
   const handleVenueSubmit = async (data: Partial<Venue>) => {
     try {
       if (editingVenue) {
         await updateVenue(editingVenue.id, data);
+        setIsVenueModalOpen(false);
+        setEditingVenue(null);
+        await refetchVenues();
       } else {
-        await createVenue(data);
+        // Crear nueva venue
+        const newVenue = await createVenue(data);
+        setIsVenueModalOpen(false);
+        setEditingVenue(null);
+        await refetchVenues();
+        
+        // Si se creó exitosamente, cambiar a la tab de courts y abrir modal de agregar court
+        if (newVenue && newVenue.id) {
+          setActiveTab("courts");
+          // Establecer el filtro de venue a la recién creada
+          setSelectedVenueFilter(newVenue.id);
+          // Esperar un momento para que la tab cambie antes de abrir el modal
+          setTimeout(() => {
+            setIsAddCourtModalOpen(true);
+            // Guardar el ID de la venue recién creada para pre-seleccionarla
+            setNewlyCreatedVenueId(newVenue.id);
+          }, 100);
+        }
       }
-      setIsVenueModalOpen(false);
-      setEditingVenue(null);
-      await refetchVenues();
     } catch (error) {
       console.error('Error submitting venue:', error);
     }
@@ -238,8 +256,13 @@ export default function VenuesPage() {
 
         <SimpleAddCourtModal
           isOpen={isAddCourtModalOpen}
-          onClose={() => setIsAddCourtModalOpen(false)}
+          onClose={() => {
+            setIsAddCourtModalOpen(false);
+            setNewlyCreatedVenueId(null);
+          }}
           onSubmit={handleCourtSubmit}
+          initialVenueId={newlyCreatedVenueId || undefined}
+          venues={venues.map(v => ({ id: v.id, name: v.name }))}
         />
 
         <DeleteConfirmationModal

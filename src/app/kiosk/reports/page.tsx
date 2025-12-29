@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useKioskReports } from "@/hooks/useKioskReports";
-import { useVenues } from "@/hooks/useVenues";
+import { useKioskVenue } from "@/contexts/KioskVenueContext";
 import { SalesSummary, TopProduct, DashboardStats, LowStockAlert } from "@/types/kiosk";
 import { useTranslations } from '@/contexts/TranslationContext';
 import { format } from 'date-fns';
@@ -25,15 +25,19 @@ const SalesTrendChart = lazy(() => import("@/components/Kiosk/Reports/SalesTrend
 export default function KioskReportsPage() {
   const t = useTranslations('kiosk');
   const { getSalesSummary, getTopProducts, getDashboardStats, getLowStockAlerts, getSalesTrend, isLoading } = useKioskReports();
-  const { venues } = useVenues({ includeCourts: false });
+  const { selectedVenueId, selectedVenue, setSelectedVenueId, venues, loading: loadingVenues } = useKioskVenue();
   
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [selectedVenue, setSelectedVenue] = useState<string>('');
   const [filters, setFilters] = useState({
-    venue_id: '',
+    venue_id: selectedVenueId || '',
     start_date: format(new Date(new Date().setDate(1)), 'yyyy-MM-dd'),
     end_date: format(new Date(), 'yyyy-MM-dd')
   });
+  
+  // Actualizar filtros cuando cambia el venue seleccionado
+  useEffect(() => {
+    setFilters(prev => ({ ...prev, venue_id: selectedVenueId || '' }));
+  }, [selectedVenueId]);
   
   const [dashboard, setDashboard] = useState<DashboardStats | null>(null);
   const [summary, setSummary] = useState<SalesSummary | null>(null);
@@ -95,19 +99,19 @@ export default function KioskReportsPage() {
   }, [t]);
 
   const loadDashboard = useCallback(async () => {
-    const dashboardData = await getDashboardStats(selectedVenue || undefined);
+    const dashboardData = await getDashboardStats(selectedVenueId || undefined);
     setDashboard(dashboardData);
-  }, [selectedVenue, getDashboardStats]);
+  }, [selectedVenueId, getDashboardStats]);
 
   const loadStockAlerts = useCallback(async () => {
-    const alertsData = await getLowStockAlerts(selectedVenue || undefined);
+    const alertsData = await getLowStockAlerts(selectedVenueId || undefined);
     setStockAlerts(alertsData);
-  }, [selectedVenue, getLowStockAlerts]);
+  }, [selectedVenueId, getLowStockAlerts]);
 
   const loadTrend = useCallback(async () => {
-    const trend = await getSalesTrend(trendDays, selectedVenue || undefined);
+    const trend = await getSalesTrend(trendDays, selectedVenueId || undefined);
     setTrendData(trend);
-  }, [trendDays, selectedVenue, getSalesTrend]);
+  }, [trendDays, selectedVenueId, getSalesTrend]);
 
   // Cargar dashboard y alertas al montar
   useEffect(() => {
@@ -139,35 +143,42 @@ export default function KioskReportsPage() {
         />
 
         {/* Filtro de Sede */}
-        <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 shadow-lg">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <div className="flex-1">
-                <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
-                  {t('reports.venue')}
-                </Label>
-                <Select value={selectedVenue || 'all'} onValueChange={(value) => {
-                  const venueId = value === 'all' ? '' : value;
-                  setSelectedVenue(venueId);
-                  setFilters(prev => ({ ...prev, venue_id: venueId }));
-                }}>
-                  <SelectTrigger className="bg-white dark:bg-gray-700 border-2 border-blue-200 dark:border-blue-700 w-64 h-10">
-                    <SelectValue placeholder={t('reports.allVenues')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('reports.allVenues')}</SelectItem>
-                    {venues.map((venue) => (
-                      <SelectItem key={venue.id} value={venue.id}>
-                        {venue.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        {!loadingVenues && venues.length > 1 && (
+          <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 shadow-lg">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <div className="flex-1">
+                  <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                    {t('reports.venue')}
+                  </Label>
+                  <Select value={selectedVenueId || 'all'} onValueChange={(value) => {
+                    const venueId = value === 'all' ? undefined : value;
+                    setSelectedVenueId(venueId);
+                    setFilters(prev => ({ ...prev, venue_id: venueId || '' }));
+                  }}>
+                    <SelectTrigger className="bg-white dark:bg-gray-700 border-2 border-blue-200 dark:border-blue-700 w-64 h-10">
+                      <SelectValue placeholder={t('reports.allVenues')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('reports.allVenues')}</SelectItem>
+                      {venues.filter(v => v.is_active).map((venue) => (
+                        <SelectItem key={venue.id} value={venue.id}>
+                          {venue.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedVenue && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t('reports.selectedVenue')}: <span className="font-semibold">{selectedVenue.name}</span>
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Building2, Upload, X } from "lucide-react";
+import { ComboboxInput } from "@/components/ui/combobox";
+import { Building2, Upload, X } from "lucide-react";
 import { Venue } from "@/types/venue";
 import { useTranslations } from '@/contexts/TranslationContext';
 import { supabase } from '@/lib/supabase';
@@ -89,52 +89,21 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
   const [availableStates, setAvailableStates] = useState<StateType[]>([]);
   const [availableCities, setAvailableCities] = useState<CityType[]>([]);
   
-  // Estados para búsqueda
-  const [countrySearch, setCountrySearch] = useState<string>('');
-  const [stateSearch, setStateSearch] = useState<string>('');
-  const [citySearch, setCitySearch] = useState<string>('');
-  
-  // Filtrar países relevantes (Latinoamérica + Estados Unidos) y por búsqueda
+  // Países relevantes (Latinoamérica + Estados Unidos)
   const relevantCountries = useMemo(() => {
     if (!Country || !Country.getAllCountries) return [];
     
     const latamCodes = ['AR', 'BO', 'BR', 'CL', 'CO', 'CR', 'CU', 'DO', 'EC', 'SV', 'GT', 'HN', 'MX', 'NI', 'PA', 'PY', 'PE', 'PR', 'UY', 'VE'];
-    const allRelevantCountries = Country.getAllCountries().filter((country) => {
+    return Country.getAllCountries().filter((country) => {
       return country.isoCode === 'US' || latamCodes.includes(country.isoCode);
     });
-    
-    if (!countrySearch.trim()) return allRelevantCountries;
-    
-    const searchLower = countrySearch.toLowerCase();
-    return allRelevantCountries.filter(country => 
-      country.name.toLowerCase().includes(searchLower)
-    );
-  }, [countrySearch]);
-  
-  // Filtrar estados por búsqueda
-  const filteredStates = useMemo(() => {
-    if (!stateSearch.trim()) return availableStates;
-    const searchLower = stateSearch.toLowerCase();
-    return availableStates.filter(state => 
-      state.name.toLowerCase().includes(searchLower)
-    );
-  }, [availableStates, stateSearch]);
-  
-  // Filtrar ciudades por búsqueda
-  const filteredCities = useMemo(() => {
-    if (!citySearch.trim()) return availableCities;
-    const searchLower = citySearch.toLowerCase();
-    return availableCities.filter(city => 
-      city.name.toLowerCase().includes(searchLower)
-    );
-  }, [availableCities, citySearch]);
+  }, []);
 
   // Cargar estados cuando cambia el país
   useEffect(() => {
     if (selectedCountryCode && State && State.getStatesOfCountry) {
       const states = State.getStatesOfCountry(selectedCountryCode);
       setAvailableStates(states || []);
-      setStateSearch(''); // Resetear búsqueda de estados
       
       // Si hay un estado seleccionado, mantenerlo si existe
       if (selectedStateCode) {
@@ -146,7 +115,8 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
       }
     } else {
       setAvailableStates([]);
-      setStateSearch('');
+      setSelectedStateCode('');
+      setFormData(prev => ({ ...prev, state: '' }));
     }
   }, [selectedCountryCode, selectedStateCode]);
 
@@ -155,22 +125,20 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
     if (selectedCountryCode && selectedStateCode && City && City.getCitiesOfState) {
       const cities = City.getCitiesOfState(selectedCountryCode, selectedStateCode);
       setAvailableCities(cities || []);
-      setCitySearch(''); // Resetear búsqueda de ciudades
     } else {
       setAvailableCities([]);
-      setCitySearch('');
     }
   }, [selectedCountryCode, selectedStateCode]);
 
   useEffect(() => {
     if (venue) {
       // Intentar encontrar el código del país desde el nombre
-      let countryCode = 'UY';
-      if (Country && Country.getAllCountries) {
+      let countryCode = '';
+      if (venue.country && Country && Country.getAllCountries) {
         const country = Country.getAllCountries().find((c) => 
           c.name === venue.country || c.name.toLowerCase() === venue.country?.toLowerCase()
         );
-        countryCode = country?.isoCode || 'UY';
+        countryCode = country?.isoCode || '';
       }
       
       setSelectedCountryCode(countryCode);
@@ -191,7 +159,7 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
         address: venue.address || '',
         city: venue.city || '',
         state: venue.state || '',
-        country: venue.country || 'Uruguay',
+        country: venue.country || '',
         postal_code: venue.postal_code || '',
         phone: venue.phone || '',
         email: venue.email || '',
@@ -203,14 +171,14 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
       setPreviewUrl(venue.photo_url || null);
       setImageFile(null);
     } else {
-      setSelectedCountryCode('UY');
+      setSelectedCountryCode('');
       setSelectedStateCode('');
       setFormData({
         name: '',
         address: '',
         city: '',
         state: '',
-        country: 'Uruguay',
+        country: '',
         postal_code: '',
         phone: '',
         email: '',
@@ -389,12 +357,14 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
   };
 
   const handleClose = () => {
+    setSelectedCountryCode('');
+    setSelectedStateCode('');
     setFormData({
       name: '',
       address: '',
       city: '',
       state: '',
-      country: 'Uruguay',
+      country: '',
       postal_code: '',
       phone: '',
       email: '',
@@ -408,35 +378,29 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-0 shadow-2xl">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-700 dark:to-blue-600 px-6 py-5 rounded-t-lg">
-          <DialogHeader className="mb-0">
-            <DialogTitle className="text-2xl font-bold text-white flex items-center gap-3">
-              <Building2 className="h-6 w-6" />
-              {venue ? t('editVenue') : t('newVenue')}
-            </DialogTitle>
-          </DialogHeader>
-        </div>
-
-        <div className="px-6 py-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Imagen de Perfil */}
-          <div className="bg-gradient-to-br from-pink-50/50 to-rose-50/50 dark:from-pink-900/10 dark:to-rose-900/10 rounded-xl p-5 border border-pink-100 dark:border-pink-800/50">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <span className="h-1 w-1 rounded-full bg-pink-500"></span>
-              Imagen de Perfil
-            </h3>
-            
-            <div className="space-y-4">
-              {/* Preview de imagen */}
-              {(previewUrl || formData.photo_url) && (
-                <div className="relative w-full max-w-xs mx-auto">
-                  <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 shadow-md">
+      <DialogContent className="bg-white dark:bg-gray-800 max-w-6xl max-h-[90vh] overflow-y-auto z-50 p-6 custom-scrollbar">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="text-gray-900 dark:text-white font-bold">
+            {venue ? t('editVenue') : t('newVenue')}
+          </DialogTitle>
+          <DialogDescription className="text-gray-600 dark:text-gray-400">
+            {venue ? 'Actualiza los detalles de la sede' : 'Completa los detalles para crear una nueva sede'}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Layout horizontal: Imagen a la izquierda, Información básica a la derecha */}
+          <div className="grid grid-cols-3 gap-6">
+            {/* Imagen - Columna izquierda */}
+            <div className="space-y-2">
+              <Label className="text-gray-700 dark:text-gray-300 font-bold">Imagen de Perfil</Label>
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+                {(previewUrl || formData.photo_url) ? (
+                  <div className="relative w-full h-48 mb-3 rounded-md overflow-hidden">
                     <Image
                       src={previewUrl || formData.photo_url || ''}
                       alt="Preview"
                       fill
-                      className="object-cover"
+                      className="object-cover rounded-md"
                       priority
                       quality={90}
                       sizes="(max-width: 768px) 100vw, 33vw"
@@ -450,364 +414,277 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                       <X className="h-4 w-4" />
                     </button>
                   </div>
-                </div>
-              )}
-
-              {/* Input de carga */}
-              <div>
-                <Label htmlFor="photo" className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 block">
-                  {previewUrl || formData.photo_url ? 'Cambiar imagen' : 'Seleccionar imagen'}
-                </Label>
-                <div className="flex items-center gap-4">
-                  <label
-                    htmlFor="photo"
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-700/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-pink-500 dark:hover:border-pink-400 transition-colors"
-                  >
-                    <Upload className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {imageFile ? imageFile.name : 'Subir imagen'}
-                    </span>
-                  </label>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-48 mb-3">
+                    <Building2 className="h-12 w-12 text-gray-400 dark:text-gray-500 mb-2" />
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Sin imagen</p>
+                  </div>
+                )}
+                <label className="flex flex-col items-center justify-center w-full">
                   <input
                     id="photo"
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
                     className="hidden"
+                    disabled={isLoading || uploadingImage}
                   />
-                  {uploadingImage && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-pink-500"></div>
-                      <span>Subiendo...</span>
-                    </div>
-                  )}
-                </div>
-                {errors.image && (
-                  <p className="text-sm text-red-500 dark:text-red-400 mt-2 font-medium">{errors.image}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('photo')?.click()}
+                    disabled={isLoading || uploadingImage}
+                    className="w-full border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {previewUrl || formData.photo_url ? 'Cambiar imagen' : 'Seleccionar imagen'}
+                  </Button>
+                </label>
+                {uploadingImage && (
+                  <div className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
+                    <span>Subiendo...</span>
+                  </div>
                 )}
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                {errors.image && (
+                  <p className="text-sm text-red-500 dark:text-red-400 mt-2">{errors.image}</p>
+                )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
                   Tamaño máximo: 5MB. Formatos: JPG, PNG, WebP
                 </p>
               </div>
             </div>
-          </div>
 
-          {/* Información Básica */}
-          <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-xl p-5 border border-blue-100 dark:border-blue-800/50">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <span className="h-1 w-1 rounded-full bg-blue-500"></span>
-              {t('basicInfo')}
-            </h3>
-            
-            <div className="space-y-5">
-              <div>
-                <Label htmlFor="name" className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 block">
-                  {t('venueName')} <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder={t('venueNamePlaceholder')}
-                  className="h-12 bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all shadow-sm hover:shadow-md"
-                  required
-                />
-                {errors.name && (
-                  <p className="text-sm text-red-500 dark:text-red-400 mt-2 font-medium">{errors.name}</p>
-                )}
+            {/* Información básica - Columnas derechas */}
+            <div className="col-span-2 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-gray-700 dark:text-gray-300 font-bold">
+                    {t('venueName')} <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder={t('venueNamePlaceholder')}
+                    required
+                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                  />
+                  {errors.name && (
+                    <p className="text-sm text-red-500 dark:text-red-400">{errors.name}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="text-gray-700 dark:text-gray-300 font-bold">
+                    {t('address')}
+                  </Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder={t('addressPlaceholder')}
+                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+              </div>
+              
+              {/* Contacto */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-gray-700 dark:text-gray-300 font-bold">
+                    {t('phone')}
+                  </Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder={t('phonePlaceholder')}
+                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-gray-700 dark:text-gray-300 font-bold">
+                    {t('email')}
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder={t('emailPlaceholder')}
+                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="address" className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 block">
-                  {t('address')}
+              {/* Descripción */}
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-gray-700 dark:text-gray-300 font-bold">
+                  {t('descriptionField')}
                 </Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                  placeholder={t('addressPlaceholder')}
-                  className="h-12 bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 transition-all shadow-sm hover:shadow-md"
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder={t('descriptionPlaceholder')}
+                  rows={3}
+                  className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                 />
               </div>
             </div>
           </div>
 
           {/* Ubicación */}
-          <div className="bg-green-50/50 dark:bg-green-900/10 rounded-xl p-5 border border-green-100 dark:border-green-800/50">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <span className="h-1 w-1 rounded-full bg-green-500"></span>
-              {t('location')}
-            </h3>
-            
-            <div className="space-y-5">
-              <div>
-                <Label htmlFor="country" className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 block">
-                  {t('country')} <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={selectedCountryCode}
-                  onValueChange={(value) => {
-                    setSelectedCountryCode(value);
-                    setSelectedStateCode('');
-                    setCountrySearch('');
-                    setStateSearch('');
-                    setCitySearch('');
-                    const country = Country && Country.getCountryByCode 
-                      ? Country.getCountryByCode(value)
-                      : null;
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="country" className="text-gray-700 dark:text-gray-300 font-bold">
+                {t('country')} <span className="text-red-500">*</span>
+              </Label>
+              <ComboboxInput
+                id="country"
+                value={formData.country}
+                onValueChange={(value) => {
+                  // Extraer el nombre del país (quitar la bandera si está presente)
+                  // Las banderas son emojis, así que buscamos el nombre después del primer espacio
+                  const parts = value.split(' ');
+                  const countryName = parts.length > 1 ? parts.slice(1).join(' ') : value;
+                  
+                  // Buscar el país por nombre para obtener su código
+                  const country = relevantCountries.find((c) => c.name === countryName);
+                  if (country) {
+                    setSelectedCountryCode(country.isoCode);
                     setFormData(prev => ({ 
                       ...prev, 
-                      country: country?.name || 'Uruguay',
+                      country: country.name,
                       state: '',
                       city: ''
                     }));
-                  }}
-                >
-                  <SelectTrigger className="h-12 bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-600 focus:border-green-500 dark:focus:border-green-400 focus:ring-2 focus:ring-green-500/20 dark:focus:ring-green-400/20 transition-all shadow-sm hover:shadow-md">
-                    <SelectValue placeholder={t('countryPlaceholder')} />
-                  </SelectTrigger>
-              <SelectContent className="max-h-[350px]">
-                    <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-2">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-                        <Input
-                          placeholder={t('searchCountry')}
-                          value={countrySearch}
-                          onChange={(e) => setCountrySearch(e.target.value)}
-                          className="pl-10 h-9 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-sm"
-                          onClick={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                    </div>
-                    <div className="max-h-[280px] overflow-y-auto">
-                      {relevantCountries.length > 0 ? (
-                        relevantCountries.map((country) => (
-                          <SelectItem key={country.isoCode} value={country.isoCode} className="cursor-pointer">
-                            {country.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <div className="px-2 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                          {countrySearch ? t('noStatesFound') : t('noCountriesAvailable')}
-                        </div>
-                      )}
-                </div>
-              </SelectContent>
-            </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="state" className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 block">
-                    {t('state')}
-                  </Label>
-                  {availableStates.length > 0 ? (
-                    <Select
-                      value={selectedStateCode}
-                      onValueChange={(value) => {
-                        setSelectedStateCode(value);
-                        setStateSearch('');
-                        const state = State && State.getStateByCodeAndCountry
-                          ? State.getStateByCodeAndCountry(value, selectedCountryCode)
-                          : null;
-                        setFormData(prev => ({ 
-                          ...prev, 
-                          state: state?.name || '',
-                          city: ''
-                        }));
-                      }}
-                    >
-                      <SelectTrigger className="h-12 bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-600 focus:border-green-500 dark:focus:border-green-400 focus:ring-2 focus:ring-green-500/20 dark:focus:ring-green-400/20 transition-all shadow-sm hover:shadow-md">
-                        <SelectValue placeholder={t('statePlaceholder')} />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[350px]">
-                        <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-2">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-                            <Input
-                              placeholder={t('searchState')}
-                              value={stateSearch}
-                              onChange={(e) => setStateSearch(e.target.value)}
-                              className="pl-10 h-9 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-sm"
-                              onClick={(e) => e.stopPropagation()}
-                              onKeyDown={(e) => e.stopPropagation()}
-                            />
-                          </div>
-                        </div>
-                        <div className="max-h-[280px] overflow-y-auto">
-                          {filteredStates.length > 0 ? (
-                            filteredStates.map((state) => (
-                              <SelectItem key={state.isoCode} value={state.isoCode} className="cursor-pointer">
-                                {state.name}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <div className="px-2 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                              {t('noStatesFound')}
-                            </div>
-                          )}
-                        </div>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      id="state"
-                      value={formData.state}
-                      onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                      placeholder={t('stateManualPlaceholder')}
-                      className="h-12 bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-600 focus:border-green-500 dark:focus:border-green-400 focus:ring-2 focus:ring-green-500/20 dark:focus:ring-green-400/20 transition-all shadow-sm hover:shadow-md"
-                    />
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="city" className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 block">
-                    {t('city')}
-                  </Label>
-                  {availableCities.length > 0 ? (
-                    <Select
-                      value={formData.city}
-                      onValueChange={(value) => {
-                        setFormData(prev => ({ ...prev, city: value }));
-                        setCitySearch('');
-                      }}
-                    >
-                      <SelectTrigger className="h-12 bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-600 focus:border-green-500 dark:focus:border-green-400 focus:ring-2 focus:ring-green-500/20 dark:focus:ring-green-400/20 transition-all shadow-sm hover:shadow-md">
-                        <SelectValue placeholder={t('cityPlaceholder')} />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[350px]">
-                        <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-2">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-                            <Input
-                              placeholder={t('searchCity')}
-                              value={citySearch}
-                              onChange={(e) => setCitySearch(e.target.value)}
-                              className="pl-10 h-9 bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-sm"
-                              onClick={(e) => e.stopPropagation()}
-                              onKeyDown={(e) => e.stopPropagation()}
-                            />
-                          </div>
-                        </div>
-                        <div className="max-h-[280px] overflow-y-auto">
-                          {filteredCities.length > 0 ? (
-                            filteredCities.map((city) => (
-                              <SelectItem key={city.name} value={city.name} className="cursor-pointer">
-                                {city.name}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <div className="px-2 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                              {t('noCitiesFound')}
-                            </div>
-                          )}
-                        </div>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                      placeholder={t('cityManualPlaceholder')}
-                      className="h-12 bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-600 focus:border-green-500 dark:focus:border-green-400 focus:ring-2 focus:ring-green-500/20 dark:focus:ring-green-400/20 transition-all shadow-sm hover:shadow-md"
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Contacto */}
-          <div className="bg-purple-50/50 dark:bg-purple-900/10 rounded-xl p-5 border border-purple-100 dark:border-purple-800/50">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <span className="h-1 w-1 rounded-full bg-purple-500"></span>
-              {t('contactInfo')}
-            </h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="phone" className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 block">
-                  {t('phone')}
-                </Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder={t('phonePlaceholder')}
-                  className="h-12 bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all shadow-sm hover:shadow-md"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email" className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 block">
-                  {t('email')}
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder={t('emailPlaceholder')}
-                  className="h-12 bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all shadow-sm hover:shadow-md"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Descripción */}
-          <div className="bg-amber-50/50 dark:bg-amber-900/10 rounded-xl p-5 border border-amber-100 dark:border-amber-800/50">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <span className="h-1 w-1 rounded-full bg-amber-500"></span>
-              {t('descriptionSection')}
-            </h3>
-            
-            <div>
-              <Label htmlFor="description" className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 block">
-                {t('descriptionField')}
-              </Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder={t('descriptionPlaceholder')}
-                className="bg-white dark:bg-gray-700/50 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-600 focus:border-amber-500 dark:focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20 dark:focus:ring-amber-400/20 transition-all shadow-sm hover:shadow-md resize-none min-h-[100px]"
-                rows={4}
+                  } else {
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      country: countryName || '',
+                      state: '',
+                      city: ''
+                    }));
+                    setSelectedCountryCode('');
+                  }
+                  // Limpiar el estado cuando cambia el país
+                  setSelectedStateCode('');
+                  setAvailableStates([]);
+                  setAvailableCities([]);
+                }}
+                options={relevantCountries.map((country) => ({
+                  value: country.isoCode,
+                  label: `${country.flag} ${country.name}`,
+                }))}
+                placeholder={t('countryPlaceholder')}
+                className="bg-white dark:bg-gray-700"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="state" className="text-gray-700 dark:text-gray-300 font-bold">
+                  {t('state')}
+                </Label>
+                {availableStates.length > 0 ? (
+                  <ComboboxInput
+                    id="state"
+                    value={formData.state}
+                    onValueChange={(value) => {
+                      // Si el valor coincide con un estado de la lista, actualizar también el código
+                      const state = availableStates.find((s) => {
+                        const stateName = s.name.replace(' Department', '');
+                        return s.name === value || stateName === value;
+                      });
+                      if (state) {
+                        setSelectedStateCode(state.isoCode);
+                      } else {
+                        // Si el valor no coincide con ningún estado de la lista, limpiar el código
+                        setSelectedStateCode('');
+                      }
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        state: value,
+                        city: state ? '' : prev.city // Resetear ciudad solo si se seleccionó un estado válido
+                      }));
+                    }}
+                    options={availableStates.map((state) => ({
+                      value: state.isoCode,
+                      label: state.name.replace(' Department', ''),
+                    }))}
+                    placeholder={t('statePlaceholder')}
+                    className="bg-white dark:bg-gray-700"
+                  />
+                ) : (
+                  <Input
+                    id="state"
+                    value={formData.state}
+                    onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                    placeholder={t('stateManualPlaceholder')}
+                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                  />
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city" className="text-gray-700 dark:text-gray-300 font-bold">
+                  {t('city')}
+                </Label>
+                {availableCities.length > 0 ? (
+                  <ComboboxInput
+                    id="city"
+                    value={formData.city}
+                    onValueChange={(value) => {
+                      setFormData(prev => ({ ...prev, city: value }));
+                    }}
+                    options={availableCities.map((city) => ({
+                      value: city.name,
+                      label: city.name,
+                    }))}
+                    placeholder={t('cityPlaceholder')}
+                    className="bg-white dark:bg-gray-700"
+                  />
+                ) : (
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                    placeholder={t('cityManualPlaceholder')}
+                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                  />
+                )}
+              </div>
             </div>
           </div>
 
           {/* Opciones */}
-          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center space-x-3 p-3 rounded-lg bg-white dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-600 transition-colors">
-              <Checkbox
-                id="is_default"
-                checked={formData.is_default}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_default: checked as boolean }))}
-                className="border-2 border-gray-300 dark:border-gray-600"
-              />
-              <Label htmlFor="is_default" className="text-sm font-bold text-gray-800 dark:text-gray-200 cursor-pointer flex-1">
-                {t('setAsDefault')}
-              </Label>
-            </div>
+          <div className="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+            <Checkbox
+              id="is_default"
+              checked={formData.is_default}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_default: checked as boolean }))}
+            />
+            <Label htmlFor="is_default" className="text-gray-700 dark:text-gray-300 font-bold cursor-pointer">
+              {t('setAsDefault')}
+            </Label>
           </div>
 
           {/* Información */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border-2 border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-blue-900 dark:text-blue-200 flex items-start gap-2 font-medium">
-              <span className="text-blue-600 dark:text-blue-400 mt-0.5 font-bold">ℹ</span>
-              <span><strong className="font-bold">{t('courtsInfo')}</strong> {t('courtsInfoDescription')}</span>
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <p className="text-sm text-blue-900 dark:text-blue-200 flex items-start gap-2">
+              <span className="text-blue-600 dark:text-blue-400 mt-0.5">ℹ</span>
+              <span><strong>{t('courtsInfo')}</strong> {t('courtsInfoDescription')}</span>
             </p>
           </div>
-          </form>
-        </div>
+        </form>
 
-        <DialogFooter className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 gap-3">
+        <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
           <Button
             type="button"
             variant="outline"
             onClick={handleClose}
             disabled={isLoading}
-            className="h-11 px-6 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold transition-all shadow-sm hover:shadow-md"
+            className="border-gray-300 dark:border-gray-600"
           >
             {t('cancel')}
           </Button>
@@ -815,11 +692,11 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
             type="button"
             onClick={handleSubmit}
             disabled={isLoading || uploadingImage || !formData.name}
-            className="h-11 px-8 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 dark:from-green-700 dark:to-emerald-700 dark:hover:from-green-600 dark:hover:to-emerald-600 text-white font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white"
           >
             {isLoading || uploadingImage ? t('saving') : venue ? t('update') : t('save')}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

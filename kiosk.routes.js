@@ -33,7 +33,11 @@ import {
   // Imágenes
   uploadProductImage,
   deleteProductImage,
-  uploadCategoryImage
+  uploadCategoryImage,
+  // Kiosk por Venue
+  getVenueKioskSummary,
+  copyProductsToVenue,
+  getAllVenuesKioskComparison
 } from '../controllers/kiosk.controller.js';
 
 const router = Router();
@@ -112,6 +116,19 @@ router.get('/inventory/alerts', verifyToken, verifyAdmin, getLowStockAlerts);
 router.post('/products/:id/image', verifyToken, verifyAdmin, uploadProductImage);
 router.delete('/products/:id/image', verifyToken, verifyAdmin, deleteProductImage);
 router.post('/categories/:id/image', verifyToken, verifyAdmin, uploadCategoryImage);
+
+// =====================================================
+// RUTAS DE KIOSK POR VENUE
+// =====================================================
+
+// Obtener resumen del kiosk de un venue específico
+router.get('/venue/:venue_id/summary', verifyToken, verifyAdmin, getVenueKioskSummary);
+
+// Comparativa de todos los kiosks (para dashboard admin)
+router.get('/venues/comparison', verifyToken, verifyAdmin, getAllVenuesKioskComparison);
+
+// Copiar productos de un venue a otro (útil para inicializar nuevo kiosk)
+router.post('/venues/copy-products', verifyToken, verifyAdmin, copyProductsToVenue);
 
 export default router;
 

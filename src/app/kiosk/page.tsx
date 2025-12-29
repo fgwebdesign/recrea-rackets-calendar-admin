@@ -11,12 +11,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useProducts } from "@/hooks/useProducts";
 import { useProductCategories } from "@/hooks/useProductCategories";
 import { useSales } from "@/hooks/useSales";
-import { useVenues } from "@/hooks/useVenues";
+import { useKioskVenue } from "@/contexts/KioskVenueContext";
 import { Product, CreateSaleData } from "@/types/kiosk";
 import { useTranslations } from '@/contexts/TranslationContext';
 import { toast } from '@/components/ui/use-toast';
 import Image from 'next/image';
-import { Package } from 'lucide-react';
+import { Package, Building2 } from 'lucide-react';
 import { CategoryIcon } from "@/lib/categoryIcons";
 import {
   Pagination,
@@ -43,15 +43,14 @@ interface CartItem {
 export default function KioskPOSPage() {
   const t = useTranslations('kiosk');
   const tCommon = useTranslations('common');
-  const { products, fetchProducts } = useProducts({ is_active: true });
+  const { selectedVenueId, selectedVenue, setSelectedVenueId, venues, loading: loadingVenues } = useKioskVenue();
+  const { products, fetchProducts } = useProducts({ is_active: true, venue_id: selectedVenueId });
   const { categories } = useProductCategories();
   const { createSale } = useSales();
-  const { venues } = useVenues({ includeCourts: false });
   
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [selectedVenue, setSelectedVenue] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'card' | 'mercadopago' | 'pending'>('cash');
   const [customerName, setCustomerName] = useState('');
   const [saleContext, setSaleContext] = useState<'general' | 'tournament' | 'league' | 'class' | 'booking'>('general');
@@ -64,29 +63,23 @@ export default function KioskPOSPage() {
   
   const PRODUCTS_PER_PAGE = 8;
 
+  // Recargar productos cuando cambia el venue
   useEffect(() => {
-    fetchProducts({ is_active: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    // Establecer sede por defecto cuando las sedes se carguen
-    if (venues.length > 0 && !selectedVenue) {
-      const defaultVenue = venues.find(v => v.is_default) || venues[0];
-      if (defaultVenue) {
-        setSelectedVenue(defaultVenue.id);
-      }
+    if (selectedVenueId) {
+      fetchProducts({ is_active: true, venue_id: selectedVenueId });
     }
-  }, [venues, selectedVenue]);
+  }, [selectedVenueId, fetchProducts]);
 
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
+      // Filtrar por venue (ya viene filtrado del backend, pero por seguridad)
+      if (selectedVenueId && product.venue_id !== selectedVenueId) return false;
       if (selectedCategory && product.category_id !== selectedCategory) return false;
       if (searchQuery && !product.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       if (product.track_inventory && product.stock_quantity <= 0) return false;
       return true;
     });
-  }, [products, selectedCategory, searchQuery]);
+  }, [products, selectedCategory, searchQuery, selectedVenueId]);
 
   // Resetear página cuando cambian los filtros
   useEffect(() => {
@@ -108,6 +101,16 @@ export default function KioskPOSPage() {
   };
 
   const addToCart = (product: Product, selectedSize?: {size: string; size_type: 'clothing' | 'shoes'; size_id?: string; stock_quantity: number}) => {
+    // Validar que el producto pertenezca al venue seleccionado
+    if (selectedVenueId && product.venue_id !== selectedVenueId) {
+      toast({
+        title: t('common.error'),
+        description: `El producto "${product.name}" no pertenece a la sede seleccionada`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Si el producto tiene talles, abrir modal de selección
     if (product.sizes && product.sizes.length > 0 && !selectedSize) {
       setProductToAdd(product);
@@ -266,10 +269,21 @@ export default function KioskPOSPage() {
       return;
     }
     
-    if (!selectedVenue) {
+    if (!selectedVenueId) {
       toast({
         title: t('common.error'),
         description: t('pos.mustSelectVenue'),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar que todos los productos pertenezcan al venue seleccionado
+    const invalidProducts = cart.filter(item => item.product.venue_id !== selectedVenueId);
+    if (invalidProducts.length > 0) {
+      toast({
+        title: t('common.error'),
+        description: `Algunos productos no pertenecen a la sede seleccionada`,
         variant: "destructive",
       });
       return;
@@ -286,7 +300,7 @@ export default function KioskPOSPage() {
           size: item.selectedSize?.size,
           size_type: item.selectedSize?.size_type
         })),
-        venue_id: selectedVenue,
+        venue_id: selectedVenueId,
         customer_name: customerName || undefined,
         payment_method: paymentMethod,
         sale_context: saleContext
@@ -300,7 +314,9 @@ export default function KioskPOSPage() {
       setShowPaymentModal(false);
       
       // Refrescar productos para actualizar stock
-      await fetchProducts({ is_active: true });
+      if (selectedVenueId) {
+        await fetchProducts({ is_active: true, venue_id: selectedVenueId });
+      }
     } catch (error) {
       console.error('Error processing sale:', error);
       // El error ya se maneja en createSale con toast
@@ -316,6 +332,55 @@ export default function KioskPOSPage() {
         description={t('pos.description')}
         icon={<ShoppingCart className="w-6 h-6" />}
       />
+
+      {/* Selector de Venue */}
+      {!loadingVenues && venues.length > 1 && (
+        <div className="mt-6 mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-4">
+            <Building2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <div className="flex-1">
+              <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                {t('pos.venue')} <span className="text-red-500">*</span>
+              </Label>
+              <Select 
+                value={selectedVenueId || 'none'} 
+                onValueChange={(value) => {
+                  if (value !== 'none') {
+                    setSelectedVenueId(value);
+                    // Limpiar carrito al cambiar de venue
+                    setCart([]);
+                  }
+                }}
+              >
+                <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 w-64">
+                  <SelectValue placeholder={t('pos.selectVenue')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {venues.filter(v => v.is_active).map((venue) => (
+                    <SelectItem key={venue.id} value={venue.id}>
+                      {venue.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedVenue && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {t('pos.selectedVenue')}: <span className="font-semibold">{selectedVenue.name}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mostrar mensaje si no hay venue seleccionado */}
+      {!loadingVenues && venues.length > 0 && !selectedVenueId && (
+        <div className="mt-6 mb-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+          <p className="text-sm text-yellow-800 dark:text-yellow-400">
+            {t('pos.mustSelectVenue')}
+          </p>
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Panel de Productos */}
@@ -648,35 +713,33 @@ export default function KioskPOSPage() {
           </DialogHeader>
           
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-gray-700 dark:text-gray-300">{t('pos.venue')} <span className="text-red-500">*</span></Label>
-              <Select 
-                value={selectedVenue || 'none'} 
-                onValueChange={(value) => {
-                  if (value !== 'none') {
-                    setSelectedVenue(value);
-                  }
-                }}
-              >
-                <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
-                  <SelectValue placeholder={t('pos.selectVenue')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {venues.filter(v => v.is_active).length === 0 ? (
-                    <SelectItem value="none" disabled>{t('pos.noVenuesAvailable')}</SelectItem>
-                  ) : (
-                    venues.filter(v => v.is_active).map((venue) => (
+            {venues.length > 1 && (
+              <div className="space-y-2">
+                <Label className="text-gray-700 dark:text-gray-300">{t('pos.venue')} <span className="text-red-500">*</span></Label>
+                <Select 
+                  value={selectedVenueId || 'none'} 
+                  onValueChange={(value) => {
+                    if (value !== 'none') {
+                      setSelectedVenueId(value);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                    <SelectValue placeholder={t('pos.selectVenue')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {venues.filter(v => v.is_active).map((venue) => (
                       <SelectItem key={venue.id} value={venue.id}>
                         {venue.name}
                       </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              {!selectedVenue && venues.filter(v => v.is_active).length > 0 && (
-                <p className="text-sm text-red-500">{t('pos.mustSelectVenue')}</p>
-              )}
-            </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!selectedVenueId && venues.filter(v => v.is_active).length > 0 && (
+                  <p className="text-sm text-red-500">{t('pos.mustSelectVenue')}</p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label className="text-gray-700 dark:text-gray-300">{t('pos.customerName')}</Label>
@@ -754,7 +817,7 @@ export default function KioskPOSPage() {
               </div>
               <Button
                 onClick={handleCheckout}
-                disabled={isProcessing || !selectedVenue}
+                disabled={isProcessing || !selectedVenueId}
                 className="w-full bg-green-600 text-white hover:bg-green-700 h-12 font-bold"
               >
                 {isProcessing ? t('pos.processing') : t('pos.confirmSale')}

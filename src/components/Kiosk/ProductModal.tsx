@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { Product, CreateProductData, UpdateProductData, ProductSize } from "@/types/kiosk";
 import { useProductCategories } from "@/hooks/useProductCategories";
 import { useVenues } from "@/hooks/useVenues";
+import { useKioskVenue } from "@/contexts/KioskVenueContext";
 import { useTranslations } from '@/contexts/TranslationContext';
 import { CategoryIcon } from "@/lib/categoryIcons";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -36,6 +37,7 @@ export default function ProductModal({
   const isEditing = !!product;
   const { categories, isLoading: loadingCategories } = useProductCategories();
   const { venues, loading: loadingVenues } = useVenues({ includeCourts: false });
+  const { selectedVenueId } = useKioskVenue();
   
   const [formData, setFormData] = useState({
     category_id: '',
@@ -50,7 +52,7 @@ export default function ProductModal({
     track_inventory: true,
     is_active: true,
     is_featured: false,
-    venue_id: 'none'
+    venue_id: selectedVenueId || 'none'
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -78,7 +80,7 @@ export default function ProductModal({
           track_inventory: product.track_inventory !== false,
           is_active: product.is_active !== false,
           is_featured: product.is_featured || false,
-          venue_id: product.venue_id || 'none'
+          venue_id: product.venue_id || selectedVenueId || 'none'
         });
         setPreviewUrl(product.image_url || '');
         setImageFile(null);
@@ -104,7 +106,7 @@ export default function ProductModal({
           track_inventory: true,
           is_active: true,
           is_featured: false,
-          venue_id: 'none'
+          venue_id: selectedVenueId || 'none'
         });
         setPreviewUrl('');
         setImageFile(null);
@@ -112,7 +114,7 @@ export default function ProductModal({
         setSizeType('clothing');
       }
     }
-  }, [isOpen, product, categories]);
+  }, [isOpen, product, categories, selectedVenueId]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -167,9 +169,16 @@ export default function ProductModal({
     try {
       setIsSubmitting(true);
       
+      // Validar que venue_id esté presente al crear
+      if (!isEditing && (!formData.venue_id || formData.venue_id === 'none')) {
+        alert('Debes seleccionar una sede para crear el producto');
+        setIsSubmitting(false);
+        return;
+      }
+      
       const submitData: CreateProductData | UpdateProductData = {
         ...formData,
-        venue_id: formData.venue_id && formData.venue_id !== 'none' ? formData.venue_id : undefined,
+        venue_id: formData.venue_id && formData.venue_id !== 'none' ? formData.venue_id : (selectedVenueId || undefined),
         // No incluir image_url si hay un archivo nuevo, se subirá después
         image_url: isEditing && !imageFile ? previewUrl : undefined,
         // Incluir talles si la categoría es Indumentaria
@@ -179,6 +188,13 @@ export default function ProductModal({
           stock_quantity: s.stock_quantity
         })) : undefined
       };
+      
+      // Asegurar que venue_id esté presente
+      if (!submitData.venue_id) {
+        alert('venue_id es requerido para crear un producto');
+        setIsSubmitting(false);
+        return;
+      }
 
       // Primero crear/actualizar el producto
       const result = await onSubmit(submitData, imageFile);
@@ -522,25 +538,28 @@ export default function ProductModal({
             {/* Sede */}
             <div className="space-y-2">
               <Label htmlFor="venue_id" className="text-gray-700 dark:text-gray-300">
-                {t('products.venue')}
+                {t('products.venue')} <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.venue_id}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, venue_id: value }))}
                 disabled={loadingVenues || isSubmitting}
+                required
               >
                 <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">
                   <SelectValue placeholder={t('products.selectVenue')} />
                 </SelectTrigger>
                 <SelectContent position="item-aligned" className="z-[100]">
-                  <SelectItem value="none">{t('products.allVenues')}</SelectItem>
-                  {venues.map((venue) => (
+                  {venues.filter(v => v.is_active).map((venue) => (
                     <SelectItem key={venue.id} value={venue.id}>
                       {venue.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {!formData.venue_id || formData.venue_id === 'none' ? (
+                <p className="text-xs text-red-500">{t('products.venueRequired')}</p>
+              ) : null}
             </div>
 
             {/* Opciones */}
@@ -666,7 +685,7 @@ export default function ProductModal({
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || uploadingImage || !formData.name.trim() || !formData.category_id}
+              disabled={isSubmitting || uploadingImage || !formData.name.trim() || !formData.category_id || !formData.venue_id || formData.venue_id === 'none'}
               className="bg-green-600 text-white hover:bg-green-700 font-bold"
             >
               {isSubmitting || uploadingImage 

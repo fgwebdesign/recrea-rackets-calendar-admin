@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ImageIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -16,16 +16,20 @@ interface SimpleAddCourtModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: { name: string; photo: File | null; venue_id?: string }) => void;
+  initialVenueId?: string;
+  venues?: Array<{ id: string; name: string }>; // Pasar venues como prop opcional
 }
 
-export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: SimpleAddCourtModalProps) {
+export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit, initialVenueId, venues: venuesProp }: SimpleAddCourtModalProps) {
   const t = useTranslations('courts');
   const tVenues = useTranslations('venues');
-  const { venues, loading: loadingVenues } = useVenues({ includeCourts: false });
+  // Usar venues pasadas como prop, o cargar desde el hook si no se pasan
+  const { venues: venuesFromHook, loading: loadingVenues } = useVenues({ includeCourts: false });
+  const venues = venuesProp || venuesFromHook;
   const [formData, setFormData] = useState({
     name: "",
     photo: null as File | null,
-    venue_id: ""
+    venue_id: initialVenueId || ""
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,7 +67,11 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
         photo: formData.photo,
         venue_id: formData.venue_id || undefined
       });
-      handleClose();
+      // Limpiar el formulario después de enviar exitosamente
+      setFormData({ name: "", photo: null, venue_id: initialVenueId || "" });
+      setPreviewUrl(null);
+      setError("");
+      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('errorCreatingCourt'));
       toast({
@@ -76,8 +84,15 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit }: Simpl
     }
   };
 
+  // Actualizar venue_id cuando cambie initialVenueId o se abra el modal
+  useEffect(() => {
+    if (isOpen && initialVenueId) {
+      setFormData(prev => ({ ...prev, venue_id: initialVenueId }));
+    }
+  }, [isOpen, initialVenueId]);
+
   const handleClose = () => {
-    setFormData({ name: "", photo: null, venue_id: "" });
+    setFormData({ name: "", photo: null, venue_id: initialVenueId || "" });
     setPreviewUrl(null);
     setError("");
     onClose();

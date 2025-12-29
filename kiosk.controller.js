@@ -9,15 +9,45 @@ const PRODUCTS_BUCKET = 'kiosk-products';
 
 /**
  * Obtener todas las categorías de productos
+ * Las categorías son globales (compartidas entre venues)
+ * Opcionalmente, si se pasa venue_id, incluye conteo de productos por venue
  */
 export const getProductCategories = async (req, res) => {
   try {
+    const { venue_id, include_product_count } = req.query;
+
     const { data, error } = await supabase
       .from('product_categories')
       .select('*')
+      .eq('is_active', true)
       .order('sort_order', { ascending: true });
 
     if (error) throw error;
+
+    // Si se solicita conteo de productos por venue
+    if (include_product_count === 'true' && venue_id) {
+      const { data: productCounts } = await supabase
+        .from('products')
+        .select('category_id')
+        .eq('venue_id', venue_id)
+        .eq('is_active', true);
+
+      const countMap = {};
+      productCounts?.forEach(p => {
+        countMap[p.category_id] = (countMap[p.category_id] || 0) + 1;
+      });
+
+      const categoriesWithCount = data.map(cat => ({
+        ...cat,
+        product_count: countMap[cat.id] || 0
+      }));
+
+      return res.status(200).json({
+        success: true,
+        categories: categoriesWithCount,
+        venue_id
+      });
+    }
 
     return res.status(200).json({
       success: true,
@@ -271,6 +301,7 @@ export const getProductById = async (req, res) => {
 
 /**
  * Crear nuevo producto
+ * IMPORTANTE: venue_id es requerido - cada producto pertenece a un venue específico
  */
 export const createProduct = async (req, res) => {
   try {
@@ -293,6 +324,27 @@ export const createProduct = async (req, res) => {
     } = req.body;
 
     // Validaciones
+    if (!venue_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'venue_id es requerido - cada producto debe pertenecer a un venue'
+      });
+    }
+
+    // Verificar que el venue existe
+    const { data: venue, error: venueError } = await supabase
+      .from('venues')
+      .select('id, name, is_active')
+      .eq('id', venue_id)
+      .single();
+
+    if (venueError || !venue) {
+      return res.status(404).json({
+        success: false,
+        message: 'Venue no encontrado'
+      });
+    }
+
     if (!category_id) {
       return res.status(400).json({
         success: false,
@@ -657,6 +709,7 @@ export const updateProductStock = async (req, res) => {
 
 /**
  * Crear nueva venta
+ * IMPORTANTE: venue_id es requerido para registrar ventas por sede
  */
 export const createSale = async (req, res) => {
   try {
@@ -678,6 +731,34 @@ export const createSale = async (req, res) => {
     const user_id = req.user?.id;
 
     // Validaciones
+    if (!venue_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'venue_id es requerido para registrar una venta'
+      });
+    }
+
+    // Verificar que el venue existe y está activo
+    const { data: venue, error: venueError } = await supabase
+      .from('venues')
+      .select('id, name, is_active')
+      .eq('id', venue_id)
+      .single();
+
+    if (venueError || !venue) {
+      return res.status(404).json({
+        success: false,
+        message: 'Venue no encontrado'
+      });
+    }
+
+    if (!venue.is_active) {
+      return res.status(400).json({
+        success: false,
+        message: 'El venue no está activo'
+      });
+    }
+
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         success: false,
@@ -709,7 +790,7 @@ export const createSale = async (req, res) => {
 
     if (productsError) throw productsError;
 
-    // Validar que todos los productos existan y verificar stock
+    // Validar que todos los productos existan, pertenezcan al venue y verificar stock
     const productMap = new Map(products.map(p => [p.id, p]));
     for (const item of items) {
       if (!productMap.has(item.product_id)) {
@@ -720,6 +801,14 @@ export const createSale = async (req, res) => {
       }
 
       const product = productMap.get(item.product_id);
+
+      // Validar que el producto pertenezca al venue (o sea global si venue_id es null)
+      if (product.venue_id && product.venue_id !== venue_id) {
+        return res.status(400).json({
+          success: false,
+          message: `El producto "${product.name}" no pertenece a este venue`
+        });
+      }
       
       // Si el item tiene un talle específico, validar stock del talle
       if (item.product_size_id || item.size) {
@@ -2243,3 +2332,325 @@ export const uploadCategoryImage = async (req, res) => {
   }
 };
 
+// =====================================================
+// RESUMEN DE KIOSK POR VENUE
+// =====================================================
+
+/**
+ * Obtener resumen del kiosk de un venue específico
+ * Incluye: productos, inventario, ventas recientes
+ * @param venue_id - ID del venue (requerido)
+ */
+export const getVenueKioskSummary = async (req, res) => {
+  try {
+    const { venue_id } = req.params;
+
+    if (!venue_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'venue_id es requerido'
+      });
+    }
+
+    // Verificar que el venue existe
+    const { data: venue, error: venueError } = await supabase
+      .from('venues')
+      .select('id, name, is_active')
+      .eq('id', venue_id)
+      .single();
+
+    if (venueError || !venue) {
+      return res.status(404).json({
+        success: false,
+        message: 'Venue no encontrado'
+      });
+    }
+
+    // Obtener productos del venue
+    const { data: products } = await supabase
+      .from('products')
+      .select('id, stock_quantity, min_stock_alert, price, is_active, track_inventory')
+      .eq('venue_id', venue_id);
+
+    const activeProducts = products?.filter(p => p.is_active) || [];
+    const lowStockProducts = activeProducts.filter(p => 
+      p.track_inventory && p.stock_quantity <= p.min_stock_alert
+    );
+    const outOfStockProducts = activeProducts.filter(p => 
+      p.track_inventory && p.stock_quantity === 0
+    );
+    const inventoryValue = activeProducts.reduce((sum, p) => 
+      sum + (p.stock_quantity * p.price), 0
+    );
+
+    // Ventas de hoy
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+    const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59).toISOString();
+
+    const { data: todaySales } = await supabase
+      .from('sales')
+      .select('id, total')
+      .eq('venue_id', venue_id)
+      .eq('payment_status', 'completed')
+      .gte('sale_date', todayStart)
+      .lte('sale_date', todayEnd);
+
+    // Ventas del mes
+    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+    
+    const { data: monthSales } = await supabase
+      .from('sales')
+      .select('id, total')
+      .eq('venue_id', venue_id)
+      .eq('payment_status', 'completed')
+      .gte('sale_date', thisMonthStart);
+
+    // Categorías con productos en este venue
+    const { data: categoriesWithProducts } = await supabase
+      .from('products')
+      .select('category_id')
+      .eq('venue_id', venue_id)
+      .eq('is_active', true);
+
+    const uniqueCategories = [...new Set(categoriesWithProducts?.map(p => p.category_id) || [])];
+
+    return res.status(200).json({
+      success: true,
+      venue: {
+        id: venue.id,
+        name: venue.name,
+        is_active: venue.is_active
+      },
+      inventory: {
+        total_products: products?.length || 0,
+        active_products: activeProducts.length,
+        low_stock_count: lowStockProducts.length,
+        out_of_stock_count: outOfStockProducts.length,
+        inventory_value: inventoryValue,
+        categories_count: uniqueCategories.length
+      },
+      sales: {
+        today: {
+          count: todaySales?.length || 0,
+          total: todaySales?.reduce((sum, s) => sum + parseFloat(s.total), 0) || 0
+        },
+        this_month: {
+          count: monthSales?.length || 0,
+          total: monthSales?.reduce((sum, s) => sum + parseFloat(s.total), 0) || 0
+        }
+      },
+      alerts: {
+        low_stock: lowStockProducts.length,
+        out_of_stock: outOfStockProducts.length,
+        requires_attention: lowStockProducts.length > 0 || outOfStockProducts.length > 0
+      }
+    });
+  } catch (error) {
+    console.error('Error al obtener resumen del kiosk:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al obtener resumen del kiosk',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Copiar productos de un venue a otro
+ * Útil para inicializar un nuevo kiosk con los mismos productos
+ */
+export const copyProductsToVenue = async (req, res) => {
+  try {
+    const { source_venue_id, target_venue_id, include_stock = false } = req.body;
+
+    if (!source_venue_id || !target_venue_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'source_venue_id y target_venue_id son requeridos'
+      });
+    }
+
+    if (source_venue_id === target_venue_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Los venues de origen y destino deben ser diferentes'
+      });
+    }
+
+    // Verificar que ambos venues existen
+    const { data: venues } = await supabase
+      .from('venues')
+      .select('id, name')
+      .in('id', [source_venue_id, target_venue_id]);
+
+    if (!venues || venues.length !== 2) {
+      return res.status(404).json({
+        success: false,
+        message: 'Uno o ambos venues no fueron encontrados'
+      });
+    }
+
+    // Obtener productos del venue origen
+    const { data: sourceProducts, error: productsError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('venue_id', source_venue_id)
+      .eq('is_active', true);
+
+    if (productsError) throw productsError;
+
+    if (!sourceProducts || sourceProducts.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'El venue de origen no tiene productos activos'
+      });
+    }
+
+    // Crear copias de los productos para el nuevo venue
+    const productsToCopy = sourceProducts.map(p => ({
+      category_id: p.category_id,
+      name: p.name,
+      description: p.description,
+      sku: p.sku ? `${p.sku}-${target_venue_id.substring(0, 4)}` : null, // SKU único
+      barcode: null, // No copiar barcode para evitar duplicados
+      price: p.price,
+      cost_price: p.cost_price,
+      stock_quantity: include_stock ? p.stock_quantity : 0,
+      min_stock_alert: p.min_stock_alert,
+      track_inventory: p.track_inventory,
+      image_url: p.image_url,
+      is_active: true,
+      is_featured: p.is_featured,
+      venue_id: target_venue_id
+    }));
+
+    const { data: newProducts, error: insertError } = await supabase
+      .from('products')
+      .insert(productsToCopy)
+      .select();
+
+    if (insertError) throw insertError;
+
+    const sourceVenue = venues.find(v => v.id === source_venue_id);
+    const targetVenue = venues.find(v => v.id === target_venue_id);
+
+    console.log(`✅ ${newProducts.length} productos copiados de "${sourceVenue.name}" a "${targetVenue.name}"`);
+
+    return res.status(201).json({
+      success: true,
+      message: `${newProducts.length} productos copiados exitosamente`,
+      source_venue: sourceVenue.name,
+      target_venue: targetVenue.name,
+      products_copied: newProducts.length,
+      include_stock
+    });
+  } catch (error) {
+    console.error('Error al copiar productos:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al copiar productos',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Obtener comparativa de todos los kiosks (venues)
+ * Útil para dashboard general del administrador
+ */
+export const getAllVenuesKioskComparison = async (req, res) => {
+  try {
+    // Obtener todos los venues activos
+    const { data: venues, error: venuesError } = await supabase
+      .from('venues')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name');
+
+    if (venuesError) throw venuesError;
+
+    if (!venues || venues.length === 0) {
+      return res.status(200).json({
+        success: true,
+        venues: [],
+        message: 'No hay venues activos'
+      });
+    }
+
+    // Fechas para consultas
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+
+    // Obtener estadísticas de cada venue
+    const venueStats = await Promise.all(venues.map(async (venue) => {
+      // Productos
+      const { data: products } = await supabase
+        .from('products')
+        .select('id, stock_quantity, min_stock_alert, price, is_active, track_inventory')
+        .eq('venue_id', venue.id);
+
+      const activeProducts = products?.filter(p => p.is_active) || [];
+      const lowStock = activeProducts.filter(p => 
+        p.track_inventory && p.stock_quantity <= p.min_stock_alert
+      ).length;
+
+      // Ventas de hoy
+      const { data: todaySales } = await supabase
+        .from('sales')
+        .select('total')
+        .eq('venue_id', venue.id)
+        .eq('payment_status', 'completed')
+        .gte('sale_date', todayStart);
+
+      // Ventas del mes
+      const { data: monthSales } = await supabase
+        .from('sales')
+        .select('total')
+        .eq('venue_id', venue.id)
+        .eq('payment_status', 'completed')
+        .gte('sale_date', thisMonthStart);
+
+      return {
+        venue_id: venue.id,
+        venue_name: venue.name,
+        products: {
+          total: activeProducts.length,
+          low_stock: lowStock
+        },
+        sales_today: {
+          count: todaySales?.length || 0,
+          total: todaySales?.reduce((sum, s) => sum + parseFloat(s.total), 0) || 0
+        },
+        sales_month: {
+          count: monthSales?.length || 0,
+          total: monthSales?.reduce((sum, s) => sum + parseFloat(s.total), 0) || 0
+        }
+      };
+    }));
+
+    // Calcular totales globales
+    const globalStats = {
+      total_products: venueStats.reduce((sum, v) => sum + v.products.total, 0),
+      total_low_stock: venueStats.reduce((sum, v) => sum + v.products.low_stock, 0),
+      today_sales_count: venueStats.reduce((sum, v) => sum + v.sales_today.count, 0),
+      today_revenue: venueStats.reduce((sum, v) => sum + v.sales_today.total, 0),
+      month_sales_count: venueStats.reduce((sum, v) => sum + v.sales_month.count, 0),
+      month_revenue: venueStats.reduce((sum, v) => sum + v.sales_month.total, 0)
+    };
+
+    return res.status(200).json({
+      success: true,
+      global: globalStats,
+      venues: venueStats.sort((a, b) => b.sales_month.total - a.sales_month.total)
+    });
+  } catch (error) {
+    console.error('Error al obtener comparativa de kiosks:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al obtener comparativa',
+      error: error.message
+    });
+  }
+};

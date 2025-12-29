@@ -15,9 +15,11 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useSales } from "@/hooks/useSales";
-import { useVenues } from "@/hooks/useVenues";
+import { useKioskVenue } from "@/contexts/KioskVenueContext";
 import { Sale, SaleFilters } from "@/types/kiosk";
 import { useTranslations } from '@/contexts/TranslationContext';
+import { Building2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Image from 'next/image';
@@ -26,15 +28,21 @@ import { cn } from "@/lib/utils";
 
 export default function SalesPage() {
   const t = useTranslations('kiosk');
+  const { selectedVenueId, selectedVenue, setSelectedVenueId, venues, loading: loadingVenues } = useKioskVenue();
   const SALES_PER_PAGE = 20;
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<SaleFilters>({
     limit: SALES_PER_PAGE,
-    offset: 0
+    offset: 0,
+    venue_id: selectedVenueId
   });
   
+  // Actualizar filtros cuando cambia el venue seleccionado
+  useEffect(() => {
+    setFilters(prev => ({ ...prev, venue_id: selectedVenueId }));
+  }, [selectedVenueId]);
+  
   const { sales, isLoading, fetchSales, getSaleById, pagination } = useSales(filters);
-  const { venues } = useVenues({ includeCourts: false });
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [showSaleModal, setShowSaleModal] = useState(false);
 
@@ -102,6 +110,45 @@ export default function SalesPage() {
         icon={<Receipt className="w-6 h-6" />}
       />
 
+      {/* Selector de Venue */}
+      {!loadingVenues && venues.length > 1 && (
+        <div className="mt-6 mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-4">
+            <Building2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <div className="flex-1">
+              <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                {t('sales.venue')}
+              </Label>
+              <Select 
+                value={selectedVenueId || 'all'} 
+                onValueChange={(value) => {
+                  const venueId = value === 'all' ? undefined : value;
+                  setSelectedVenueId(venueId);
+                  setFilters(prev => ({ ...prev, venue_id: venueId }));
+                }}
+              >
+                <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 w-64">
+                  <SelectValue placeholder={t('sales.allVenues')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('sales.allVenues')}</SelectItem>
+                  {venues.filter(v => v.is_active).map((venue) => (
+                    <SelectItem key={venue.id} value={venue.id}>
+                      {venue.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedVenue && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {t('sales.selectedVenue')}: <span className="font-semibold">{selectedVenue.name}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filtros */}
       <div className="mt-6 mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
         <div className="flex flex-wrap gap-4 items-end">
@@ -114,23 +161,6 @@ export default function SalesPage() {
               />
             </div>
           </div>
-
-          <Select
-            value={filters.venue_id || 'all'}
-            onValueChange={(value) => setFilters(prev => ({ ...prev, venue_id: value === 'all' ? undefined : value }))}
-          >
-            <SelectTrigger className="w-[200px] bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
-              <SelectValue placeholder={t('sales.allVenues')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('sales.allVenues')}</SelectItem>
-              {venues.map((venue) => (
-                <SelectItem key={venue.id} value={venue.id}>
-                  {venue.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
           <Select
             value={filters.payment_method || 'all'}

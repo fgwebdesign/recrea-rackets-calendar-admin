@@ -12,7 +12,10 @@ import { useProducts } from "@/hooks/useProducts";
 import { useProductCategories } from "@/hooks/useProductCategories";
 import { Product, CreateProductData, UpdateProductData, ProductFilters } from "@/types/kiosk";
 import { useTranslations } from '@/contexts/TranslationContext';
+import { useKioskVenue } from '@/contexts/KioskVenueContext';
 import { CategoryIcon } from "@/lib/categoryIcons";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import {
   Pagination,
   PaginationContent,
@@ -22,15 +25,23 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
+import { Building2 } from "lucide-react";
 
 export default function ProductsPage() {
   const t = useTranslations('kiosk');
+  const { selectedVenueId, selectedVenue, setSelectedVenueId, venues, loading: loadingVenues } = useKioskVenue();
   const [filters, setFilters] = useState<ProductFilters>({
     category_id: '',
     is_active: true,
     search: '',
-    low_stock: false
+    low_stock: false,
+    venue_id: selectedVenueId
   });
+  
+  // Actualizar filtros cuando cambia el venue seleccionado
+  useEffect(() => {
+    setFilters(prev => ({ ...prev, venue_id: selectedVenueId }));
+  }, [selectedVenueId]);
   
   // El hook useProducts ya maneja la carga automática cuando cambian los filtros
   const { products, isLoading, createProduct, updateProduct, deleteProduct, fetchProducts } = useProducts(filters);
@@ -60,6 +71,11 @@ export default function ProductsPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSubmit = useCallback(async (data: CreateProductData | UpdateProductData, imageFile?: File | null): Promise<{ success: boolean; productId?: string }> => {
     try {
+      // Asegurar que el venue_id esté presente al crear
+      if (!editingProduct && !data.venue_id && selectedVenueId) {
+        data.venue_id = selectedVenueId;
+      }
+      
       if (editingProduct) {
         const success = await updateProduct(editingProduct.id, data);
         if (success) {
@@ -72,6 +88,11 @@ export default function ProductsPage() {
         }
         return { success, productId: editingProduct.id };
       } else {
+        // Validar que venue_id esté presente
+        if (!data.venue_id) {
+          throw new Error('venue_id es requerido para crear un producto');
+        }
+        
         const result = await createProduct(data as CreateProductData);
         if (result.success && result.product) {
           setIsModalOpen(false);
@@ -88,7 +109,7 @@ export default function ProductsPage() {
       console.error('Error submitting product:', error);
       return { success: false };
     }
-  }, [editingProduct, updateProduct, createProduct, fetchProducts, filters]);
+  }, [editingProduct, updateProduct, createProduct, fetchProducts, filters, selectedVenueId]);
 
   const handleEdit = useCallback((product: Product) => {
     setEditingProduct(product);
@@ -134,6 +155,53 @@ export default function ProductsPage() {
         description={t('products.description')}
         icon={<PlusCircle className="w-6 h-6" />}
       />
+
+      {/* Selector de Venue */}
+      {!loadingVenues && venues.length > 1 && (
+        <div className="mt-6 mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-4">
+            <Building2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <div className="flex-1">
+              <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                {t('products.venue')} <span className="text-red-500">*</span>
+              </Label>
+              <Select 
+                value={selectedVenueId || 'none'} 
+                onValueChange={(value) => {
+                  if (value !== 'none') {
+                    setSelectedVenueId(value);
+                  }
+                }}
+              >
+                <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 w-64">
+                  <SelectValue placeholder={t('products.selectVenue')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {venues.filter(v => v.is_active).map((venue) => (
+                    <SelectItem key={venue.id} value={venue.id}>
+                      {venue.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedVenue && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {t('products.selectedVenue')}: <span className="font-semibold">{selectedVenue.name}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mostrar mensaje si no hay venue seleccionado */}
+      {!loadingVenues && venues.length > 0 && !selectedVenueId && (
+        <div className="mt-6 mb-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+          <p className="text-sm text-yellow-800 dark:text-yellow-400">
+            {t('products.mustSelectVenue')}
+          </p>
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="mt-6 mb-6 space-y-4">
@@ -259,7 +327,17 @@ export default function ProductsPage() {
         </Button>
       </div>
 
-      {isLoading ? (
+      {!selectedVenueId && venues.length > 0 ? (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+          <Building2 className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
+          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            {t('products.selectVenueFirst')}
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            {t('products.selectVenueFirstDescription')}
+          </p>
+        </div>
+      ) : isLoading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
         </div>
