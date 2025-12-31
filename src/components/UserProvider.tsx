@@ -105,9 +105,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   // Si el usuario está autenticado, mostramos el layout con sidebar
   if (username) {
     return (
-      <div className="flex min-h-screen bg-gray-50">
-        <Sidebar username={username} />
-        <main className="flex-1 transition-all duration-300 ease-in-out">
+      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Sidebar />
+        <main className="flex-1 w-full md:w-auto transition-all duration-300 ease-in-out overflow-x-hidden">
           {children}
         </main>
       </div>

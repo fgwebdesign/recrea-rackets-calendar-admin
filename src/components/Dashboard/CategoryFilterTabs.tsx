@@ -19,24 +19,26 @@ export function CategoryFilterTabs({
 }: CategoryFilterTabsProps) {
   const t = useTranslations('dashboard');
   return (
-    <div className={`px-6 pt-4 ${className}`}>
+    <div className={`px-4 sm:px-6 pt-4 ${className}`}>
       <Tabs defaultValue={selectedCategory} value={selectedCategory} onValueChange={onCategoryChange}>
-        <TabsList className="mb-4">
-          {showAllOption && (
-            <TabsTrigger value="all" className="text-sm">
-              {t('allCategories')}
-            </TabsTrigger>
-          )}
-          {categories.map((category) => (
-            <TabsTrigger
-              key={category.id}
-              value={category.id}
-              className="text-sm"
-            >
-              {category.name}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
+          <TabsList className="mb-4 w-max min-w-full sm:w-auto sm:min-w-0">
+            {showAllOption && (
+              <TabsTrigger value="all" className="text-xs sm:text-sm whitespace-nowrap">
+                {t('allCategories')}
+              </TabsTrigger>
+            )}
+            {categories.map((category) => (
+              <TabsTrigger
+                key={category.id}
+                value={category.id}
+                className="text-xs sm:text-sm whitespace-nowrap"
+              >
+                {category.name}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
       </Tabs>
     </div>
   );

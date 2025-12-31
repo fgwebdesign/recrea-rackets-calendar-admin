@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { WeatherWidget } from './WeatherWidget';
 import { motion } from 'framer-motion';
 import { Calendar, Clock } from 'lucide-react';
@@ -62,48 +61,48 @@ export function DateTime() {
 
   return (
     <div className="bg-white/0 dark:bg-gray-800/0 rounded-2xl overflow-hidden">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-2">
         {/* Fecha */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className={`h-[160px] rounded-2xl bg-gradient-to-br ${gradient} p-6 relative overflow-hidden`}
+          className={`h-[140px] sm:h-[160px] rounded-xl sm:rounded-2xl bg-gradient-to-br ${gradient} p-4 sm:p-6 relative overflow-hidden`}
         >
           {/* Overlay circular gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
           
           <div className="relative z-10 h-full flex flex-col">
-            <div className="flex justify-between items-start mb-6">
-              <div className="flex items-center gap-2">
-                <Calendar className={`w-4 h-4 ${subTextColor}`} />
-                <span className={`text-xs font-medium uppercase tracking-wider ${subTextColor}`}>
+            <div className="flex justify-between items-start mb-4 sm:mb-6">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Calendar className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${subTextColor}`} />
+                <span className={`text-[10px] sm:text-xs font-medium uppercase tracking-wider ${subTextColor}`}>
                   {t('date')}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock className={`w-4 h-4 ${subTextColor}`} />
-                <span className={`text-xs font-medium uppercase tracking-wider ${subTextColor}`}>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Clock className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${subTextColor}`} />
+                <span className={`text-[10px] sm:text-xs font-medium uppercase tracking-wider ${subTextColor} hidden xs:inline`}>
                   {t('time')}
                 </span>
-                <span className={`text-lg font-medium ${textColor}`}>
+                <span className={`text-base sm:text-lg font-medium ${textColor}`}>
                   {format(date, 'HH:mm')}
                 </span>
               </div>
             </div>
 
             <div>
-              <div className={`text-sm font-medium capitalize ${textColor} mb-2`}>
+              <div className={`text-xs sm:text-sm font-medium capitalize ${textColor} mb-1.5 sm:mb-2`}>
                 {getTranslatedDay(date)}
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-5xl font-bold tracking-tight ${textColor}`}>
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <span className={`text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight ${textColor}`}>
                   {format(date, 'd')}
                 </span>
-                <span className={`text-2xl font-medium ${textColor}`}>
+                <span className={`text-lg sm:text-xl lg:text-2xl font-medium ${textColor}`}>
                   {getTranslatedMonth(date)}
                 </span>
-                <span className={`text-xl ${subTextColor}`}>
+                <span className={`text-base sm:text-lg lg:text-xl ${subTextColor}`}>
                   {format(date, "yyyy")}
                 </span>
               </div>
@@ -112,7 +111,7 @@ export function DateTime() {
         </motion.div>
 
         {/* Clima */}
-        <div className="h-[160px]">
+        <div className="h-[140px] sm:h-[160px]">
           <WeatherWidget />
         </div>
       </div>

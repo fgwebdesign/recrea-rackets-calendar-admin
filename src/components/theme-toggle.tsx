@@ -27,9 +27,10 @@ export function ThemeToggle() {
       {/* Theme Switch Container */}
       <button
         onClick={toggleTheme}
+        aria-label={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
         className={`
-          relative w-10 h-10 rounded-full transition-all duration-300 ease-in-out
-          focus:outline-none focus:ring-4 focus:ring-yellow-500/20
+          relative w-9 h-9 sm:w-10 sm:h-10 rounded-full transition-all duration-300 ease-in-out
+          focus:outline-none focus:ring-2 sm:focus:ring-4 focus:ring-yellow-500/20
           ${theme === 'light' 
             ? 'bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg shadow-yellow-500/30' 
             : 'bg-gradient-to-br from-slate-600 to-slate-800 shadow-lg shadow-slate-500/30'
@@ -53,9 +54,9 @@ export function ThemeToggle() {
             }
           `}>
             {theme === 'light' ? (
-              <Sun className="h-5 w-5" />
+              <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
             ) : (
-              <Moon className="h-5 w-5" />
+              <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
             )}
           </div>
         </div>

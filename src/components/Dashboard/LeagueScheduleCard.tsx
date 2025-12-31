@@ -189,28 +189,30 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
     return (
       <div className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-gray-700/50 overflow-hidden">
         {/* Category Tabs */}
-        <div className="px-6 pt-4">
+        <div className="px-4 sm:px-6 pt-4">
           <div className="flex justify-between items-center mb-4">
-            <Tabs defaultValue="all" value={selectedCategory} onValueChange={setSelectedCategory}>
-              <TabsList>
-                <TabsTrigger value="all" className="text-sm">
-                  {t('allCategories')}
-                </TabsTrigger>
-                {categories.map((category) => (
-                  <TabsTrigger
-                    key={category.id}
-                    value={category.id}
-                    className="text-sm"
-                  >
-                    {category.name}
+            <div className="w-full sm:w-auto overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
+              <Tabs defaultValue="all" value={selectedCategory} onValueChange={setSelectedCategory}>
+                <TabsList className="w-max min-w-full sm:w-auto sm:min-w-0">
+                  <TabsTrigger value="all" className="text-xs sm:text-sm whitespace-nowrap">
+                    {t('allCategories')}
                   </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+                  {categories.map((category) => (
+                    <TabsTrigger
+                      key={category.id}
+                      value={category.id}
+                      className="text-xs sm:text-sm whitespace-nowrap"
+                    >
+                      {category.name}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-center p-8 text-center">
+        <div className="flex flex-col items-center justify-center p-6 sm:p-8 text-center">
           <div className="w-24 h-24 mb-4 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
             <CalendarDays className="w-12 h-12 text-purple-500 dark:text-purple-400" />
           </div>
@@ -230,35 +232,39 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
   return (
     <div className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-gray-700/50 overflow-hidden">
       {/* Category Tabs */}
-      <div className="px-6 pt-4">
-        <div className="flex justify-between items-center mb-4">
-          <Tabs defaultValue="all" value={selectedCategory} onValueChange={setSelectedCategory}>
-            <TabsList>
-              <TabsTrigger value="all" className="text-sm">
-                {t('allCategories')}
-              </TabsTrigger>
-              {categories.map((category) => (
-                <TabsTrigger
-                  key={category.id}
-                  value={category.id}
-                  className="text-sm"
-                >
-                  {category.name}
+      <div className="px-4 sm:px-6 pt-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4">
+          <div className="w-full sm:w-auto overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
+            <Tabs defaultValue="all" value={selectedCategory} onValueChange={setSelectedCategory}>
+              <TabsList className="w-max min-w-full sm:w-auto sm:min-w-0">
+                <TabsTrigger value="all" className="text-xs sm:text-sm whitespace-nowrap">
+                  {t('allCategories')}
                 </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+                {categories.map((category) => (
+                  <TabsTrigger
+                    key={category.id}
+                    value={category.id}
+                    className="text-xs sm:text-sm whitespace-nowrap"
+                  >
+                    {category.name}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
           {filteredMatches.length > 0 && (
             <button
               onClick={() => router.push(`/leagues/${matches[0]?.league_id}/matches`)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white
                        bg-gradient-to-r from-purple-500 to-purple-600 
                        hover:from-purple-600 hover:to-purple-700
                        rounded-lg transition-all duration-200
-                       shadow-lg shadow-purple-500/20 dark:shadow-purple-900/30"
+                       shadow-lg shadow-purple-500/20 dark:shadow-purple-900/30
+                       whitespace-nowrap flex-shrink-0"
             >
-              <ListFilter className="w-4 h-4" />
-              {t('viewAllMatches')}
+              <ListFilter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">{t('viewAllMatches')}</span>
+              <span className="xs:hidden">{t('viewAll')}</span>
             </button>
           )}
         </div>
@@ -269,30 +275,32 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
         {currentPage > 0 && (
           <button
             onClick={handlePrevious}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full
-                     bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm
+            className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 sm:p-2 rounded-full
+                     bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm
                      border border-gray-200 dark:border-gray-700
                      text-gray-700 dark:text-gray-200
                      hover:bg-white dark:hover:bg-slate-700
                      transition-all duration-200
                      shadow-lg"
+            aria-label="Anterior"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         )}
         
         {currentPage < totalPages - 1 && (
           <button
             onClick={handleNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full
-                     bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm
+            className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 sm:p-2 rounded-full
+                     bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm
                      border border-gray-200 dark:border-gray-700
                      text-gray-700 dark:text-gray-200
                      hover:bg-white dark:hover:bg-slate-700
                      transition-all duration-200
                      shadow-lg"
+            aria-label="Siguiente"
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         )}
 
@@ -306,19 +314,19 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
           {Array.from({ length: totalPages }).map((_, pageIndex) => (
             <div 
               key={pageIndex}
-              className="flex-none w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-4 gap-6 p-6 snap-start"
+              className="flex-none w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 p-3 sm:p-4 lg:p-6 snap-start"
             >
               {filteredMatches.slice(pageIndex * 4, (pageIndex + 1) * 4).map((match) => (
                 <div 
                   key={match.id}
                   className="relative bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#1D283A]/80 dark:to-[#1D283A] 
-                           rounded-2xl p-5 hover:shadow-xl transition-all duration-300
+                           rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 hover:shadow-xl transition-all duration-300
                            border border-gray-200/50 dark:border-gray-700/30
                            backdrop-blur-sm"
                 >
                   {/* Categoría Badge */}
-                  <div className="absolute -top-3 left-4">
-                    <span className="px-3 py-1 rounded-full text-sm font-medium
+                  <div className="absolute -top-2 sm:-top-3 left-2 sm:left-4">
+                    <span className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium
                                  bg-gradient-to-r from-purple-500 to-purple-600 
                                  text-white shadow-lg shadow-purple-500/30
                                  dark:from-purple-600 dark:to-purple-700
@@ -328,8 +336,8 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
                   </div>
 
                   {/* Court Badge */}
-                  <div className="absolute -top-3 right-4">
-                    <span className="px-3 py-1 rounded-full text-xs font-medium
+                  <div className="absolute -top-2 sm:-top-3 right-2 sm:right-4">
+                    <span className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium
                                  bg-gray-900/5 dark:bg-white/5 
                                  text-gray-700 dark:text-gray-300
                                  border border-gray-200/50 dark:border-gray-700/30">
@@ -338,13 +346,13 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
                   </div>
 
                   {/* Match Content */}
-                  <div className="mt-4 space-y-6">
+                  <div className="mt-3 sm:mt-4 space-y-4 sm:space-y-6">
                     {/* Teams */}
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {/* Team 1 */}
                       <div className="flex items-center justify-between space-x-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={match.team1}>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={match.team1}>
                             {match.team1}
                           </p>
                         </div>
@@ -357,8 +365,8 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
                             <div className="w-full border-t border-gray-200 dark:border-gray-700/30"></div>
                           </div>
                           <div className="relative flex justify-center">
-                            <span className="px-3 text-sm font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 
-                                         text-white rounded-full py-1 shadow-lg shadow-emerald-500/20
+                            <span className="px-2 sm:px-3 text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 
+                                         text-white rounded-full py-0.5 sm:py-1 shadow-lg shadow-emerald-500/20
                                          dark:shadow-emerald-900/30">
                               {t('vs')}
                             </span>
@@ -368,8 +376,8 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
 
                       {/* Team 2 */}
                       <div className="flex items-center justify-between space-x-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={match.team2}>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={match.team2}>
                             {match.team2}
                           </p>
                         </div>
@@ -377,16 +385,16 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
                     </div>
 
                     {/* Date and Time */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200/50 dark:border-gray-700/30">
-                      <div className="flex items-center space-x-2">
-                        <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                        <span className="text-sm text-gray-600 dark:text-gray-300">
+                    <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-200/50 dark:border-gray-700/30 gap-2">
+                      <div className="flex items-center space-x-1.5 sm:space-x-2">
+                        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
                           {formatDateTime(match.match_date).time}h
                         </span>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <CalendarDays className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                        <span className="text-sm text-gray-600 dark:text-gray-300">
+                      <div className="flex items-center space-x-1.5 sm:space-x-2">
+                        <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
                           {formatDateTime(match.match_date).date}
                         </span>
                       </div>
@@ -400,14 +408,14 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
 
         {/* Pagination Dots */}
         {totalPages > 1 && (
-          <div className="flex justify-center gap-2 py-4">
+          <div className="flex justify-center gap-1.5 sm:gap-2 py-3 sm:py-4">
             {Array.from({ length: totalPages }).map((_, index) => (
               <div
                 key={index}
-                className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                className={`h-1.5 sm:h-2 rounded-full transition-all duration-200 ${
                   currentPage === index
-                    ? 'bg-purple-600 dark:bg-purple-500 w-4'
-                    : 'bg-gray-300 dark:bg-gray-600'
+                    ? 'bg-purple-600 dark:bg-purple-500 w-3 sm:w-4'
+                    : 'bg-gray-300 dark:bg-gray-600 w-1.5 sm:w-2'
                 }`}
               />
             ))}

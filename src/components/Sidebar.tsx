@@ -50,15 +50,26 @@ const MenuItem = ({
   isHovered, 
   onHover,
   isSubmenuOpen,
-  onToggleSubmenu 
+  onToggleSubmenu,
+  onMobileMenuClose
 }: { 
   item: MenuItem;
   isHovered: boolean;
   onHover: (name: string | null) => void;
   isSubmenuOpen: boolean;
   onToggleSubmenu: () => void;
+  onMobileMenuClose?: () => void;
 }) => {
   const router = useRouter();
+
+  const handleClick = () => {
+    if (item.submenu) {
+      onToggleSubmenu();
+    } else {
+      router.push(item.href);
+      onMobileMenuClose?.();
+    }
+  };
 
   return (
     <div>
@@ -71,7 +82,7 @@ const MenuItem = ({
         `}
         onMouseEnter={() => onHover(item.name)}
         onMouseLeave={() => onHover(null)}
-        onClick={() => item.submenu ? onToggleSubmenu() : router.push(item.href)}
+        onClick={handleClick}
       >
         <div className="flex items-center">
           <item.icon
@@ -99,6 +110,7 @@ const MenuItem = ({
             <Link 
               key={`${item.href}-${subItem.name}-${index}`} 
               href={subItem.href}
+              onClick={() => onMobileMenuClose?.()}
               className="flex items-center p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               <subItem.icon className={`w-3.5 h-3.5 mr-2 ${subItem.iconColor || 'text-gray-400 dark:text-gray-500'}`} />
@@ -377,7 +389,8 @@ const Sidebar = () => {
       {/* Hamburger Menu Button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-xl bg-white dark:bg-gray-800 shadow-lg text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+        className="md:hidden fixed top-4 left-4 z-50 p-2.5 rounded-xl bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+        aria-label={isMobileMenuOpen ? t('closeMenu') || 'Cerrar menú' : t('openMenu') || 'Abrir menú'}
       >
         {isMobileMenuOpen ? 
           <XMarkIcon className="w-6 h-6" /> : 
@@ -388,14 +401,15 @@ const Sidebar = () => {
       {/* Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm z-30 md:hidden"
+          className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
           onClick={() => setIsMobileMenuOpen(false)}
+          aria-hidden="true"
         />
       )}
 
       {/* Sidebar Content */}
       <div
-        className={`fixed md:sticky top-0 inset-y-0 left-0 z-40 w-[85%] md:w-64 bg-white dark:bg-gray-900 h-screen transform transition-transform duration-300 ease-in-out ${
+        className={`fixed md:sticky top-0 inset-y-0 left-0 z-40 w-[85%] sm:w-72 md:w-64 bg-white dark:bg-gray-900 h-screen transform transition-transform duration-300 ease-in-out shadow-xl md:shadow-none ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
@@ -413,6 +427,7 @@ const Sidebar = () => {
                 onHover={setHoveredItem}
                 isSubmenuOpen={openSubmenu === item.name}
                 onToggleSubmenu={() => handleSubmenuToggle(item.name)}
+                onMobileMenuClose={() => setIsMobileMenuOpen(false)}
               />
             ))}
           </div>

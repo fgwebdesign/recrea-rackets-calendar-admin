@@ -60,14 +60,16 @@ export function TournamentStatsCard({ title, value, type }: TournamentStatsCardP
   };
 
   return (
-    <div className={`${getBgColor()} rounded-xl p-5 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-200 hover:scale-[1.02]`}>
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <p className="text-xs font-bold tracking-wider uppercase text-gray-700 dark:text-gray-300">{title}</p>
-          <p className={`text-3xl font-bold ${getTextColor()} mt-0.5 font-mono`}>{formatValue()}</p>
+    <div className={`${getBgColor()} rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-200 hover:scale-[1.02]`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="space-y-1 sm:space-y-2 min-w-0 flex-1">
+          <p className="text-[10px] sm:text-xs font-bold tracking-wider uppercase text-gray-700 dark:text-gray-300 break-words">{title}</p>
+          <p className={`text-xl sm:text-2xl lg:text-3xl font-bold ${getTextColor()} mt-0.5 font-mono`}>{formatValue()}</p>
         </div>
-        <div className={`p-3 rounded-lg ${getBgColor()}`}>
-          {getIcon()}
+        <div className={`p-2 sm:p-2.5 lg:p-3 rounded-lg ${getBgColor()} flex-shrink-0`}>
+          <div className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7">
+            {getIcon()}
+          </div>
         </div>
       </div>
     </div>

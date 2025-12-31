@@ -52,8 +52,9 @@ export function LanguageToggle() {
       {/* Botón compacto - siempre visible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
+        aria-label="Cambiar idioma"
         className={`
-          relative w-10 h-10 rounded-full transition-all duration-300 ease-in-out
+          relative w-9 h-9 sm:w-10 sm:h-10 rounded-full transition-all duration-300 ease-in-out
           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background
           ${locale === 'es' 
             ? 'focus:ring-red-500 shadow-lg shadow-red-500/30' 

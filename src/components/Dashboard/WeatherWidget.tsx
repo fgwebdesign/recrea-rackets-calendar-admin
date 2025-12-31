@@ -159,55 +159,55 @@ export function WeatherWidget() {
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
-      className={`h-full w-full rounded-2xl bg-gradient-to-br ${gradient} p-6 relative overflow-hidden`}
+      className={`h-full w-full rounded-xl sm:rounded-2xl bg-gradient-to-br ${gradient} p-4 sm:p-6 relative overflow-hidden`}
     >
       {/* Overlay circular gradient */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
       
       <div className="relative z-10 h-full flex flex-col justify-between">
-        <div className="space-y-4">
-          <div className="flex items-start justify-between">
-            <span className={`text-sm font-medium ${textColor} flex items-center`}>
-              <MapPin className="w-3.5 h-3.5 mr-1" />
-              {t('location')}
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex items-start justify-between gap-2">
+            <span className={`text-xs sm:text-sm font-medium ${textColor} flex items-center`}>
+              <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 flex-shrink-0" />
+              <span className="truncate">{t('location')}</span>
             </span>
-            <span className={`text-sm font-medium ${textColor}`}>
+            <span className={`text-xs sm:text-sm font-medium ${textColor} flex-shrink-0`}>
               {getTimeDescription(timeOfDay, t)}
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="relative w-16 h-16 flex items-center justify-center">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="relative w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 flex items-center justify-center flex-shrink-0">
               <Image
                 src={getWeatherImage(weatherType)}
                 alt={`Clima: ${weather.description}`}
                 width={56}
                 height={56}
-                className="object-contain drop-shadow-lg"
+                className="object-contain drop-shadow-lg w-full h-full"
                 priority
               />
             </div>
-            <div>
-              <div className={`text-4xl font-bold ${textColor} tracking-tight`}>
+            <div className="min-w-0 flex-1">
+              <div className={`text-2xl sm:text-3xl lg:text-4xl font-bold ${textColor} tracking-tight`}>
                 {weather.temp}°C
               </div>
-              <p className={`text-sm font-medium ${subTextColor} capitalize`}>
+              <p className={`text-xs sm:text-sm font-medium ${subTextColor} capitalize truncate`}>
                 {getTranslatedWeatherDescription(weather.description)}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-4">
-          <div className={`flex items-center text-sm ${textColor}`}>
-            <span className="text-xs mr-2">{t('humidity')}</span>
-            <Droplets className="h-3.5 w-3.5 text-blue-600 mr-1" />
-            {weather.humidity}%
+        <div className="flex justify-end gap-2 sm:gap-4 flex-wrap">
+          <div className={`flex items-center text-xs sm:text-sm ${textColor}`}>
+            <span className="text-[10px] sm:text-xs mr-1 sm:mr-2">{t('humidity')}</span>
+            <Droplets className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-600 mr-0.5 sm:mr-1 flex-shrink-0" />
+            <span>{weather.humidity}%</span>
           </div>
-          <div className={`flex items-center text-sm ${textColor}`}>
-            <span className="text-xs mr-2">{t('wind')}</span>
-            <Wind className="h-3.5 w-3.5 text-blue-600 mr-1" />
-            {weather.windSpeed} km/h
+          <div className={`flex items-center text-xs sm:text-sm ${textColor}`}>
+            <span className="text-[10px] sm:text-xs mr-1 sm:mr-2">{t('wind')}</span>
+            <Wind className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-600 mr-0.5 sm:mr-1 flex-shrink-0" />
+            <span>{weather.windSpeed} km/h</span>
           </div>
         </div>
       </div>

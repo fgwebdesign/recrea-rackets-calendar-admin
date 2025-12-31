@@ -1,7 +1,6 @@
 import { Progress } from '@/components/ui/progress';
-import { Users2, Trophy, Calendar, Clock, ChevronLeft, ChevronRight, ArrowRight, DollarSign } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { useRef, useState } from 'react';
+import { Users2, Trophy } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CategoryFilterTabs } from './CategoryFilterTabs';
 import { EmptyTournaments } from './EmptyTournaments';
@@ -9,10 +8,19 @@ import Image from 'next/image';
 import { useTournaments } from '@/hooks/useTournaments';
 import { useCategories } from '@/hooks/useCategories';
 import { useTranslations } from '@/contexts/TranslationContext';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "@/components/ui/carousel";
+import { Tournament, Category } from '@/types/tournament';
 
 interface TournamentRegistrationProgressProps {
-  tournaments?: any[];
-  categories?: any[];
+  tournaments?: Tournament[];
+  categories?: Category[];
 }
 
 export function TournamentRegistrationProgress({ 
@@ -20,16 +28,30 @@ export function TournamentRegistrationProgress({
   categories: propCategories 
 }: TournamentRegistrationProgressProps) {
   const t = useTranslations('dashboard');
-  const [currentPage, setCurrentPage] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const sliderRef = useRef<HTMLDivElement>(null);
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
 
   // Usar props si están disponibles, sino usar hooks
-  const { tournaments: hookTournaments, loading: tournamentsLoading } = useTournaments();
-  const { categories: hookCategories, isLoading: categoriesLoading } = useCategories();
+  const { tournaments: hookTournaments } = useTournaments();
+  const { categories: hookCategories } = useCategories();
 
   const tournaments = propTournaments || hookTournaments;
   const categories = propCategories || hookCategories;
+
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+
+    setCount(api.scrollSnapList().length);
+    setCurrent(api.selectedScrollSnap() + 1);
+
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap() + 1);
+    });
+  }, [api]);
 
   // Si no hay torneos, mostrar mensaje vacío
   if (!tournaments || tournaments.length === 0) {
@@ -41,49 +63,11 @@ export function TournamentRegistrationProgress({
     ? tournaments
     : tournaments.filter(tournament => {
         // Verificar si el torneo tiene la categoría seleccionada
-        const tournamentCategories = tournament.categories || tournament.category;
-        if (Array.isArray(tournamentCategories)) {
-          return tournamentCategories.some((cat: any) => 
-            cat.id === selectedCategory || cat.name === selectedCategory
-          );
-        }
-        return tournamentCategories?.id === selectedCategory || 
-               tournamentCategories?.name === selectedCategory ||
+        return tournament.category?.id === selectedCategory || 
+               tournament.category?.name === selectedCategory ||
                tournament.category_id === selectedCategory;
       });
 
-  const CARDS_PER_PAGE = 3;
-  const totalPages = Math.ceil(filteredTournaments.length / CARDS_PER_PAGE);
-  const showSlider = filteredTournaments.length > CARDS_PER_PAGE;
-
-  const handlePrevious = () => {
-    if (sliderRef.current && currentPage > 0) {
-      const newPage = currentPage - 1;
-      setCurrentPage(newPage);
-      sliderRef.current.scrollTo({
-        left: newPage * sliderRef.current.offsetWidth,
-        behavior: 'smooth'
-      });
-    }
-  };
-
-  const handleNext = () => {
-    if (sliderRef.current && currentPage < totalPages - 1) {
-      const newPage = currentPage + 1;
-      setCurrentPage(newPage);
-      sliderRef.current.scrollTo({
-        left: newPage * sliderRef.current.offsetWidth,
-        behavior: 'smooth'
-      });
-    }
-  };
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (sliderRef.current) {
-      const newPage = Math.round(e.currentTarget.scrollLeft / e.currentTarget.offsetWidth);
-      setCurrentPage(newPage);
-    }
-  };
 
   if (filteredTournaments.length === 0) {
     return (
@@ -119,89 +103,48 @@ export function TournamentRegistrationProgress({
         className="px-0"
       />
 
-      <div className="relative">
-        {/* Navigation Buttons */}
-        {showSlider && currentPage > 0 && (
-          <button
-            onClick={handlePrevious}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full
-                     bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm
-                     border border-gray-200 dark:border-gray-700
-                     text-gray-700 dark:text-gray-200
-                     hover:bg-white dark:hover:bg-slate-700
-                     transition-all duration-200
-                     shadow-lg"
+      <div className="relative w-full">
+        {filteredTournaments.length > 3 ? (
+          <Carousel
+            opts={{
+              align: "start",
+            }}
+            setApi={setApi}
+            className="w-full"
           >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-        )}
-        
-        {showSlider && currentPage < totalPages - 1 && (
-          <button
-            onClick={handleNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full
-                     bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm
-                     border border-gray-200 dark:border-gray-700
-                     text-gray-700 dark:text-gray-200
-                     hover:bg-white dark:hover:bg-slate-700
-                     transition-all duration-200
-                     shadow-lg"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        )}
-
-        {/* Cards Container */}
-        <div 
-          ref={sliderRef}
-          onScroll={handleScroll}
-          className={`${
-            showSlider 
-              ? 'flex overflow-x-auto snap-x snap-mandatory scrollbar-hide' 
-              : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-          }`}
-          style={showSlider ? { scrollbarWidth: 'none', msOverflowStyle: 'none' } : undefined}
-        >
-          {showSlider ? (
-            // Slider view
-            Array.from({ length: totalPages }).map((_, pageIndex) => (
-              <div 
-                key={pageIndex}
-                className="flex-none w-full grid grid-cols-1 md:grid-cols-3 gap-4 snap-start"
-              >
-                {filteredTournaments
-                  .slice(pageIndex * CARDS_PER_PAGE, (pageIndex + 1) * CARDS_PER_PAGE)
-                  .map((tournament) => (
-                    <TournamentCard 
-                      key={tournament.id} 
-                      tournament={tournament} 
-                      categories={categories}
-                    />
-                  ))}
-              </div>
-            ))
-          ) : (
-            // Grid view
-            filteredTournaments.map((tournament) => (
+            <CarouselContent className="-ml-2 md:-ml-4">
+              {filteredTournaments.map((tournament) => (
+                <CarouselItem key={tournament.id} className="pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+                  <TournamentCard 
+                    tournament={tournament} 
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="h-8 w-8 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-lg" />
+            <CarouselNext className="h-8 w-8 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-lg" />
+          </Carousel>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {filteredTournaments.map((tournament) => (
               <TournamentCard 
                 key={tournament.id} 
                 tournament={tournament} 
-                categories={categories}
               />
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Pagination Dots */}
-        {showSlider && totalPages > 1 && (
-          <div className="flex justify-center gap-2 py-4">
-            {Array.from({ length: totalPages }).map((_, index) => (
+        {filteredTournaments.length > 3 && count > 1 && (
+          <div className="flex justify-center gap-1.5 sm:gap-2 py-3 sm:py-4">
+            {Array.from({ length: count }).map((_, index) => (
               <div
                 key={index}
-                className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                  currentPage === index
-                    ? 'bg-purple-600 dark:bg-purple-500 w-4'
-                    : 'bg-gray-300 dark:bg-gray-600'
+                className={`h-1.5 sm:h-2 rounded-full transition-all duration-200 ${
+                  current === index + 1
+                    ? 'bg-purple-600 dark:bg-purple-500 w-3 sm:w-4'
+                    : 'bg-gray-300 dark:bg-gray-600 w-1.5 sm:w-2'
                 }`}
               />
             ))}
@@ -213,18 +156,17 @@ export function TournamentRegistrationProgress({
 }
 
 // Componente de tarjeta extraído para mejor organización
-function TournamentCard({ tournament, categories }: { tournament: any; categories: any[] }) {
+function TournamentCard({ tournament }: { tournament: Tournament }) {
   const t = useTranslations('dashboard');
   // Obtener información del torneo
-  const tournamentInfo = tournament.tournament_info || tournament;
+  const tournamentInfo = tournament.tournament_info;
   const registeredTeams = tournament.tournament_teams?.length || 0;
-  const maxTeams = tournamentInfo.max_teams || 12; // Default a 12 equipos
+  const maxTeams = tournament.max_teams || 12; // Default a 12 equipos
   const availableSpots = maxTeams - registeredTeams;
   const registrationProgress = maxTeams > 0 ? (registeredTeams / maxTeams) * 100 : 0;
 
   // Obtener categoría del torneo
-  const tournamentCategory = tournament.categories?.[0] || tournament.category;
-  const categoryName = tournamentCategory?.name || t('noCategory');
+  const categoryName = tournament.category?.name || t('noCategory');
 
   const getStatusStyle = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -270,89 +212,89 @@ function TournamentCard({ tournament, categories }: { tournament: any; categorie
 
   return (
     <Link href={`/tournaments/${tournament.id}`}>
-      <div className="relative bg-white dark:bg-gray-800/50 rounded-xl shadow-sm hover:shadow-md dark:shadow-lg transition-all duration-300 p-6 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 group">
+      <div className="relative bg-white dark:bg-gray-800/50 rounded-lg sm:rounded-xl shadow-sm hover:shadow-md dark:shadow-lg transition-all duration-300 p-4 sm:p-5 lg:p-6 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 group">
         {/* Estado del torneo y categoría */}
-        <div className="flex items-center justify-between mb-4">
-          <span className="px-2.5 py-0.5 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+        <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+          <span className="px-2 sm:px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 truncate">
             {categoryName}
           </span>
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusStyle(tournament.status)}`}>
+          <span className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium flex-shrink-0 ${getStatusStyle(tournament.status)}`}>
             {getStatusText(tournament.status)}
           </span>
         </div>
 
         {/* Imagen del torneo */}
-        {tournament.image_url && (
-          <div className="relative w-full mb-6" style={{ aspectRatio: '5/4' }}>
+        {tournamentInfo?.tournament_thumbnail && (
+          <div className="relative w-full mb-4 sm:mb-6" style={{ aspectRatio: '5/4' }}>
             <Image
-              src={tournament.image_url}
+              src={tournamentInfo.tournament_thumbnail}
               alt={tournament.name}
               fill
               className="object-cover rounded-lg"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             />
           </div>
         )}
 
         {/* Encabezado */}
-        <div className="mb-6">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+        <div className="mb-4 sm:mb-6">
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white group-hover:text-primary transition-colors break-words">
             {tournament.name}
           </h3>
         </div>
 
         {/* Información principal */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Fecha de inicio y fin */}
           <div className="flex flex-col gap-2">
-            <div className="p-3 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-              <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">{t('startDate')}</p>
-              <p className="text-sm text-emerald-800 dark:text-emerald-200">
-                {formatDate(tournamentInfo.start_date || tournament.start_date)}
+            <div className="p-2.5 sm:p-3 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+              <p className="text-xs sm:text-sm font-medium text-emerald-900 dark:text-emerald-300">{t('startDate')}</p>
+              <p className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-200 break-words">
+                {formatDate(tournament.start_date)}
               </p>
             </div>
-            <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30">
-              <p className="text-sm font-medium text-red-900 dark:text-red-300">{t('endDate')}</p>
-              <p className="text-sm text-red-800 dark:text-red-200">
-                {formatDate(tournamentInfo.end_date || tournament.end_date)}
+            <div className="p-2.5 sm:p-3 rounded-lg bg-red-100 dark:bg-red-900/30">
+              <p className="text-xs sm:text-sm font-medium text-red-900 dark:text-red-300">{t('endDate')}</p>
+              <p className="text-xs sm:text-sm text-red-800 dark:text-red-200 break-words">
+                {formatDate(tournament.end_date)}
               </p>
             </div>
           </div>
 
           {/* Equipos y progreso */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+                <Users2 className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                   {t('registeredTeams')}
                 </span>
               </div>
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+              <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white flex-shrink-0">
                 {registeredTeams} / {maxTeams}
               </span>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               <Progress 
                 value={registrationProgress} 
-                className="h-2 bg-gray-100 dark:bg-gray-700" 
+                className="h-1.5 sm:h-2 bg-gray-100 dark:bg-gray-700" 
                 indicatorClassName={`${
                   registrationProgress === 100
                     ? 'bg-blue-500 dark:bg-blue-600'
                     : 'bg-emerald-500 dark:bg-emerald-600'
                 }`}
               />
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex justify-between gap-2">
+                <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
                   {Math.round(registrationProgress)}% {t('completed')}
                 </span>
                 {tournament.status?.toLowerCase() === 'inscripciones_abiertas' && availableSpots > 0 ? (
-                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <span className="text-[10px] sm:text-xs font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                     {availableSpots} {t('spotsAvailable')}
                   </span>
                 ) : registeredTeams === maxTeams && (
-                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                  <span className="text-[10px] sm:text-xs font-medium text-blue-600 dark:text-blue-400 whitespace-nowrap">
                     {t('spotsFull')}
                   </span>
                 )}
@@ -361,13 +303,13 @@ function TournamentCard({ tournament, categories }: { tournament: any; categorie
           </div>
 
           {/* Costo de inscripción */}
-          {(tournamentInfo.inscription_cost || tournament.inscription_cost) > 0 && (
-            <div className="mt-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
-              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300 mb-1">
+          {tournamentInfo && tournamentInfo.inscription_cost > 0 && (
+            <div className="mt-2 p-2.5 sm:p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
+              <p className="text-xs sm:text-sm font-medium text-emerald-700 dark:text-emerald-300 mb-0.5 sm:mb-1">
                 {t('inscriptionCost')}
               </p>
-              <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
-                ${tournamentInfo.inscription_cost || tournament.inscription_cost}
+              <span className="text-base sm:text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                ${tournamentInfo.inscription_cost}
               </span>
             </div>
           )}
