@@ -85,7 +85,8 @@ export function WeatherWidget() {
         const data = await getWeather();
         setWeather(data);
         setError(null);
-      } catch (err) {
+      } catch (err: unknown) {
+        console.error('Error fetching weather:', err);
         setError(t('loadingWeather'));
       } finally {
         setLoading(false);
@@ -105,7 +106,7 @@ export function WeatherWidget() {
       clearInterval(weatherInterval);
       clearInterval(timeInterval);
     };
-  }, []);
+  }, [t]);
 
   if (loading) {
     return (

@@ -276,12 +276,8 @@ export function useTournamentForm() {
         // Formatear datos para el backend
         const formattedData = tournamentCreationService.formatDataForBackend(tournamentData);
 
-        console.log('Enviando datos al backend:', formattedData);
-
         // Crear torneo usando el servicio
         const result = await tournamentCreationService.createTournament(formattedData, token);
-        
-        console.log('Respuesta del backend:', result);
 
         if (result.torneos && result.torneos.length > 0) {
           // Verificar que cada torneo tenga su información adicional

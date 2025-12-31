@@ -150,6 +150,7 @@ const translations: Record<Locale, Record<string, any>> = {
       errorLoadingStandings: 'Error al cargar las posiciones: {status} {statusText}',
       // League Schedule Card
       viewAllMatches: 'Ver todos los partidos',
+      viewAll: 'Ver todos',
       notAssigned: 'Sin asignar',
       vs: 'VS',
       noMatches: 'Sin partidos programados',
@@ -191,6 +192,21 @@ const translations: Record<Locale, Record<string, any>> = {
       november: 'noviembre',
       december: 'diciembre'
     },
+    weather: {
+      location: 'Ubicación',
+      morning: 'Mañana',
+      day: 'Día',
+      evening: 'Tarde',
+      night: 'Noche',
+      loadingWeather: 'Cargando información del clima...',
+      weatherInfo: 'Información del clima no disponible',
+      clouds: 'Nublado',
+      sunny: 'Soleado',
+      rainy: 'Lluvioso',
+      thunderstorm: 'Tormenta',
+      humidity: 'Humedad',
+      wind: 'Viento'
+    },
     sidebar: {
       home: 'Inicio',
       tournaments: 'Torneos',
@@ -216,7 +232,9 @@ const translations: Record<Locale, Record<string, any>> = {
       club: 'Club:',
       clubName: 'BayPadel San Francisco',
       logout: 'Cerrar sesión',
-      loggingOut: 'Cerrando sesión...'
+      loggingOut: 'Cerrando sesión...',
+      openMenu: 'Abrir menú',
+      closeMenu: 'Cerrar menú'
     },
     users: {
       title: 'Usuarios',
@@ -1581,6 +1599,7 @@ const translations: Record<Locale, Record<string, any>> = {
       errorLoadingStandings: 'Error loading standings: {status} {statusText}',
       // League Schedule Card
       viewAllMatches: 'View all matches',
+      viewAll: 'View all',
       notAssigned: 'Not assigned',
       vs: 'VS',
       noMatches: 'No matches scheduled',
@@ -1622,6 +1641,21 @@ const translations: Record<Locale, Record<string, any>> = {
       november: 'November',
       december: 'December'
     },
+    weather: {
+      location: 'Location',
+      morning: 'Morning',
+      day: 'Day',
+      evening: 'Evening',
+      night: 'Night',
+      loadingWeather: 'Loading weather information...',
+      weatherInfo: 'Weather information not available',
+      clouds: 'Cloudy',
+      sunny: 'Sunny',
+      rainy: 'Rainy',
+      thunderstorm: 'Thunderstorm',
+      humidity: 'Humidity',
+      wind: 'Wind'
+    },
     sidebar: {
       home: 'Home',
       tournaments: 'Tournaments',
@@ -1647,7 +1681,9 @@ const translations: Record<Locale, Record<string, any>> = {
       club: 'Club:',
       clubName: 'BayPadel San Francisco',
       logout: 'Log out',
-      loggingOut: 'Logging out...'
+      loggingOut: 'Logging out...',
+      openMenu: 'Open menu',
+      closeMenu: 'Close menu'
     },
     settings: {
       title: 'Settings',

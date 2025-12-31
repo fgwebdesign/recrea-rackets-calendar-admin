@@ -34,11 +34,8 @@ export function useLeagueSchedule(leagueId?: string) {
           return;
         }
         
-        console.log('Fetching matches with leagueId:', leagueId);
-        
         const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
         const url = `${baseUrl}/leagues/matches/round/${leagueId}`;
-        console.log('Fetching from URL:', url);
 
         const token = localStorage.getItem('adminToken');
         if (!token) {
@@ -56,11 +53,6 @@ export function useLeagueSchedule(leagueId?: string) {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => null);
-          console.error('Response error:', {
-            status: response.status,
-            statusText: response.statusText,
-            errorData
-          });
           throw new Error(
             errorData?.message || 
             `Error al cargar los partidos: ${response.status} ${response.statusText}`
@@ -68,7 +60,6 @@ export function useLeagueSchedule(leagueId?: string) {
         }
         
         const data = await response.json();
-        console.log('Received data:', data);
         
         if (!data) {
           throw new Error('No se recibieron datos del servidor');
@@ -82,7 +73,6 @@ export function useLeagueSchedule(leagueId?: string) {
             new Date(a.match_date).getTime() - new Date(b.match_date).getTime()
           );
         
-        console.log('Scheduled matches:', scheduledMatches);
         setMatches(scheduledMatches);
       } catch (err) {
         console.error('Error in fetchMatches:', err);

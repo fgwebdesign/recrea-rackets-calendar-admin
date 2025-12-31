@@ -103,27 +103,9 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
             const matchesData = await matchService.getTournamentMatches(tournament.id);
             const tournamentMatches = Array.isArray(matchesData) ? matchesData : (matchesData as any)?.matches || [];
             
-            console.log(`🔍 Matches for tournament ${tournament.name}:`, tournamentMatches);
-            console.log(`🔍 Sample match structure:`, tournamentMatches[0]);
-            
-            // Log específico para verificar match_day y start_time
-            tournamentMatches.forEach((match: any, index: number) => {
-              console.log(`🔍 Match ${index + 1}:`, {
-                id: match.id,
-                match_day: match.match_day,
-                start_time: match.start_time,
-                court_name: match.court_name,
-                status: match.status,
-                team1_name: match.team1_name,
-                team2_name: match.team2_name
-              });
-            });
-            
             // Obtener información de equipos para este torneo
             const teamsData = await tournamentService.getTournamentTeams(tournament.id);
             const tournamentTeams = Array.isArray(teamsData) ? teamsData : (teamsData as any)?.teams || [];
-            
-            console.log(`🔍 Teams for tournament ${tournament.name}:`, tournamentTeams);
             
             // Crear un mapa de equipos para acceso rápido
             const teamsMap = new Map();
@@ -154,21 +136,6 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
             // Continuar con otros torneos si uno falla
           }
         }
-        
-        console.log('🔍 All matches found:', allMatches);
-        console.log('🔍 All matches length:', allMatches.length);
-        
-        // Log específico para verificar la estructura final de los matches
-        allMatches.forEach((match, index) => {
-          console.log(`🔍 Final Match ${index + 1}:`, {
-            id: match.id,
-            tournament_name: match.tournament_name,
-            match_day: match.match_day,
-            start_time: match.start_time,
-            status: match.status,
-            category_name: match.category_name
-          });
-        });
         
         // Filtrar partidos programados y próximos
         const now = new Date();
@@ -236,25 +203,6 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
             return a.id.localeCompare(b.id);
           })
           .slice(0, 20); // Limitar a los 20 partidos más cercanos
-        
-        console.log('🔍 Scheduled matches:', scheduledMatches);
-        console.log('🔍 Scheduled matches length:', scheduledMatches.length);
-        
-        // Log específico para verificar matches después del filtrado
-        scheduledMatches.forEach((match, index) => {
-          console.log(`🔍 Scheduled Match ${index + 1}:`, {
-            id: match.id,
-            tournament_name: match.tournament_name,
-            match_day: match.match_day,
-            start_time: match.start_time,
-            status: match.status,
-            category_name: match.category_name,
-            hasDate: !!(match.match_day && match.start_time)
-          });
-        });
-        
-        console.log('🔍 Categories from hook:', categories);
-        console.log('🔍 Available categories in matches:', [...new Set(scheduledMatches.map(m => m.category_name))]);
         
         setMatches(scheduledMatches);
         

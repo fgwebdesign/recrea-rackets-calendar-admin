@@ -390,7 +390,7 @@ const Sidebar = () => {
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         className="md:hidden fixed top-4 left-4 z-50 p-2.5 rounded-xl bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
-        aria-label={isMobileMenuOpen ? t('closeMenu') || 'Cerrar menú' : t('openMenu') || 'Abrir menú'}
+        aria-label={isMobileMenuOpen ? t('closeMenu') : t('openMenu')}
       >
         {isMobileMenuOpen ? 
           <XMarkIcon className="w-6 h-6" /> : 

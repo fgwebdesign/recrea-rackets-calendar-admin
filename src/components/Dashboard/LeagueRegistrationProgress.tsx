@@ -1,13 +1,21 @@
 import { Progress } from '@/components/ui/progress';
-import { Users2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users2 } from 'lucide-react';
 import { League } from '@/types/league';
 import { Category } from '@/hooks/useCategories';
-import { useRef, useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { EmptyLeagues } from './EmptyLeagues';
 import { CategoryFilterTabs } from './CategoryFilterTabs';
 import Image from 'next/image';
 import { useTranslations } from '@/contexts/TranslationContext';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "@/components/ui/carousel";
 
 interface LeagueRegistrationProgressProps {
   leagues: League[];
@@ -15,61 +23,42 @@ interface LeagueRegistrationProgressProps {
 }
 
 export function LeagueRegistrationProgress({ leagues, categories }: LeagueRegistrationProgressProps) {
-  const [currentPage, setCurrentPage] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const sliderRef = useRef<HTMLDivElement>(null);
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
+
+  // Filtrar ligas por categoría seleccionada
+  const filteredLeagues = selectedCategory === 'all'
+    ? (leagues || [])
+    : (leagues || []).filter(league => league.category_id === selectedCategory);
+
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+
+    setCount(api.scrollSnapList().length);
+    setCurrent(api.selectedScrollSnap() + 1);
+
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap() + 1);
+    });
+  }, [api]);
 
   // Si no hay ligas, mostrar el componente EmptyLeagues
   if (!leagues || leagues.length === 0) {
     return <EmptyLeagues />;
   }
 
-  // Filtrar ligas por categoría seleccionada
-  const filteredLeagues = selectedCategory === 'all'
-    ? leagues
-    : leagues.filter(league => league.category_id === selectedCategory);
-
-  const CARDS_PER_PAGE = 3;
-  const totalPages = Math.ceil(filteredLeagues.length / CARDS_PER_PAGE);
-  const showSlider = filteredLeagues.length > CARDS_PER_PAGE;
-
-  const handlePrevious = () => {
-    if (sliderRef.current && currentPage > 0) {
-      const newPage = currentPage - 1;
-      setCurrentPage(newPage);
-      sliderRef.current.scrollTo({
-        left: newPage * sliderRef.current.offsetWidth,
-        behavior: 'smooth'
-      });
-    }
-  };
-
-  const handleNext = () => {
-    if (sliderRef.current && currentPage < totalPages - 1) {
-      const newPage = currentPage + 1;
-      setCurrentPage(newPage);
-      sliderRef.current.scrollTo({
-        left: newPage * sliderRef.current.offsetWidth,
-        behavior: 'smooth'
-      });
-    }
-  };
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (sliderRef.current) {
-      const newPage = Math.round(e.currentTarget.scrollLeft / e.currentTarget.offsetWidth);
-      setCurrentPage(newPage);
-    }
-  };
-
   if (filteredLeagues.length === 0) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <CategoryFilterTabs
           categories={categories}
           selectedCategory={selectedCategory}
           onCategoryChange={setSelectedCategory}
-          className="px-0"
+          className="px-0 -mx-4 sm:mx-0"
         />
 
         <EmptyLeagues />
@@ -78,105 +67,62 @@ export function LeagueRegistrationProgress({ leagues, categories }: LeagueRegist
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <CategoryFilterTabs
         categories={categories}
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
-        className="px-0"
+        className="px-0 -mx-4 sm:mx-0"
       />
 
-      <div className="relative">
-        {/* Navigation Buttons */}
-        {showSlider && currentPage > 0 && (
-          <button
-            onClick={handlePrevious}
-            className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-10 p-1.5 sm:p-2 rounded-full
-                     bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm
-                     border border-gray-200 dark:border-gray-700
-                     text-gray-700 dark:text-gray-200
-                     hover:bg-white dark:hover:bg-slate-700
-                     transition-all duration-200
-                     shadow-lg"
-            aria-label="Anterior"
+      <div className="relative w-full">
+        {filteredLeagues.length > 3 ? (
+          <Carousel
+            opts={{
+              align: "start",
+            }}
+            setApi={setApi}
+            className="w-full"
           >
-            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-        )}
-        
-        {showSlider && currentPage < totalPages - 1 && (
-          <button
-            onClick={handleNext}
-            className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 sm:p-2 rounded-full
-                     bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm
-                     border border-gray-200 dark:border-gray-700
-                     text-gray-700 dark:text-gray-200
-                     hover:bg-white dark:hover:bg-slate-700
-                     transition-all duration-200
-                     shadow-lg"
-            aria-label="Siguiente"
-          >
-            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-        )}
-
-        {/* Cards Container */}
-        <div 
-          ref={sliderRef}
-          onScroll={handleScroll}
-          className={`${
-            showSlider 
-              ? 'flex overflow-x-auto snap-x snap-mandatory scrollbar-hide' 
-              : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
-          }`}
-          style={showSlider ? { scrollbarWidth: 'none', msOverflowStyle: 'none' } : undefined}
-        >
-          {showSlider ? (
-            // Slider view
-            Array.from({ length: totalPages }).map((_, pageIndex) => (
-              <div 
-                key={pageIndex}
-                className="flex-none w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 snap-start px-1 sm:px-0"
-              >
-                {filteredLeagues
-                  .slice(pageIndex * CARDS_PER_PAGE, (pageIndex + 1) * CARDS_PER_PAGE)
-                  .map((league) => {
-                    const category = categories.find(cat => cat.id === league.category_id);
-                    return (
-                      <LeagueCard 
-                        key={league.id} 
-                        category={category || { id: 'unknown', name: 'Categoría no encontrada' }} 
-                        league={league} 
-                      />
-                    );
-                  })}
-              </div>
-            ))
-          ) : (
-            // Grid view
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <CarouselContent className="-ml-2 md:-ml-4">
               {filteredLeagues.map((league) => {
                 const category = categories.find(cat => cat.id === league.category_id);
                 return (
-                  <LeagueCard 
-                    key={league.id} 
-                    category={category || { id: 'unknown', name: 'Categoría no encontrada' }} 
-                    league={league} 
-                  />
+                  <CarouselItem key={league.id} className="pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+                    <LeagueCard 
+                      category={category || { id: 'unknown', name: 'Categoría no encontrada' }} 
+                      league={league} 
+                    />
+                  </CarouselItem>
                 );
               })}
-            </div>
-          )}
-        </div>
+            </CarouselContent>
+            <CarouselPrevious className="h-8 w-8 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-lg" />
+            <CarouselNext className="h-8 w-8 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-lg" />
+          </Carousel>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {filteredLeagues.map((league) => {
+              const category = categories.find(cat => cat.id === league.category_id);
+              return (
+                <LeagueCard 
+                  key={league.id} 
+                  category={category || { id: 'unknown', name: 'Categoría no encontrada' }} 
+                  league={league} 
+                />
+              );
+            })}
+          </div>
+        )}
 
         {/* Pagination Dots */}
-        {showSlider && totalPages > 1 && (
+        {filteredLeagues.length > 3 && count > 1 && (
           <div className="flex justify-center gap-1.5 sm:gap-2 py-3 sm:py-4">
-            {Array.from({ length: totalPages }).map((_, index) => (
+            {Array.from({ length: count }).map((_, index) => (
               <div
                 key={index}
                 className={`h-1.5 sm:h-2 rounded-full transition-all duration-200 ${
-                  currentPage === index
+                  current === index + 1
                     ? 'bg-purple-600 dark:bg-purple-500 w-3 sm:w-4'
                     : 'bg-gray-300 dark:bg-gray-600 w-1.5 sm:w-2'
                 }`}

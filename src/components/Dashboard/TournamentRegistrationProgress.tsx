@@ -16,7 +16,8 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel";
-import { Tournament, Category } from '@/types/tournament';
+import { Tournament } from '@/types/tournament';
+import { Category } from '@/types/category';
 
 interface TournamentRegistrationProgressProps {
   tournaments?: Tournament[];

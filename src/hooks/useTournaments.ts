@@ -115,10 +115,6 @@ export function useTournaments(): UseTournamentsReturn {
       // TODO: Implementar filtros en el backend más adelante
       const data = await tournamentService.getTournaments()
       
-      // 🔍 DEBUG: Verificar datos del backend
-      console.log('🔍 Raw data from backend:', data)
-      console.log('🔍 First tournament sample:', data?.[0])
-      
       // Procesar datos para asegurar consistencia
       const processedTournaments = Array.isArray(data) ? data.map(tournament => ({
         ...tournament,
@@ -132,13 +128,6 @@ export function useTournaments(): UseTournamentsReturn {
           ? (tournament as any).tournament_sponsors.map((ts: any) => ts.sponsors).filter(Boolean)
           : []
       })) : []
-
-      // 🔍 DEBUG: Verificar datos procesados
-      console.log('🔍 Processed tournaments:', processedTournaments)
-      console.log('🔍 First processed tournament:', processedTournaments?.[0])
-      console.log('🔍 Category data:', processedTournaments?.[0]?.category)
-      console.log('🔍 Tournament info data:', processedTournaments?.[0]?.tournament_info)
-      console.log('🔍 Tournament sponsors data:', processedTournaments?.[0]?.tournament_sponsors)
 
       setTournaments(processedTournaments)
     } catch (err) {
@@ -243,10 +232,8 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
       }
       
       const data = await response.json()
-      console.log('🎯 Sponsors response from backend:', data)
       return data
     } catch (error) {
-      console.warn('Error fetching tournament sponsors:', error)
       return { sponsors: [] }
     }
   }, [])
@@ -283,25 +270,11 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
       
       // ✅ Corregir: extraer el array teams del objeto de respuesta
       const teamsArray = (teamsData as any)?.teams || teamsData || []
-      
-      // Debug: verificar datos de equipos
-      console.log('🔍 Teams data from backend:', teamsData)
-      console.log('🔍 Teams is array?', Array.isArray(teamsArray))
-      console.log('🔍 Teams count:', teamsArray.length)
-      
       setTeams(Array.isArray(teamsArray) ? teamsArray : [])
       
       // ✅ Corregir: extraer el array matches del objeto de respuesta
       const matchesArray = (matchesData as any)?.matches || matchesData || []
-      
-      // Debug: verificar datos de partidos
-      console.log('🔍 Matches data from backend:', matchesData)
-      console.log('🔍 Matches is array?', Array.isArray(matchesArray))
-      console.log('🔍 Matches count:', matchesArray.length)
-      
       setMatches(Array.isArray(matchesArray) ? matchesArray : [])
-      console.log('🔍 Groups data from backend:', groupsData)
-      console.log('🔍 Groups is array?', Array.isArray(groupsData))
       
       setGroups(Array.isArray(groupsData) ? groupsData : [])
       setStats(statsData)
@@ -313,10 +286,6 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
       
       // ✅ Procesar sponsors del torneo
       const sponsorsArray = sponsorsData?.sponsors || []
-      console.log('🔍 Sponsors data from backend:', sponsorsData)
-      console.log('🔍 Sponsors array:', sponsorsArray)
-      console.log('🔍 Sponsors count:', sponsorsArray.length)
-      console.log('🔍 First sponsor:', sponsorsArray[0])
       setSponsors(Array.isArray(sponsorsArray) ? sponsorsArray : [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar datos del torneo')

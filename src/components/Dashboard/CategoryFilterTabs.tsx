@@ -18,13 +18,18 @@ export function CategoryFilterTabs({
   className = ""
 }: CategoryFilterTabsProps) {
   const t = useTranslations('dashboard');
+  
+  // Determinar si el className incluye px-0 (padding cero)
+  const hasZeroPadding = className.includes('px-0');
+  const basePadding = hasZeroPadding ? '' : 'px-4 sm:px-6';
+  
   return (
-    <div className={`px-4 sm:px-6 pt-4 ${className}`}>
+    <div className={`${basePadding} pt-3 sm:pt-4 ${className}`}>
       <Tabs defaultValue={selectedCategory} value={selectedCategory} onValueChange={onCategoryChange}>
-        <div className="overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
-          <TabsList className="mb-4 w-max min-w-full sm:w-auto sm:min-w-0">
+        <div className={`overflow-x-auto scrollbar-hide ${hasZeroPadding ? '-mx-4 sm:mx-0 px-4 sm:px-0' : ''}`}>
+          <TabsList className="mb-3 sm:mb-4 h-auto bg-transparent p-0 inline-flex overflow-x-auto whitespace-nowrap scrollbar-hide">
             {showAllOption && (
-              <TabsTrigger value="all" className="text-xs sm:text-sm whitespace-nowrap">
+              <TabsTrigger value="all" className="text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2">
                 {t('allCategories')}
               </TabsTrigger>
             )}
@@ -32,7 +37,7 @@ export function CategoryFilterTabs({
               <TabsTrigger
                 key={category.id}
                 value={category.id}
-                className="text-xs sm:text-sm whitespace-nowrap"
+                className="text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2"
               >
                 {category.name}
               </TabsTrigger>
