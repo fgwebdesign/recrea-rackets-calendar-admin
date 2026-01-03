@@ -1,4 +1,4 @@
-import { CalendarDays, Clock, ListFilter } from "lucide-react";
+import { CalendarDays, Clock, ListFilter, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
@@ -46,8 +46,8 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const { categories, isLoading: isLoadingCategories } = useCategories();
   const [api, setApi] = useState<CarouselApi>();
-  const [current, setCurrent] = useState(0);
-  const [count, setCount] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(1);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -55,7 +55,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
         setIsLoading(true);
         setError(null);
         
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL;
         const url = `${baseUrl}/leagues/matches/league/${leagueId || 'all'}`;
 
         const token = localStorage.getItem('adminToken');
@@ -125,13 +125,36 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
       return;
     }
 
-    setCount(api.scrollSnapList().length);
-    setCurrent(api.selectedScrollSnap() + 1);
+    const updateCarousel = () => {
+      // Actualizar el slide actual
+      setCurrentSlide(api.selectedScrollSnap());
+      
+      // Calcular cuántas cards son visibles según el tamaño de pantalla
+      const container = api.containerNode();
+      if (container) {
+        const containerWidth = container.offsetWidth;
+        // Determinar cuántas cards por vista según breakpoints
+        // mobile: 1, tablet (sm): 2, desktop (lg): 4
+        let cardsPerView = 1;
+        if (containerWidth >= 1024) cardsPerView = 4; // lg (desktop)
+        else if (containerWidth >= 640) cardsPerView = 2; // sm (tablet)
+        else cardsPerView = 1; // mobile
+        
+        setVisibleCount(cardsPerView);
+      }
+    };
 
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap() + 1);
-    });
-  }, [api]);
+    updateCarousel();
+    api.on("select", updateCarousel);
+    api.on("resize", updateCarousel);
+    
+    // Actualizar al cambiar el tamaño de la ventana
+    window.addEventListener("resize", updateCarousel);
+    
+    return () => {
+      window.removeEventListener("resize", updateCarousel);
+    };
+  }, [api, filteredMatches.length]);
 
   if (isLoading || isLoadingCategories) {
     return (
@@ -194,63 +217,104 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
             className="px-0 -mx-4 sm:mx-0"
           />
           {filteredMatches.length > 0 && (
-            <button
-              onClick={() => router.push(`/leagues/${matches[0]?.league_id}/matches`)}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white
-                       bg-gradient-to-r from-purple-500 to-purple-600 
-                       hover:from-purple-600 hover:to-purple-700
-                       rounded-lg transition-all duration-200
-                       shadow-lg shadow-purple-500/20 dark:shadow-purple-900/30
-                       whitespace-nowrap flex-shrink-0"
-            >
-              <ListFilter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">{t('viewAllMatches')}</span>
-              <span className="xs:hidden">{t('viewAll')}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {filteredMatches.length > 4 && (
+                <>
+                  <button
+                    onClick={() => {
+                      if (!api) return;
+                      const currentIndex = api.selectedScrollSnap();
+                      const slidesToMove = visibleCount;
+                      const newIndex = Math.max(0, currentIndex - slidesToMove);
+                      api.scrollTo(newIndex, true);
+                    }}
+                    disabled={!api || (api.selectedScrollSnap() === 0)}
+                    className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 
+                             text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700
+                             disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
+                             shadow-sm hover:shadow-md"
+                    aria-label="Anterior"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!api) return;
+                      const currentIndex = api.selectedScrollSnap();
+                      const slidesToMove = visibleCount;
+                      const maxIndex = api.scrollSnapList().length - 1;
+                      const newIndex = Math.min(maxIndex, currentIndex + slidesToMove);
+                      api.scrollTo(newIndex, true);
+                    }}
+                    disabled={!api || (api.selectedScrollSnap() >= api.scrollSnapList().length - 1)}
+                    className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 
+                             text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700
+                             disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
+                             shadow-sm hover:shadow-md"
+                    aria-label="Siguiente"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => router.push(`/leagues/${matches[0]?.league_id}/matches`)}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white
+                         bg-gradient-to-r from-purple-500 to-purple-600 
+                         hover:from-purple-600 hover:to-purple-700
+                         rounded-lg transition-all duration-200
+                         shadow-lg shadow-purple-500/20 dark:shadow-purple-900/30
+                         whitespace-nowrap flex-shrink-0"
+              >
+                <ListFilter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">{t('viewAllMatches')}</span>
+                <span className="xs:hidden">{t('viewAll')}</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
       
-      <div className="relative w-full pb-4">
+      <div className="relative w-full pb-4 px-2 sm:px-4 lg:px-6">
         {filteredMatches.length > 4 ? (
           <Carousel
             opts={{
               align: "start",
+              slidesToScroll: 1,
             }}
             setApi={setApi}
             className="w-full"
           >
             <CarouselContent className="-ml-2 md:-ml-4">
               {filteredMatches.map((match) => (
-                <CarouselItem key={match.id} className="pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/2 2xl:basis-1/4">
+                <CarouselItem key={match.id} className="pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/4">
                   <MatchCard match={match} />
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious className="h-8 w-8 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-lg" />
-            <CarouselNext className="h-8 w-8 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-lg" />
+            <CarouselPrevious className="hidden lg:flex h-8 w-8 -left-12 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-lg" />
+            <CarouselNext className="hidden lg:flex h-8 w-8 -right-12 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-gray-200 dark:border-gray-700 shadow-lg" />
           </Carousel>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 p-3 sm:p-4 lg:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
             {filteredMatches.map((match) => (
               <MatchCard key={match.id} match={match} />
             ))}
           </div>
         )}
 
-        {/* Pagination Dots */}
-        {filteredMatches.length > 4 && count > 1 && (
-          <div className="flex justify-center gap-1.5 sm:gap-2 py-3 sm:py-4">
-            {Array.from({ length: count }).map((_, index) => (
-              <div
-                key={index}
-                className={`h-1.5 sm:h-2 rounded-full transition-all duration-200 ${
-                  current === index + 1
-                    ? 'bg-purple-600 dark:bg-purple-500 w-3 sm:w-4'
-                    : 'bg-gray-300 dark:bg-gray-600 w-1.5 sm:w-2'
-                }`}
-              />
-            ))}
+        {/* Pagination Text */}
+        {filteredMatches.length > 4 && (
+          <div className="flex justify-center py-3 sm:py-4">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              {(() => {
+                // currentSlide es el índice del slide (0-based), donde cada slide es una card
+                // Para calcular el rango correcto: start = índice + 1, end = índice + cantidad visible
+                const start = currentSlide + 1;
+                const end = Math.min(currentSlide + visibleCount, filteredMatches.length);
+                return `Mostrando ${start}-${end} de ${filteredMatches.length} partidos`;
+              })()}
+            </p>
           </div>
         )}
       </div>
@@ -279,83 +343,106 @@ function MatchCard({ match }: { match: Match }) {
   };
 
   return (
-    <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#1D283A]/80 dark:to-[#1D283A] 
-                 rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 hover:shadow-xl transition-all duration-300
-                 border border-gray-200/50 dark:border-gray-700/30
-                 backdrop-blur-sm h-full">
-      {/* Categoría Badge */}
-      <div className="absolute -top-2 sm:-top-3 left-2 sm:left-4">
-        <span className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-medium
+    <div className="group relative bg-white dark:bg-gray-800/90 
+                 rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 
+                 border border-gray-200 dark:border-gray-700/50
+                 shadow-sm hover:shadow-lg dark:shadow-gray-900/20
+                 transition-all duration-300 ease-out
+                 hover:border-purple-300 dark:hover:border-purple-600/50
+                 overflow-hidden">
+      
+      {/* Background Gradient Effect */}
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 via-transparent to-emerald-50/30 
+                   dark:from-purple-900/10 dark:via-transparent dark:to-emerald-900/10
+                   opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      
+      {/* Top Section with Badges */}
+      <div className="relative flex items-start justify-between mb-4 sm:mb-5 lg:mb-6">
+        {/* Categoría Badge */}
+        <span className="inline-flex items-center px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold
                      bg-gradient-to-r from-purple-500 to-purple-600 
-                     text-white shadow-lg shadow-purple-500/30
-                     dark:from-purple-600 dark:to-purple-700
-                     dark:shadow-purple-900/30">
+                     text-white shadow-sm
+                     dark:from-purple-600 dark:to-purple-700">
           {match.category_name}
         </span>
-      </div>
 
-      {/* Court Badge */}
-      <div className="absolute -top-2 sm:-top-3 right-2 sm:right-4">
-        <span className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium
-                     bg-gray-900/5 dark:bg-white/5 
+        {/* Court Badge */}
+        <span className="inline-flex items-center px-2 py-1 sm:px-2.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-medium
+                     bg-gray-100 dark:bg-gray-700/80
                      text-gray-700 dark:text-gray-300
-                     border border-gray-200/50 dark:border-gray-700/30">
+                     border border-gray-200 dark:border-gray-600/50">
           {match.court_name || t('notAssigned')}
         </span>
       </div>
 
-      {/* Match Content */}
-      <div className="mt-3 sm:mt-4 space-y-4 sm:space-y-6">
-        {/* Teams */}
-        <div className="space-y-3 sm:space-y-4">
-          {/* Team 1 */}
-          <div className="flex items-center justify-between space-x-2">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={match.team1}>
-                {match.team1}
-              </p>
-            </div>
-          </div>
+      {/* Teams Section */}
+      <div className="relative space-y-3 sm:space-y-4 mb-4 sm:mb-5 lg:mb-6">
+        {/* Team 1 */}
+        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 sm:p-4 lg:p-3.5 border border-gray-100 dark:border-gray-700/50">
+          <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 
+                    break-words leading-snug text-center" title={match.team1}>
+            {match.team1}
+          </p>
+        </div>
 
-          {/* VS Divider */}
-          <div className="flex items-center justify-center">
-            <div className="relative w-full">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200 dark:border-gray-700/30"></div>
-              </div>
-              <div className="relative flex justify-center">
-                <span className="px-2 sm:px-3 text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 
-                             text-white rounded-full py-0.5 sm:py-1 shadow-lg shadow-emerald-500/20
-                             dark:shadow-emerald-900/30">
-                  {t('vs')}
-                </span>
-              </div>
+        {/* VS Divider */}
+        <div className="flex items-center justify-center my-1 sm:my-2">
+          <div className="relative flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t-2 border-dashed border-purple-200 dark:border-purple-700/50"></div>
             </div>
-          </div>
-
-          {/* Team 2 */}
-          <div className="flex items-center justify-between space-x-2">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={match.team2}>
-                {match.team2}
-              </p>
+            <div className="relative">
+              <span className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full 
+                           bg-gradient-to-br from-emerald-500 to-emerald-600 
+                           text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-500/30
+                           dark:from-emerald-600 dark:to-emerald-700
+                           dark:shadow-emerald-900/50">
+                {t('vs')}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Date and Time */}
-        <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-200/50 dark:border-gray-700/30 gap-2">
-          <div className="flex items-center space-x-1.5 sm:space-x-2">
-            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-            <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-              {formatDateTime(match.match_date).time}h
-            </span>
+        {/* Team 2 */}
+        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 sm:p-4 lg:p-3.5 border border-gray-100 dark:border-gray-700/50">
+          <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 
+                    break-words leading-snug text-center" title={match.team2}>
+            {match.team2}
+          </p>
+        </div>
+      </div>
+
+      {/* Date and Time Footer */}
+      <div className="relative pt-4 sm:pt-5 lg:pt-6 border-t border-gray-200 dark:border-gray-700/50">
+        <div className="flex items-center justify-center gap-4 sm:gap-6 lg:gap-8">
+          {/* Time */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <div className="p-2 sm:p-2.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+              <Clock className="w-4 h-4 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                Hora
+              </span>
+              <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {formatDateTime(match.match_date).time}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center space-x-1.5 sm:space-x-2">
-            <CalendarDays className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-            <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-              {formatDateTime(match.match_date).date}
-            </span>
+
+          {/* Date */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <div className="p-2 sm:p-2.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+              <CalendarDays className="w-4 h-4 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                Fecha
+              </span>
+              <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {formatDateTime(match.match_date).date}
+              </span>
+            </div>
           </div>
         </div>
       </div>

@@ -46,43 +46,43 @@ export default function ProfileSettings() {
   if (!profile) return null;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 space-y-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-5 lg:p-6 space-y-4 sm:space-y-5 lg:space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-1">
           {t('profile.title')}
         </h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
           {t('profile.personalInfo')}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
             {t('profile.firstName')}
           </label>
-          <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                       text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700">
+          <div className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
+                       text-sm sm:text-base text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 break-words">
             {profile.first_name}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
             {t('profile.lastName')}
           </label>
-          <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                       text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700">
+          <div className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
+                       text-sm sm:text-base text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 break-words">
             {profile.last_name}
           </div>
         </div>
 
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <div className="col-span-1 md:col-span-2">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
             {t('profile.email')}
           </label>
-          <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                       text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700">
+          <div className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
+                       text-sm sm:text-base text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 break-words">
             {profile.email}
           </div>
         </div>

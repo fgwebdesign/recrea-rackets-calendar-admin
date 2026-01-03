@@ -45,7 +45,8 @@ export default function IntegrationsPanel() {
         if (data.whatsappNumber) {
           setState(prev => ({ ...prev, whatsappNumber: data.whatsappNumber }));
         }
-      } catch (error) {
+      } catch {
+        // Silently handle error
       }
     };
 
@@ -107,72 +108,79 @@ export default function IntegrationsPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 w-full">
-      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">{t('integrations.title')}</h2>
-            <p className="text-gray-600 dark:text-gray-400">{t('integrations.description')}</p>
-          </div>
+    <div className="w-full">
+      <div className="space-y-4 sm:space-y-5 lg:space-y-6">
+        <div className="px-4 sm:px-0">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-white mb-1 sm:mb-2">{t('integrations.title')}</h2>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t('integrations.description')}</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-3 sm:space-y-4">
           {integrations.map((integration) => (
             <div 
               key={integration.id} 
-              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md 
-                       transition-shadow bg-white dark:bg-gray-800 w-full"
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg sm:rounded-xl 
+                       shadow-sm hover:shadow-md transition-shadow overflow-hidden"
             >
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center space-x-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 relative flex-shrink-0">
+              <div className="p-4 sm:p-5 lg:p-6">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 relative">
                     <Image
                       src={integration.icon}
                       alt={integration.name}
                       fill
                       priority
-                      sizes="128px"
+                      sizes="(max-width: 640px) 48px, 56px"
                       className="object-contain"
                     />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-white truncate">
-                      {integration.name}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {integration.description}
-                    </p>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                          {integration.name}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                          {integration.description}
+                        </p>
+                      </div>
+                      <button
+                        onClick={integration.id === 'whatsapp' ? handleOpenWhatsAppModal : undefined}
+                        className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full whitespace-nowrap flex-shrink-0 
+                                 transition-colors font-medium ${
+                          integration.id === 'whatsapp' && state.whatsappNumber
+                            ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {integration.id === 'whatsapp' && state.whatsappNumber ? t('integrations.configured') : t('integrations.connect')}
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <button
-                  onClick={integration.id === 'whatsapp' ? handleOpenWhatsAppModal : undefined}
-                  className={`px-3 py-1 text-sm rounded-full whitespace-nowrap ${
-                    integration.id === 'whatsapp' && state.whatsappNumber
-                      ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {integration.id === 'whatsapp' && state.whatsappNumber ? t('integrations.configured') : t('integrations.connect')}
-                </button>
               </div>
+
               {integration.id === 'whatsapp' && state.whatsappNumber && (
-                <div className="w-full mt-4 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <FaWhatsapp className="w-4 h-4 text-green-600 dark:text-green-400" />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {t('integrations.configuredNumber')}
-                      </span>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        +598 {state.whatsappNumber}
-                      </span>
+                <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 px-4 sm:px-5 lg:px-6 py-3 sm:py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                      <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                          <span className="font-medium text-gray-700 dark:text-gray-300">{t('integrations.configuredNumber')}: </span>
+                          <span className="break-all">+598 {state.whatsappNumber}</span>
+                        </p>
+                      </div>
                     </div>
                     <button
                       onClick={handleOpenWhatsAppModal}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 
-                               dark:hover:text-blue-300 flex items-center space-x-1"
+                      className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium
+                               text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 
+                               hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors 
+                               w-full sm:w-auto"
                     >
-                      <FaEdit className="w-3 h-3" />
+                      <FaEdit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       <span>{t('integrations.edit')}</span>
                     </button>
                   </div>

@@ -9,12 +9,12 @@ import { useTranslations } from '@/contexts/TranslationContext';
 export default function SettingsPage() {
   const t = useTranslations('settings');
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         <Header 
           title={t('title')}
           description={t('description')}
-          icon={<Cog6ToothIcon className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
+          icon={<Cog6ToothIcon className="w-5 h-5 sm:w-6 sm:h-6 text-gray-900 dark:text-gray-100" />}
         />
 
         <SettingsContent />

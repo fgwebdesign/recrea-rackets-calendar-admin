@@ -378,24 +378,24 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-white dark:bg-gray-800 max-w-6xl max-h-[90vh] overflow-y-auto z-50 p-6 custom-scrollbar">
-        <DialogHeader className="pb-4">
-          <DialogTitle className="text-gray-900 dark:text-white font-bold">
+      <DialogContent className="bg-white dark:bg-gray-800 w-[calc(100%-2rem)] sm:w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-5 lg:p-6 rounded-lg custom-scrollbar">
+        <DialogHeader className="pb-3 sm:pb-4">
+          <DialogTitle className="text-lg sm:text-xl lg:text-2xl text-gray-900 dark:text-white font-bold">
             {venue ? t('editVenue') : t('newVenue')}
           </DialogTitle>
-          <DialogDescription className="text-gray-600 dark:text-gray-400">
+          <DialogDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
             {venue ? 'Actualiza los detalles de la sede' : 'Completa los detalles para crear una nueva sede'}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 lg:space-y-6">
           {/* Layout horizontal: Imagen a la izquierda, Información básica a la derecha */}
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
             {/* Imagen - Columna izquierda */}
-            <div className="space-y-2">
-              <Label className="text-gray-700 dark:text-gray-300 font-bold">Imagen de Perfil</Label>
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+            <div className="space-y-2 lg:col-span-1">
+              <Label className="text-sm sm:text-base text-gray-700 dark:text-gray-300 font-bold">Imagen de Perfil</Label>
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-3 sm:p-4">
                 {(previewUrl || formData.photo_url) ? (
-                  <div className="relative w-full h-48 mb-3 rounded-md overflow-hidden">
+                  <div className="relative w-full h-40 sm:h-48 mb-3 rounded-md overflow-hidden">
                     <Image
                       src={previewUrl || formData.photo_url || ''}
                       alt="Preview"
@@ -403,7 +403,7 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                       className="object-cover rounded-md"
                       priority
                       quality={90}
-                      sizes="(max-width: 768px) 100vw, 33vw"
+                      sizes="(max-width: 1024px) 100vw, 33vw"
                       unoptimized={previewUrl?.startsWith('blob:') || previewUrl?.startsWith('data:')}
                     />
                     <button
@@ -411,13 +411,13 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                       onClick={removeImage}
                       className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-colors z-10"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </button>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-48 mb-3">
-                    <Building2 className="h-12 w-12 text-gray-400 dark:text-gray-500 mb-2" />
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Sin imagen</p>
+                  <div className="flex flex-col items-center justify-center h-40 sm:h-48 mb-3">
+                    <Building2 className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 dark:text-gray-500 mb-2" />
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Sin imagen</p>
                   </div>
                 )}
                 <label className="flex flex-col items-center justify-center w-full">
@@ -434,20 +434,20 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                     variant="outline"
                     onClick={() => document.getElementById('photo')?.click()}
                     disabled={isLoading || uploadingImage}
-                    className="w-full border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                    className="w-full text-xs sm:text-sm border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 h-auto"
                   >
-                    <Upload className="h-4 w-4 mr-2" />
+                    <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
                     {previewUrl || formData.photo_url ? 'Cambiar imagen' : 'Seleccionar imagen'}
                   </Button>
                 </label>
                 {uploadingImage && (
-                  <div className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
+                  <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    <div className="animate-spin rounded-full h-3.5 w-3.5 sm:h-4 sm:w-4 border-b-2 border-gray-500"></div>
                     <span>Subiendo...</span>
                   </div>
                 )}
                 {errors.image && (
-                  <p className="text-sm text-red-500 dark:text-red-400 mt-2">{errors.image}</p>
+                  <p className="text-xs sm:text-sm text-red-500 dark:text-red-400 mt-2">{errors.image}</p>
                 )}
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
                   Tamaño máximo: 5MB. Formatos: JPG, PNG, WebP
@@ -456,10 +456,10 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
             </div>
 
             {/* Información básica - Columnas derechas */}
-            <div className="col-span-2 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-gray-700 dark:text-gray-300 font-bold">
+            <div className="lg:col-span-2 space-y-4 sm:space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="name" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-bold">
                     {t('venueName')} <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -468,14 +468,14 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder={t('venueNamePlaceholder')}
                     required
-                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                    className="text-sm sm:text-base bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 h-9 sm:h-10"
                   />
                   {errors.name && (
-                    <p className="text-sm text-red-500 dark:text-red-400">{errors.name}</p>
+                    <p className="text-xs sm:text-sm text-red-500 dark:text-red-400">{errors.name}</p>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address" className="text-gray-700 dark:text-gray-300 font-bold">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="address" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-bold">
                     {t('address')}
                   </Label>
                   <Input
@@ -483,15 +483,15 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                     value={formData.address}
                     onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
                     placeholder={t('addressPlaceholder')}
-                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                    className="text-sm sm:text-base bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 h-9 sm:h-10"
                   />
                 </div>
               </div>
               
               {/* Contacto */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-gray-700 dark:text-gray-300 font-bold">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="phone" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-bold">
                     {t('phone')}
                   </Label>
                   <Input
@@ -499,11 +499,11 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                     value={formData.phone}
                     onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                     placeholder={t('phonePlaceholder')}
-                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                    className="text-sm sm:text-base bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 h-9 sm:h-10"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-700 dark:text-gray-300 font-bold">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="email" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-bold">
                     {t('email')}
                   </Label>
                   <Input
@@ -512,14 +512,14 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                     value={formData.email}
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                     placeholder={t('emailPlaceholder')}
-                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                    className="text-sm sm:text-base bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 h-9 sm:h-10"
                   />
                 </div>
               </div>
 
               {/* Descripción */}
-              <div className="space-y-2">
-                <Label htmlFor="description" className="text-gray-700 dark:text-gray-300 font-bold">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="description" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-bold">
                   {t('descriptionField')}
                 </Label>
                 <Textarea
@@ -528,16 +528,16 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder={t('descriptionPlaceholder')}
                   rows={3}
-                  className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                  className="text-sm sm:text-base bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                 />
               </div>
             </div>
           </div>
 
           {/* Ubicación */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="country" className="text-gray-700 dark:text-gray-300 font-bold">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="country" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-bold">
                 {t('country')} <span className="text-red-500">*</span>
               </Label>
               <ComboboxInput
@@ -578,13 +578,13 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                   label: `${country.flag} ${country.name}`,
                 }))}
                 placeholder={t('countryPlaceholder')}
-                className="bg-white dark:bg-gray-700"
+                className="text-sm sm:text-base bg-white dark:bg-gray-700 h-9 sm:h-10"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="state" className="text-gray-700 dark:text-gray-300 font-bold">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="state" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-bold">
                   {t('state')}
                 </Label>
                 {availableStates.length > 0 ? (
@@ -614,7 +614,7 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                       label: state.name.replace(' Department', ''),
                     }))}
                     placeholder={t('statePlaceholder')}
-                    className="bg-white dark:bg-gray-700"
+                    className="text-sm sm:text-base bg-white dark:bg-gray-700 h-9 sm:h-10"
                   />
                 ) : (
                   <Input
@@ -622,12 +622,12 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                     value={formData.state}
                     onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
                     placeholder={t('stateManualPlaceholder')}
-                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                    className="text-sm sm:text-base bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 h-9 sm:h-10"
                   />
                 )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="city" className="text-gray-700 dark:text-gray-300 font-bold">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="city" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-bold">
                   {t('city')}
                 </Label>
                 {availableCities.length > 0 ? (
@@ -642,7 +642,7 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                       label: city.name,
                     }))}
                     placeholder={t('cityPlaceholder')}
-                    className="bg-white dark:bg-gray-700"
+                    className="text-sm sm:text-base bg-white dark:bg-gray-700 h-9 sm:h-10"
                   />
                 ) : (
                   <Input
@@ -650,7 +650,7 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                     value={formData.city}
                     onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
                     placeholder={t('cityManualPlaceholder')}
-                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                    className="text-sm sm:text-base bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 h-9 sm:h-10"
                   />
                 )}
               </div>
@@ -658,45 +658,45 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
           </div>
 
           {/* Opciones */}
-          <div className="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+          <div className="flex items-center space-x-3 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
             <Checkbox
               id="is_default"
               checked={formData.is_default}
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_default: checked as boolean }))}
             />
-            <Label htmlFor="is_default" className="text-gray-700 dark:text-gray-300 font-bold cursor-pointer">
+            <Label htmlFor="is_default" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-bold cursor-pointer">
               {t('setAsDefault')}
             </Label>
           </div>
 
           {/* Información */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-blue-900 dark:text-blue-200 flex items-start gap-2">
-              <span className="text-blue-600 dark:text-blue-400 mt-0.5">ℹ</span>
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 sm:p-4 border border-blue-200 dark:border-blue-800">
+            <p className="text-xs sm:text-sm text-blue-900 dark:text-blue-200 flex items-start gap-2">
+              <span className="text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0">ℹ</span>
               <span><strong>{t('courtsInfo')}</strong> {t('courtsInfoDescription')}</span>
             </p>
           </div>
-        </form>
 
-        <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleClose}
-            disabled={isLoading}
-            className="border-gray-300 dark:border-gray-600"
-          >
-            {t('cancel')}
-          </Button>
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isLoading || uploadingImage || !formData.name}
-            className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white"
-          >
-            {isLoading || uploadingImage ? t('saving') : venue ? t('update') : t('save')}
-          </Button>
-        </div>
+          {/* Botones */}
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4 sm:pt-5 lg:pt-6 mt-4 sm:mt-5 lg:mt-6 border-t border-gray-200 dark:border-gray-700">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isLoading}
+              className="w-full sm:w-auto text-sm sm:text-base border-gray-300 dark:border-gray-600 h-9 sm:h-10"
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading || uploadingImage || !formData.name}
+              className="w-full sm:w-auto text-sm sm:text-base bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white h-9 sm:h-10"
+            >
+              {isLoading || uploadingImage ? t('saving') : venue ? t('update') : t('save')}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
