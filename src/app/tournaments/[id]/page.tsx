@@ -363,7 +363,7 @@ export default function TournamentPage({ params }: PageProps) {
                 {tournament?.tournament_venues && tournament.tournament_venues.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
                     <p className="text-xs font-semibold text-green-700 dark:text-green-300 mb-2">
-                      {t('detail.venuesAndCourts')}:
+                      {t('detail.info.venuesAndCourts')}:
                     </p>
                     <div className="space-y-2">
                       {tournament.tournament_venues.map((tv) => (

@@ -723,8 +723,12 @@ export default function KioskPOSPage() {
                       setSelectedVenueId(value);
                     }
                   }}
+                  disabled={cart.length > 0}
                 >
-                  <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                  <SelectTrigger className={cn(
+                    "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600",
+                    cart.length > 0 && "opacity-60 cursor-not-allowed"
+                  )}>
                     <SelectValue placeholder={t('pos.selectVenue')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -735,6 +739,9 @@ export default function KioskPOSPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {cart.length > 0 && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('pos.venueLockedWithProducts') || 'La sede no se puede cambiar con productos en el carrito'}</p>
+                )}
                 {!selectedVenueId && venues.filter(v => v.is_active).length > 0 && (
                   <p className="text-sm text-red-500">{t('pos.mustSelectVenue')}</p>
                 )}

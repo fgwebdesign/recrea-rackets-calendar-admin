@@ -1,12 +1,12 @@
 export default function Head() {
   return (
     <>
-      <title>Dashboard - BayPadel San Francisco</title>
-      <meta name="description" content="Panel de control de BayPadel San Francisco - Gestiona tus torneos, reservas y más" />
+      <title>Inicio - Cordon Padel Club</title>
+      <meta name="description" content="Panel de control de Cordon Padel Club - Gestiona tus torneos, reservas y más" />
       
       {/* Open Graph / Social Media */}
-      <meta property="og:title" content="Dashboard - BayPadel San Francisco" />
-      <meta property="og:description" content="Panel de control de BayPadel San Francisco" />
+      <meta property="og:title" content="Inicio - Cordon Padel Club" />
+      <meta property="og:description" content="Panel de control de Cordon Padel Club" />
       <meta property="og:type" content="website" />
       
       {/* Preload de recursos críticos */}

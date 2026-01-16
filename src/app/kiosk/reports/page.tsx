@@ -15,16 +15,19 @@ import { SalesSummary, TopProduct, DashboardStats, LowStockAlert } from "@/types
 import { useTranslations } from '@/contexts/TranslationContext';
 import { format } from 'date-fns';
 import { DashboardKPIs } from "@/components/Kiosk/Reports/DashboardKPIs";
-import { PaymentMethodsCard } from "@/components/Kiosk/Reports/PaymentMethodsCard";
 import { StockAlertsCard } from "@/components/Kiosk/Reports/StockAlertsCard";
 import { TopProductsCard } from "@/components/Kiosk/Reports/TopProductsCard";
+import { PaymentMethodsPieChart } from "@/components/Kiosk/Reports/PaymentMethodsPieChart";
+import { CategoryBarChart } from "@/components/Kiosk/Reports/CategoryBarChart";
+import { VenueComparisonChart } from "@/components/Kiosk/Reports/VenueComparisonChart";
+import { MonthlySalesChart } from "@/components/Kiosk/Reports/MonthlySalesChart";
 
 // Lazy load del componente de gráficas para mejor rendimiento
 const SalesTrendChart = lazy(() => import("@/components/Kiosk/Reports/SalesTrendChart").then(module => ({ default: module.SalesTrendChart })));
 
 export default function KioskReportsPage() {
   const t = useTranslations('kiosk');
-  const { getSalesSummary, getTopProducts, getDashboardStats, getLowStockAlerts, getSalesTrend, isLoading } = useKioskReports();
+  const { getSalesSummary, getTopProducts, getDashboardStats, getLowStockAlerts, getSalesTrend, getCategoryReport, getVenueComparisonReport, getMonthlyReport, isLoading } = useKioskReports();
   const { selectedVenueId, selectedVenue, setSelectedVenueId, venues, loading: loadingVenues } = useKioskVenue();
   
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -74,6 +77,72 @@ export default function KioskReportsPage() {
     }>;
   } | null>(null);
   const [trendDays, setTrendDays] = useState(30);
+  const [categoryReport, setCategoryReport] = useState<{
+    period: { start_date: string; end_date: string };
+    total_revenue: number;
+    total_items: number;
+    categories: Array<{
+      category_id: string | null;
+      category_name: string;
+      icon: string;
+      color: string;
+      items_sold: number;
+      total_revenue: number;
+      percentage: number;
+      top_products: Array<{ name: string; quantity: number; total: number }>;
+    }>;
+  } | null>(null);
+  const [venueComparison, setVenueComparison] = useState<{
+    period: { start_date: string; end_date: string };
+    global: {
+      total_venues: number;
+      total_sales: number;
+      total_revenue: number;
+      average_ticket: number;
+    };
+    venues: Array<{
+      venue_id: string | null;
+      venue_name: string;
+      sales_count: number;
+      total_revenue: number;
+      average_ticket: number;
+      percentage_of_total: number;
+      by_payment_method: Record<string, { count: number; total: number }>;
+      by_context: Record<string, { count: number; total: number }>;
+    }>;
+  } | null>(null);
+  const [monthlyReport, setMonthlyReport] = useState<{
+    period: {
+      year: number;
+      month: number;
+      month_name: string;
+      start_date: string;
+      end_date: string;
+    };
+    summary: {
+      total_sales: number;
+      total_revenue: number;
+      average_daily: number;
+      average_ticket: number;
+      comparison: {
+        previous_month_total: number;
+        variation_amount: number;
+        variation_percent: number;
+      };
+    };
+    by_payment_method: Record<string, { count: number; total: number }>;
+    by_context: Record<string, { count: number; total: number }>;
+    best_day: { date: string; day_name: string; total: number } | null;
+    daily_breakdown: Array<{
+      date: string;
+      day_name: string;
+      sales_count: number;
+      total: number;
+      cash: number;
+      transfer: number;
+      card: number;
+    }>;
+  } | null>(null);
 
   // Memoizar formatCurrency para evitar recrear la función
   const formatCurrency = useMemo(() => {
@@ -87,21 +156,14 @@ export default function KioskReportsPage() {
     };
   }, []);
 
-  // Memoizar getPaymentMethodLabel
-  const getPaymentMethodLabel = useCallback((method: string) => {
-    const labels: Record<string, string> = {
-      cash: t('reports.dashboard.cash'),
-      transfer: t('reports.dashboard.transfer'),
-      card: t('reports.dashboard.card'),
-      mercadopago: t('reports.dashboard.mercadopago')
-    };
-    return labels[method] || method;
-  }, [t]);
-
   const loadDashboard = useCallback(async () => {
-    const dashboardData = await getDashboardStats(selectedVenueId || undefined);
+    const [dashboardData, monthlyData] = await Promise.all([
+      getDashboardStats(selectedVenueId || undefined),
+      getMonthlyReport({ venue_id: selectedVenueId || undefined })
+    ]);
     setDashboard(dashboardData);
-  }, [selectedVenueId, getDashboardStats]);
+    setMonthlyReport(monthlyData);
+  }, [selectedVenueId, getDashboardStats, getMonthlyReport]);
 
   const loadStockAlerts = useCallback(async () => {
     const alertsData = await getLowStockAlerts(selectedVenueId || undefined);
@@ -113,6 +175,23 @@ export default function KioskReportsPage() {
     setTrendData(trend);
   }, [trendDays, selectedVenueId, getSalesTrend]);
 
+  const loadCategoryReport = useCallback(async () => {
+    const report = await getCategoryReport({
+      venue_id: selectedVenueId || undefined,
+      start_date: filters.start_date,
+      end_date: filters.end_date
+    });
+    setCategoryReport(report);
+  }, [selectedVenueId, filters.start_date, filters.end_date, getCategoryReport]);
+
+  const loadVenueComparison = useCallback(async () => {
+    const report = await getVenueComparisonReport({
+      start_date: filters.start_date,
+      end_date: filters.end_date
+    });
+    setVenueComparison(report);
+  }, [filters.start_date, filters.end_date, getVenueComparisonReport]);
+
   // Cargar dashboard y alertas al montar
   useEffect(() => {
     loadDashboard();
@@ -123,8 +202,12 @@ export default function KioskReportsPage() {
   useEffect(() => {
     if (activeTab === 'charts') {
       loadTrend();
+      loadCategoryReport();
+      if (venues.length > 1) {
+        loadVenueComparison();
+      }
     }
-  }, [activeTab, loadTrend]);
+  }, [activeTab, loadTrend, loadCategoryReport, loadVenueComparison, venues.length]);
 
   const loadReports = useCallback(async () => {
     const summaryData = await getSalesSummary(filters);
@@ -219,10 +302,21 @@ export default function KioskReportsPage() {
 
                 <DashboardKPIs dashboard={dashboard} formatCurrency={formatCurrency} />
 
-                <PaymentMethodsCard 
+                {/* Gráfica de ventas del mes actual */}
+                {monthlyReport && monthlyReport.daily_breakdown.length > 0 && (
+                  <MonthlySalesChart
+                    monthName={monthlyReport.period.month_name}
+                    dailyBreakdown={monthlyReport.daily_breakdown}
+                    summary={monthlyReport.summary}
+                    bestDay={monthlyReport.best_day}
+                    formatCurrency={formatCurrency}
+                  />
+                )}
+
+                {/* Gráfica de métodos de pago */}
+                <PaymentMethodsPieChart 
                   paymentMethods={dashboard.payment_methods}
                   formatCurrency={formatCurrency}
-                  getPaymentMethodLabel={getPaymentMethodLabel}
                 />
               </>
             )}
@@ -430,6 +524,23 @@ export default function KioskReportsPage() {
                   </p>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Gráfico de Categorías */}
+            {categoryReport && categoryReport.categories.length > 0 && (
+              <CategoryBarChart 
+                categories={categoryReport.categories} 
+                formatCurrency={formatCurrency} 
+              />
+            )}
+
+            {/* Gráfico de Comparativa de Sedes */}
+            {venueComparison && venueComparison.venues.length > 1 && (
+              <VenueComparisonChart 
+                venues={venueComparison.venues}
+                globalStats={venueComparison.global}
+                formatCurrency={formatCurrency}
+              />
             )}
           </TabsContent>
         </Tabs>

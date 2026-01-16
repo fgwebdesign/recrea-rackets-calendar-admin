@@ -223,13 +223,197 @@ export function useKioskReports() {
     }
   }, []);
 
+  const getMonthlyReport = useCallback(async (params?: {
+    venue_id?: string;
+    year?: number;
+    month?: number;
+  }): Promise<{
+    period: {
+      year: number;
+      month: number;
+      month_name: string;
+      start_date: string;
+      end_date: string;
+    };
+    summary: {
+      total_sales: number;
+      total_revenue: number;
+      average_daily: number;
+      average_ticket: number;
+      comparison: {
+        previous_month_total: number;
+        variation_amount: number;
+        variation_percent: number;
+      };
+    };
+    by_payment_method: Record<string, { count: number; total: number }>;
+    by_context: Record<string, { count: number; total: number }>;
+    best_day: { date: string; day_name: string; total: number } | null;
+    daily_breakdown: Array<{
+      date: string;
+      day_name: string;
+      sales_count: number;
+      total: number;
+      cash: number;
+      transfer: number;
+      card: number;
+    }>;
+  } | null> => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('adminToken');
+      if (!token) throw new Error('No estás autenticado');
+
+      const queryParams = new URLSearchParams();
+      if (params?.venue_id) queryParams.append('venue_id', params.venue_id);
+      if (params?.year) queryParams.append('year', String(params.year));
+      if (params?.month) queryParams.append('month', String(params.month));
+
+      const queryString = queryParams.toString();
+      const url = `${API_URL}/kiosk/reports/monthly${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Error fetching monthly report');
+      const data = await response.json();
+      return data.report || null;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al obtener reporte mensual",
+        variant: "destructive",
+      });
+      console.error('Error fetching monthly report:', error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const getCategoryReport = useCallback(async (params?: {
+    venue_id?: string;
+    start_date?: string;
+    end_date?: string;
+  }): Promise<{
+    period: { start_date: string; end_date: string };
+    total_revenue: number;
+    total_items: number;
+    categories: Array<{
+      category_id: string | null;
+      category_name: string;
+      icon: string;
+      color: string;
+      items_sold: number;
+      total_revenue: number;
+      percentage: number;
+      top_products: Array<{ name: string; quantity: number; total: number }>;
+    }>;
+  } | null> => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('adminToken');
+      if (!token) throw new Error('No estás autenticado');
+
+      const queryParams = new URLSearchParams();
+      if (params?.venue_id) queryParams.append('venue_id', params.venue_id);
+      if (params?.start_date) queryParams.append('start_date', params.start_date);
+      if (params?.end_date) queryParams.append('end_date', params.end_date);
+
+      const queryString = queryParams.toString();
+      const url = `${API_URL}/kiosk/reports/categories${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Error fetching category report');
+      const data = await response.json();
+      return data.report || null;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al obtener reporte por categoría",
+        variant: "destructive",
+      });
+      console.error('Error fetching category report:', error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const getVenueComparisonReport = useCallback(async (params?: {
+    start_date?: string;
+    end_date?: string;
+  }): Promise<{
+    period: { start_date: string; end_date: string };
+    global: {
+      total_venues: number;
+      total_sales: number;
+      total_revenue: number;
+      average_ticket: number;
+    };
+    venues: Array<{
+      venue_id: string | null;
+      venue_name: string;
+      sales_count: number;
+      total_revenue: number;
+      average_ticket: number;
+      percentage_of_total: number;
+      by_payment_method: Record<string, { count: number; total: number }>;
+      by_context: Record<string, { count: number; total: number }>;
+    }>;
+  } | null> => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('adminToken');
+      if (!token) throw new Error('No estás autenticado');
+
+      const queryParams = new URLSearchParams();
+      if (params?.start_date) queryParams.append('start_date', params.start_date);
+      if (params?.end_date) queryParams.append('end_date', params.end_date);
+
+      const queryString = queryParams.toString();
+      const url = `${API_URL}/kiosk/reports/venues${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Error fetching venue comparison');
+      const data = await response.json();
+      return data.report || null;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al obtener comparativa de sedes",
+        variant: "destructive",
+      });
+      console.error('Error fetching venue comparison:', error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     isLoading,
     getSalesSummary,
     getTopProducts,
     getDashboardStats,
     getLowStockAlerts,
-    getSalesTrend
+    getSalesTrend,
+    getMonthlyReport,
+    getCategoryReport,
+    getVenueComparisonReport
   };
 }
 
