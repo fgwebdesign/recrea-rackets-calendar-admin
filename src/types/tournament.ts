@@ -542,6 +542,49 @@ export interface SystemSettings {
 }
 
 // ========================================
+// 🔧 TIPOS DE RESULTADOS DE PARTIDOS
+// ========================================
+
+export interface MatchResultData {
+  team1_sets1_won: number
+  team2_sets1_won: number
+  team1_sets2_won: number
+  team2_sets2_won: number
+  team1_tie1_won?: number | null
+  team2_tie1_won?: number | null
+  team1_tie2_won?: number | null
+  team2_tie2_won?: number | null
+  team1_tie3_won?: number | null
+  team2_tie3_won?: number | null
+  winner_team_id: string
+  status?: MatchStatus
+}
+
+// ========================================
+// 📅 TIPOS DE VALIDACIÓN DE HORARIOS
+// ========================================
+
+export interface ScheduleValidation {
+  isValid: boolean
+  conflicts: ConflictInfo[]
+  warnings: string[]
+  suggestions: string[]
+}
+
+// ========================================
+// 📊 TIPOS DE ESTADÍSTICAS POR PERIODO
+// ========================================
+
+export interface PeriodStats {
+  tournaments_created: number
+  matches_played: number
+  revenue: number
+  teams_registered: number
+  start_date: string
+  end_date: string
+}
+
+// ========================================
 // 🎯 EXPORTACIONES PRINCIPALES
 // ========================================
 

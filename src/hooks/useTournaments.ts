@@ -2,7 +2,7 @@
 // 🎾 HOOKS PERSONALIZADOS - SISTEMA REVOLUCIONARIO
 // ========================================
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   Tournament, 
   TournamentInfo,
@@ -15,9 +15,13 @@ import {
   AvailabilityData,
   EliminationBracket,
   TournamentStats,
-  TeamWithConstraints,
   ConflictInfo,
-  TournamentFormData
+  TournamentFormData,
+  MatchResultData,
+  ScheduleValidation,
+  Sponsor,
+  TimeSlot,
+  Category
 } from '@/types/tournament'
 import { 
   tournamentService, 
@@ -26,7 +30,6 @@ import {
   bracketService, 
   statsService 
 } from '@/services/tournamentService'
-import { tournamentDetailsService } from '@/services/tournamentDetailsService'
 
 // ========================================
 // 🔧 TIPOS DE HOOKS
@@ -61,10 +64,10 @@ interface UseTournamentReturn {
   groups: TournamentGroup[]
   standings: TournamentStanding[]
   stats: TournamentStats | null
-  availableHours: any[]
-  availableTimeSlots: any[]
-  scheduleValidation: any
-  sponsors: any[]
+  availableHours: AvailabilityData[]
+  availableTimeSlots: TimeSlot[]
+  scheduleValidation: ScheduleValidation | null
+  sponsors: Sponsor[]
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
@@ -90,7 +93,7 @@ interface UseMatchesReturn {
   loading: boolean
   error: string | null
   scheduleMatches: (token: string) => Promise<void>
-  updateMatchResult: (matchId: string, result: any) => Promise<void>
+  updateMatchResult: (matchId: string, result: MatchResultData) => Promise<void>
   refetch: () => Promise<void>
 }
 
@@ -116,18 +119,27 @@ export function useTournaments(): UseTournamentsReturn {
       const data = await tournamentService.getTournaments()
       
       // Procesar datos para asegurar consistencia
-      const processedTournaments = Array.isArray(data) ? data.map(tournament => ({
-        ...tournament,
-        tournament_teams: Array.isArray(tournament.tournament_teams) ? tournament.tournament_teams : [],
-        // ✅ Corregir: tournament_info es un array, tomar el primer elemento
-        tournament_info: Array.isArray(tournament.tournament_info) ? tournament.tournament_info[0] : tournament.tournament_info,
-        // ✅ Corregir: categories es un objeto, mapear a category
-        category: (tournament as any).categories || tournament.category || undefined,
-        // ✅ Corregir: tournament_sponsors es un array, extraer sponsors
-        tournament_sponsors: Array.isArray((tournament as any).tournament_sponsors) 
-          ? (tournament as any).tournament_sponsors.map((ts: any) => ts.sponsors).filter(Boolean)
-          : []
-      })) : []
+      const processedTournaments: Tournament[] = Array.isArray(data) ? data.map(tournament => {
+        // Tipos auxiliares para el procesamiento
+        type TournamentWithExtras = Tournament & { 
+          categories?: Category
+          tournament_sponsors?: Array<{ sponsor?: Sponsor; sponsor_id?: string; tournament_id?: string }>
+        }
+        const t = tournament as TournamentWithExtras
+        
+        return {
+          ...tournament,
+          tournament_teams: Array.isArray(tournament.tournament_teams) ? tournament.tournament_teams : [],
+          // ✅ Corregir: tournament_info es un array, tomar el primer elemento
+          tournament_info: Array.isArray(tournament.tournament_info) ? tournament.tournament_info[0] : tournament.tournament_info,
+          // ✅ Corregir: categories es un objeto, mapear a category
+          category: t.categories || tournament.category || undefined,
+          // ✅ Corregir: tournament_sponsors mantener estructura TournamentSponsor
+          tournament_sponsors: Array.isArray(t.tournament_sponsors) 
+            ? t.tournament_sponsors.filter((ts): ts is NonNullable<typeof ts> => Boolean(ts))
+            : []
+        } as Tournament
+      }) : []
 
       setTournaments(processedTournaments)
     } catch (err) {
@@ -207,37 +219,14 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
   const [groups, setGroups] = useState<TournamentGroup[]>([])
   const [standings, setStandings] = useState<TournamentStanding[]>([])
   const [stats, setStats] = useState<TournamentStats | null>(null)
-  const [availableHours, setAvailableHours] = useState<any[]>([])
-  const [availableTimeSlots, setAvailableTimeSlots] = useState<any[]>([])
-  const [scheduleValidation, setScheduleValidation] = useState<any>(null)
-  const [sponsors, setSponsors] = useState<any[]>([])
+  const [availableHours, setAvailableHours] = useState<AvailabilityData[]>([])
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([])
+  const [scheduleValidation, setScheduleValidation] = useState<ScheduleValidation | null>(null)
+  const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // 🎯 Función para obtener sponsors del torneo
-  const fetchTournamentSponsors = useCallback(async (tournamentId: string) => {
-    try {
-      // Usar token de usuario normal, no admin token
-      const token = localStorage.getItem('userToken') || localStorage.getItem('adminToken')
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sponsors/tournaments/${tournamentId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      if (!response.ok) {
-        console.warn(`Error fetching sponsors: ${response.status} ${response.statusText}`)
-        return { sponsors: [] }
-      }
-      
-      const data = await response.json()
-      return data
-    } catch (error) {
-      return { sponsors: [] }
-    }
-  }, [])
-
+  // ✅ OPTIMIZADO: Usar endpoint consolidado que retorna todo en una sola llamada
   const fetchTournamentData = useCallback(async () => {
     if (!tournamentId) return
 
@@ -245,49 +234,25 @@ export function useTournament(tournamentId: string): UseTournamentReturn {
       setLoading(true)
       setError(null)
 
-      const [
-        tournamentData,
-        teamsData,
-        matchesData,
-        groupsData,
-        statsData,
-        standingsData,
-        availableHoursData,       
-        sponsorsData
-      ] = await Promise.all([
-        tournamentService.getTournamentById(tournamentId),
-        tournamentService.getTournamentTeams(tournamentId),
-        matchService.getTournamentMatches(tournamentId),
-        groupService.getGroups(tournamentId),
-        statsService.getTournamentStats(tournamentId),
-        tournamentService.getTournamentStandings(tournamentId),
-        tournamentDetailsService.getAvailableHours(tournamentId),          
-        fetchTournamentSponsors(tournamentId)
-      ])
+      // ✅ UNA SOLA LLAMADA en lugar de 8 llamadas paralelas
+      const fullDetails = await tournamentService.getTournamentFullDetails(tournamentId)
 
-      setTournament(tournamentData)
-      setTournamentInfo(Array.isArray(tournamentData.tournament_info) ? tournamentData.tournament_info[0] : tournamentData.tournament_info || undefined)
+      setTournament(fullDetails.tournament)
+      setTournamentInfo(fullDetails.tournament_info || null)
+      setTeams(fullDetails.teams || [])
+      setMatches(fullDetails.matches || [])
+      setGroups(fullDetails.groups || [])
+      setStats(fullDetails.stats || null)
+      setSponsors(fullDetails.sponsors || [])
       
-      // ✅ Corregir: extraer el array teams del objeto de respuesta
-      const teamsArray = (teamsData as any)?.teams || teamsData || []
-      setTeams(Array.isArray(teamsArray) ? teamsArray : [])
-      
-      // ✅ Corregir: extraer el array matches del objeto de respuesta
-      const matchesArray = (matchesData as any)?.matches || matchesData || []
-      setMatches(Array.isArray(matchesArray) ? matchesArray : [])
-      
-      setGroups(Array.isArray(groupsData) ? groupsData : [])
-      setStats(statsData)
-      setStandings(Array.isArray(standingsData) ? standingsData : [])
-      // ✅ Procesar horarios disponibles
-      setAvailableHours(Array.isArray(availableHoursData) ? availableHoursData : [])
+      // Standings se calculan del stats o se mantienen vacíos
+      setStandings([])
+      setAvailableHours([])
       setAvailableTimeSlots([])
-      setScheduleValidation({})
+      setScheduleValidation(null)
       
-      // ✅ Procesar sponsors del torneo
-      const sponsorsArray = sponsorsData?.sponsors || []
-      setSponsors(Array.isArray(sponsorsArray) ? sponsorsArray : [])
     } catch (err) {
+      console.error('Error fetching tournament full details:', err)
       setError(err instanceof Error ? err.message : 'Error al cargar datos del torneo')
     } finally {
       setLoading(false)
@@ -398,8 +363,18 @@ export function useGroups(tournamentId: string): UseGroupsReturn {
     // Refetch groups data
     try {
       const groupsData = await groupService.getGroups(tournamentId)
-      // Convert to GroupDistribution format if needed
-      setGroups(groupsData as any)
+      // Convert TournamentGroup[] to GroupDistribution[]
+      const groupDistributions: GroupDistribution[] = groupsData.map(group => ({
+        group_number: group.group_number,
+        teams: [],  // Se llenarán desde otro endpoint si es necesario
+        restriction_slots: [],
+        conflicts: [],
+        available_slots: [],
+        recommended_slots: [],
+        has_conflicts: false,
+        schedule_flexibility: 100
+      }))
+      setGroups(groupDistributions)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al recargar grupos')
     }
@@ -440,7 +415,7 @@ export function useMatches(tournamentId: string): UseMatchesReturn {
     }
   }, [tournamentId])
 
-  const updateMatchResult = useCallback(async (matchId: string, result: any) => {
+  const updateMatchResult = useCallback(async (matchId: string, result: MatchResultData) => {
     try {
       const updatedMatch = await matchService.updateMatchResult(matchId, result)
       setMatches(prev => prev.map(m => m.id === matchId ? updatedMatch : m))

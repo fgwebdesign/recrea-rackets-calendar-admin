@@ -1,35 +1,105 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { SingleEliminationBracket, Match as TournamentMatch, MatchComponentProps, SVGViewer, createTheme } from '@g-loot/react-tournament-brackets';
+import { SingleEliminationBracket, SVGViewer, createTheme } from '@g-loot/react-tournament-brackets';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Trophy, Calendar, Clock, ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
+import { Loader2, Trophy, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { TournamentMatchModal } from './TournamentMatchModal';
 import { PdfBracketGenerator } from './PdfBracketGenerator';
+import { Tournament, TournamentTeam, MatchResultData } from '@/types/tournament';
 
 interface EliminationBracketViewerProps {
   tournamentId: string;
-  bracketData?: any;
-  tournament?: any; // Agregar tournament para el PDF
+  tournament?: Tournament;
 }
 
-// Usar el tipo Match de la librería con el formato correcto
-interface Match {
+// Tipos para el bracket de eliminación
+type MatchState = 'DONE' | 'SCHEDULED' | 'NO_SHOW' | 'WALK_OVER' | 'NO_PARTY' | 'SCORE_DONE';
+type ParticipantStatus = 'PLAYED' | 'NO_SHOW' | 'WALK_OVER' | 'NO_PARTY' | null;
+
+interface BracketParticipant {
+  id: string;
+  resultText: string | null;
+  isWinner: boolean;
+  status: ParticipantStatus;
+  name: string;
+}
+
+interface BracketMatch {
   id: string;
   name: string;
   nextMatchId: string | null;
   tournamentRoundText: string;
   startTime: string;
   courtName: string;
-  state: 'DONE' | 'SCHEDULED' | 'NO_SHOW' | 'WALK_OVER' | 'NO_PARTY' | 'SCORE_DONE';
-  participants: Array<{
-    id: string;
-    resultText: string | null;
-    isWinner: boolean;
-    status: 'PLAYED' | 'NO_SHOW' | 'WALK_OVER' | 'NO_PARTY' | null;
-    name: string;
-  }>;
+  state: MatchState;
+  participants: BracketParticipant[];
+}
+
+// Tipo para el partido seleccionado en el modal
+interface SelectedMatchData {
+  id: string;
+  tournament_id: string;
+  home_team_id: string;
+  away_team_id: string;
+  match_day: string;
+  start_time: string;
+  status: string;
+  team1_sets1_won: number;
+  team2_sets1_won: number;
+  team1_sets2_won: number;
+  team2_sets2_won: number;
+  team1_tie1_won: number | null;
+  team2_tie1_won: number | null;
+  team1_tie2_won: number | null;
+  team2_tie2_won: number | null;
+  team1_tie3_won: number | null;
+  team2_tie3_won: number | null;
+  winner_team_id: string | null;
+}
+
+// Tipo para datos de partido del backend
+interface BackendMatchData {
+  id: string;
+  round: string;
+  match_number?: number;
+  elimination_round?: string;
+  stage?: string;
+  home_team_id: string | null;
+  away_team_id: string | null;
+  match_day?: string;
+  start_time?: string;
+  court_id?: string;
+  court_name?: string;
+  status: string;
+  winner_team_id?: string | null;
+  bracket_match_id?: string;
+  team1_sets1_won?: number | null;
+  team2_sets1_won?: number | null;
+  team1_sets2_won?: number | null;
+  team2_sets2_won?: number | null;
+  team1_tie1_won?: number | null;
+  team2_tie1_won?: number | null;
+  team1_tie2_won?: number | null;
+  team2_tie2_won?: number | null;
+  team1_tie3_won?: number | null;
+  team2_tie3_won?: number | null;
+}
+
+// Tipo para datos de equipo del backend
+interface BackendTeamData {
+  team_id: string;
+  teams?: {
+    player1?: { first_name?: string; last_name?: string };
+    player2?: { first_name?: string; last_name?: string };
+  };
+}
+
+// Tipo para datos de cancha del backend
+interface BackendCourtData {
+  id: string;
+  name: string;
 }
 
 // Crear tema personalizado para el bracket
@@ -52,40 +122,23 @@ const customTheme = createTheme({
 
 const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({ 
   tournamentId, 
-  bracketData,
   tournament 
 }) => {
   // Estados del componente
-  const [matches, setMatches] = useState<any[]>([]);
+  const [matches, setMatches] = useState<BracketMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(0.9); // Zoom inicial al 90%
-  const svgViewerRef = useRef<any>(null);
   
   // Estados para el modal de resultados
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedMatch, setSelectedMatch] = useState<any>(null);
-  const [teams, setTeams] = useState<any[]>([]);
+  const [selectedMatch, setSelectedMatch] = useState<SelectedMatchData | null>(null);
+  const [teams, setTeams] = useState<TournamentTeam[]>([]);
   const [savingResult, setSavingResult] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [modalSuccess, setModalSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchEliminationMatches();
-  }, [tournamentId]);
-
-  // ===== OPTIMIZADO: Solo refrescar cuando sea necesario =====
-  // Removido el intervalo de 5 segundos para mejor rendimiento
-
-  // ===== NUEVA FUNCIÓN: Forzar actualización completa =====
-  const forceRefresh = async () => {
-    console.log('🔄 FORZANDO ACTUALIZACIÓN COMPLETA...');
-    setLoading(true);
-    setMatches([]); // Limpiar estado
-    await fetchEliminationMatches();
-    setLoading(false);
-  };
-
+  // Función para obtener los partidos de eliminación
   const fetchEliminationMatches = async () => {
     try {
       setLoading(true);
@@ -125,19 +178,19 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         const courtsData = await courtsResponse.json();
         
         // Filtrar solo partidos eliminatorios
-        const eliminationMatches = matchesData.matches.filter((match: any) => 
+        const eliminationMatches = (matchesData.matches as BackendMatchData[]).filter((match) => 
           match.round !== 'group'
         );
         
         console.log('🔍 Debug - Todos los partidos:', matchesData.matches.length);
         console.log('🔍 Debug - Partidos eliminatorios:', eliminationMatches.length);
-        console.log('🔍 Debug - Partidos por round:', eliminationMatches.map((m: any) => `${m.round} (${m.match_number})`));
+        console.log('🔍 Debug - Partidos por round:', eliminationMatches.map((m) => `${m.round} (${m.match_number})`));
         
         // Crear mapa de equipos para acceso rápido
-        const teamsMap = new Map();
+        const teamsMap = new Map<string, BackendTeamData>();
         if (teamsData.teams) {
           console.log('🔍 Equipos cargados:', teamsData.teams.length);
-          teamsData.teams.forEach((team: any) => {
+          (teamsData.teams as BackendTeamData[]).forEach((team) => {
             console.log(`   - Equipo ${team.team_id}:`, team);
             teamsMap.set(team.team_id, team);
           });
@@ -148,9 +201,9 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         }
         
         // Crear mapa de canchas para acceso rápido
-        const courtsMap = new Map();
+        const courtsMap = new Map<string, BackendCourtData>();
         if (courtsData.courts) {
-          courtsData.courts.forEach((court: any) => {
+          (courtsData.courts as BackendCourtData[]).forEach((court) => {
             courtsMap.set(court.id, court);
           });
         }
@@ -194,7 +247,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         };
         
         // Crear estructura de bracket basada en los datos reales
-        const createBracketStructure = (matches: any[]) => {
+        const createBracketStructure = (matches: BackendMatchData[]) => {
           // ===== DEBUG: Ver todos los valores de elimination_round =====
           console.log('🔍 Debug elimination_round values:');
           matches.forEach((match, index) => {
@@ -224,45 +277,47 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
           console.log(`🔍 FinalSemiFinals: ${finalSemiFinals.length} semifinales encontradas`);
           console.log(`🔍 FinalFinals: ${finalFinals.length} finales encontradas`);
           
-          const formattedMatches: any[] = [];
+          const formattedMatches: BracketMatch[] = [];
           
           // Función para formatear un partido
-          const formatMatch = (match: any, nextMatchId: string | null = null) => {
-            let matchState: 'DONE' | 'SCHEDULED' | 'NO_SHOW' | 'WALK_OVER' | 'NO_PARTY' | 'SCORE_DONE' = 'SCHEDULED';
+          const formatMatch = (match: BackendMatchData, nextMatchId: string | null = null): BracketMatch => {
+            let matchState: MatchState = 'SCHEDULED';
             if (match.status === 'completed') {
               matchState = 'DONE';
             } else if (match.status === 'scheduled') {
               matchState = 'SCHEDULED';
             }
 
-            const formatScore = (match: any) => {
+            const formatScore = (m: BackendMatchData): string => {
               let score = '';
               
               // Set 1
-              if (match.team1_sets1_won !== null && match.team2_sets1_won !== null) {
-                score += `${match.team1_sets1_won}-${match.team2_sets1_won}`;
+              if (m.team1_sets1_won !== null && m.team1_sets1_won !== undefined && 
+                  m.team2_sets1_won !== null && m.team2_sets1_won !== undefined) {
+                score += `${m.team1_sets1_won}-${m.team2_sets1_won}`;
                 
                 // Tiebreak del Set 1
-                if (match.team1_tie1_won && match.team2_tie1_won) {
-                  score += ` (${match.team1_tie1_won}-${match.team2_tie1_won})`;
+                if (m.team1_tie1_won && m.team2_tie1_won) {
+                  score += ` (${m.team1_tie1_won}-${m.team2_tie1_won})`;
                 }
               }
               
               // Set 2
-              if (match.team1_sets2_won !== null && match.team2_sets2_won !== null) {
+              if (m.team1_sets2_won !== null && m.team1_sets2_won !== undefined &&
+                  m.team2_sets2_won !== null && m.team2_sets2_won !== undefined) {
                 if (score) score += ', ';
-                score += `${match.team1_sets2_won}-${match.team2_sets2_won}`;
+                score += `${m.team1_sets2_won}-${m.team2_sets2_won}`;
                 
                 // Tiebreak del Set 2
-                if (match.team1_tie2_won && match.team2_tie2_won) {
-                  score += ` (${match.team1_tie2_won}-${match.team2_tie2_won})`;
+                if (m.team1_tie2_won && m.team2_tie2_won) {
+                  score += ` (${m.team1_tie2_won}-${m.team2_tie2_won})`;
                 }
               }
               
               // Super Tiebreak
-              if (match.team1_tie3_won && match.team2_tie3_won) {
+              if (m.team1_tie3_won && m.team2_tie3_won) {
                 if (score) score += ', ';
-                score += `ST: ${match.team1_tie3_won}-${match.team2_tie3_won}`;
+                score += `ST: ${m.team1_tie3_won}-${m.team2_tie3_won}`;
               }
               
               return score || 'Sin resultado';
@@ -272,9 +327,9 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
               id: match.id,
               name: `Match ${match.bracket_match_id || match.id.slice(-4)}`,
               nextMatchId: nextMatchId,
-              tournamentRoundText: getRoundText(match.elimination_round),
-              startTime: `${match.match_day} ${match.start_time}`,
-              courtName: match.court_name || getCourtName(match.court_id),
+              tournamentRoundText: getRoundText(match.elimination_round || ''),
+              startTime: `${match.match_day || ''} ${match.start_time || ''}`,
+              courtName: match.court_name || (match.court_id ? getCourtName(match.court_id) : 'Por asignar'),
               state: matchState,
               participants: [
                 {
@@ -402,10 +457,10 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         // Debug: verificar el formato de datos
         console.log('🔍 Raw elimination matches:', eliminationMatches);
         console.log('🔍 Teams map:', teamsMap);
-        console.log('🔍 Quarter finals:', eliminationMatches.filter((m: any) => m.elimination_round === 'quarterfinals'));
-        console.log('🔍 Semi finals:', eliminationMatches.filter((m: any) => m.elimination_round === 'semifinals'));
-        console.log('🔍 Finals:', eliminationMatches.filter((m: any) => m.elimination_round === 'final'));
-        console.log('🔍 All elimination rounds:', eliminationMatches.map((m: any) => m.elimination_round));
+        console.log('🔍 Quarter finals:', eliminationMatches.filter((m) => m.elimination_round === 'quarterfinals'));
+        console.log('🔍 Semi finals:', eliminationMatches.filter((m) => m.elimination_round === 'semifinals'));
+        console.log('🔍 Finals:', eliminationMatches.filter((m) => m.elimination_round === 'final'));
+        console.log('🔍 All elimination rounds:', eliminationMatches.map((m) => m.elimination_round));
         console.log('🔍 Formatted matches for bracket:', formattedMatches);
         console.log('🔍 Sample match:', formattedMatches[0]);
         console.log('🔍 Total matches count:', formattedMatches.length);
@@ -494,13 +549,19 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
       } else {
         throw new Error('Error obteniendo datos del torneo');
       }
-    } catch (error: any) {
-      console.error('Error fetching matches:', error);
-      setError(error.message);
+    } catch (err) {
+      console.error('Error fetching matches:', err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
   };
+
+  // Efecto para cargar los partidos al montar el componente
+  useEffect(() => {
+    fetchEliminationMatches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tournamentId]);
 
   const getRoundText = (eliminationRound: string) => {
     const roundTexts: { [key: string]: string } = {
@@ -510,48 +571,6 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
       'final': 'Final'
     };
     return roundTexts[eliminationRound] || eliminationRound;
-  };
-
-  const handleMatchUpdate = async (matchId: string, result: any) => {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/matches/${matchId}/result`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(result)
-        }
-      );
-
-      if (response.ok) {
-        // Actualizar estado local
-        setMatches((prevMatches: any[]) => 
-          prevMatches.map((match: any) => 
-            match.id === matchId ? { ...match, ...result } : match
-          )
-        );
-        
-        // ===== NUEVO: Refrescar datos inmediatamente después de actualizar =====
-        console.log('🔄 Refrescando bracket después de actualizar resultado...');
-        await fetchEliminationMatches();
-        
-        // ===== NUEVO: Refrescar múltiples veces para asegurar actualización =====
-        setTimeout(async () => {
-          console.log('🔄 Refrescando bracket para capturar progresión automática...');
-          await fetchEliminationMatches();
-        }, 1000);
-        
-        setTimeout(async () => {
-          console.log('🔄 Refrescando bracket final...');
-          await fetchEliminationMatches();
-        }, 3000);
-      }
-    } catch (error) {
-      console.error('Error updating match result:', error);
-    }
   };
 
   // Funciones para controlar el zoom - ahora solo cambian el estado
@@ -571,7 +590,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
   const bracketRef = useRef<HTMLDivElement>(null);
 
   // Manejar clic en partido para abrir modal de resultados
-  const handleMatchClick = (match: any) => {
+  const handleMatchClick = (match: BracketMatch) => {
     console.log('🎯 Partido clickeado:', match);
     
     // ===== NUEVA LÓGICA: Extraer resultados del resultText del bracket =====
@@ -607,7 +626,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
     });
     
     // Crear objeto match para el modal con los datos reales del partido original
-    const modalMatch = {
+    const modalMatch: SelectedMatchData = {
       id: match.id,
       tournament_id: tournamentId,
       home_team_id: match.participants[0]?.id,
@@ -626,7 +645,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
       team2_tie2_won: null,
       team1_tie3_won: null,
       team2_tie3_won: null,
-      winner_team_id: match.participants.find((p: any) => p.isWinner)?.id || null
+      winner_team_id: match.participants.find((p) => p.isWinner)?.id || null
     };
     
     console.log('✅ Modal match creado con datos reales:', modalMatch);
@@ -646,7 +665,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
   };
 
   // Guardar resultado desde el modal
-  const handleSaveResult = async (matchId: string, result: any) => {
+  const handleSaveResult = async (matchId: string, result: MatchResultData) => {
     setSavingResult(true);
     setModalError(null);
     setModalSuccess(null);
@@ -679,15 +698,15 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
 
       setModalSuccess('¡Resultado guardado exitosamente!');
       
-      // Cerrar modal después de 1.5 segundos y recargar datos
+      // ✅ OPTIMIZADO: Cerrar modal y recargar datos una sola vez
       setTimeout(async () => {
         await fetchEliminationMatches();
         handleCloseModal();
-      }, 1500);
+      }, 800);
       
-    } catch (error: any) {
-      console.error('Error saving match result:', error);
-      setModalError(error.message || 'Error al guardar el resultado');
+    } catch (err) {
+      console.error('Error saving match result:', err);
+      setModalError(err instanceof Error ? err.message : 'Error al guardar el resultado');
     } finally {
       setSavingResult(false);
     }
@@ -713,7 +732,8 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
   }
 
   // Componente Match personalizado - estilos por defecto de la librería
-  const CustomMatchComponent = ({ match, onMatchClick, onPartyClick }: any) => (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const CustomMatchComponent = ({ match, onMatchClick, onPartyClick }: { match: BracketMatch; onMatchClick?: (match: BracketMatch) => void; onPartyClick?: (participant: BracketParticipant, match: BracketMatch) => void }) => (
     <div 
       className="match-component"
       onClick={() => onMatchClick && onMatchClick(match)}
@@ -769,13 +789,13 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
       </div>
       
       <div className="participants">
-        {match.participants.map((participant: any, index: number) => (
+        {match.participants.map((participant: BracketParticipant, index: number) => (
           <div 
             key={participant.id}
             className={`participant ${participant.isWinner ? 'winner' : ''}`}
             onClick={(e) => {
               e.stopPropagation();
-              onPartyClick && onPartyClick(participant, match);
+              if (onPartyClick) onPartyClick(participant, match);
             }}
           >
             <div className="participant-name" style={{
@@ -882,7 +902,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
       <div className="mb-4 flex justify-center gap-4">
         <PdfBracketGenerator 
           bracketRef={bracketRef}
-          tournament={tournament}
+          tournament={tournament ?? null}
           className="px-6 py-2"
         />
         
@@ -903,8 +923,8 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
               }}
             >
               <SingleEliminationBracket
-                matches={matches}
-                matchComponent={CustomMatchComponent}
+                matches={matches as unknown as Parameters<typeof SingleEliminationBracket>[0]['matches']}
+                matchComponent={CustomMatchComponent as unknown as Parameters<typeof SingleEliminationBracket>[0]['matchComponent']}
                 theme={customTheme}
                 options={{
                   style: {
@@ -962,7 +982,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
                   
                   return orderA - orderB;
                 })
-                .map((match, index) => {
+                .map((match) => {
                 const isCompleted = match.state === 'DONE';
                 const isScheduled = match.state === 'SCHEDULED';
                 
@@ -996,7 +1016,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
                     
                     {/* Participantes */}
                     <div className="space-y-1">
-                      {match.participants.map((participant: any, pIndex: number) => (
+                      {match.participants.map((participant: BracketParticipant, pIndex: number) => (
                         <div key={pIndex} className="flex items-center justify-between">
                           <span className={`text-sm font-medium truncate ${
                             participant.isWinner ? 'text-green-700 font-bold' : 'text-gray-700'
@@ -1041,7 +1061,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-8">
             <Trophy className="h-12 w-12 text-blue-600 mx-auto mb-4" />
             <h5 className="text-lg font-semibold text-blue-900 mb-2">No hay partidos eliminatorios generados aún</h5>
-            <p className="text-blue-700">Haz clic en "Generar Fase Eliminatoria" para comenzar.</p>
+            <p className="text-blue-700">Haz clic en &quot;Generar Fase Eliminatoria&quot; para comenzar.</p>
           </div>
         </div>
       )}
@@ -1051,7 +1071,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
         <TournamentMatchModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
-          match={selectedMatch}
+          match={selectedMatch as Parameters<typeof TournamentMatchModal>[0]['match']}
           teams={teams}
           onSubmit={handleSaveResult}
           isLoading={savingResult}

@@ -1,13 +1,21 @@
-import { CalendarDays, Clock, ChevronLeft, ChevronRight, ListFilter, MapPin, Building } from "lucide-react";
+import { CalendarDays, Clock, ChevronLeft, ChevronRight, ListFilter, Building } from "lucide-react";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
-import { EmptySchedule } from "./EmptySchedule";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCategories } from "@/hooks/useCategories";
 import { useTournaments } from "@/hooks/useTournaments";
 import { matchService, tournamentService } from '@/services/tournamentService';
 import { useTranslations } from '@/contexts/TranslationContext';
+
+// Tipo para datos de equipo en el match
+interface TeamData {
+  id?: string;
+  name?: string;
+  team_name?: string;
+  player1?: string | { first_name: string; last_name: string };
+  player2?: string | { first_name: string; last_name: string };
+}
 
 interface TournamentMatch {
   id: string;
@@ -15,12 +23,12 @@ interface TournamentMatch {
   tournament_name?: string;
   team1_name?: string;
   team2_name?: string;
-  team1?: any;
-  team2?: any;
+  team1?: TeamData;
+  team2?: TeamData;
   home_team_id?: string;
   away_team_id?: string;
-  home_team_data?: any;
-  away_team_data?: any;
+  home_team_data?: TeamData;
+  away_team_data?: TeamData;
   match_day?: string; // Para fase eliminatoria
   tournament_day?: number; // Para fase de grupos (día del torneo: 1, 2, 3, etc.)
   start_time?: string;
@@ -37,11 +45,10 @@ interface TournamentMatch {
 }
 
 interface TournamentScheduleCardProps {
-  tournamentId?: string;
   onMatchesLoaded?: (hasMatches: boolean) => void;
 }
 
-export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: TournamentScheduleCardProps) {
+export function TournamentScheduleCard({ onMatchesLoaded }: TournamentScheduleCardProps) {
   const router = useRouter();
   const t = useTranslations('dashboard');
   const [matches, setMatches] = useState<TournamentMatch[]>([]);
@@ -50,7 +57,7 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const { categories: allCategories, isLoading: isLoadingCategories } = useCategories();
+  const { isLoading: isLoadingCategories } = useCategories();
   
   // Solo mostrar categorías que tienen partidos programados
   const availableCategories = useMemo(() => {
@@ -94,48 +101,68 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
           return;
         }
 
-        // Obtener partidos de todos los torneos activos usando el servicio existente
-        const allMatches: TournamentMatch[] = [];
+        // ✅ OPTIMIZADO: Obtener partidos de todos los torneos EN PARALELO usando Promise.all
+        // Esto reduce el tiempo de carga de O(n) secuencial a O(1) paralelo
         
-        for (const tournament of tournaments) {
+        // Tipos auxiliares para el procesamiento
+        interface MatchesResponse {
+          matches?: TournamentMatch[];
+        }
+        interface TeamsResponse {
+          teams?: Array<{ teams?: TeamData & { id: string } }>;
+        }
+        interface TournamentWithCategory {
+          category?: { name?: string };
+          categories?: { name?: string };
+        }
+        
+        const tournamentDataPromises = tournaments.map(async (tournament) => {
           try {
-            // Usar el servicio existente que ya funciona
-            const matchesData = await matchService.getTournamentMatches(tournament.id);
-            const tournamentMatches = Array.isArray(matchesData) ? matchesData : (matchesData as any)?.matches || [];
+            // Hacer ambas llamadas en paralelo para cada torneo
+            const [matchesData, teamsData] = await Promise.all([
+              matchService.getTournamentMatches(tournament.id),
+              tournamentService.getTournamentTeams(tournament.id)
+            ]);
             
-            // Obtener información de equipos para este torneo
-            const teamsData = await tournamentService.getTournamentTeams(tournament.id);
-            const tournamentTeams = Array.isArray(teamsData) ? teamsData : (teamsData as any)?.teams || [];
+            const matchesResponse = matchesData as TournamentMatch[] | MatchesResponse;
+            const teamsResponse = teamsData as TeamsResponse | Array<{ teams?: TeamData & { id: string } }>;
+            
+            const tournamentMatches = Array.isArray(matchesResponse) ? matchesResponse : matchesResponse?.matches || [];
+            const tournamentTeams = Array.isArray(teamsResponse) ? teamsResponse : teamsResponse?.teams || [];
             
             // Crear un mapa de equipos para acceso rápido
-            const teamsMap = new Map();
-            tournamentTeams.forEach((team: any) => {
+            const teamsMap = new Map<string, TeamData>();
+            tournamentTeams.forEach((team) => {
               if (team.teams) {
                 teamsMap.set(team.teams.id, team.teams);
               }
             });
             
+            const tournamentWithCategory = tournament as typeof tournament & TournamentWithCategory;
+            
             // Agregar información del torneo y equipos a cada partido
-            const matchesWithTournamentInfo = tournamentMatches.map((match: any) => {
-              const homeTeam = teamsMap.get(match.home_team_id);
-              const awayTeam = teamsMap.get(match.away_team_id);
+            return tournamentMatches.map((match) => {
+              const homeTeam = teamsMap.get(match.home_team_id || '');
+              const awayTeam = teamsMap.get(match.away_team_id || '');
               
               return {
                 ...match,
                 tournament_name: tournament.name,
                 tournament_id: tournament.id,
-                category_name: tournament.category?.name || (tournament as any).categories?.name || 'Sin categoría',
+                category_name: tournamentWithCategory.category?.name || tournamentWithCategory.categories?.name || 'Sin categoría',
                 home_team_data: homeTeam,
                 away_team_data: awayTeam
               };
             });
-            
-            allMatches.push(...matchesWithTournamentInfo);
           } catch (error) {
             console.warn(`Error fetching matches for tournament ${tournament.id}:`, error);
-            // Continuar con otros torneos si uno falla
+            return []; // Retornar array vacío si falla
           }
-        }
+        });
+        
+        // Esperar todas las promesas en paralelo
+        const allMatchesArrays = await Promise.all(tournamentDataPromises);
+        const allMatches: TournamentMatch[] = allMatchesArrays.flat();
         
         // Filtrar partidos programados y próximos
         const now = new Date();
@@ -220,7 +247,7 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
     };
 
     fetchTournamentMatches();
-  }, [tournaments, onMatchesLoaded]);
+  }, [tournaments, onMatchesLoaded, t]);
 
   // Efecto para filtrar los partidos cuando cambia la categoría seleccionada
   useEffect(() => {
@@ -249,16 +276,24 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
     }
   }, [selectedCategory, matches]);
 
-  const getTeamName = (team: any, teamId?: string): string => {
+  const getTeamName = (team: TeamData | string | undefined, teamId?: string): string => {
     // Si es un string directo, usarlo
     if (typeof team === 'string') return team;
     
+    // Si no hay team, usar fallback
+    if (!team) {
+      if (teamId) {
+        return `Equipo ${teamId.slice(0, 8)}...`;
+      }
+      return 'Equipo desconocido';
+    }
+    
     // Si es un objeto con nombre
-    if (team?.name) return team.name;
-    if (team?.team_name) return team.team_name;
+    if (team.name) return team.name;
+    if (team.team_name) return team.team_name;
     
     // Si tiene jugadores con estructura completa (de tournament_teams)
-    if (team?.player1 && team?.player2) {
+    if (team.player1 && team.player2) {
       const player1Name = typeof team.player1 === 'string' ? 
         team.player1 : 
         `${team.player1.first_name} ${team.player1.last_name}`;
@@ -269,7 +304,7 @@ export function TournamentScheduleCard({ tournamentId, onMatchesLoaded }: Tourna
     }
     
     // Si solo tiene un player
-    if (team?.player1) {
+    if (team.player1) {
       const player1Name = typeof team.player1 === 'string' ? 
         team.player1 : 
         `${team.player1.first_name} ${team.player1.last_name}`;

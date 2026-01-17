@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { Sponsor } from '@/types/sponsor';
 
@@ -12,8 +12,16 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 export function useSponsors() {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  // ✅ NUEVO: AbortController para cancelar requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchSponsors = useCallback(async () => {
+    // Cancelar request anterior
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    
     try {
       setIsLoading(true);
       const token = localStorage.getItem('adminToken');
@@ -22,12 +30,15 @@ export function useSponsors() {
       const response = await fetch(`${API_URL}/sponsors`, {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal: abortControllerRef.current.signal
       });
       if (!response.ok) throw new Error('Error fetching sponsors');
       const data = await response.json();
       setSponsors(data);
     } catch (error) {
+      // ✅ Ignorar errores de cancelación
+      if (error instanceof Error && error.name === 'AbortError') return;
       toast({
         title: "Error",
         description: "Error al cargar los patrocinadores",
@@ -41,6 +52,11 @@ export function useSponsors() {
 
   useEffect(() => {
     fetchSponsors();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchSponsors]);
 
   const createSponsor = async (sponsorData: CreateSponsorData) => {
@@ -146,11 +162,17 @@ export function useSponsors() {
     }
   };
 
+  // ✅ OPTIMIZADO: Optimistic update con rollback
   const deleteSponsor = async (id: string) => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No estás autenticado');
+
+    // Guardar estado anterior para rollback
+    const previousSponsors = [...sponsors];
+    
     try {
-      setIsLoading(true);
-      const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('No estás autenticado');
+      // ✅ Optimistic update: eliminar de UI inmediatamente
+      setSponsors(prev => prev.filter(sponsor => sponsor.id !== id));
 
       const response = await fetch(`${API_URL}/sponsors/${id}`, {
         method: 'DELETE',
@@ -160,17 +182,20 @@ export function useSponsors() {
       });
 
       if (!response.ok) {
+        // Rollback en caso de error
+        setSponsors(previousSponsors);
         const error = await response.json();
         throw new Error(error.message || 'Error deleting sponsor');
       }
       
-      setSponsors(prev => prev.filter(sponsor => sponsor.id !== id));
       toast({
         title: "Éxito",
         description: "Patrocinador eliminado exitosamente",
       });
       return true;
     } catch (error) {
+      // Rollback en caso de error
+      setSponsors(previousSponsors);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Error al eliminar el patrocinador",
@@ -178,8 +203,6 @@ export function useSponsors() {
       });
       console.error('Error deleting sponsor:', error);
       return false;
-    } finally {
-      setIsLoading(false);
     }
   };
 

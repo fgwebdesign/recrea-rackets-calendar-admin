@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
 
 export interface Category {
@@ -15,13 +15,22 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  // ✅ NUEVO: AbortController para cancelar requests al desmontar
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchCategories = useCallback(async () => {
+    // Cancelar request anterior si existe
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Crear nuevo AbortController
+    abortControllerRef.current = new AbortController();
+    
     try {
       setIsLoading(true);
       const token = localStorage.getItem('adminToken');
       if (!token) {
-        // No mostrar error si no hay token, simplemente retornar
         setCategories([]);
         return;
       }
@@ -29,14 +38,18 @@ export function useCategories() {
       const response = await fetch(`${API_URL}/categories`, {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal: abortControllerRef.current.signal // ✅ Agregar signal
       });
       
       if (!response.ok) throw new Error('Error fetching categories');
       const data = await response.json();
       setCategories(Array.isArray(data) ? data : []);
     } catch (error) {
-      // Solo mostrar toast si es un error real de API, no por falta de token
+      // ✅ Ignorar errores de cancelación
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
       if (error instanceof Error && !error.message.includes('sesión ha expirado')) {
         toast({
           title: "Error",
@@ -53,6 +66,12 @@ export function useCategories() {
 
   useEffect(() => {
     fetchCategories();
+    // ✅ Cleanup: cancelar request al desmontar
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchCategories]);
 
   const createCategory = useCallback(async (categoryData: CreateCategoryData) => {

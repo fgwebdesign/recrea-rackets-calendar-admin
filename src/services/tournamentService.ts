@@ -15,9 +15,12 @@ import {
   EliminationBracket,
   TournamentStats,
   ApiResponse,
-  PaginatedResponse,
   TeamWithConstraints,
-  ConflictInfo
+  ConflictInfo,
+  MatchResultData,
+  TournamentInfo,
+  Sponsor,
+  PeriodStats
 } from '@/types/tournament'
 
 // ========================================
@@ -80,6 +83,36 @@ export class TournamentService {
   async getTournaments(): Promise<Tournament[]> {
     const response = await fetch(this.baseUrl)
     return handleApiResponse<Tournament[]>(response)
+  }
+
+  // ✅ NUEVO: Obtener partidos para dashboard (endpoint consolidado)
+  async getDashboardMatches(): Promise<{
+    matches: TournamentMatch[];
+    tournaments_count: number;
+    total_matches: number;
+  }> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
+    const response = await fetch(`${this.baseUrl}/dashboard/matches`, {
+      headers: getAuthHeaders(token || undefined)
+    })
+    return handleApiResponse(response)
+  }
+
+  // ✅ NUEVO: Obtener información completa del torneo en una sola llamada
+  async getTournamentFullDetails(tournamentId: string): Promise<{
+    tournament: Tournament;
+    teams: TournamentTeam[];
+    matches: TournamentMatch[];
+    groups: TournamentGroup[];
+    sponsors: Sponsor[];
+    stats: TournamentStats;
+    tournament_info: TournamentInfo | null;
+  }> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
+    const response = await fetch(`${this.baseUrl}/${tournamentId}/full-details`, {
+      headers: getAuthHeaders(token || undefined)
+    })
+    return handleApiResponse(response)
   }
 
   // 🔍 Obtener torneo por ID
@@ -152,43 +185,14 @@ export class TournamentService {
     return handleApiResponse<ApiResponse<AvailabilityData[]>>(response)
   }
 
-  // 📈 Obtener estadísticas del torneo
+  // ✅ OPTIMIZADO: Ahora usa el endpoint full-details que ya incluye stats
+  // Ya no hace 4 llamadas separadas
   async getTournamentStats(tournamentId: string): Promise<TournamentStats> {
     try {
-      // Obtener datos básicos del torneo y calcular estadísticas
-      const tournament = await this.getTournamentById(tournamentId)
-      const teams = await this.getTournamentTeams(tournamentId)
-      const matches = await this.getTournamentMatches(tournamentId)
-      const standings = await this.getTournamentStandings(tournamentId)
-      
-      // ✅ Corregir: extraer arrays de las respuestas del backend
-      const teamsArray = (teams as any)?.teams || teams || []
-      const matchesArray = (matches as any)?.matches || matches || []
-      
-      // Calcular estadísticas básicas con validaciones
-      const totalTeams = Array.isArray(teamsArray) ? teamsArray.length : 0
-      const totalMatches = Array.isArray(matchesArray) ? matchesArray.length : 0
-      const completedMatches = Array.isArray(matchesArray) ? matchesArray.filter((match: any) => match.status === 'completed').length : 0
-      const totalRevenue = Array.isArray(teamsArray) ? teamsArray.reduce((sum: number, team: any) => sum + (team.payment_amount || 0), 0) : 0
-      
-      return {
-        total_teams: totalTeams,
-        teams_registered: Array.isArray(teamsArray) ? teamsArray.filter((team: any) => team.payment_status === 'paid').length : 0,
-        teams_pending: Array.isArray(teamsArray) ? teamsArray.filter((team: any) => team.payment_status === 'pending').length : 0,
-        groups_generated: Array.isArray(standings) ? standings.length > 0 : false,
-        matches_scheduled: totalMatches,
-        matches_completed: completedMatches,
-        matches_pending: totalMatches - completedMatches,
-        total_revenue: totalRevenue,
-        payment_status: {
-          paid: Array.isArray(teamsArray) ? teamsArray.filter((team: any) => team.payment_status === 'paid').length : 0,
-          pending: Array.isArray(teamsArray) ? teamsArray.filter((team: any) => team.payment_status === 'pending').length : 0,
-          failed: Array.isArray(teamsArray) ? teamsArray.filter((team: any) => team.payment_status === 'failed').length : 0
-        }
-      }
+      const fullDetails = await this.getTournamentFullDetails(tournamentId)
+      return fullDetails.stats
     } catch (error) {
       console.error('Error getting tournament stats:', error)
-      // Retornar estadísticas por defecto en caso de error
       return {
         total_teams: 0,
         teams_registered: 0,
@@ -322,7 +326,7 @@ export class MatchService {
   }
 
   // 🏆 Actualizar resultado de partido
-  async updateMatchResult(matchId: string, result: any, tournamentId?: string, token?: string): Promise<TournamentMatch> {
+  async updateMatchResult(matchId: string, result: MatchResultData, tournamentId?: string, token?: string): Promise<TournamentMatch> {
     // URL correcta según tournament.routes.js: /tournaments/{tournamentId}/matches/{matchId}/result
     const url = tournamentId 
       ? `${this.baseUrl}/tournaments/${tournamentId}/matches/${matchId}/result`
@@ -398,71 +402,19 @@ export class StatsService {
     return handleApiResponse(response)
   }
 
-  // 📊 Obtener estadísticas de torneo específico
+  // ✅ OPTIMIZADO: Reutilizar el servicio de torneos que ya está optimizado
   async getTournamentStats(tournamentId: string): Promise<TournamentStats> {
-    try {
-      // Obtener datos básicos del torneo y calcular estadísticas
-      const tournamentService = new TournamentService()
-      const matchService = new MatchService()
-      const tournament = await tournamentService.getTournamentById(tournamentId)
-      const teams = await tournamentService.getTournamentTeams(tournamentId)
-      const matches = await matchService.getTournamentMatches(tournamentId)
-      const standings = await tournamentService.getTournamentStandings(tournamentId)
-      
-      // ✅ Corregir: extraer arrays de las respuestas del backend
-      const teamsArray = (teams as any)?.teams || teams || []
-      const matchesArray = (matches as any)?.matches || matches || []
-      
-      // Calcular estadísticas básicas con validaciones
-      const totalTeams = Array.isArray(teamsArray) ? teamsArray.length : 0
-      const totalMatches = Array.isArray(matchesArray) ? matchesArray.length : 0
-      const completedMatches = Array.isArray(matchesArray) ? matchesArray.filter((match: any) => match.status === 'completed').length : 0
-      const totalRevenue = Array.isArray(teamsArray) ? teamsArray.reduce((sum: number, team: any) => sum + (team.payment_amount || 0), 0) : 0
-      
-      return {
-        total_teams: totalTeams,
-        teams_registered: Array.isArray(teamsArray) ? teamsArray.filter((team: any) => team.payment_status === 'paid').length : 0,
-        teams_pending: Array.isArray(teamsArray) ? teamsArray.filter((team: any) => team.payment_status === 'pending').length : 0,
-        groups_generated: Array.isArray(standings) ? standings.length > 0 : false,
-        matches_scheduled: totalMatches,
-        matches_completed: completedMatches,
-        matches_pending: totalMatches - completedMatches,
-        total_revenue: totalRevenue,
-        payment_status: {
-          paid: Array.isArray(teamsArray) ? teamsArray.filter((team: any) => team.payment_status === 'paid').length : 0,
-          pending: Array.isArray(teamsArray) ? teamsArray.filter((team: any) => team.payment_status === 'pending').length : 0,
-          failed: Array.isArray(teamsArray) ? teamsArray.filter((team: any) => team.payment_status === 'failed').length : 0
-        }
-      }
-    } catch (error) {
-      console.error('Error getting tournament stats:', error)
-      // Retornar estadísticas por defecto en caso de error
-      return {
-        total_teams: 0,
-        teams_registered: 0,
-        teams_pending: 0,
-        groups_generated: false,
-        matches_scheduled: 0,
-        matches_completed: 0,
-        matches_pending: 0,
-        total_revenue: 0,
-        payment_status: {
-          paid: 0,
-          pending: 0,
-          failed: 0
-        }
-      }
-    }
+    return tournamentService.getTournamentStats(tournamentId)
   }
 
   // 📅 Obtener estadísticas por período
-  async getStatsByPeriod(startDate: string, endDate: string): Promise<any> {
+  async getStatsByPeriod(startDate: string, endDate: string): Promise<PeriodStats> {
     const response = await fetch(`${this.baseUrl}/stats/period`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ start_date: startDate, end_date: endDate })
     })
-    return handleApiResponse(response)
+    return handleApiResponse<PeriodStats>(response)
   }
 }
 

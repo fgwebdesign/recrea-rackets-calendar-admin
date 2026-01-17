@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { Venue } from '@/types/venue';
 
@@ -13,10 +13,18 @@ export function useVenues(options: UseVenuesOptions = {}) {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // ✅ NUEVO: AbortController para cancelar requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const { includeCourts = true, isActive = 'true' } = options;
 
   const fetchVenues = useCallback(async () => {
+    // Cancelar request anterior
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    
     setLoading(true);
     setError(null);
     
@@ -31,7 +39,8 @@ export function useVenues(options: UseVenuesOptions = {}) {
       const response = await fetch(`${API_URL}/venues?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal: abortControllerRef.current.signal
       });
 
       if (!response.ok) {
@@ -42,6 +51,8 @@ export function useVenues(options: UseVenuesOptions = {}) {
       const data = await response.json();
       setVenues(data.venues || []);
     } catch (err) {
+      // ✅ Ignorar errores de cancelación
+      if (err instanceof Error && err.name === 'AbortError') return;
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
       setError(errorMessage);
       toast({
@@ -57,14 +68,21 @@ export function useVenues(options: UseVenuesOptions = {}) {
 
   useEffect(() => {
     fetchVenues();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchVenues]);
 
+  // ✅ OPTIMIZADO: Optimistic update - actualiza UI inmediatamente
   const createVenue = async (venueData: Partial<Venue>) => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No estás autenticado');
+
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('No estás autenticado');
-
+      
       const response = await fetch(`${API_URL}/venues`, {
         method: 'POST',
         headers: {
@@ -80,7 +98,8 @@ export function useVenues(options: UseVenuesOptions = {}) {
       }
 
       const data = await response.json();
-      await fetchVenues(); // Refetch
+      // ✅ Actualizar estado local inmediatamente en lugar de refetch
+      setVenues(prev => [...prev, data.venue]);
       toast({
         title: "Éxito",
         description: "Sede creada exitosamente",
@@ -100,12 +119,18 @@ export function useVenues(options: UseVenuesOptions = {}) {
     }
   };
 
+  // ✅ OPTIMIZADO: Optimistic update
   const updateVenue = async (id: string, venueData: Partial<Venue>) => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('No estás autenticado');
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No estás autenticado');
 
+    // Guardar estado anterior para rollback
+    const previousVenues = [...venues];
+    
+    try {
+      // ✅ Optimistic update: actualizar UI inmediatamente
+      setVenues(prev => prev.map(v => v.id === id ? { ...v, ...venueData } : v));
+      
       const response = await fetch(`${API_URL}/venues/${id}`, {
         method: 'PUT',
         headers: {
@@ -116,17 +141,24 @@ export function useVenues(options: UseVenuesOptions = {}) {
       });
 
       if (!response.ok) {
+        // Rollback en caso de error
+        setVenues(previousVenues);
         const error = await response.json();
         throw new Error(error.message || 'Error al actualizar la sede');
       }
 
-      await fetchVenues(); // Refetch
+      const data = await response.json();
+      // Actualizar con datos reales del servidor
+      setVenues(prev => prev.map(v => v.id === id ? data.venue || { ...v, ...venueData } : v));
+      
       toast({
         title: "Éxito",
         description: "Sede actualizada exitosamente",
       });
-      return await response.json();
+      return data;
     } catch (err) {
+      // Rollback en caso de error
+      setVenues(previousVenues);
       const errorMessage = err instanceof Error ? err.message : 'Error al actualizar la sede';
       toast({
         title: "Error",
@@ -135,16 +167,20 @@ export function useVenues(options: UseVenuesOptions = {}) {
       });
       console.error('Error updating venue:', err);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
+  // ✅ OPTIMIZADO: Optimistic update
   const deleteVenue = async (id: string, force: boolean = false) => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No estás autenticado');
+
+    // Guardar estado anterior para rollback
+    const previousVenues = [...venues];
+    
     try {
-      setLoading(true);
-      const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('No estás autenticado');
+      // ✅ Optimistic update: eliminar de UI inmediatamente
+      setVenues(prev => prev.filter(v => v.id !== id));
 
       const response = await fetch(`${API_URL}/venues/${id}${force ? '?force=true' : ''}`, {
         method: 'DELETE',
@@ -154,16 +190,19 @@ export function useVenues(options: UseVenuesOptions = {}) {
       });
 
       if (!response.ok) {
+        // Rollback en caso de error
+        setVenues(previousVenues);
         const error = await response.json();
         throw new Error(error.message || 'Error al eliminar la sede');
       }
 
-      await fetchVenues(); // Refetch
       toast({
         title: "Éxito",
         description: "Sede eliminada exitosamente",
       });
     } catch (err) {
+      // Rollback en caso de error
+      setVenues(previousVenues);
       const errorMessage = err instanceof Error ? err.message : 'Error al eliminar la sede';
       toast({
         title: "Error",
@@ -172,8 +211,6 @@ export function useVenues(options: UseVenuesOptions = {}) {
       });
       console.error('Error deleting venue:', err);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 

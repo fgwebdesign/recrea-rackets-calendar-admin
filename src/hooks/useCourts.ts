@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { Court } from '@/types/court';
 
@@ -13,8 +13,16 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 export function useCourts() {
   const [courts, setCourts] = useState<Court[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  // ✅ NUEVO: AbortController para cancelar requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchCourts = useCallback(async () => {
+    // Cancelar request anterior
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    
     try {
       setIsLoading(true);
       const token = localStorage.getItem('adminToken');
@@ -23,12 +31,15 @@ export function useCourts() {
       const response = await fetch(`${API_URL}/courts`, {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal: abortControllerRef.current.signal
       });
       if (!response.ok) throw new Error('Error fetching courts');
       const data = await response.json();
       setCourts(data);
     } catch (error) {
+      // ✅ Ignorar errores de cancelación
+      if (error instanceof Error && error.name === 'AbortError') return;
       toast({
         title: "Error",
         description: "Error al cargar las canchas",
@@ -42,6 +53,11 @@ export function useCourts() {
 
   useEffect(() => {
     fetchCourts();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchCourts]);
 
   const createCourt = async (courtData: CreateCourtData) => {
