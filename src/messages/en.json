@@ -19,7 +19,15 @@
     "open": "Open",
     "yes": "Yes",
     "no": "No",
-    "understood": "Understood"
+    "understood": "Understood",
+    "professor": "Professor",
+    "venue": "Venue",
+    "court": "Court",
+    "available": "Available",
+    "category": "Category",
+    "sponsor": "Sponsor",
+    "user": "User",
+    "product": "Product"
   },
   "navigation": {
     "dashboard": "Dashboard",

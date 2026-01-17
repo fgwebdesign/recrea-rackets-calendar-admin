@@ -19,25 +19,37 @@ const STORAGE_KEY = 'kiosk_selected_venue_id';
 export function KioskVenueProvider({ children }: { children: ReactNode }) {
   const { venues, loading } = useVenues({ includeCourts: false, isActive: 'true' });
   const [selectedVenueId, setSelectedVenueIdState] = useState<string | undefined>(undefined);
+  const [initialized, setInitialized] = useState(false);
 
-  // Cargar venue seleccionado desde localStorage al montar
+  // Inicializar venue cuando se cargan los venues
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      setSelectedVenueIdState(stored);
-    }
-  }, []);
-
-  // Establecer venue por defecto cuando se cargan los venues
-  useEffect(() => {
-    if (!loading && venues.length > 0 && !selectedVenueId) {
+    if (loading || initialized) return;
+    
+    // Intentar cargar desde localStorage
+    const storedVenueId = localStorage.getItem(STORAGE_KEY);
+    
+    // Verificar que el venue almacenado existe en la lista de venues activos
+    const storedVenueExists = storedVenueId && venues.some(v => v.id === storedVenueId);
+    
+    if (storedVenueExists) {
+      console.log('📍 Using stored venue:', storedVenueId);
+      setSelectedVenueIdState(storedVenueId);
+    } else {
+      // Si no existe o no está en la lista, usar el venue por defecto o el primero
       const defaultVenue = venues.find(v => v.is_default) || venues[0];
       if (defaultVenue) {
+        console.log('📍 Using default venue:', defaultVenue.id, defaultVenue.name);
         setSelectedVenueIdState(defaultVenue.id);
         localStorage.setItem(STORAGE_KEY, defaultVenue.id);
+      } else if (storedVenueId) {
+        // Limpiar localStorage si el venue no existe
+        console.log('⚠️ Stored venue not found, clearing localStorage');
+        localStorage.removeItem(STORAGE_KEY);
       }
     }
-  }, [loading, venues, selectedVenueId]);
+    
+    setInitialized(true);
+  }, [loading, venues, initialized]);
 
   const setSelectedVenueId = (venueId: string | undefined) => {
     setSelectedVenueIdState(venueId);

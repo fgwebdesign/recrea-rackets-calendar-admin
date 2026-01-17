@@ -75,9 +75,15 @@ export function useProducts(filters?: ProductFilters) {
   // y solo si hay un venue_id válido (para evitar cargar productos sin venue)
   useEffect(() => {
     // Si filters es undefined o null, NO hacer ninguna llamada
-    // Esto evita llamadas sin venue_id que luego sobrescriben los datos
     if (!filters) {
       console.log('⏳ No filters provided, skipping fetch...');
+      return;
+    }
+    
+    // Si filters existe pero venue_id no está definido, NO hacer llamada
+    // Esto evita cargar productos de todos los venues y race conditions
+    if (!filters.venue_id) {
+      console.log('⏳ Waiting for venue_id to be set...');
       return;
     }
     

@@ -22,6 +22,7 @@ import {
   PaginationItem,
   PaginationLink,
   PaginationNext,
+  
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
@@ -30,21 +31,25 @@ import { Building2 } from "lucide-react";
 export default function ProductsPage() {
   const t = useTranslations('kiosk');
   const { selectedVenueId, selectedVenue, setSelectedVenueId, venues, loading: loadingVenues } = useKioskVenue();
-  const [filters, setFilters] = useState<ProductFilters>({
-    category_id: '',
-    is_active: true,
-    search: '',
-    low_stock: false,
-    venue_id: selectedVenueId
-  });
   
-  // Actualizar filtros cuando cambia el venue seleccionado
-  useEffect(() => {
-    setFilters(prev => ({ ...prev, venue_id: selectedVenueId }));
-  }, [selectedVenueId]);
+  // Estado local para filtros de UI (categoría, búsqueda, etc.)
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [lowStockFilter, setLowStockFilter] = useState(false);
+  
+  // Filtros efectivos para la API - solo cuando hay venue seleccionado
+  const effectiveFilters = useMemo<ProductFilters | undefined>(() => {
+    if (!selectedVenueId) return undefined;
+    return {
+      category_id: categoryFilter,
+      is_active: true,
+      search: '',
+      low_stock: lowStockFilter,
+      venue_id: selectedVenueId
+    };
+  }, [selectedVenueId, categoryFilter, lowStockFilter]);
   
   // El hook useProducts ya maneja la carga automática cuando cambian los filtros
-  const { products, isLoading, createProduct, updateProduct, deleteProduct, fetchProducts } = useProducts(filters);
+  const { products, isLoading, createProduct, updateProduct, deleteProduct, fetchProducts } = useProducts(effectiveFilters);
   const { categories } = useProductCategories();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,12 +62,13 @@ export default function ProductsPage() {
 
   // Debounce para la búsqueda
   const [searchInput, setSearchInput] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
   
   const PRODUCTS_PER_PAGE = 10;
   
   useEffect(() => {
     const timer = setTimeout(() => {
-      setFilters(prev => ({ ...prev, search: searchInput }));
+      setSearchFilter(searchInput);
     }, 300); // Espera 300ms después de que el usuario deje de escribir
 
     return () => clearTimeout(timer);
@@ -82,8 +88,8 @@ export default function ProductsPage() {
           setIsModalOpen(false);
           setEditingProduct(null);
           // Refrescar productos después de actualizar (especialmente si se subió imagen)
-          if (imageFile) {
-            await fetchProducts(filters);
+          if (imageFile && effectiveFilters) {
+            await fetchProducts(effectiveFilters);
           }
         }
         return { success, productId: editingProduct.id };
@@ -98,8 +104,8 @@ export default function ProductsPage() {
           setIsModalOpen(false);
           setEditingProduct(null);
           // Refrescar productos después de crear (especialmente si se subió imagen)
-          if (imageFile) {
-            await fetchProducts(filters);
+          if (imageFile && effectiveFilters) {
+            await fetchProducts(effectiveFilters);
           }
           return { success: true, productId: result.product.id };
         }
@@ -109,7 +115,7 @@ export default function ProductsPage() {
       console.error('Error submitting product:', error);
       return { success: false };
     }
-  }, [editingProduct, updateProduct, createProduct, fetchProducts, filters, selectedVenueId]);
+  }, [editingProduct, updateProduct, createProduct, fetchProducts, effectiveFilters, selectedVenueId]);
 
   const handleEdit = useCallback((product: Product) => {
     setEditingProduct(product);
@@ -125,14 +131,18 @@ export default function ProductsPage() {
     }
   }, [deleteModal.product, deleteProduct]);
 
-  // Los productos ya vienen filtrados del backend, no necesitamos filtrar de nuevo
-  // Solo mantenemos la lista tal cual viene del hook
-  const displayProducts = useMemo(() => products, [products]);
+  // Los productos vienen filtrados del backend, pero aplicamos búsqueda local
+  const displayProducts = useMemo(() => {
+    if (!searchFilter) return products;
+    return products.filter(p => 
+      p.name.toLowerCase().includes(searchFilter.toLowerCase())
+    );
+  }, [products, searchFilter]);
 
   // Resetear página cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.category_id, filters.search, filters.low_stock]);
+  }, [categoryFilter, searchFilter, lowStockFilter]);
 
   // Calcular productos paginados
   const totalPages = Math.ceil(displayProducts.length / PRODUCTS_PER_PAGE);
@@ -156,56 +166,49 @@ export default function ProductsPage() {
         icon={<PlusCircle className="w-6 h-6" />}
       />
 
-      {/* Selector de Venue o Venue Actual */}
-      {!loadingVenues && venues.length > 0 && (
+      {/* Selector de Venue - Siempre visible */}
+      {loadingVenues ? (
+        <div className="mt-6 mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-4">
+            <Building2 className="w-5 h-5 text-gray-400 animate-pulse" />
+            <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
+        </div>
+      ) : venues.length > 0 && (
         <div className="mt-6 mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-4">
             <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <div className="flex-1">
+              <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                {t('products.venue')}
+              </Label>
               {venues.length > 1 ? (
-                // Selector si hay múltiples venues
-                <>
-                  <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
-                    {t('products.venue')} <span className="text-red-500">*</span>
-                  </Label>
-                  <Select 
-                    value={selectedVenueId || 'none'} 
-                    onValueChange={(value) => {
-                      if (value !== 'none') {
-                        setSelectedVenueId(value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 w-64">
-                      <SelectValue placeholder={t('products.selectVenue')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {venues.filter(v => v.is_active).map((venue) => (
-                        <SelectItem key={venue.id} value={venue.id}>
-                          {venue.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </>
+                <Select 
+                  value={selectedVenueId || ''} 
+                  onValueChange={(value) => {
+                    if (value) {
+                      setSelectedVenueId(value);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 w-64">
+                    <SelectValue placeholder={t('products.selectVenue')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {venues.filter(v => v.is_active).map((venue) => (
+                      <SelectItem key={venue.id} value={venue.id}>
+                        {venue.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
-                // Mostrar venue actual si solo hay uno
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Sede:</span>
+                <div className="flex items-center gap-2 py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 w-fit">
                   <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedVenue?.name || venues[0]?.name}</span>
                 </div>
               )}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Mostrar mensaje si no hay venue seleccionado */}
-      {!loadingVenues && venues.length > 0 && !selectedVenueId && (
-        <div className="mt-6 mb-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-          <p className="text-sm text-yellow-800 dark:text-yellow-400">
-            {t('products.mustSelectVenue')}
-          </p>
         </div>
       )}
 
@@ -228,8 +231,8 @@ export default function ProductsPage() {
 
             <Button
               variant="outline"
-              onClick={() => setFilters(prev => ({ ...prev, low_stock: !prev.low_stock }))}
-              className={filters.low_stock ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : ''}
+              onClick={() => setLowStockFilter(prev => !prev)}
+              className={lowStockFilter ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' : ''}
             >
               <Filter className="w-4 h-4 mr-2" />
               {t('products.lowStock')}
@@ -239,7 +242,7 @@ export default function ProductsPage() {
           {/* Selector de Categorías estilo PedidosYa con blur */}
           <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
             <button
-              onClick={() => setFilters(prev => ({ ...prev, category_id: '' }))}
+              onClick={() => setCategoryFilter('')}
               className={`
                 group relative
                 flex flex-col items-center justify-center gap-1.5
@@ -249,34 +252,34 @@ export default function ProductsPage() {
                 transition-all duration-300
                 whitespace-nowrap
                 overflow-hidden
-                ${!filters.category_id
+                ${!categoryFilter
                   ? 'bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500/50'
                   : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-md text-gray-800 dark:text-gray-200 hover:bg-white/90 dark:hover:bg-gray-800/90 border border-gray-200/50 dark:border-gray-700/50 shadow-sm'
                 }
               `}
             >
               {/* Background blur effect */}
-              {!filters.category_id && (
+              {!categoryFilter && (
                 <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-sm" />
               )}
               <div className={`
                 relative z-10
                 p-2 rounded-xl
-                ${!filters.category_id
+                ${!categoryFilter
                   ? 'bg-white/20 backdrop-blur-sm'
                   : 'bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm'
                 }
               `}>
-                <Package className={`w-4 h-4 ${!filters.category_id ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
+                <Package className={`w-4 h-4 ${!categoryFilter ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
               </div>
-              <span className={`relative z-10 text-xs font-semibold ${!filters.category_id ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
+              <span className={`relative z-10 text-xs font-semibold ${!categoryFilter ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
                 {t('products.all')}
               </span>
             </button>
             {categories.filter(c => c.is_active).map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => setFilters(prev => ({ ...prev, category_id: cat.id }))}
+                onClick={() => setCategoryFilter(cat.id)}
                 className={`
                   group relative
                   flex flex-col items-center justify-center gap-1.5
@@ -286,20 +289,20 @@ export default function ProductsPage() {
                   transition-all duration-300
                   whitespace-nowrap
                   overflow-hidden
-                  ${filters.category_id === cat.id
+                  ${categoryFilter === cat.id
                     ? 'bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500/50'
                     : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-md text-gray-800 dark:text-gray-200 hover:bg-white/90 dark:hover:bg-gray-800/90 border border-gray-200/50 dark:border-gray-700/50 shadow-sm'
                   }
                 `}
               >
                 {/* Background blur effect */}
-                {filters.category_id === cat.id && (
+                {categoryFilter === cat.id && (
                   <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-sm" />
                 )}
                 <div className={`
                   relative z-10
                   p-2 rounded-xl
-                  ${filters.category_id === cat.id
+                  ${categoryFilter === cat.id
                     ? 'bg-white/20 backdrop-blur-sm'
                     : 'bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm'
                   }
@@ -307,11 +310,11 @@ export default function ProductsPage() {
                   <CategoryIcon
                     iconName={cat.icon}
                     categoryName={cat.name}
-                    className={`w-4 h-4 ${filters.category_id === cat.id ? 'text-white' : ''}`}
-                    color={filters.category_id === cat.id ? undefined : cat.color}
+                    className={`w-4 h-4 ${categoryFilter === cat.id ? 'text-white' : ''}`}
+                    color={categoryFilter === cat.id ? undefined : cat.color}
                   />
                 </div>
-                <span className={`relative z-10 text-xs font-semibold ${filters.category_id === cat.id ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
+                <span className={`relative z-10 text-xs font-semibold ${categoryFilter === cat.id ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
                   {cat.name}
                 </span>
               </button>
@@ -333,7 +336,11 @@ export default function ProductsPage() {
         </Button>
       </div>
 
-      {!selectedVenueId && venues.length > 0 ? (
+      {loadingVenues ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        </div>
+      ) : !selectedVenueId && venues.length > 1 ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
           <Building2 className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
           <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
@@ -432,7 +439,9 @@ export default function ProductsPage() {
         product={editingProduct}
         onProductUpdated={() => {
           // Refrescar productos después de subir imagen
-          fetchProducts(filters);
+          if (effectiveFilters) {
+            fetchProducts(effectiveFilters);
+          }
         }}
       />
 

@@ -19,7 +19,15 @@
     "open": "Abrir",
     "yes": "Sí",
     "no": "No",
-    "understood": "Entendido"
+    "understood": "Entendido",
+    "professor": "Profesor",
+    "venue": "Sede",
+    "court": "Cancha",
+    "available": "Disponible",
+    "category": "Categoría",
+    "sponsor": "Patrocinador",
+    "user": "Usuario",
+    "product": "Producto"
   },
   "navigation": {
     "dashboard": "Panel de Control",
