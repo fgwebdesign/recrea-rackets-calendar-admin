@@ -8,8 +8,18 @@ export function useProducts(filters?: ProductFilters) {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const filtersRef = useRef<string>('');
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchProducts = useCallback(async (customFilters: ProductFilters) => {
+    // Cancelar cualquier llamada anterior en curso
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Crear nuevo AbortController para esta llamada
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    
     try {
       setIsLoading(true);
       const token = localStorage.getItem('adminToken');
@@ -25,16 +35,28 @@ export function useProducts(filters?: ProductFilters) {
       const queryString = params.toString();
       const url = `${API_URL}/kiosk/products${queryString ? `?${queryString}` : ''}`;
 
+      console.log('🔍 Fetching products:', { url, filters: customFilters });
+
       const response = await fetch(url, {
         headers: token ? {
           'Authorization': `Bearer ${token}`
-        } : {}
+        } : {},
+        signal: abortController.signal
       });
       
-      if (!response.ok) throw new Error('Error fetching products');
+      if (!response.ok) {
+        console.error('❌ Response not ok:', response.status, response.statusText);
+        throw new Error('Error fetching products');
+      }
       const data = await response.json();
+      console.log('✅ Products received:', data.products?.length || 0, 'products');
       setProducts(data.products || []);
     } catch (error) {
+      // Ignorar errores de abort (cancelación intencional)
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('🚫 Fetch aborted (new request started)');
+        return;
+      }
       if (error instanceof Error && !error.message.includes('sesión ha expirado')) {
         toast({
           title: "Error",
@@ -50,12 +72,29 @@ export function useProducts(filters?: ProductFilters) {
   }, []);
 
   // Solo ejecutar cuando realmente cambian los filtros (comparando serialización)
+  // y solo si hay un venue_id válido (para evitar cargar productos sin venue)
   useEffect(() => {
-    const currentFilters = JSON.stringify(filters || {});
+    // Si filters es undefined o null, NO hacer ninguna llamada
+    // Esto evita llamadas sin venue_id que luego sobrescriben los datos
+    if (!filters) {
+      console.log('⏳ No filters provided, skipping fetch...');
+      return;
+    }
+    
+    const currentFilters = JSON.stringify(filters);
+    
+    // Solo cargar si los filtros realmente cambiaron
     if (filtersRef.current !== currentFilters) {
       filtersRef.current = currentFilters;
-      fetchProducts(filters || {});
+      fetchProducts(filters);
     }
+    
+    // Cleanup: cancelar llamada en curso si el componente se desmonta o filtros cambian
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [filters, fetchProducts]);
 
   const getProductById = useCallback(async (id: string): Promise<Product | null> => {
@@ -116,7 +155,7 @@ export function useProducts(filters?: ProductFilters) {
     } finally {
       setIsLoading(false);
     }
-  }, [getProductById]);
+  }, []);
 
   const updateProduct = useCallback(async (id: string, productData: UpdateProductData) => {
     try {

@@ -1,14 +1,11 @@
 "use client";
 
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import { VenueConfig } from '@/types/venue';
 import { useVenues } from '@/hooks/useVenues';
-import { Building2, MapPin, Star, ImageIcon } from 'lucide-react';
+import { MapPin, Star, Check, Building2, ImageIcon } from 'lucide-react';
 import { useTranslations } from '@/contexts/TranslationContext';
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 interface VenueSelectorProps {
   selectedVenues: VenueConfig[];
@@ -38,9 +35,12 @@ export function VenueSelector({ selectedVenues, onChange }: VenueSelectorProps) 
       }
       onChange(newVenues);
     } else {
+      // Al seleccionar un venue, auto-seleccionar todas sus canchas
+      const venue = venues.find(v => v.id === venueId);
+      const allCourtIds = venue?.courts?.map(c => c.id) || [];
       onChange([...selectedVenues, {
         venue_id: venueId,
-        court_ids: [],
+        court_ids: allCourtIds,
         is_primary: selectedVenues.length === 0
       }]);
     }
@@ -73,17 +73,6 @@ export function VenueSelector({ selectedVenues, onChange }: VenueSelectorProps) 
 
   const totalCourts = selectedVenues.reduce((sum, v) => sum + v.court_ids.length, 0);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando sedes...</p>
-        </div>
-      </div>
-    );
-  }
-
   const getCourtImageUrl = (photoUrl: string | null | undefined) => {
     if (!photoUrl) return null;
     try {
@@ -94,168 +83,240 @@ export function VenueSelector({ selectedVenues, onChange }: VenueSelectorProps) 
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mx-auto"></div>
+          <p className="mt-4 text-slate-500">Cargando sedes...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
       <div>
-        <h2 className="text-2xl font-semibold mb-2 text-foreground dark:text-foreground">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
           {t('selectVenuesAndCourts')}
         </h2>
-        <p className="text-muted-foreground">
+        <p className="text-slate-500 dark:text-slate-400 mt-1">
           {t('selectVenuesDescription')}
         </p>
       </div>
 
+      {/* Venues Grid */}
       <div className="space-y-4">
-        {venues.map(venue => (
-          <div 
-            key={venue.id} 
-            className={cn(
-              "border-2 rounded-xl p-5 transition-all duration-200",
-              isVenueSelected(venue.id) 
-                ? 'border-green-500 bg-green-50/50 dark:bg-green-900/20 shadow-md' 
-                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600'
-            )}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-4 flex-1">
-                <Checkbox
-                  checked={isVenueSelected(venue.id)}
-                  onCheckedChange={() => toggleVenue(venue.id)}
-                  className="mt-1"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Building2 className="h-5 w-5 text-blue-500 dark:text-blue-400" />
-                    <span className="font-semibold text-lg text-foreground">{venue.name}</span>
-                  </div>
-                  {venue.address && (
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
-                      <span>{venue.address}{venue.city ? `, ${venue.city}` : ''}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+        {venues.map(venue => {
+          const isSelected = isVenueSelected(venue.id);
+          const isPrimary = getPrimaryVenueId() === venue.id;
+          const selectedCourtCount = selectedVenues.find(v => v.venue_id === venue.id)?.court_ids.length || 0;
+          const totalCourtCount = venue.courts?.length || 0;
 
-              {isVenueSelected(venue.id) && (
-                <div className="flex items-center gap-2">
-                  <RadioGroup 
-                    value={getPrimaryVenueId()}
-                    onValueChange={setPrimaryVenue}
-                  >
+          return (
+            <div 
+              key={venue.id} 
+              className={cn(
+                "rounded-2xl border-2 transition-all duration-300 overflow-hidden",
+                isSelected 
+                  ? 'border-emerald-400 dark:border-emerald-500 shadow-lg shadow-emerald-500/10' 
+                  : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+              )}
+            >
+              {/* Venue Header - Clickable */}
+              <button
+                type="button"
+                onClick={() => toggleVenue(venue.id)}
+                className={cn(
+                  "w-full p-5 flex items-center justify-between transition-colors",
+                  isSelected 
+                    ? 'bg-emerald-50 dark:bg-emerald-900/20' 
+                    : 'bg-white dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800'
+                )}
+              >
+                <div className="flex items-center gap-4">
+                  {/* Selection Indicator */}
+                  <div className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center transition-all",
+                    isSelected 
+                      ? 'bg-emerald-500 text-white' 
+                      : 'border-2 border-slate-300 dark:border-slate-600'
+                  )}>
+                    {isSelected && <Check className="w-4 h-4" strokeWidth={3} />}
+                  </div>
+
+                  {/* Venue Info */}
+                  <div className="text-left">
                     <div className="flex items-center gap-2">
-                      <RadioGroupItem value={venue.id} id={`primary-${venue.id}`} />
-                      <Label htmlFor={`primary-${venue.id}`} className="text-sm cursor-pointer flex items-center gap-1.5 font-medium">
-                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                        {t('primaryVenue')}
-                      </Label>
+                      <Building2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                      <span className="font-semibold text-lg text-slate-800 dark:text-slate-100">
+                        {venue.name}
+                      </span>
                     </div>
-                  </RadioGroup>
+                    {venue.address && (
+                      <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        <MapPin className="h-3.5 w-3.5" />
+                        <span>{venue.address}{venue.city ? `, ${venue.city}` : ''}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Side - Primary Badge or Court Count */}
+                <div className="flex items-center gap-3">
+                  {isSelected && isPrimary && (
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-xs font-semibold">
+                      <Star className="h-3.5 w-3.5 fill-current" />
+                      Sede Principal
+                    </span>
+                  )}
+                  {isSelected && !isPrimary && selectedVenues.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPrimaryVenue(venue.id);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
+                    >
+                      <Star className="h-3.5 w-3.5" />
+                      Hacer principal
+                    </button>
+                  )}
+                  <span className={cn(
+                    "text-sm font-medium px-3 py-1.5 rounded-full",
+                    isSelected 
+                      ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' 
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                  )}>
+                    {totalCourtCount} canchas
+                  </span>
+                </div>
+              </button>
+
+              {/* Courts Section - Always visible when selected */}
+              {isSelected && venue.courts && venue.courts.length > 0 && (
+                <div className="px-5 pb-5 pt-2 bg-white dark:bg-slate-800/30">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                      Selecciona las canchas disponibles
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-500">
+                      {selectedCourtCount} de {totalCourtCount} seleccionadas
+                    </p>
+                  </div>
+                  
+                  {/* Courts Grid with Images */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {venue.courts.map(court => {
+                      const courtSelected = isCourtSelected(venue.id, court.id);
+                      const imageUrl = getCourtImageUrl(court.photo_url);
+                      
+                      return (
+                        <button
+                          key={court.id}
+                          type="button"
+                          onClick={() => toggleCourt(venue.id, court.id)}
+                          className={cn(
+                            "relative group rounded-xl overflow-hidden transition-all duration-200",
+                            courtSelected 
+                              ? 'ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-slate-800 shadow-lg' 
+                              : 'hover:shadow-md'
+                          )}
+                        >
+                          {/* Image */}
+                          <div className="relative aspect-[4/3] w-full">
+                            {imageUrl ? (
+                              <Image
+                                src={imageUrl}
+                                alt={court.name}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center">
+                                <ImageIcon className="h-8 w-8 text-slate-400 dark:text-slate-500" />
+                              </div>
+                            )}
+                            
+                            {/* Overlay */}
+                            <div className={cn(
+                              "absolute inset-0 transition-all duration-200",
+                              courtSelected 
+                                ? "bg-emerald-500/30" 
+                                : "bg-black/0 group-hover:bg-black/10"
+                            )} />
+
+                            {/* Check Badge */}
+                            <div className={cn(
+                              "absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200",
+                              courtSelected 
+                                ? "bg-emerald-500 text-white scale-100" 
+                                : "bg-white/80 dark:bg-slate-800/80 scale-0 group-hover:scale-100"
+                            )}>
+                              {courtSelected && <Check className="w-4 h-4" strokeWidth={3} />}
+                            </div>
+                          </div>
+
+                          {/* Court Name */}
+                          <div className={cn(
+                            "px-3 py-2 text-center transition-colors",
+                            courtSelected 
+                              ? "bg-emerald-500 text-white" 
+                              : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                          )}>
+                            <span className="text-sm font-medium">{court.name}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
-
-            {isVenueSelected(venue.id) && venue.courts && venue.courts.length > 0 && (
-              <div className="mt-6 ml-12 space-y-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground">{t('courtsLabel')}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedVenues.find(v => v.venue_id === venue.id)?.court_ids.length || 0} 
-                    {' '}{t('courtsSelected').replace('{total}', venue.courts.length.toString())}
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {venue.courts.map(court => {
-                    const isSelected = isCourtSelected(venue.id, court.id);
-                    const imageUrl = getCourtImageUrl(court.photo_url);
-                    
-                    return (
-                      <label
-                        key={court.id}
-                        className={cn(
-                          "relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200",
-                          isSelected 
-                            ? 'border-green-500 bg-green-50 dark:bg-green-900/30 shadow-md ring-2 ring-green-200 dark:ring-green-800' 
-                            : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600'
-                        )}
-                      >
-                        <div className="relative h-32 w-full">
-                          {imageUrl ? (
-                            <Image
-                              src={imageUrl}
-                              alt={court.name}
-                              fill
-                              className="object-cover"
-                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
-                              <ImageIcon className="h-8 w-8 text-gray-400 dark:text-gray-500" />
-                            </div>
-                          )}
-                          <div className={cn(
-                            "absolute top-2 right-2 transition-opacity",
-                            isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                          )}>
-                            <div className={cn(
-                              "w-6 h-6 rounded-full flex items-center justify-center",
-                              isSelected 
-                                ? "bg-green-500" 
-                                : "bg-white/90 dark:bg-gray-800/90"
-                            )}>
-                              {isSelected && (
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                            </div>
-                          </div>
-                          <div className={cn(
-                            "absolute inset-0 transition-opacity",
-                            isSelected 
-                              ? "bg-green-500/20" 
-                              : "bg-black/0 group-hover:bg-black/10"
-                          )} />
-                        </div>
-                        <div className="p-3 flex items-center gap-2">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleCourt(venue.id, court.id)}
-                            className="flex-shrink-0"
-                          />
-                          <span className={cn(
-                            "text-sm font-medium flex-1",
-                            isSelected 
-                              ? "text-green-700 dark:text-green-300" 
-                              : "text-foreground"
-                          )}>
-                            {court.name}
-                          </span>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
+      {/* Empty State */}
       {venues.length === 0 && (
-        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-          <p className="text-sm text-yellow-800 dark:text-yellow-300">
+        <div className="p-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-center">
+          <p className="text-amber-700 dark:text-amber-300 font-medium">
             {t('noVenuesAvailable')}
           </p>
         </div>
       )}
 
-      <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-        <p className="font-semibold text-foreground">
-          {t('summary')} {selectedVenues.length} {t('venuesSelected')}, {totalCourts} {t('courtsSelectedSummary')}
-        </p>
+      {/* Summary Footer */}
+      <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="font-semibold text-slate-800 dark:text-slate-100">
+                Resumen de selección
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {selectedVenues.length} sede{selectedVenues.length !== 1 ? 's' : ''} • {totalCourts} cancha{totalCourts !== 1 ? 's' : ''}
+              </p>
+            </div>
+          </div>
+          {totalCourts > 0 && (
+            <div className="text-right">
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                {totalCourts}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                canchas disponibles
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
-

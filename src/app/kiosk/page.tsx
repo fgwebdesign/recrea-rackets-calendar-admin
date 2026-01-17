@@ -44,7 +44,11 @@ export default function KioskPOSPage() {
   const t = useTranslations('kiosk');
   const tCommon = useTranslations('common');
   const { selectedVenueId, selectedVenue, setSelectedVenueId, venues, loading: loadingVenues } = useKioskVenue();
-  const { products, fetchProducts } = useProducts({ is_active: true, venue_id: selectedVenueId });
+  // Solo pasar filtros cuando el venue esté definido para evitar llamadas innecesarias
+  const productFilters = useMemo(() => 
+    selectedVenueId ? { is_active: true, venue_id: selectedVenueId } : undefined
+  , [selectedVenueId]);
+  const { products, fetchProducts } = useProducts(productFilters);
   const { categories } = useProductCategories();
   const { createSale } = useSales();
   
@@ -62,13 +66,6 @@ export default function KioskPOSPage() {
   const [selectedSizeForAdd, setSelectedSizeForAdd] = useState<{size: string; size_type: 'clothing' | 'shoes'; size_id?: string; stock_quantity: number} | null>(null);
   
   const PRODUCTS_PER_PAGE = 8;
-
-  // Recargar productos cuando cambia el venue
-  useEffect(() => {
-    if (selectedVenueId) {
-      fetchProducts({ is_active: true, venue_id: selectedVenueId });
-    }
-  }, [selectedVenueId, fetchProducts]);
 
   const filteredProducts = useMemo(() => {
     return products.filter(product => {

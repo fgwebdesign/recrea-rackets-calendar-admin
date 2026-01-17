@@ -156,38 +156,44 @@ export default function ProductsPage() {
         icon={<PlusCircle className="w-6 h-6" />}
       />
 
-      {/* Selector de Venue */}
-      {!loadingVenues && venues.length > 1 && (
+      {/* Selector de Venue o Venue Actual */}
+      {!loadingVenues && venues.length > 0 && (
         <div className="mt-6 mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-4">
-            <Building2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <div className="flex-1">
-              <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
-                {t('products.venue')} <span className="text-red-500">*</span>
-              </Label>
-              <Select 
-                value={selectedVenueId || 'none'} 
-                onValueChange={(value) => {
-                  if (value !== 'none') {
-                    setSelectedVenueId(value);
-                  }
-                }}
-              >
-                <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 w-64">
-                  <SelectValue placeholder={t('products.selectVenue')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {venues.filter(v => v.is_active).map((venue) => (
-                    <SelectItem key={venue.id} value={venue.id}>
-                      {venue.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedVenue && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t('products.selectedVenue')}: <span className="font-semibold">{selectedVenue.name}</span>
-                </p>
+              {venues.length > 1 ? (
+                // Selector si hay múltiples venues
+                <>
+                  <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
+                    {t('products.venue')} <span className="text-red-500">*</span>
+                  </Label>
+                  <Select 
+                    value={selectedVenueId || 'none'} 
+                    onValueChange={(value) => {
+                      if (value !== 'none') {
+                        setSelectedVenueId(value);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 w-64">
+                      <SelectValue placeholder={t('products.selectVenue')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {venues.filter(v => v.is_active).map((venue) => (
+                        <SelectItem key={venue.id} value={venue.id}>
+                          {venue.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              ) : (
+                // Mostrar venue actual si solo hay uno
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Sede:</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedVenue?.name || venues[0]?.name}</span>
+                </div>
               )}
             </div>
           </div>

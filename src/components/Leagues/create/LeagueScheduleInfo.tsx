@@ -47,22 +47,25 @@ function LabelWithTooltip({ htmlFor, label, tooltip }: { htmlFor?: string; label
   );
 }
 
-function calculateMinimumDays(teamSize: number, frequency: string): number {
-  const numberOfRounds = teamSize - 1;
+function calculateMinimumDays(teamSize: number, frequency: string, rounds: number = 1): number {
+  // En round-robin, cada equipo juega contra todos los demás
+  // Con 8 equipos = 7 jornadas (por ronda)
+  const matchdaysPerRound = teamSize - 1;
   
-  // Restamos 1 ronda porque la primera fecha se juega en la semana inicial
-  const remainingRounds = numberOfRounds - 1;
+  // Si es ida y vuelta (rounds = 2), duplicamos las jornadas
+  const totalMatchdays = matchdaysPerRound * rounds;
   
-  switch(frequency.toLowerCase()) {
-    case 'semanal':
-      return remainingRounds * 7;
-    case 'quincenal':
-      return remainingRounds * 14;
-    case 'mensual':
-      return remainingRounds * 30;
-    default:
-      return remainingRounds * 14; // Por defecto quincenal
-  }
+  // Los intervalos entre jornadas (la primera jornada es día 0)
+  const intervals = totalMatchdays - 1;
+  
+  // Días entre cada jornada según frecuencia
+  const daysPerInterval = {
+    'semanal': 7,
+    'quincenal': 14,
+    'mensual': 30
+  }[frequency.toLowerCase()] || 14;
+  
+  return intervals * daysPerInterval;
 }
 
 // Funciones helper para manejar fechas sin problemas de zona horaria
@@ -137,13 +140,27 @@ export function LeagueScheduleInfo({
   // Calcular fecha de fin sugerida cuando cambie la fecha de inicio o la frecuencia
   useEffect(() => {
     if (formData.start_date && formData.team_size) {
-      const startDate = new Date(formData.start_date);
-      const minimumDays = calculateMinimumDays(formData.team_size, formData.frequency);
+      const startDate = parseDateString(formData.start_date);
+      const teamSize = formData.team_size;
+      const rounds = formData.rounds || 1;
+      const frequency = formData.frequency;
+      
+      const minimumDays = calculateMinimumDays(teamSize, frequency, rounds);
       
       // Agregar un 5% más de días para flexibilidad
       const recommendedDays = Math.ceil(minimumDays * 1.05);
       
-      const suggestedDate = adjustDateToUruguay(new Date(startDate));
+      console.log('📅 Cálculo de fecha:', {
+        teamSize,
+        rounds,
+        frequency,
+        matchdays: (teamSize - 1) * rounds,
+        minimumDays,
+        recommendedDays,
+        startDate: formData.start_date
+      });
+      
+      const suggestedDate = new Date(startDate);
       suggestedDate.setDate(startDate.getDate() + recommendedDays);
       
       const suggestedDateStr = formatDateForInput(suggestedDate);
@@ -157,7 +174,7 @@ export function LeagueScheduleInfo({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.start_date, formData.team_size, formData.frequency]);
+  }, [formData.start_date, formData.team_size, formData.frequency, formData.rounds]);
 
   // Validar el formulario antes de enviar
   const handleSubmit = () => {
@@ -181,14 +198,15 @@ export function LeagueScheduleInfo({
       const start = adjustDateToUruguay(new Date(formData.start_date));
       const end = adjustDateToUruguay(new Date(formData.end_date));
       const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-      const minimumDays = calculateMinimumDays(formData.team_size, formData.frequency);
+      const minimumDays = calculateMinimumDays(formData.team_size, formData.frequency, formData.rounds || 1);
+      const totalMatchdays = (formData.team_size - 1) * (formData.rounds || 1);
 
       if (diffDays < minimumDays) {
         console.warn('⚠️ Date range insufficient:', { diffDays, minimumDays });
         newErrors.push(
-          `El rango de fechas es insuficiente. Para ${formData.team_size} equipos con frecuencia ${
-            formData.frequency.toLowerCase()
-          }, necesitas al menos ${minimumDays} días (${Math.ceil(minimumDays/7)} semanas)`
+          `El rango de fechas es insuficiente. Para ${formData.team_size} equipos ${
+            formData.rounds === 2 ? '(ida y vuelta)' : '(solo ida)'
+          } con frecuencia ${formData.frequency.toLowerCase()}, necesitas al menos ${minimumDays} días (${totalMatchdays} jornadas = ${Math.ceil(minimumDays/7)} semanas)`
         );
       }
     }
@@ -333,7 +351,7 @@ export function LeagueScheduleInfo({
                 htmlFor="end_date"
                 label="Fecha de Fin"
                 tooltip={suggestedEndDate ? 
-                  `Fecha sugerida: ${formatDisplayDate(suggestedEndDate)} (${Math.ceil(calculateMinimumDays(formData.team_size, formData.frequency)/7)} semanas)` : 
+                  `Fecha sugerida: ${formatDisplayDate(suggestedEndDate)} (${(formData.team_size - 1) * (formData.rounds || 1)} jornadas, ${Math.ceil(calculateMinimumDays(formData.team_size, formData.frequency, formData.rounds || 1)/7)} semanas)` : 
                   'Selecciona primero la fecha de inicio'
                 }
               />
@@ -344,8 +362,7 @@ export function LeagueScheduleInfo({
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600",
-                        !formData.end_date && "text-muted-foreground",
-                        suggestedEndDate && formData.end_date !== suggestedEndDate && "border-yellow-400"
+                        !formData.end_date && "text-muted-foreground"
                       )}
                       disabled={!formData.start_date}
                     >
@@ -375,19 +392,63 @@ export function LeagueScheduleInfo({
                         compareDate.setHours(0, 0, 0, 0);
                         return compareDate < startDate;
                       }}
+                      modifiers={suggestedEndDate ? {
+                        suggested: parseDateString(suggestedEndDate),
+                      } : undefined}
+                      modifiersStyles={suggestedEndDate ? {
+                        suggested: {
+                          backgroundColor: 'rgb(16, 185, 129)',
+                          color: 'white',
+                          fontWeight: 'bold',
+                          borderRadius: '9999px',
+                        }
+                      } : undefined}
                       initialFocus
                       locale={es}
                     />
+                    {suggestedEndDate && (
+                      <div className="px-3 pb-3 pt-1 border-t border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                          <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                          <span>Fecha sugerida: {formatDisplayDate(suggestedEndDate)}</span>
+                        </div>
+                      </div>
+                    )}
                   </PopoverContent>
                 </Popover>
-                {suggestedEndDate && formData.end_date !== suggestedEndDate && (
-                  <div className="text-xs text-yellow-600 dark:text-yellow-400">
-                    Fecha sugerida: {formatDisplayDate(suggestedEndDate)}
-                  </div>
-                )}
               </div>
             </div>
           </div>
+
+          {/* Resumen del Cálculo de la Liga */}
+          {formData.start_date && formData.team_size && (
+            <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800/50">
+              <div className="flex items-center gap-2 mb-3">
+                <CalendarIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <h4 className="font-semibold text-blue-800 dark:text-blue-300">Resumen del Cálculo</h4>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <p className="text-slate-500 dark:text-slate-400">Equipos/categoría</p>
+                  <p className="font-bold text-slate-800 dark:text-slate-100">{formData.team_size}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500 dark:text-slate-400">Formato</p>
+                  <p className="font-bold text-slate-800 dark:text-slate-100">{formData.rounds === 2 ? 'Ida y Vuelta' : 'Solo Ida'}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500 dark:text-slate-400">Jornadas totales</p>
+                  <p className="font-bold text-slate-800 dark:text-slate-100">{(formData.team_size - 1) * (formData.rounds || 1)}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500 dark:text-slate-400">Duración estimada</p>
+                  <p className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {Math.ceil(calculateMinimumDays(formData.team_size, formData.frequency, formData.rounds || 1) / 7)} semanas
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Canchas Disponibles */}
           <div>

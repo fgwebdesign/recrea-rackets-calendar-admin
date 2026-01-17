@@ -8,6 +8,8 @@ import {
   useSensors,
   useDroppable,
   useDraggable,
+  DragStartEvent,
+  DragEndEvent,
 } from '@dnd-kit/core';
 import { restrictToWindowEdges } from '@dnd-kit/modifiers';
 import { Category } from '@/hooks/useCategories';
@@ -71,17 +73,17 @@ function DraggableDay({
     ${isOverlay 
       ? 'bg-primary text-primary-foreground shadow-lg scale-105'
       : isUsed
-        ? 'bg-destructive/20 text-destructive-foreground dark:bg-destructive/30 dark:text-destructive-foreground/90'
+        ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 line-through'
         : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-500/30'
     }
     p-3 rounded-lg transition-all duration-200
-    border ${isUsed ? 'border-destructive/30' : 'border-emerald-200 dark:border-emerald-500/30'}
-    hover:border-primary
+    border ${isUsed ? 'border-red-300 dark:border-red-800' : 'border-emerald-200 dark:border-emerald-500/30'}
+    ${!isUsed ? 'hover:border-primary hover:shadow-md' : ''}
     flex items-center justify-center
     font-medium text-sm
     ${isDragging ? 'ring-2 ring-primary ring-offset-2' : ''}
-    ${isUsed ? 'opacity-60' : ''}
-    shadow-sm hover:shadow-md
+    ${isUsed ? 'opacity-70 cursor-not-allowed' : ''}
+    shadow-sm
   `;
 
   if (isUsed) {
@@ -207,10 +209,16 @@ export function CategoryDayAssignment({
   const [usedDays, setUsedDays] = useState<Set<string>>(new Set());
 
   // Effect to update used days when assignments change
+  // Convertimos a formato español para comparar con los días draggables
   useEffect(() => {
     const newUsedDays = new Set<string>();
     Object.values(assignments).forEach(days => {
-      days.forEach(day => newUsedDays.add(day));
+      days.forEach(day => {
+        // day viene en formato backend (monday, tuesday, etc.)
+        // convertimos a español para comparar con DAYS
+        const spanishDay = REVERSE_DAY_MAPPING[day] || day;
+        newUsedDays.add(spanishDay);
+      });
     });
     setUsedDays(newUsedDays);
   }, [assignments]);
@@ -229,16 +237,16 @@ export function CategoryDayAssignment({
     })
   );
 
-  const handleDragStart = (event: any) => {
-    setActiveDay(event.active.id);
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDay(event.active.id as string);
   };
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (over) {
-      const categoryId = over.id;
-      const day = active.id;
+      const categoryId = over.id as string;
+      const day = active.id as string;
       const backendDay = DAY_MAPPING[day];
 
       if (backendDay) {
