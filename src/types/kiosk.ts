@@ -260,6 +260,67 @@ export interface LowStockAlert {
   urgency: 'critical' | 'high' | 'medium';
 }
 
+export interface ProfitabilityReport {
+  period: {
+    start_date: string;
+    end_date: string;
+  };
+  summary: {
+    total_revenue: number;
+    total_cost: number;
+    total_profit: number;
+    profit_margin_percent: number;
+  };
+  by_product: Array<{
+    product_id: string;
+    product_name: string;
+    quantity_sold: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+    profit_margin_percent: number;
+  }>;
+  by_category: Array<{
+    category_id: string | null;
+    category_name: string;
+    icon?: string;
+    color?: string;
+    quantity_sold: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+    profit_margin_percent: number;
+  }>;
+}
+
+export interface ExpensesReport {
+  period: {
+    start_date: string;
+    end_date: string;
+  };
+  summary: {
+    total_expenses: number;
+    total_units_sold: number;
+    average_cost_per_unit: number;
+  };
+  by_product: Array<{
+    product_id: string;
+    product_name: string;
+    quantity_sold: number;
+    total_cost: number;
+    average_cost_per_unit: number;
+  }>;
+  by_category: Array<{
+    category_id: string | null;
+    category_name: string;
+    icon?: string;
+    color?: string;
+    quantity_sold: number;
+    total_cost: number;
+    average_cost_per_unit: number;
+  }>;
+}
+
 // Filtros
 export interface ProductFilters {
   category_id?: string;

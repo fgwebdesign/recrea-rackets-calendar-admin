@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../../recrea-backend"
+		},
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../recrea-client"
+		}
+	],
+	"settings": {}
+}

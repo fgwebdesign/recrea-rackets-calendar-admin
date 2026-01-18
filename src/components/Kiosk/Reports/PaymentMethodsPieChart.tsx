@@ -62,15 +62,7 @@ export function PaymentMethodsPieChart({ paymentMethods, formatCurrency }: Payme
     cutout: '60%',
     plugins: {
       legend: {
-        position: 'right' as const,
-        labels: {
-          usePointStyle: true,
-          padding: 20,
-          font: {
-            size: 13,
-            weight: 'bold' as const
-          }
-        }
+        display: false, // Ocultamos la leyenda ya que está en las cards
       },
       tooltip: {
         backgroundColor: 'rgba(0, 0, 0, 0.85)',
@@ -136,28 +128,28 @@ export function PaymentMethodsPieChart({ paymentMethods, formatCurrency }: Payme
 
   return (
     <Card className="border-2 border-indigo-200 dark:border-indigo-800 bg-white dark:bg-gray-800 shadow-xl overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-b border-indigo-100 dark:border-indigo-800">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-xl shadow-inner">
-            <CreditCard className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+      <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-b border-indigo-100 dark:border-indigo-800 pb-3">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg shadow-inner">
+            <CreditCard className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
-            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
+            <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
               {t('reports.dashboard.paymentMethods')}
             </CardTitle>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Este Mes</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Este Mes</p>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-6">
-        <div className="flex flex-col lg:flex-row items-center gap-8">
+      <CardContent className="pt-4">
+        <div className="flex flex-col lg:flex-row items-center gap-6">
           {/* Gráfica Donut */}
-          <div className="relative flex-shrink-0" style={{ width: '220px', height: '220px' }}>
+          <div className="relative flex-shrink-0" style={{ width: '180px', height: '180px' }}>
             <Doughnut data={chartData} options={options} />
             {/* Centro del donut con total */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</span>
-              <span className="text-xl font-bold text-gray-900 dark:text-white">
+              <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</span>
+              <span className="text-lg font-bold text-gray-900 dark:text-white">
                 {formatCurrency(totalRevenue)}
               </span>
             </div>
@@ -165,7 +157,7 @@ export function PaymentMethodsPieChart({ paymentMethods, formatCurrency }: Payme
           
           {/* Desglose detallado como cards */}
           <div className="flex-1 w-full">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {Object.entries(paymentMethods).map(([method, stats]) => {
                 const percentage = totalRevenue > 0 ? ((stats.total / totalRevenue) * 100).toFixed(1) : '0';
                 const config = methodConfig[method] || { 
@@ -180,33 +172,33 @@ export function PaymentMethodsPieChart({ paymentMethods, formatCurrency }: Payme
                 return (
                   <div 
                     key={method} 
-                    className={`p-5 rounded-2xl bg-gradient-to-br ${config.gradient} border-2 border-white/50 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-all duration-200`}
+                    className={`p-4 rounded-xl bg-gradient-to-br ${config.gradient} border-2 border-white/50 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-all duration-200`}
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2.5 rounded-xl ${config.iconBg}`}>
-                          <IconComponent className={`w-5 h-5 ${config.text}`} />
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-lg ${config.iconBg}`}>
+                          <IconComponent className={`w-4 h-4 ${config.text}`} />
                         </div>
-                        <span className="font-semibold text-gray-800 dark:text-white">
+                        <span className="text-sm font-semibold text-gray-800 dark:text-white">
                           {getPaymentMethodLabel(method)}
                         </span>
                       </div>
-                      <span className={`text-sm font-bold ${config.text} px-3 py-1 rounded-full ${config.iconBg}`}>
+                      <span className={`text-xs font-bold ${config.text} px-2 py-1 rounded-full ${config.iconBg}`}>
                         {percentage}%
                       </span>
                     </div>
-                    <div className="space-y-2">
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+                    <div className="space-y-1">
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
                         {formatCurrency(stats.total)}
                       </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         {stats.count} {stats.count === 1 ? 'transacción' : 'transacciones'}
                       </p>
                     </div>
                     {/* Barra de progreso */}
-                    <div className="w-full bg-white/60 dark:bg-gray-700/50 rounded-full h-2 mt-4">
+                    <div className="w-full bg-white/60 dark:bg-gray-700/50 rounded-full h-1.5 mt-3">
                       <div 
-                        className={`h-2 rounded-full ${config.bg} transition-all duration-700 ease-out`}
+                        className={`h-1.5 rounded-full ${config.bg} transition-all duration-700 ease-out`}
                         style={{ width: `${percentage}%` }}
                       />
                     </div>

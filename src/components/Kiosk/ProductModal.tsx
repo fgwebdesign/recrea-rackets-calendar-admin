@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ImageIcon, Plus, Trash2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ImageIcon, Plus, Trash2, DollarSign, Package, AlertTriangle, Building2, Tag, Star, CheckCircle2, XCircle } from "lucide-react";
 import Image from 'next/image';
 import { Product, CreateProductData, UpdateProductData, ProductSize } from "@/types/kiosk";
 import { useProductCategories } from "@/hooks/useProductCategories";
@@ -274,30 +275,40 @@ export default function ProductModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-white dark:bg-gray-800 max-w-6xl max-h-[90vh] overflow-y-auto z-50">
-        <DialogHeader>
-          <DialogTitle className="text-gray-900 dark:text-white">
+      <DialogContent className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 max-w-6xl max-h-[90vh] overflow-y-auto z-50 border-2 border-gray-200 dark:border-gray-700 shadow-2xl">
+        <DialogHeader className="pb-4 border-b-2 border-gray-200 dark:border-gray-700">
+          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             {isEditing ? t('products.editProduct') : t('products.addProduct')}
           </DialogTitle>
-          <DialogDescription className="text-gray-600 dark:text-gray-400">
+          <DialogDescription className="text-gray-600 dark:text-gray-400 mt-2">
             {isEditing ? t('products.editProductDescription') : t('products.addProductDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Toggle de Estado Activo/Inactivo - Arriba del todo */}
           {isEditing && (
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+              formData.is_active 
+                ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800 shadow-md' 
+                : 'bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800/50 dark:to-slate-800/50 border-gray-200 dark:border-gray-700'
+            }`}>
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${formData.is_active ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-200 dark:bg-gray-600'}`}>
-                  <span className={`text-sm font-semibold ${formData.is_active ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                    {formData.is_active ? '✓' : '✗'}
-                  </span>
+                <div className={`p-3 rounded-xl shadow-sm ${
+                  formData.is_active 
+                    ? 'bg-gradient-to-br from-green-500 to-emerald-600' 
+                    : 'bg-gradient-to-br from-gray-400 to-gray-500'
+                }`}>
+                  {formData.is_active ? (
+                    <CheckCircle2 className="w-5 h-5 text-white" />
+                  ) : (
+                    <XCircle className="w-5 h-5 text-white" />
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="is_active" className="text-base font-semibold text-gray-900 dark:text-gray-100 cursor-pointer">
+                  <Label htmlFor="is_active" className="text-base font-bold text-gray-900 dark:text-white cursor-pointer">
                     {t('products.isActive')}
                   </Label>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className={`text-sm ${formData.is_active ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'}`}>
                     {formData.is_active ? 'El producto está activo y visible' : 'El producto está inactivo y oculto'}
                   </p>
                 </div>
@@ -315,8 +326,11 @@ export default function ProductModal({
           <div className="grid grid-cols-3 gap-6">
             {/* Imagen - Columna izquierda */}
             <div className="space-y-2">
-              <Label className="text-gray-700 dark:text-gray-300">{t('products.image')}</Label>
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+              <Label className="text-gray-700 dark:text-gray-300 font-semibold flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                {t('products.image')}
+              </Label>
+              <div className="border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-xl p-4 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-900/10 dark:to-purple-900/10 hover:border-blue-400 dark:hover:border-blue-600 transition-colors">
                 {previewUrl ? (
                   <div className="relative w-full h-48 mb-3 rounded-md overflow-hidden">
                     <Image
@@ -350,7 +364,7 @@ export default function ProductModal({
                     variant="outline"
                     onClick={() => document.getElementById('image-upload')?.click()}
                     disabled={isSubmitting || uploadingImage}
-                    className="w-full border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                    className="w-full border-2 border-blue-400 dark:border-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold rounded-lg transition-all hover:shadow-md"
                   >
                     <ImageIcon className="h-4 w-4 mr-2" />
                     {previewUrl ? t('products.changeImage') : t('products.selectImage')}
@@ -363,7 +377,7 @@ export default function ProductModal({
             <div className="col-span-2 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">
+                  <Label htmlFor="name" className="text-gray-700 dark:text-gray-300 font-semibold">
                     {t('products.name')} <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -372,11 +386,11 @@ export default function ProductModal({
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder={t('products.namePlaceholder')}
                     required
-                    className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                    className="bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-500 rounded-lg"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="category_id" className="text-gray-700 dark:text-gray-300">
+                  <Label htmlFor="category_id" className="text-gray-700 dark:text-gray-300 font-semibold">
                     {t('products.category')} <span className="text-red-500">*</span>
                   </Label>
                   <Select
@@ -384,7 +398,7 @@ export default function ProductModal({
                     onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
                     disabled={loadingCategories || isSubmitting}
                   >
-                    <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+                    <SelectTrigger className="bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-500 rounded-lg">
                       <SelectValue placeholder={t('products.selectCategory')} />
                     </SelectTrigger>
                     <SelectContent position="item-aligned" className="z-[100]">
@@ -407,7 +421,7 @@ export default function ProductModal({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description" className="text-gray-700 dark:text-gray-300">
+                <Label htmlFor="description" className="text-gray-700 dark:text-gray-300 font-semibold">
                   {t('products.descriptionLabel')}
                 </Label>
                 <Textarea
@@ -416,7 +430,7 @@ export default function ProductModal({
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder={t('products.descriptionPlaceholder')}
                   rows={2}
-                  className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                  className="bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-500 rounded-lg"
                 />
               </div>
             </div>
@@ -425,27 +439,34 @@ export default function ProductModal({
           {/* Códigos y Precios en una sola fila horizontal */}
           <div className="grid grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="sku" className="text-gray-700 dark:text-gray-300">{t('products.sku')}</Label>
+              <Label htmlFor="sku" className="text-gray-700 dark:text-gray-300 font-semibold flex items-center gap-2">
+                <Tag className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                {t('products.sku')}
+              </Label>
               <Input
                 id="sku"
                 value={formData.sku}
                 onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
                 placeholder={t('products.skuPlaceholder')}
-                className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                className="bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:border-purple-500 dark:focus:border-purple-500 rounded-lg"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="barcode" className="text-gray-700 dark:text-gray-300">{t('products.barcode')}</Label>
+              <Label htmlFor="barcode" className="text-gray-700 dark:text-gray-300 font-semibold flex items-center gap-2">
+                <Tag className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                {t('products.barcode')}
+              </Label>
               <Input
                 id="barcode"
                 value={formData.barcode}
                 onChange={(e) => setFormData(prev => ({ ...prev, barcode: e.target.value }))}
                 placeholder={t('products.barcodePlaceholder')}
-                className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                className="bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:border-indigo-500 dark:focus:border-indigo-500 rounded-lg"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="price" className="text-gray-700 dark:text-gray-300">
+              <Label htmlFor="price" className="text-gray-700 dark:text-gray-300 font-semibold flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
                 {t('products.price')} <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -456,11 +477,14 @@ export default function ProductModal({
                 value={formData.price}
                 onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
                 required
-                className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                className="bg-white dark:bg-gray-700 border-2 border-green-200 dark:border-green-700 text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-500 rounded-lg font-semibold"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cost_price" className="text-gray-700 dark:text-gray-300">{t('products.costPrice')}</Label>
+              <Label htmlFor="cost_price" className="text-gray-700 dark:text-gray-300 font-semibold flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                {t('products.costPrice')}
+              </Label>
               <Input
                 id="cost_price"
                 type="number"
@@ -468,114 +492,140 @@ export default function ProductModal({
                 min="0"
                 value={formData.cost_price}
                 onChange={(e) => setFormData(prev => ({ ...prev, cost_price: parseFloat(e.target.value) || 0 }))}
-                className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                className="bg-white dark:bg-gray-700 border-2 border-orange-200 dark:border-orange-700 text-gray-900 dark:text-gray-100 focus:border-orange-500 dark:focus:border-orange-500 rounded-lg"
               />
             </div>
           </div>
 
           {/* Inventario, Sede y Opciones en layout horizontal */}
-          <div className="grid grid-cols-3 gap-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="grid grid-cols-3 gap-4 border-t-2 border-gray-200 dark:border-gray-700 pt-6">
             {/* Inventario */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                <Label htmlFor="track_inventory" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-                  {t('products.trackInventory')}
-                </Label>
-                <Switch
-                  id="track_inventory"
-                  checked={formData.track_inventory}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, track_inventory: checked }))}
-                  className="data-[state=checked]:bg-blue-600"
-                />
-              </div>
+              <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 shadow-md">
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <Label htmlFor="track_inventory" className="text-sm font-bold text-blue-900 dark:text-blue-100 cursor-pointer flex items-center gap-2">
+                      <Package className="w-4 h-4" />
+                      {t('products.trackInventory')}
+                    </Label>
+                    <Switch
+                      id="track_inventory"
+                      checked={formData.track_inventory}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, track_inventory: checked }))}
+                      className="data-[state=checked]:bg-blue-600"
+                    />
+                  </div>
 
-              {formData.track_inventory && (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="stock_quantity" className="text-gray-700 dark:text-gray-300">
-                      {t('products.stockQuantity')}
-                      {isClothingCategory && sizes.length > 0 && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                          (Calculado automáticamente)
-                        </span>
-                      )}
-                    </Label>
-                    <Input
-                      id="stock_quantity"
-                      type="number"
-                      min="0"
-                      value={isClothingCategory && sizes.length > 0 
-                        ? sizes.reduce((sum, size) => sum + (size.stock_quantity || 0), 0)
-                        : formData.stock_quantity
-                      }
-                      onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: parseInt(e.target.value) || 0 }))}
-                      disabled={!!(isClothingCategory && sizes.length > 0)}
-                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
-                    />
-                    {isClothingCategory && sizes.length > 0 && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        El stock total se calcula automáticamente sumando el stock de todos los talles
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="min_stock_alert" className="text-gray-700 dark:text-gray-300">
-                      {t('products.minStockAlert')}
-                    </Label>
-                    <Input
-                      id="min_stock_alert"
-                      type="number"
-                      min="0"
-                      value={formData.min_stock_alert}
-                      onChange={(e) => setFormData(prev => ({ ...prev, min_stock_alert: parseInt(e.target.value) || 5 }))}
-                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
-                    />
-                  </div>
-                </div>
-              )}
+                  {formData.track_inventory && (
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="stock_quantity" className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          {t('products.stockQuantity')}
+                          {isClothingCategory && sizes.length > 0 && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                              (Calculado automáticamente)
+                            </span>
+                          )}
+                        </Label>
+                        <Input
+                          id="stock_quantity"
+                          type="number"
+                          min="0"
+                          value={isClothingCategory && sizes.length > 0 
+                            ? sizes.reduce((sum, size) => sum + (size.stock_quantity || 0), 0)
+                            : formData.stock_quantity
+                          }
+                          onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: parseInt(e.target.value) || 0 }))}
+                          disabled={!!(isClothingCategory && sizes.length > 0)}
+                          className="bg-white dark:bg-gray-700 border-2 border-blue-200 dark:border-blue-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-500 rounded-lg disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
+                        />
+                        {isClothingCategory && sizes.length > 0 && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            El stock total se calcula automáticamente sumando el stock de todos los talles
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="stock_alert_enabled" className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                            Alerta de Stock Mínimo
+                          </Label>
+                          <Switch
+                            id="stock_alert_enabled"
+                            checked={formData.min_stock_alert > 0}
+                            onCheckedChange={(checked) => setFormData(prev => ({ 
+                              ...prev, 
+                              min_stock_alert: checked ? 5 : 0 
+                            }))}
+                            className="data-[state=checked]:bg-orange-600"
+                          />
+                        </div>
+                        {formData.min_stock_alert > 0 && (
+                          <Input
+                            id="min_stock_alert"
+                            type="number"
+                            min="1"
+                            value={formData.min_stock_alert}
+                            onChange={(e) => setFormData(prev => ({ ...prev, min_stock_alert: parseInt(e.target.value) || 5 }))}
+                            className="bg-white dark:bg-gray-700 border-2 border-orange-200 dark:border-orange-700 text-gray-900 dark:text-gray-100 focus:border-orange-500 dark:focus:border-orange-500 rounded-lg"
+                            placeholder="Cantidad mínima"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
             {/* Sede */}
-            <div className="space-y-2">
-              <Label htmlFor="venue_id" className="text-gray-700 dark:text-gray-300">
-                {t('products.venue')} <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={formData.venue_id}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, venue_id: value }))}
-                disabled={loadingVenues || isSubmitting}
-                required
-              >
-                <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-                  <SelectValue placeholder={t('products.selectVenue')} />
-                </SelectTrigger>
-                <SelectContent position="item-aligned" className="z-[100]">
-                  {venues.filter(v => v.is_active).map((venue) => (
-                    <SelectItem key={venue.id} value={venue.id}>
-                      {venue.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {!formData.venue_id || formData.venue_id === 'none' ? (
-                <p className="text-xs text-red-500">{t('products.venueRequired')}</p>
-              ) : null}
-            </div>
+            <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 shadow-md">
+              <CardContent className="pt-4">
+                <Label htmlFor="venue_id" className="text-sm font-bold text-purple-900 dark:text-purple-100 flex items-center gap-2 mb-3 block">
+                  <Building2 className="w-4 h-4" />
+                  {t('products.venue')} <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.venue_id}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, venue_id: value }))}
+                  disabled={loadingVenues || isSubmitting}
+                  required
+                >
+                  <SelectTrigger className="bg-white dark:bg-gray-700 border-2 border-purple-200 dark:border-purple-700 text-gray-900 dark:text-gray-100 focus:border-purple-500 dark:focus:border-purple-500 rounded-lg">
+                    <SelectValue placeholder={t('products.selectVenue')} />
+                  </SelectTrigger>
+                  <SelectContent position="item-aligned" className="z-[100]">
+                    {venues.filter(v => v.is_active).map((venue) => (
+                      <SelectItem key={venue.id} value={venue.id}>
+                        {venue.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!formData.venue_id || formData.venue_id === 'none' ? (
+                  <p className="text-xs text-red-500 mt-2">{t('products.venueRequired')}</p>
+                ) : null}
+              </CardContent>
+            </Card>
 
             {/* Opciones */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                <Label htmlFor="is_featured" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-                  {t('products.isFeatured')}
-                </Label>
-                <Switch
-                  id="is_featured"
-                  checked={formData.is_featured}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_featured: checked }))}
-                  className="data-[state=checked]:bg-yellow-500"
-                />
-              </div>
-            </div>
+            <Card className="border-2 border-yellow-200 dark:border-yellow-800 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 shadow-md">
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="is_featured" className="text-sm font-bold text-yellow-900 dark:text-yellow-100 cursor-pointer flex items-center gap-2">
+                    <Star className="w-4 h-4" />
+                    {t('products.isFeatured')}
+                  </Label>
+                  <Switch
+                    id="is_featured"
+                    checked={formData.is_featured}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_featured: checked }))}
+                    className="data-[state=checked]:bg-yellow-600"
+                  />
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Sección de Talles para Indumentaria */}
@@ -673,20 +723,20 @@ export default function ProductModal({
             </div>
           )}
 
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="flex justify-end space-x-3 pt-6 border-t-2 border-gray-200 dark:border-gray-700">
             <Button
               type="button"
               variant="outline"
               onClick={handleClose}
               disabled={isSubmitting || uploadingImage}
-              className="border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 font-bold"
+              className="border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold px-6 py-2 rounded-lg transition-all"
             >
               {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || uploadingImage || !formData.name.trim() || !formData.category_id || !formData.venue_id || formData.venue_id === 'none'}
-              className="bg-green-600 text-white hover:bg-green-700 font-bold"
+              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 font-bold px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting || uploadingImage 
                 ? t('common.saving') 

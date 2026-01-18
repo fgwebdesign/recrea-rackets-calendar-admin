@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, TrendingUp, ShoppingCart, TrendingDown } from 'lucide-react';
+import { Calendar, TrendingUp, TrendingDown } from 'lucide-react';
 import { DashboardStats } from '@/types/kiosk';
 import { useTranslations } from '@/contexts/TranslationContext';
 
@@ -15,7 +15,7 @@ export const DashboardKPIs = memo(function DashboardKPIs({ dashboard, formatCurr
   const t = useTranslations('kiosk');
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {/* Ventas Hoy */}
       <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 shadow-lg hover:shadow-xl transition-shadow">
         <CardHeader className="pb-3">
@@ -108,28 +108,6 @@ export const DashboardKPIs = memo(function DashboardKPIs({ dashboard, formatCurr
           </div>
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
             {dashboard.month.sales_count} {t('reports.dashboard.transactions')}
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Ticket Promedio */}
-      <Card className="border-2 border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 shadow-lg hover:shadow-xl transition-shadow">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold text-orange-700 dark:text-orange-300 flex items-center gap-2">
-              <div className="p-2 bg-orange-100 dark:bg-orange-900/50 rounded-lg">
-                <ShoppingCart className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-              </div>
-              {t('reports.dashboard.averageTicket')}
-            </CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold text-orange-700 dark:text-orange-300 mb-2">
-            {formatCurrency(dashboard.month.average_ticket)}
-          </p>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {t('reports.dashboard.monthlyAverage')}
           </p>
         </CardContent>
       </Card>

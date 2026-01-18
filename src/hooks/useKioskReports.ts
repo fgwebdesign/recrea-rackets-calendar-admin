@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from '@/components/ui/use-toast';
-import { SalesSummary, TopProduct, DashboardStats, LowStockAlert } from '@/types/kiosk';
+import { SalesSummary, TopProduct, DashboardStats, LowStockAlert, ProfitabilityReport, ExpensesReport } from '@/types/kiosk';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -404,6 +404,86 @@ export function useKioskReports() {
     }
   }, []);
 
+  const getProfitabilityReport = useCallback(async (filters?: {
+    venue_id?: string;
+    start_date?: string;
+    end_date?: string;
+  }): Promise<ProfitabilityReport | null> => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('adminToken');
+      if (!token) throw new Error('No estás autenticado');
+
+      const params = new URLSearchParams();
+      if (filters?.venue_id) params.append('venue_id', filters.venue_id);
+      if (filters?.start_date) params.append('start_date', filters.start_date);
+      if (filters?.end_date) params.append('end_date', filters.end_date);
+
+      const queryString = params.toString();
+      const url = `${API_URL}/kiosk/reports/profitability${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Error fetching profitability report');
+      const data = await response.json();
+      return data.report || null;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al obtener reporte de rentabilidad",
+        variant: "destructive",
+      });
+      console.error('Error fetching profitability report:', error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const getExpensesReport = useCallback(async (filters?: {
+    venue_id?: string;
+    start_date?: string;
+    end_date?: string;
+  }): Promise<ExpensesReport | null> => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('adminToken');
+      if (!token) throw new Error('No estás autenticado');
+
+      const params = new URLSearchParams();
+      if (filters?.venue_id) params.append('venue_id', filters.venue_id);
+      if (filters?.start_date) params.append('start_date', filters.start_date);
+      if (filters?.end_date) params.append('end_date', filters.end_date);
+
+      const queryString = params.toString();
+      const url = `${API_URL}/kiosk/reports/expenses${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Error fetching expenses report');
+      const data = await response.json();
+      return data.report || null;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al obtener reporte de gastos",
+        variant: "destructive",
+      });
+      console.error('Error fetching expenses report:', error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     isLoading,
     getSalesSummary,
@@ -413,7 +493,9 @@ export function useKioskReports() {
     getSalesTrend,
     getMonthlyReport,
     getCategoryReport,
-    getVenueComparisonReport
+    getVenueComparisonReport,
+    getProfitabilityReport,
+    getExpensesReport
   };
 }
 

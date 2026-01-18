@@ -22,7 +22,6 @@ import {
   PaginationItem,
   PaginationLink,
   PaginationNext,
-  
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
@@ -30,26 +29,27 @@ import { Building2 } from "lucide-react";
 
 export default function ProductsPage() {
   const t = useTranslations('kiosk');
-  const { selectedVenueId, selectedVenue, setSelectedVenueId, venues, loading: loadingVenues } = useKioskVenue();
+  const { selectedVenueId, setSelectedVenueId, venues, loading: loadingVenues } = useKioskVenue();
   
-  // Estado local para filtros de UI (categoría, búsqueda, etc.)
+  // Estado local para filtros
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [lowStockFilter, setLowStockFilter] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
   
-  // Filtros efectivos para la API - solo cuando hay venue seleccionado
-  const effectiveFilters = useMemo<ProductFilters | undefined>(() => {
-    if (!selectedVenueId) return undefined;
-    return {
-      category_id: categoryFilter,
-      is_active: true,
-      search: '',
-      low_stock: lowStockFilter,
-      venue_id: selectedVenueId
-    };
-  }, [selectedVenueId, categoryFilter, lowStockFilter]);
+  // Filtros para la API
+  const filters = useMemo<ProductFilters>(() => ({
+    category_id: categoryFilter,
+    is_active: true,
+    search: '',
+    low_stock: lowStockFilter,
+    venue_id: selectedVenueId || ''
+  }), [selectedVenueId, categoryFilter, lowStockFilter]);
   
-  // El hook useProducts ya maneja la carga automática cuando cambian los filtros
-  const { products, isLoading, createProduct, updateProduct, deleteProduct, fetchProducts } = useProducts(effectiveFilters);
+  // El hook useProducts maneja la carga
+  const { products, isLoading, createProduct, updateProduct, deleteProduct, fetchProducts } = useProducts(
+    selectedVenueId ? filters : undefined
+  );
   const { categories } = useProductCategories();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,25 +59,19 @@ export default function ProductsPage() {
     product: null as Product | null
   });
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Debounce para la búsqueda
-  const [searchInput, setSearchInput] = useState('');
-  const [searchFilter, setSearchFilter] = useState('');
   
   const PRODUCTS_PER_PAGE = 10;
   
+  // Debounce para búsqueda
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchFilter(searchInput);
-    }, 300); // Espera 300ms después de que el usuario deje de escribir
-
+    }, 300);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSubmit = useCallback(async (data: CreateProductData | UpdateProductData, imageFile?: File | null): Promise<{ success: boolean; productId?: string }> => {
     try {
-      // Asegurar que el venue_id esté presente al crear
       if (!editingProduct && !data.venue_id && selectedVenueId) {
         data.venue_id = selectedVenueId;
       }
@@ -87,14 +81,12 @@ export default function ProductsPage() {
         if (success) {
           setIsModalOpen(false);
           setEditingProduct(null);
-          // Refrescar productos después de actualizar (especialmente si se subió imagen)
-          if (imageFile && effectiveFilters) {
-            await fetchProducts(effectiveFilters);
+          if (imageFile && selectedVenueId) {
+            await fetchProducts(filters);
           }
         }
         return { success, productId: editingProduct.id };
       } else {
-        // Validar que venue_id esté presente
         if (!data.venue_id) {
           throw new Error('venue_id es requerido para crear un producto');
         }
@@ -103,9 +95,8 @@ export default function ProductsPage() {
         if (result.success && result.product) {
           setIsModalOpen(false);
           setEditingProduct(null);
-          // Refrescar productos después de crear (especialmente si se subió imagen)
-          if (imageFile && effectiveFilters) {
-            await fetchProducts(effectiveFilters);
+          if (imageFile && selectedVenueId) {
+            await fetchProducts(filters);
           }
           return { success: true, productId: result.product.id };
         }
@@ -115,7 +106,7 @@ export default function ProductsPage() {
       console.error('Error submitting product:', error);
       return { success: false };
     }
-  }, [editingProduct, updateProduct, createProduct, fetchProducts, effectiveFilters, selectedVenueId]);
+  }, [editingProduct, updateProduct, createProduct, fetchProducts, filters, selectedVenueId]);
 
   const handleEdit = useCallback((product: Product) => {
     setEditingProduct(product);
@@ -131,7 +122,7 @@ export default function ProductsPage() {
     }
   }, [deleteModal.product, deleteProduct]);
 
-  // Los productos vienen filtrados del backend, pero aplicamos búsqueda local
+  // Filtrar productos localmente por búsqueda
   const displayProducts = useMemo(() => {
     if (!searchFilter) return products;
     return products.filter(p => 
@@ -144,7 +135,7 @@ export default function ProductsPage() {
     setCurrentPage(1);
   }, [categoryFilter, searchFilter, lowStockFilter]);
 
-  // Calcular productos paginados
+  // Paginación
   const totalPages = Math.ceil(displayProducts.length / PRODUCTS_PER_PAGE);
   const paginatedProducts = useMemo(() => {
     const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
@@ -154,9 +145,24 @@ export default function ProductsPage() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    // Scroll al inicio del grid de productos
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Loading mientras cargan venues
+  if (loadingVenues) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
+        <Header
+          title={t('products.title')}
+          description={t('products.description')}
+          icon={<PlusCircle className="w-6 h-6" />}
+        />
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
@@ -166,15 +172,8 @@ export default function ProductsPage() {
         icon={<PlusCircle className="w-6 h-6" />}
       />
 
-      {/* Selector de Venue - Siempre visible */}
-      {loadingVenues ? (
-        <div className="mt-6 mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-4">
-            <Building2 className="w-5 h-5 text-gray-400 animate-pulse" />
-            <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-          </div>
-        </div>
-      ) : venues.length > 0 && (
+      {/* Selector de Venue */}
+      {venues.length > 0 && (
         <div className="mt-6 mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-4">
             <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
@@ -186,16 +185,14 @@ export default function ProductsPage() {
                 <Select 
                   value={selectedVenueId || ''} 
                   onValueChange={(value) => {
-                    if (value) {
-                      setSelectedVenueId(value);
-                    }
+                    if (value) setSelectedVenueId(value);
                   }}
                 >
                   <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 w-64">
                     <SelectValue placeholder={t('products.selectVenue')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {venues.filter(v => v.is_active).map((venue) => (
+                    {venues.map((venue) => (
                       <SelectItem key={venue.id} value={venue.id}>
                         {venue.name}
                       </SelectItem>
@@ -203,8 +200,8 @@ export default function ProductsPage() {
                   </SelectContent>
                 </Select>
               ) : (
-                <div className="flex items-center gap-2 py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 w-fit">
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedVenue?.name || venues[0]?.name}</span>
+                <div className="flex items-center gap-2 py-2 px-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800 w-fit">
+                  <span className="font-semibold text-emerald-800 dark:text-emerald-200">{venues[0]?.name}</span>
                 </div>
               )}
             </div>
@@ -215,7 +212,6 @@ export default function ProductsPage() {
       {/* Filtros */}
       <div className="mt-6 mb-6 space-y-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700 space-y-4">
-          {/* Barra de búsqueda y otros filtros */}
           <div className="flex flex-wrap gap-4 items-end">
             <div className="flex-1 min-w-[200px]">
               <div className="relative">
@@ -239,37 +235,23 @@ export default function ProductsPage() {
             </Button>
           </div>
 
-          {/* Selector de Categorías estilo PedidosYa con blur */}
+          {/* Categorías */}
           <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
             <button
               onClick={() => setCategoryFilter('')}
               className={`
-                group relative
-                flex flex-col items-center justify-center gap-1.5
-                px-4 py-3
-                min-w-[90px]
-                rounded-2xl
-                transition-all duration-300
-                whitespace-nowrap
-                overflow-hidden
+                group relative flex flex-col items-center justify-center gap-1.5
+                px-4 py-3 min-w-[90px] rounded-2xl transition-all duration-300 whitespace-nowrap overflow-hidden
                 ${!categoryFilter
                   ? 'bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500/50'
                   : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-md text-gray-800 dark:text-gray-200 hover:bg-white/90 dark:hover:bg-gray-800/90 border border-gray-200/50 dark:border-gray-700/50 shadow-sm'
                 }
               `}
             >
-              {/* Background blur effect */}
               {!categoryFilter && (
                 <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-sm" />
               )}
-              <div className={`
-                relative z-10
-                p-2 rounded-xl
-                ${!categoryFilter
-                  ? 'bg-white/20 backdrop-blur-sm'
-                  : 'bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm'
-                }
-              `}>
+              <div className={`relative z-10 p-2 rounded-xl ${!categoryFilter ? 'bg-white/20 backdrop-blur-sm' : 'bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm'}`}>
                 <Package className={`w-4 h-4 ${!categoryFilter ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`} />
               </div>
               <span className={`relative z-10 text-xs font-semibold ${!categoryFilter ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
@@ -281,32 +263,18 @@ export default function ProductsPage() {
                 key={cat.id}
                 onClick={() => setCategoryFilter(cat.id)}
                 className={`
-                  group relative
-                  flex flex-col items-center justify-center gap-1.5
-                  px-4 py-3
-                  min-w-[90px]
-                  rounded-2xl
-                  transition-all duration-300
-                  whitespace-nowrap
-                  overflow-hidden
+                  group relative flex flex-col items-center justify-center gap-1.5
+                  px-4 py-3 min-w-[90px] rounded-2xl transition-all duration-300 whitespace-nowrap overflow-hidden
                   ${categoryFilter === cat.id
                     ? 'bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500/50'
                     : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-md text-gray-800 dark:text-gray-200 hover:bg-white/90 dark:hover:bg-gray-800/90 border border-gray-200/50 dark:border-gray-700/50 shadow-sm'
                   }
                 `}
               >
-                {/* Background blur effect */}
                 {categoryFilter === cat.id && (
                   <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-sm" />
                 )}
-                <div className={`
-                  relative z-10
-                  p-2 rounded-xl
-                  ${categoryFilter === cat.id
-                    ? 'bg-white/20 backdrop-blur-sm'
-                    : 'bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm'
-                  }
-                `}>
+                <div className={`relative z-10 p-2 rounded-xl ${categoryFilter === cat.id ? 'bg-white/20 backdrop-blur-sm' : 'bg-gray-100/80 dark:bg-gray-700/80 backdrop-blur-sm'}`}>
                   <CategoryIcon
                     iconName={cat.icon}
                     categoryName={cat.name}
@@ -330,17 +298,15 @@ export default function ProductsPage() {
             setIsModalOpen(true);
           }}
           className="bg-green-600 text-white hover:bg-green-700 font-bold"
+          disabled={!selectedVenueId}
         >
           <PlusCircle className="w-5 h-5 mr-2" />
           {t('products.addProduct')}
         </Button>
       </div>
 
-      {loadingVenues ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-        </div>
-      ) : !selectedVenueId && venues.length > 1 ? (
+      {/* Contenido principal */}
+      {!selectedVenueId ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
           <Building2 className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
           <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
@@ -381,12 +347,11 @@ export default function ProductsPage() {
                 product={product}
                 onEdit={handleEdit}
                 onDelete={(prod) => setDeleteModal({ isOpen: true, product: prod })}
-                priority={index < 5} // Prioridad para las primeras 5 imágenes visibles
+                priority={index < 5}
               />
             ))}
           </div>
           
-          {/* Paginación */}
           {totalPages > 1 && (
             <Pagination className="mt-6">
               <PaginationContent>
@@ -438,9 +403,8 @@ export default function ProductsPage() {
         onSubmit={handleSubmit}
         product={editingProduct}
         onProductUpdated={() => {
-          // Refrescar productos después de subir imagen
-          if (effectiveFilters) {
-            fetchProducts(effectiveFilters);
+          if (selectedVenueId) {
+            fetchProducts(filters);
           }
         }}
       />
@@ -455,4 +419,3 @@ export default function ProductsPage() {
     </div>
   );
 }
-

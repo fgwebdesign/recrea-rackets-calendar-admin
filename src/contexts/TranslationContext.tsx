@@ -32,6 +32,9 @@ const translations: Record<Locale, Record<string, any>> = {
       category: 'categoría',
       item: 'elemento',
       sponsor: 'patrocinador',
+      professor: 'profesor',
+      venue: 'sede',
+      court: 'cancha',
       confirmDeletion: 'Confirmar Eliminación',
       deleteConfirmation: '¿Estás seguro que deseas eliminar',
       cannotUndo: 'Esta acción no se puede deshacer.',
@@ -472,6 +475,7 @@ const translations: Record<Locale, Record<string, any>> = {
         startDate: 'Fecha Inicio',
         endDate: 'Fecha Fin',
         generate: 'Generar Reporte',
+        generated: 'Reporte Generado',
         totalRevenue: 'Ingresos Totales',
         averageTicket: 'Ticket Promedio',
         totalSales: 'Total Ventas',
@@ -513,7 +517,39 @@ const translations: Record<Locale, Record<string, any>> = {
           noAlertsDescription: 'Todos los productos tienen stock suficiente'
         },
         periodReports: {
-          title: 'Reportes por Período'
+          title: 'Reportes por Período',
+          description: 'Genera reportes personalizados por período de tiempo',
+          availableReports: 'Reportes Disponibles',
+          summaryDescription: 'Resumen de ventas con ingresos y estadísticas generales',
+          topProductsDescription: 'Lista de productos más vendidos en el período',
+          profitabilityDescription: 'Análisis de ganancias, costos y márgenes por producto y categoría'
+        },
+        profitability: {
+          totalRevenue: 'Ingresos Totales',
+          totalCost: 'Costos Totales',
+          totalProfit: 'Ganancia Total',
+          profitMargin: 'Margen de Ganancia',
+          topProductsByProfit: 'Top Productos por Ganancia',
+          topProductsByProfitDescription: 'Productos con mayor rentabilidad',
+          profitabilityByCategory: 'Rentabilidad por Categoría',
+          profitabilityByCategoryDescription: 'Análisis de ganancias por categoría de producto',
+          unitsSold: 'unidades vendidas',
+          income: 'Ingresos',
+          costs: 'Costos',
+          profit: 'Ganancia',
+          margin: 'margen'
+        },
+        expenses: {
+          totalExpenses: 'Gastos Totales',
+          totalUnitsSold: 'Total Unidades Vendidas',
+          averageCostPerUnit: 'Costo Promedio por Unidad',
+          topProductsByCost: 'Top Productos por Gasto',
+          topProductsByCostDescription: 'Productos con mayor costo en el período',
+          byCategory: 'Gastos por Categoría',
+          byCategoryDescription: 'Análisis de costos por categoría de producto',
+          unitsSold: 'unidades vendidas',
+          totalCost: 'Costo Total',
+          costPerUnit: 'Costo por Unidad'
         },
         charts: {
           title: 'Gráficas de Ventas',
@@ -1979,6 +2015,7 @@ const translations: Record<Locale, Record<string, any>> = {
         startDate: 'Start Date',
         endDate: 'End Date',
         generate: 'Generate Report',
+        generated: 'Report Generated',
         totalRevenue: 'Total Revenue',
         averageTicket: 'Average Ticket',
         totalSales: 'Total Sales',
@@ -2020,7 +2057,39 @@ const translations: Record<Locale, Record<string, any>> = {
           noAlertsDescription: 'All products have sufficient stock'
         },
         periodReports: {
-          title: 'Period Reports'
+          title: 'Period Reports',
+          description: 'Generate custom reports by time period',
+          availableReports: 'Available Reports',
+          summaryDescription: 'Sales summary with revenue and general statistics',
+          topProductsDescription: 'List of best-selling products in the period',
+          profitabilityDescription: 'Profit analysis, costs and margins by product and category'
+        },
+        profitability: {
+          totalRevenue: 'Total Revenue',
+          totalCost: 'Total Cost',
+          totalProfit: 'Total Profit',
+          profitMargin: 'Profit Margin',
+          topProductsByProfit: 'Top Products by Profit',
+          topProductsByProfitDescription: 'Most profitable products',
+          profitabilityByCategory: 'Profitability by Category',
+          profitabilityByCategoryDescription: 'Profit analysis by product category',
+          unitsSold: 'units sold',
+          income: 'Income',
+          costs: 'Costs',
+          profit: 'Profit',
+          margin: 'margin'
+        },
+        expenses: {
+          totalExpenses: 'Total Expenses',
+          totalUnitsSold: 'Total Units Sold',
+          averageCostPerUnit: 'Average Cost Per Unit',
+          topProductsByCost: 'Top Products by Cost',
+          topProductsByCostDescription: 'Products with highest cost in the period',
+          byCategory: 'Expenses by Category',
+          byCategoryDescription: 'Cost analysis by product category',
+          unitsSold: 'units sold',
+          totalCost: 'Total Cost',
+          costPerUnit: 'Cost Per Unit'
         },
         charts: {
           title: 'Sales Charts',

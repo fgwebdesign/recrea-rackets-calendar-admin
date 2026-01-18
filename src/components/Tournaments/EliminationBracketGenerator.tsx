@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Trophy } from 'lucide-react';
+import { TournamentMatch, EliminationBracket } from '@/types/tournament';
 
 interface EliminationBracketGeneratorProps {
   tournamentId: string;
-  onBracketGenerated: (data: any) => void;
+  onBracketGenerated: (data: EliminationBracket) => void;
   hasEliminationMatches?: boolean;
-  matches?: any[]; // Agregar matches para validación
+  matches?: TournamentMatch[];
 }
 
 const EliminationBracketGenerator: React.FC<EliminationBracketGeneratorProps> = ({ 
@@ -112,8 +113,9 @@ const EliminationBracketGenerator: React.FC<EliminationBracketGeneratorProps> = 
         setSuccess('¡Bracket generado y emails enviados a clasificados!');
       }, 35000); // 35 segundos para que lleguen los emails
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al generar bracket';
+      setError(errorMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -123,7 +125,7 @@ const EliminationBracketGenerator: React.FC<EliminationBracketGeneratorProps> = 
     <div className="elimination-bracket-generator bg-gray-50 p-8 rounded-xl border border-gray-200 my-8">
       <div className="flex items-center gap-3 mb-4">
         <Trophy className="h-8 w-8 text-yellow-600" />
-        <h3 className="text-2xl font-bold text-gray-900">🏆 Fase Eliminatoria</h3>
+        <h3 className="text-2xl font-bold text-gray-900">Fase Eliminatoria</h3>
       </div>
       
       <p className="text-gray-600 mb-6">
@@ -149,14 +151,14 @@ const EliminationBracketGenerator: React.FC<EliminationBracketGeneratorProps> = 
       {hasEliminationMatches ? (
         <Alert className="border-green-200 bg-green-50">
           <AlertDescription className="text-green-800">
-            <strong>✅ Fase Eliminatoria Generada:</strong> El bracket eliminatorio ya ha sido creado para este torneo.
+            <strong>Fase Eliminatoria Generada:</strong> El bracket eliminatorio ya ha sido creado para este torneo.
           </AlertDescription>
         </Alert>
       ) : !canGenerateElimination() ? (
         <div className="space-y-4">
           <Alert className="border-yellow-200 bg-yellow-50">
             <AlertDescription className="text-yellow-800">
-              <strong>⚠️ Fase de Grupos Incompleta:</strong> Debe completar todos los partidos de grupos antes de generar la fase eliminatoria.
+              <strong>Fase de Grupos Incompleta:</strong> Debe completar todos los partidos de grupos antes de generar la fase eliminatoria.
               {(() => {
                 const stats = getGroupMatchesStats();
                 return stats.total > 0 ? ` (${stats.completed}/${stats.total} partidos completados)` : '';
@@ -169,7 +171,7 @@ const EliminationBracketGenerator: React.FC<EliminationBracketGeneratorProps> = 
             className="bg-gray-400 text-white px-8 py-3 text-lg font-semibold cursor-not-allowed"
           >
             <Trophy className="mr-2 h-5 w-5" />
-            🎾 Completar Grupos Primero
+            Completar Grupos Primero
           </Button>
         </div>
       ) : (
@@ -187,7 +189,7 @@ const EliminationBracketGenerator: React.FC<EliminationBracketGeneratorProps> = 
           ) : (
             <>
               <Trophy className="mr-2 h-5 w-5" />
-              🎾 Generar Fase Eliminatoria
+              Generar Fase Eliminatoria
             </>
           )}
         </Button>

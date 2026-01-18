@@ -7,8 +7,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 export function useProducts(filters?: ProductFilters) {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const filtersRef = useRef<string>('');
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastFiltersRef = useRef<string | null>(null);
+  const isMountedRef = useRef(false);
 
   const fetchProducts = useCallback(async (customFilters: ProductFilters) => {
     // Cancelar cualquier llamada anterior en curso
@@ -71,37 +72,43 @@ export function useProducts(filters?: ProductFilters) {
     }
   }, []);
 
-  // Solo ejecutar cuando realmente cambian los filtros (comparando serialización)
-  // y solo si hay un venue_id válido (para evitar cargar productos sin venue)
+  // Serializar filtros para comparación estable
+  const filtersKey = filters ? JSON.stringify(filters) : null;
+  
+  // Ejecutar cuando cambian los filtros o cuando el componente se monta
   useEffect(() => {
+    // Marcar como montado
+    isMountedRef.current = true;
+    
     // Si filters es undefined o null, NO hacer ninguna llamada
-    if (!filters) {
-      console.log('⏳ No filters provided, skipping fetch...');
+    if (!filters || !filtersKey) {
+      console.log('⏳ useProducts: No filters provided');
       return;
     }
     
-    // Si filters existe pero venue_id no está definido, NO hacer llamada
-    // Esto evita cargar productos de todos los venues y race conditions
+    // Si filters.venue_id es vacío o undefined, NO hacer llamada
     if (!filters.venue_id) {
-      console.log('⏳ Waiting for venue_id to be set...');
+      console.log('⏳ useProducts: No venue_id in filters');
       return;
     }
     
-    const currentFilters = JSON.stringify(filters);
-    
-    // Solo cargar si los filtros realmente cambiaron
-    if (filtersRef.current !== currentFilters) {
-      filtersRef.current = currentFilters;
+    // Solo hacer fetch si los filtros cambiaron O si es la primera vez
+    if (lastFiltersRef.current !== filtersKey) {
+      console.log('📦 useProducts: Fetching with filters', filters);
+      lastFiltersRef.current = filtersKey;
       fetchProducts(filters);
     }
     
-    // Cleanup: cancelar llamada en curso si el componente se desmonta o filtros cambian
+    // Cleanup: cancelar llamada en curso y resetear refs
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      // Resetear la referencia cuando se desmonta para que vuelva a cargar al remontar
+      isMountedRef.current = false;
+      lastFiltersRef.current = null;
     };
-  }, [filters, fetchProducts]);
+  }, [filters, filtersKey, fetchProducts]);
 
   const getProductById = useCallback(async (id: string): Promise<Product | null> => {
     try {

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SingleEliminationBracket, SVGViewer, createTheme } from '@g-loot/react-tournament-brackets';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Trophy, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Loader2, Trophy, ZoomIn, ZoomOut, RotateCcw, Home, Plane, Clock } from 'lucide-react';
 import { TournamentMatchModal } from './TournamentMatchModal';
 import { PdfBracketGenerator } from './PdfBracketGenerator';
 import { Tournament, TournamentTeam, MatchResultData } from '@/types/tournament';
@@ -818,18 +818,30 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
               opacity: participant.name.includes('⏰ Esperando') ? 0.8 : 1 // Ligera transparencia para pendientes
             }}>
               <span style={{
-                display: 'inline-block',
-                background: participant.name.includes('⏰ Esperando') ? 'rgba(107,114,128,0.2)' : 'rgba(255,255,255,0.3)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: participant.name.includes('Esperando') ? 'rgba(107,114,128,0.2)' : 'rgba(255,255,255,0.3)',
                 borderRadius: '4px',
                 padding: '2px 6px',
                 margin: '2px',
                 fontSize: '10px',
                 fontWeight: '700',
                 letterSpacing: '0.5px',
-                textTransform: participant.name.includes('⏰ Esperando') ? 'none' : 'uppercase',
+                textTransform: participant.name.includes('Esperando') ? 'none' : 'uppercase',
                 wordBreak: 'break-word'
               }}>
-                {participant.name.includes('⏰ Esperando') ? '' : (index === 0 ? '🏠 ' : '✈️ ')}{participant.name}
+                {participant.name.includes('Esperando') ? (
+                  <>
+                    <Clock className="w-3 h-3" />
+                    {participant.name.replace('⏰ ', '')}
+                  </>
+                ) : (
+                  <>
+                    {index === 0 ? <Home className="w-3 h-3" /> : <Plane className="w-3 h-3" />}
+                    {participant.name}
+                  </>
+                )}
               </span>
             </div>
             {participant.resultText && (
@@ -954,8 +966,9 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
           {/* Columna Derecha: Gestión de Resultados (30%) */}
           <div className="lg:col-span-3 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                🏆 Partidos
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-yellow-500" />
+                Partidos
               </h3>
             </div>
             
@@ -1024,9 +1037,7 @@ const EliminationBracketViewer: React.FC<EliminationBracketViewerProps> = ({
                             {participant.name}
                           </span>
                           {participant.isWinner && (
-                            <span className="text-xs bg-green-200 text-green-800 px-1 py-0.5 rounded">
-                              🏆
-                            </span>
+                            <Trophy className="w-4 h-4 text-yellow-500" />
                           )}
                         </div>
                       ))}

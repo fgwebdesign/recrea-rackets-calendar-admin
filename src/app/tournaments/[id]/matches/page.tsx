@@ -1182,8 +1182,9 @@ export default function TournamentMatchesPage() {
             {/* Mostrar partidos de eliminación organizados por rondas */}
             {Array.isArray(matches) && matches.filter(match => match.round !== 'group' && !match.group_number).length > 0 && (
               <div className="mt-8">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-                  🏆 Partidos de Eliminación (Orden del Bracket)
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-yellow-500" />
+                  Partidos de Eliminación (Orden del Bracket)
                 </h3>
                 
                 {/* Organizar partidos por rondas */}

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarDays, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { CalendarDays, TrendingUp, TrendingDown, Minus, Trophy } from 'lucide-react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -295,7 +295,7 @@ export function MonthlySalesChart({
           <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 dark:from-green-900/20 dark:via-emerald-900/20 dark:to-teal-900/20 border-2 border-green-200 dark:border-green-800">
               <div className="flex items-center gap-3">
-                <div className="text-3xl">🏆</div>
+                <Trophy className="w-8 h-8 text-yellow-500 dark:text-yellow-400" />
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Mejor día del mes</p>
                   <p className="text-lg font-bold text-gray-900 dark:text-white">
