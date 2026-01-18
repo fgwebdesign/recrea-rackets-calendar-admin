@@ -45,30 +45,45 @@ export function useProducts(filters?: ProductFilters) {
         signal: abortController.signal
       });
       
+      // Verificar si esta llamada fue cancelada antes de procesar la respuesta
+      if (abortController.signal.aborted) {
+        return;
+      }
+      
       if (!response.ok) {
         console.error('❌ Response not ok:', response.status, response.statusText);
         throw new Error('Error fetching products');
       }
       const data = await response.json();
       console.log('✅ Products received:', data.products?.length || 0, 'products');
-      setProducts(data.products || []);
+      
+      // Verificar nuevamente si fue cancelada antes de actualizar el estado
+      if (!abortController.signal.aborted) {
+        setProducts(data.products || []);
+      }
     } catch (error) {
       // Ignorar errores de abort (cancelación intencional)
       if (error instanceof Error && error.name === 'AbortError') {
         console.log('🚫 Fetch aborted (new request started)');
         return;
       }
-      if (error instanceof Error && !error.message.includes('sesión ha expirado')) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
+      // Solo actualizar estado si esta llamada no fue cancelada
+      if (!abortController.signal.aborted) {
+        if (error instanceof Error && !error.message.includes('sesión ha expirado')) {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+        console.error('Error fetching products:', error);
+        setProducts([]);
       }
-      console.error('Error fetching products:', error);
-      setProducts([]);
     } finally {
-      setIsLoading(false);
+      // Solo actualizar loading si esta llamada no fue cancelada (es la actual)
+      if (!abortController.signal.aborted && abortControllerRef.current === abortController) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -83,12 +98,14 @@ export function useProducts(filters?: ProductFilters) {
     // Si filters es undefined o null, NO hacer ninguna llamada
     if (!filters || !filtersKey) {
       console.log('⏳ useProducts: No filters provided');
+      setIsLoading(false);
       return;
     }
     
     // Si filters.venue_id es vacío o undefined, NO hacer llamada
     if (!filters.venue_id) {
       console.log('⏳ useProducts: No venue_id in filters');
+      setIsLoading(false);
       return;
     }
     
@@ -96,6 +113,8 @@ export function useProducts(filters?: ProductFilters) {
     if (lastFiltersRef.current !== filtersKey) {
       console.log('📦 useProducts: Fetching with filters', filters);
       lastFiltersRef.current = filtersKey;
+      // Establecer loading antes de hacer fetch para mostrar skeletons inmediatamente
+      setIsLoading(true);
       fetchProducts(filters);
     }
     

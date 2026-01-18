@@ -48,7 +48,7 @@ export default function KioskPOSPage() {
   const productFilters = useMemo(() => 
     selectedVenueId ? { is_active: true, venue_id: selectedVenueId } : undefined
   , [selectedVenueId]);
-  const { products, fetchProducts } = useProducts(productFilters);
+  const { products, isLoading: isLoadingProducts, fetchProducts } = useProducts(productFilters);
   const { categories } = useProductCategories();
   const { createSale } = useSales();
   
@@ -482,8 +482,47 @@ export default function KioskPOSPage() {
 
           {/* Grid de Productos */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {paginatedProducts.map((product, index) => {
+            {isLoadingProducts ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : paginatedProducts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 px-4">
+                <div className="p-6 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-full mb-4">
+                  <Package className="w-16 h-16 text-gray-400 dark:text-gray-500" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  {selectedCategory 
+                    ? t('pos.noProductsInCategory')
+                    : t('pos.noProductsAvailable')
+                  }
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md mb-6">
+                  {selectedCategory
+                    ? t('pos.noProductsInCategoryDescription')
+                    : t('pos.noProductsAvailableDescription')
+                  }
+                </p>
+                {selectedCategory && (
+                  <button
+                    onClick={() => setSelectedCategory('')}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                  >
+                    Ver todas las categorías
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {paginatedProducts.map((product, index) => {
                 const cartItem = cart.find(item => item.product.id === product.id);
                 const isOutOfStock = product.track_inventory && product.stock_quantity <= 0;
                 // Prioridad para las primeras 8 imágenes (primera página completa)
@@ -552,7 +591,8 @@ export default function KioskPOSPage() {
                   </button>
                 );
               })}
-            </div>
+              </div>
+            )}
             
             {/* Paginación */}
             {totalPages > 1 && (

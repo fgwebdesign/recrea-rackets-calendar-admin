@@ -352,7 +352,11 @@ const translations: Record<Locale, Record<string, any>> = {
         selectSizeLabel: 'Selecciona un talle:',
         selectedSize: 'Talle seleccionado:',
         noSizesAvailable: 'No hay talles disponibles para este producto',
-        noVenuesAvailable: 'No hay sedes disponibles'
+        noVenuesAvailable: 'No hay sedes disponibles',
+        noProductsAvailable: 'No hay productos disponibles',
+        noProductsAvailableDescription: 'Agrega productos en la sección de Productos para comenzar a vender',
+        noProductsInCategory: 'No hay productos en esta categoría',
+        noProductsInCategoryDescription: 'No se encontraron productos para la categoría seleccionada. Intenta con otra categoría o agrega productos nuevos.'
       },
       categories: {
         title: 'Categorías de Productos',
@@ -1892,7 +1896,11 @@ const translations: Record<Locale, Record<string, any>> = {
         selectSizeLabel: 'Select a size:',
         selectedSize: 'Selected size:',
         noSizesAvailable: 'No sizes available for this product',
-        noVenuesAvailable: 'No venues available'
+        noVenuesAvailable: 'No venues available',
+        noProductsAvailable: 'No products available',
+        noProductsAvailableDescription: 'Add products in the Products section to start selling',
+        noProductsInCategory: 'No products in this category',
+        noProductsInCategoryDescription: 'No products found for the selected category. Try another category or add new products.'
       },
       categories: {
         title: 'Product Categories',

@@ -26,6 +26,8 @@ import { VenueComparisonChart } from "@/components/Kiosk/Reports/VenueComparison
 import { MonthlySalesChart } from "@/components/Kiosk/Reports/MonthlySalesChart";
 import { ProfitabilityCard } from "@/components/Kiosk/Reports/ProfitabilityCard";
 import { ExpensesCard } from "@/components/Kiosk/Reports/ExpensesCard";
+import { exportMonthlyReportToExcel, exportProfitabilityReportToExcel, exportExpensesReportToExcel } from "@/utils/excelExport";
+import { FileDown } from "lucide-react";
 
 // Lazy load del componente de gráficas para mejor rendimiento
 const SalesTrendChart = lazy(() => import("@/components/Kiosk/Reports/SalesTrendChart").then(module => ({ default: module.SalesTrendChart })));
@@ -37,6 +39,7 @@ export default function KioskReportsPage() {
   
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activePeriodTab, setActivePeriodTab] = useState('summary');
+  const [hasGeneratedReport, setHasGeneratedReport] = useState(false);
   
   // Estados para las fechas como Date objects (para DatePicker)
   const [startDate, setStartDate] = useState<Date>(() => {
@@ -285,43 +288,50 @@ export default function KioskReportsPage() {
     }
   }, [activeTab, loadTrend, loadCategoryReport, loadVenueComparison, venues.length]);
 
-  // Cargar reportes según la sub-tab activa (usa debouncedFilters)
+  // Cargar reportes según la sub-tab activa (usa los filtros actuales)
   const loadPeriodReports = useCallback(async (subTab: string) => {
     try {
       setLoadingPeriodReports(true);
+      // Actualizar debouncedFilters con los valores actuales antes de cargar
+      const currentFilters = {
+        venue_id: selectedVenueId || '',
+        start_date: formatDateForInput(startDate),
+        end_date: formatDateForInput(endDate)
+      };
+      
       switch (subTab) {
         case 'summary':
           const [summaryData, topProductsData] = await Promise.all([
-            getSalesSummary(debouncedFilters),
-            getTopProducts(debouncedFilters)
+            getSalesSummary(currentFilters),
+            getTopProducts(currentFilters)
           ]);
           setSummary(summaryData);
           setTopProducts(topProductsData);
           break;
         case 'profitability':
-          const profitabilityData = await getProfitabilityReport(debouncedFilters);
+          const profitabilityData = await getProfitabilityReport(currentFilters);
           setProfitability(profitabilityData);
           break;
         case 'expenses':
-          const expensesData = await getExpensesReport(debouncedFilters);
+          const expensesData = await getExpensesReport(currentFilters);
           setExpenses(expensesData);
           break;
         case 'top-products':
-          const topProductsOnly = await getTopProducts(debouncedFilters);
+          const topProductsOnly = await getTopProducts(currentFilters);
           setTopProducts(topProductsOnly);
           break;
       }
+      setHasGeneratedReport(true);
     } finally {
       setLoadingPeriodReports(false);
     }
-  }, [debouncedFilters, getSalesSummary, getTopProducts, getProfitabilityReport, getExpensesReport]);
+  }, [startDate, endDate, selectedVenueId, getSalesSummary, getTopProducts, getProfitabilityReport, getExpensesReport]);
 
-  // Cargar automáticamente cuando cambia la tab period, sub-tab o filtros con debounce
-  useEffect(() => {
-    if (activeTab === 'period') {
-      loadPeriodReports(activePeriodTab);
-    }
-  }, [activeTab, activePeriodTab, debouncedFilters, loadPeriodReports]);
+  // Handler para el botón "Generar Reporte"
+  const handleGenerateReport = () => {
+    setHasGeneratedReport(false);
+    loadPeriodReports(activePeriodTab);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
@@ -424,11 +434,23 @@ export default function KioskReportsPage() {
               </>
             ) : dashboard ? (
               <>
-                <div className="flex items-center gap-3">
-                  <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {t('reports.dashboard.title')}
-                  </h2>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {t('reports.dashboard.title')}
+                    </h2>
+                  </div>
+                  {monthlyReport && monthlyReport.daily_breakdown.length > 0 && (
+                    <Button
+                      onClick={() => exportMonthlyReportToExcel(monthlyReport, formatCurrency)}
+                      variant="outline"
+                      className="border-blue-600 text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                    >
+                      <FileDown className="w-4 h-4 mr-2" />
+                      Exportar Reporte Mensual
+                    </Button>
+                  )}
                 </div>
 
                 <DashboardKPIs dashboard={dashboard} formatCurrency={formatCurrency} />
@@ -499,8 +521,8 @@ export default function KioskReportsPage() {
                     />
                   </div>
 
-                  <div className="flex items-end">
-                    {summary && !isLoading && (
+                  <div className="flex items-end gap-3">
+                    {hasGeneratedReport && !isLoading && (
                       <Badge 
                         variant="outline" 
                         className="border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-3 py-2 h-10 flex items-center gap-2 shadow-sm"
@@ -516,6 +538,23 @@ export default function KioskReportsPage() {
                         </div>
                       </Badge>
                     )}
+                    <Button
+                      onClick={handleGenerateReport}
+                      disabled={loadingPeriodReports}
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 h-10 shadow-lg hover:shadow-xl transition-all"
+                    >
+                      {loadingPeriodReports ? (
+                        <>
+                          <span className="animate-spin mr-2">⏳</span>
+                          Generando...
+                        </>
+                      ) : (
+                        <>
+                          <BarChart3 className="w-4 h-4 mr-2" />
+                          Generar Reporte
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -618,10 +657,10 @@ export default function KioskReportsPage() {
                     <CardContent className="pt-12 pb-12 text-center">
                       <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
                       <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        {t('reports.noData')}
+                        No hay reporte generado
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {t('reports.noDataDescription')}
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Selecciona un rango de fechas y haz clic en &quot;Generar Reporte&quot; para ver los datos.
                       </p>
                     </CardContent>
                   </Card>
@@ -630,6 +669,18 @@ export default function KioskReportsPage() {
 
               {/* Sub-tab: Rentabilidad */}
               <TabsContent value="profitability" className="space-y-6 mt-6">
+                {profitability && !loadingPeriodReports && (
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={() => exportProfitabilityReportToExcel(profitability, formatCurrency)}
+                      variant="outline"
+                      className="border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                    >
+                      <FileDown className="w-4 h-4 mr-2" />
+                      Exportar a Excel
+                    </Button>
+                  </div>
+                )}
                 {loadingPeriodReports ? (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -660,10 +711,10 @@ export default function KioskReportsPage() {
                     <CardContent className="pt-12 pb-12 text-center">
                       <TrendingUp className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
                       <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        {t('reports.noData')}
+                        No hay reporte generado
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {t('reports.noDataDescription')}
+                        Selecciona un rango de fechas y haz clic en &quot;Generar Reporte&quot; para ver los datos.
                       </p>
                     </CardContent>
                   </Card>
@@ -672,6 +723,18 @@ export default function KioskReportsPage() {
 
               {/* Sub-tab: Gastos */}
               <TabsContent value="expenses" className="space-y-6 mt-6">
+                {expenses && !loadingPeriodReports && (
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={() => exportExpensesReportToExcel(expenses, formatCurrency)}
+                      variant="outline"
+                      className="border-orange-600 text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                    >
+                      <FileDown className="w-4 h-4 mr-2" />
+                      Exportar a Excel
+                    </Button>
+                  </div>
+                )}
                 {loadingPeriodReports ? (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -702,10 +765,10 @@ export default function KioskReportsPage() {
                     <CardContent className="pt-12 pb-12 text-center">
                       <TrendingDown className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
                       <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        {t('reports.noData')}
+                        No hay reporte generado
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {t('reports.noDataDescription')}
+                        Selecciona un rango de fechas y haz clic en &quot;Generar Reporte&quot; para ver los datos.
                       </p>
                     </CardContent>
                   </Card>
@@ -732,10 +795,10 @@ export default function KioskReportsPage() {
                     <CardContent className="pt-12 pb-12 text-center">
                       <Package className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
                       <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        {t('reports.noData')}
+                        No hay reporte generado
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {t('reports.noDataDescription')}
+                        Selecciona un rango de fechas y haz clic en &quot;Generar Reporte&quot; para ver los datos.
                       </p>
                     </CardContent>
                   </Card>

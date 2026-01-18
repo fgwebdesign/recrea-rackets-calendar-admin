@@ -23,6 +23,45 @@ export interface ProductSize {
   updated_at?: string;
 }
 
+export interface ProductAttribute {
+  id?: string;
+  product_id?: string;
+  name: string; // "Color", "Sabor", etc.
+  display_order?: number;
+  values?: ProductAttributeValue[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProductAttributeValue {
+  id?: string;
+  attribute_id?: string;
+  value: string; // "Azul", "Rojo", "Verde", etc.
+  display_order?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProductVariant {
+  id?: string;
+  product_id?: string;
+  sku?: string;
+  name?: string;
+  price?: number; // Si es null, usa el precio del producto padre
+  cost_price?: number;
+  stock_quantity: number;
+  image_url?: string;
+  is_active?: boolean;
+  attributes?: Array<{
+    attribute_id: string;
+    attribute_name: string;
+    value_id: string;
+    value: string;
+  }>;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Product {
   id: string;
   category_id: string;
@@ -48,6 +87,8 @@ export interface Product {
     name: string;
   };
   sizes?: ProductSize[]; // Talles del producto (solo para indumentaria)
+  attributes?: ProductAttribute[]; // Atributos para variantes (ej: Color, Sabor)
+  variants?: ProductVariant[]; // Variantes del producto (ej: Powerade Azul, Powerade Rojo)
 }
 
 export interface SaleItem {
@@ -61,6 +102,7 @@ export interface SaleItem {
   product_name: string;
   product_sku?: string;
   product_size_id?: string;
+  product_variant_id?: string; // ID de la variante si se vendió una variante
   size?: string;
   size_type?: 'clothing' | 'shoes';
   created_at: string;
@@ -169,6 +211,21 @@ export interface CreateProductData {
   is_featured?: boolean;
   venue_id?: string;
   sizes?: ProductSize[]; // Talles para productos de indumentaria
+  attributes?: Array<{
+    name: string;
+    values: string[]; // ["Azul", "Rojo", "Verde"]
+    display_order?: number;
+  }>;
+  variants?: Array<{
+    sku?: string;
+    name?: string;
+    price?: number;
+    cost_price?: number;
+    stock_quantity: number;
+    image_url?: string;
+    is_active?: boolean;
+    attribute_values: Record<string, string>; // { "Color": "Azul" }
+  }>;
 }
 
 export type UpdateProductData = Partial<CreateProductData>;
@@ -180,6 +237,7 @@ export interface CreateSaleData {
     unit_price?: number;
     discount_amount?: number;
     product_size_id?: string;
+    product_variant_id?: string; // ID de la variante seleccionada
     size?: string;
     size_type?: 'clothing' | 'shoes';
   }>;

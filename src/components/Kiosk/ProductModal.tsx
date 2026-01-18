@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-import { ImageIcon, Plus, Trash2, DollarSign, Package, AlertTriangle, Building2, Tag, Star, CheckCircle2, XCircle } from "lucide-react";
+import { ImageIcon, Plus, Trash2, DollarSign, Package, AlertTriangle, Building2, Tag, Star, CheckCircle2, XCircle, Sparkles, Layers } from "lucide-react";
 import Image from 'next/image';
 import { Product, CreateProductData, UpdateProductData, ProductSize } from "@/types/kiosk";
 import { useProductCategories } from "@/hooks/useProductCategories";
@@ -61,6 +61,18 @@ export default function ProductModal({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [sizes, setSizes] = useState<ProductSize[]>([]);
   const [sizeType, setSizeType] = useState<'clothing' | 'shoes'>('clothing');
+  const [hasVariants, setHasVariants] = useState(false);
+  const [attributes, setAttributes] = useState<Array<{ name: string; values: string[]; display_order: number }>>([]);
+  const [variants, setVariants] = useState<Array<{
+    sku?: string;
+    name?: string;
+    price?: number;
+    cost_price?: number;
+    stock_quantity: number;
+    image_url?: string;
+    is_active?: boolean;
+    attribute_values: Record<string, string>;
+  }>>([]);
 
   // Detectar si la categoría es Indumentaria
   const isClothingCategory = formData.category_id && categories.find(c => c.id === formData.category_id)?.name?.toLowerCase() === 'indumentaria';
@@ -93,6 +105,32 @@ export default function ProductModal({
           setSizes([]);
           setSizeType('clothing');
         }
+        // Cargar variantes si existen
+        if (product.attributes && product.attributes.length > 0 && product.variants && product.variants.length > 0) {
+          setHasVariants(true);
+          setAttributes(product.attributes.map(attr => ({
+            name: attr.name,
+            values: attr.values?.map(v => typeof v === 'string' ? v : v.value) || [],
+            display_order: attr.display_order || 0
+          })));
+          setVariants(product.variants.map(v => ({
+            sku: v.sku,
+            name: v.name,
+            price: v.price,
+            cost_price: v.cost_price,
+            stock_quantity: v.stock_quantity,
+            image_url: v.image_url,
+            is_active: v.is_active !== false,
+            attribute_values: v.attributes?.reduce((acc, attr) => {
+              acc[attr.attribute_name] = attr.value;
+              return acc;
+            }, {} as Record<string, string>) || {}
+          })));
+        } else {
+          setHasVariants(false);
+          setAttributes([]);
+          setVariants([]);
+        }
       } else {
         setFormData({
           category_id: '',
@@ -113,6 +151,9 @@ export default function ProductModal({
         setImageFile(null);
         setSizes([]);
         setSizeType('clothing');
+        setHasVariants(false);
+        setAttributes([]);
+        setVariants([]);
       }
     }
   }, [isOpen, product, categories, selectedVenueId]);
@@ -187,7 +228,10 @@ export default function ProductModal({
           size: s.size,
           size_type: s.size_type,
           stock_quantity: s.stock_quantity
-        })) : undefined
+        })) : undefined,
+        // Incluir atributos y variantes si están habilitados
+        attributes: hasVariants && attributes.length > 0 ? attributes : undefined,
+        variants: hasVariants && variants.length > 0 ? variants : undefined
       };
       
       // Asegurar que venue_id esté presente
@@ -200,22 +244,25 @@ export default function ProductModal({
       // Primero crear/actualizar el producto
       const result = await onSubmit(submitData, imageFile);
       
-      // Si hay imagen nueva y el producto fue creado/actualizado exitosamente, subir la imagen
-      if (result.success && imageFile && result.productId) {
-        try {
-          await uploadImage(imageFile, result.productId);
-          // Refrescar la lista de productos después de subir la imagen
-          if (onProductUpdated) {
-            onProductUpdated();
-          }
-        } catch (error) {
-          console.error('Error uploading image after product update:', error);
-          // No lanzar error, el producto ya se creó/actualizó
-        }
-      }
-      
       if (result.success) {
+        // Si hay imagen nueva, subirla antes de cerrar
+        if (imageFile && result.productId) {
+          try {
+            await uploadImage(imageFile, result.productId);
+          } catch (error) {
+            console.error('Error uploading image after product update:', error);
+            // No lanzar error, el producto ya se creó/actualizó
+          }
+        }
+        
+        // Cerrar modal y refrescar (una sola vez, después de todo)
         handleClose();
+        
+        // Refrescar la lista de productos para obtener datos actualizados del backend (variantes, etc.)
+        // Esto se hace una sola vez, después de cerrar el modal
+        if (onProductUpdated) {
+          onProductUpdated();
+        }
       }
     } catch (error) {
       console.error('Error submitting product:', error);
@@ -244,6 +291,9 @@ export default function ProductModal({
     setImageFile(null);
     setSizes([]);
     setSizeType('clothing');
+    setHasVariants(false);
+    setAttributes([]);
+    setVariants([]);
     onClose();
   };
 
@@ -272,6 +322,115 @@ export default function ProductModal({
   const shoeSizes = Array.from({ length: 20 }, (_, i) => (36 + i).toString()); // 36-55
 
   const availableSizes = sizeType === 'clothing' ? clothingSizes : shoeSizes;
+
+  // Funciones para manejar atributos y variantes
+  const addAttribute = () => {
+    setAttributes([...attributes, { name: '', values: [], display_order: attributes.length }]);
+  };
+
+  const removeAttribute = (index: number) => {
+    const newAttributes = attributes.filter((_, i) => i !== index);
+    setAttributes(newAttributes);
+    // Limpiar variantes si se eliminaron atributos
+    if (variants.length > 0) {
+      setVariants([]);
+    }
+  };
+
+  const updateAttributeName = (index: number, name: string) => {
+    const updated = [...attributes];
+    updated[index].name = name;
+    setAttributes(updated);
+    // Limpiar variantes si cambia el nombre
+    if (variants.length > 0) {
+      setVariants([]);
+    }
+  };
+
+  const addAttributeValue = (attrIndex: number) => {
+    const updated = [...attributes];
+    updated[attrIndex].values.push('');
+    setAttributes(updated);
+  };
+
+  const updateAttributeValue = (attrIndex: number, valueIndex: number, value: string) => {
+    const updated = [...attributes];
+    updated[attrIndex].values[valueIndex] = value;
+    setAttributes(updated);
+    // Limpiar variantes si cambia un valor
+    if (variants.length > 0) {
+      setVariants([]);
+    }
+  };
+
+  const removeAttributeValue = (attrIndex: number, valueIndex: number) => {
+    const updated = [...attributes];
+    updated[attrIndex].values.splice(valueIndex, 1);
+    setAttributes(updated);
+    // Limpiar variantes si se eliminó un valor
+    if (variants.length > 0) {
+      setVariants([]);
+    }
+  };
+
+  // Generar todas las combinaciones posibles de variantes
+  const generateVariants = () => {
+    // Validar que todos los atributos tengan nombre y al menos un valor
+    const invalidAttributes = attributes.filter(attr => !attr.name.trim() || attr.values.length === 0 || attr.values.some(v => !v.trim()));
+    if (invalidAttributes.length > 0) {
+      alert('Por favor completa todos los atributos con nombre y al menos un valor');
+      return;
+    }
+
+    // Generar combinaciones cartesianas
+    const combinations: Record<string, string>[] = [];
+    
+    function generateCombinations(index: number, current: Record<string, string>) {
+      if (index === attributes.length) {
+        combinations.push({ ...current });
+        return;
+      }
+
+      const attr = attributes[index];
+      for (const value of attr.values) {
+        if (value.trim()) {
+          generateCombinations(index + 1, { ...current, [attr.name]: value.trim() });
+        }
+      }
+    }
+
+    generateCombinations(0, {});
+
+    // Crear variantes desde las combinaciones
+    const baseProductName = formData.name || 'Producto';
+    const newVariants = combinations.map(combo => {
+      const variantName = Object.values(combo).join(' ');
+      const skuBase = formData.sku || baseProductName.replace(/\s+/g, '-').toUpperCase();
+      const skuSuffix = Object.values(combo).map(v => v.substring(0, 3).toUpperCase()).join('-');
+      
+      return {
+        sku: `${skuBase}-${skuSuffix}`,
+        name: `${baseProductName} ${variantName}`,
+        price: formData.price || undefined,
+        cost_price: formData.cost_price || 0,
+        stock_quantity: 0,
+        is_active: true,
+        attribute_values: combo
+      };
+    });
+
+    setVariants(newVariants);
+  };
+
+  const updateVariant = (index: number, field: string, value: string | number | boolean | undefined) => {
+    const updated = [...variants];
+    updated[index] = { ...updated[index], [field]: value };
+    setVariants(updated);
+  };
+
+  const removeVariant = (index: number) => {
+    setVariants(variants.filter((_, i) => i !== index));
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -429,7 +588,7 @@ export default function ProductModal({
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder={t('products.descriptionPlaceholder')}
-                  rows={2}
+                  rows={5}
                   className="bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:border-blue-500 dark:focus:border-blue-500 rounded-lg"
                 />
               </div>
@@ -720,6 +879,232 @@ export default function ProductModal({
                   <p className="text-sm">No hay talles agregados. Haz clic en &quot;Agregar Talle&quot; para comenzar.</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Sección de Variantes de Productos */}
+          {!isClothingCategory && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-4">
+              <Card className="border-2 border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-900/20 dark:to-violet-900/20 shadow-md">
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <Label htmlFor="has_variants" className="text-base font-bold text-indigo-900 dark:text-indigo-100 cursor-pointer flex items-center gap-2">
+                        <Sparkles className="w-5 h-5" />
+                        Usar Variantes de Producto
+                      </Label>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Crea variantes con atributos (ej: Color: Azul, Rojo, Verde)
+                      </p>
+                    </div>
+                    <Switch
+                      id="has_variants"
+                      checked={hasVariants}
+                      onCheckedChange={(checked) => {
+                        setHasVariants(checked);
+                        if (!checked) {
+                          setAttributes([]);
+                          setVariants([]);
+                        }
+                      }}
+                      className="data-[state=checked]:bg-indigo-600"
+                    />
+                  </div>
+
+                  {hasVariants && (
+                    <div className="space-y-6 mt-6">
+                      {/* Gestión de Atributos */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                              <Layers className="w-4 h-4" />
+                              Atributos del Producto
+                            </Label>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Define atributos y sus valores (ej: Color, Sabor, Tamaño)
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            onClick={addAttribute}
+                            variant="outline"
+                            className="border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Agregar Atributo
+                          </Button>
+                        </div>
+
+                        {attributes.length > 0 && (
+                          <div className="space-y-4">
+                            {attributes.map((attr, attrIndex) => (
+                              <div key={attrIndex} className="p-4 bg-white dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 space-y-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex-1">
+                                    <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1 block">
+                                      Nombre del Atributo
+                                    </Label>
+                                    <Input
+                                      value={attr.name}
+                                      onChange={(e) => updateAttributeName(attrIndex, e.target.value)}
+                                      placeholder="Ej: Color, Sabor, Tamaño"
+                                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    onClick={() => removeAttribute(attrIndex)}
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                      Valores
+                                    </Label>
+                                    <Button
+                                      type="button"
+                                      onClick={() => addAttributeValue(attrIndex)}
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-indigo-600 dark:text-indigo-400"
+                                    >
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Agregar Valor
+                                    </Button>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {attr.values.map((value, valueIndex) => (
+                                      <div key={valueIndex} className="flex items-center gap-2">
+                                        <Input
+                                          value={value}
+                                          onChange={(e) => updateAttributeValue(attrIndex, valueIndex, e.target.value)}
+                                          placeholder="Ej: Azul, Rojo"
+                                          className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                                        />
+                                        <Button
+                                          type="button"
+                                          onClick={() => removeAttributeValue(attrIndex, valueIndex)}
+                                          variant="ghost"
+                                          size="icon"
+                                          className="text-red-600 dark:text-red-400 h-9 w-9"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {attributes.length > 0 && variants.length === 0 && (
+                          <Button
+                            type="button"
+                            onClick={generateVariants}
+                            className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-700 hover:to-violet-700"
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Generar Variantes Automáticamente
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Lista de Variantes Generadas */}
+                      {variants.length > 0 && (
+                        <div className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+                          <Label className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                            Variantes Generadas ({variants.length})
+                          </Label>
+                          <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                            {variants.map((variant, variantIndex) => (
+                              <div key={variantIndex} className="p-4 bg-white dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                      {variant.name || Object.values(variant.attribute_values).join(' ')}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                      {Object.entries(variant.attribute_values).map(([key, value]) => (
+                                        <span key={key} className="mr-2">
+                                          <strong>{key}:</strong> {value}
+                                        </span>
+                                      ))}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    onClick={() => removeVariant(variantIndex)}
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-red-600 dark:text-red-400"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <div className="grid grid-cols-4 gap-3">
+                                  <div>
+                                    <Label className="text-xs text-gray-600 dark:text-gray-400">SKU</Label>
+                                    <Input
+                                      value={variant.sku || ''}
+                                      onChange={(e) => updateVariant(variantIndex, 'sku', e.target.value)}
+                                      placeholder="SKU único"
+                                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs text-gray-600 dark:text-gray-400">Precio (opcional)</Label>
+                                    <Input
+                                      type="number"
+                                      value={variant.price || ''}
+                                      onChange={(e) => updateVariant(variantIndex, 'price', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                      placeholder={`${formData.price || 0}`}
+                                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs text-gray-600 dark:text-gray-400">Costo</Label>
+                                    <Input
+                                      type="number"
+                                      value={variant.cost_price || 0}
+                                      onChange={(e) => updateVariant(variantIndex, 'cost_price', parseFloat(e.target.value) || 0)}
+                                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs text-gray-600 dark:text-gray-400">Stock</Label>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      value={variant.stock_quantity}
+                                      onChange={(e) => updateVariant(variantIndex, 'stock_quantity', parseInt(e.target.value) || 0)}
+                                      className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-sm"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {attributes.length === 0 && (
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-400 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                          <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">Agrega atributos y valores, luego genera las variantes automáticamente</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           )}
 

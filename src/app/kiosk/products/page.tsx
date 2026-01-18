@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 import { Building2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ProductsPage() {
   const t = useTranslations('kiosk');
@@ -81,6 +82,8 @@ export default function ProductsPage() {
         if (success) {
           setIsModalOpen(false);
           setEditingProduct(null);
+          // Solo refrescar si hay imagen, porque el hook ya actualiza el estado
+          // Si no hay imagen, onProductUpdated no se llamará y no habrá doble refresh
           if (imageFile && selectedVenueId) {
             await fetchProducts(filters);
           }
@@ -93,11 +96,8 @@ export default function ProductsPage() {
         
         const result = await createProduct(data as CreateProductData);
         if (result.success && result.product) {
-          setIsModalOpen(false);
-          setEditingProduct(null);
-          if (imageFile && selectedVenueId) {
-            await fetchProducts(filters);
-          }
+          // NO cerrar el modal aquí, se cerrará en ProductModal después de procesar la imagen
+          // NO llamar fetchProducts aquí porque onProductUpdated se llamará desde ProductModal
           return { success: true, productId: result.product.id };
         }
         return { success: false };
@@ -317,8 +317,16 @@ export default function ProductsPage() {
           </p>
         </div>
       ) : isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {[...Array(10)].map((_, i) => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="aspect-square w-full rounded-lg" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full rounded" />
+                <Skeleton className="h-4 w-3/4 rounded" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : displayProducts.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
