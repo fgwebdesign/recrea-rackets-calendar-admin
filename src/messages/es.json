@@ -265,6 +265,7 @@
       "noSales": "No hay ventas",
       "noSalesDescription": "No se encontraron ventas con los filtros seleccionados",
       "saleDetails": "Detalle de Venta",
+      "printTicket": "Imprimir Ticket",
       "items": "Items",
       "size": "Talle",
       "sku": "SKU",

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, TrendingUp, TrendingDown } from 'lucide-react';
 import { DashboardStats } from '@/types/kiosk';
 import { useTranslations } from '@/contexts/TranslationContext';
+import { WeeklySalesChart } from './WeeklySalesChart';
 
 interface DashboardKPIsProps {
   dashboard: DashboardStats;
@@ -15,7 +16,7 @@ export const DashboardKPIs = memo(function DashboardKPIs({ dashboard, formatCurr
   const t = useTranslations('kiosk');
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-auto">
       {/* Ventas Hoy */}
       <Card className="border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 shadow-lg hover:shadow-xl transition-shadow">
         <CardHeader className="pb-3">
@@ -59,7 +60,7 @@ export const DashboardKPIs = memo(function DashboardKPIs({ dashboard, formatCurr
           <p className="text-3xl font-bold text-blue-700 dark:text-blue-300 mb-2">
             {formatCurrency(dashboard.week.total_revenue)}
           </p>
-          <div className="space-y-1">
+          <div className="space-y-1 mb-3">
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {dashboard.week.sales_count} {t('reports.dashboard.transactions')}
             </p>
@@ -67,6 +68,17 @@ export const DashboardKPIs = memo(function DashboardKPIs({ dashboard, formatCurr
               {t('reports.dashboard.averageTicketLabel')}: {formatCurrency(dashboard.week.average_ticket)}
             </p>
           </div>
+          
+          {/* Gráfica semanal compacta */}
+          {dashboard.week.daily_breakdown && dashboard.week.daily_breakdown.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-blue-200 dark:border-blue-700">
+              <WeeklySalesChart
+                dailyBreakdown={dashboard.week.daily_breakdown}
+                totalRevenue={dashboard.week.total_revenue}
+                formatCurrency={formatCurrency}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

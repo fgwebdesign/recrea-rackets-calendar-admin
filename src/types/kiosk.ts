@@ -286,6 +286,12 @@ export interface DashboardStats {
     sales_count: number;
     total_revenue: number;
     average_ticket: number;
+    daily_breakdown?: Array<{
+      date: string;
+      day_name: string;
+      sales_count: number;
+      total: number;
+    }>;
   };
   month: {
     sales_count: number;

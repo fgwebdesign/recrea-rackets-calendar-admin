@@ -227,6 +227,49 @@
       "periodReports": {
         "title": "Period Reports"
       }
+    },
+    "sales": {
+      "title": "Sales",
+      "description": "Sales history and management",
+      "searchPlaceholder": "Search sales...",
+      "allVenues": "All venues",
+      "venue": "Venue",
+      "selectedVenue": "Selected venue",
+      "allPaymentMethods": "All methods",
+      "allStatus": "All statuses",
+      "saleNumber": "Sale #",
+      "product": "Product",
+      "date": "Date",
+      "customer": "Customer",
+      "paymentMethod": "Payment Method",
+      "status": "Status",
+      "total": "Total",
+      "actions": "Actions",
+      "view": "View",
+      "showing": "Showing",
+      "to": "to",
+      "of": "of",
+      "sales": "sales",
+      "noSales": "No sales",
+      "noSalesDescription": "No sales found with the selected filters",
+      "saleDetails": "Sale Details",
+      "printTicket": "Print Ticket",
+      "items": "Items",
+      "size": "Size",
+      "sku": "SKU",
+      "paymentMethods": {
+        "cash": "Cash",
+        "transfer": "Transfer",
+        "card": "Card",
+        "mercadopago": "Mercadopago",
+        "pending": "Pending"
+      },
+      "paymentStatus": {
+        "pending": "Pending",
+        "completed": "Completed",
+        "refunded": "Refunded",
+        "cancelled": "Cancelled"
+      }
     }
   }
 }

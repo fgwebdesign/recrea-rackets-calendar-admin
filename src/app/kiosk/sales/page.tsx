@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Receipt, Search, Package } from "lucide-react";
+import { Receipt, Search, Package, Calendar, MapPin, CreditCard, CheckCircle2, Clock, XCircle, User, FileText } from "lucide-react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,8 +23,9 @@ import { Label } from "@/components/ui/label";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Image from 'next/image';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { Printer } from "lucide-react";
 
 export default function SalesPage() {
   const t = useTranslations('kiosk');
@@ -79,6 +80,175 @@ export default function SalesPage() {
       setSelectedSale(sale);
       setShowSaleModal(true);
     }
+  };
+
+  const handlePrintTicket = () => {
+    if (!selectedSale) return;
+    
+    // Crear un contenedor temporal para el ticket
+    const printContainer = document.createElement('div');
+    printContainer.className = 'ticket-print-container';
+    document.body.appendChild(printContainer);
+
+    // Renderizar el ticket usando React (necesitamos usar un portal o renderizado directo)
+    // Por ahora, usaremos una solución más simple con window.print()
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      console.error('No se pudo abrir la ventana de impresión');
+      return;
+    }
+
+    // Obtener el HTML del ticket optimizado para A5
+    const ticketHTML = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Ticket de Venta #${selectedSale.sale_number}</title>
+          <style>
+            @page {
+              size: A5;
+              margin: 8mm 10mm;
+            }
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              font-family: 'Courier New', Courier, monospace;
+              font-size: 9pt;
+              line-height: 1.3;
+              color: #000;
+              width: 100%;
+            }
+            .ticket-separator {
+              text-align: center;
+              margin: 2mm 0;
+              font-size: 8pt;
+            }
+            .ticket-title {
+              font-weight: bold;
+              font-size: 12pt;
+              margin: 2mm 0;
+              text-align: center;
+              text-transform: uppercase;
+            }
+            .ticket-line {
+              margin: 1.5mm 0;
+              font-size: 9pt;
+            }
+            .ticket-section-title {
+              font-weight: bold;
+              margin-bottom: 1.5mm;
+              margin-top: 2mm;
+              font-size: 9pt;
+            }
+            .ticket-item {
+              margin: 2.5mm 0;
+              page-break-inside: avoid;
+            }
+            .ticket-item-name {
+              font-weight: bold;
+              margin-bottom: 0.5mm;
+              font-size: 9pt;
+            }
+            .ticket-item-details {
+              display: flex;
+              justify-content: space-between;
+              margin: 0.5mm 0;
+              font-size: 8.5pt;
+            }
+            .ticket-item-sku, .ticket-item-size {
+              font-size: 7.5pt;
+              color: #666;
+              margin-top: 0.5mm;
+            }
+            .ticket-total-line {
+              display: flex;
+              justify-content: space-between;
+              font-weight: bold;
+              font-size: 10pt;
+              margin: 2mm 0;
+            }
+            .ticket-total-amount {
+              font-size: 12pt;
+            }
+            .ticket-thanks {
+              text-align: center;
+              font-size: 9pt;
+              font-weight: bold;
+              margin-top: 3mm;
+              margin-bottom: 2mm;
+            }
+            @media print {
+              body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="ticket-separator">═══════════════════════════════════</div>
+          <div class="ticket-title">CORDON PADEL CLUB</div>
+          <div class="ticket-separator">═══════════════════════════════════</div>
+          
+          <div class="ticket-line"><strong>Venta #${selectedSale.sale_number}</strong></div>
+          <div class="ticket-line">Fecha: ${format(new Date(selectedSale.sale_date), 'dd/MM/yyyy HH:mm', { locale: es })}</div>
+          ${selectedSale.venue?.name ? `<div class="ticket-line">Sede: ${selectedSale.venue.name}</div>` : ''}
+          <div class="ticket-line">Método: ${getPaymentMethodLabel(selectedSale.payment_method)}</div>
+          <div class="ticket-line">Estado: ${getPaymentStatusLabel(selectedSale.payment_status)}</div>
+          ${selectedSale.customer_name ? `<div class="ticket-line">Cliente: ${selectedSale.customer_name}</div>` : ''}
+          
+          <div class="ticket-separator">───────────────────────────────────</div>
+          
+          <div class="ticket-section-title">ITEMS:</div>
+          <div class="ticket-separator">───────────────────────────────────</div>
+          
+          ${selectedSale.items && selectedSale.items.length > 0 ? selectedSale.items.map(item => `
+            <div class="ticket-item">
+              <div class="ticket-item-name">${item.product_name}</div>
+              <div class="ticket-item-details">
+                <span>${item.quantity} x $${item.unit_price.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span style="font-weight: bold;">$${item.total.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              ${item.product_sku ? `<div class="ticket-item-sku">SKU: ${item.product_sku}</div>` : ''}
+              ${item.size ? `<div class="ticket-item-size">Talle: ${item.size}</div>` : ''}
+            </div>
+          `).join('') : '<div class="ticket-line">No hay items</div>'}
+          
+          <div class="ticket-separator">───────────────────────────────────</div>
+          
+          <div class="ticket-total-line">
+            <span>TOTAL:</span>
+            <span class="ticket-total-amount">$${selectedSale.total.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+          
+          <div class="ticket-separator">───────────────────────────────────</div>
+          
+          <div class="ticket-thanks">¡Gracias por su compra!</div>
+          
+          <div class="ticket-separator">═══════════════════════════════════</div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(ticketHTML);
+    printWindow.document.close();
+    
+    // Esperar a que se cargue el contenido y luego imprimir
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+        // Cerrar la ventana después de imprimir (opcional)
+        // printWindow.close();
+      }, 250);
+    };
+
+    // Limpiar el contenedor temporal
+    document.body.removeChild(printContainer);
   };
 
   const getPaymentMethodLabel = (method: string) => {
@@ -432,116 +602,219 @@ export default function SalesPage() {
           setSelectedSale(null);
         }
       }}>
-        <DialogContent className="bg-white dark:bg-gray-800 max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-gray-900 dark:text-white">
-              {t('sales.saleDetails')} #{selectedSale?.sale_number}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedSale && (
-            <div className="space-y-6">
+        <DialogContent className="bg-white dark:bg-gray-800 max-w-2xl max-h-[85vh] overflow-y-auto p-0 [&>button]:right-3 [&>button]:top-3">
+          {/* Header mejorado con gradiente */}
+          <div className="bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 px-5 py-3 rounded-t-lg relative pr-12">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-white/20 rounded-lg">
+                  <Receipt className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <DialogTitle className="text-white text-lg font-bold m-0">
+                    {t('sales.saleDetails')} #{selectedSale?.sale_number}
+                  </DialogTitle>
+                  <p className="text-green-100 text-xs mt-0.5">
+                    {selectedSale && format(new Date(selectedSale.sale_date), 'dd/MM/yyyy HH:mm', { locale: es })}
+                  </p>
+                </div>
+              </div>
+              {selectedSale && (
+                <Button
+                  onClick={handlePrintTicket}
+                  size="sm"
+                  className="bg-white text-green-700 hover:bg-green-50 dark:bg-white dark:text-green-700 dark:hover:bg-green-50 font-semibold shadow-md text-xs px-3"
+                >
+                  <Printer className="w-3.5 h-3.5 mr-1.5" />
+                  {t('sales.printTicket')}
+                </Button>
+              )}
+            </div>
+          </div>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('sales.date')}</p>
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+          <div className="p-5 space-y-4">
+            {selectedSale && (
+              <>
+                {/* Información de la venta en cards mejoradas */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('sales.date')}</p>
+                    </div>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-base">
                       {format(new Date(selectedSale.sale_date), 'dd/MM/yyyy HH:mm', { locale: es })}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('sales.venue')}</p>
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('sales.venue')}</p>
+                    </div>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-base">
                       {selectedSale.venue?.name || '-'}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('sales.paymentMethod')}</p>
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <CreditCard className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('sales.paymentMethod')}</p>
+                    </div>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-base">
                       {getPaymentMethodLabel(selectedSale.payment_method)}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('sales.status')}</p>
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      {selectedSale.payment_status === 'completed' ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                      ) : selectedSale.payment_status === 'pending' ? (
+                        <Clock className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />
+                      ) : (
+                        <XCircle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                      )}
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('sales.status')}</p>
+                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      selectedSale.payment_status === 'completed'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        : selectedSale.payment_status === 'pending'
+                          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                          : selectedSale.payment_status === 'cancelled'
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400'
+                    }`}>
                       {getPaymentStatusLabel(selectedSale.payment_status)}
-                    </p>
+                    </span>
                   </div>
                 </div>
 
+                {/* Cliente si existe */}
+                {(selectedSale.customer_name || selectedSale.customer) && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">{t('sales.customer')}</p>
+                    </div>
+                    <p className="font-semibold text-blue-900 dark:text-blue-100 text-sm">
+                      {selectedSale.customer 
+                        ? `${selectedSale.customer.first_name || ''} ${selectedSale.customer.last_name || ''}`.trim()
+                        : selectedSale.customer_name}
+                    </p>
+                  </div>
+                )}
+
+                {/* Items mejorados */}
                 {selectedSale.items && selectedSale.items.length > 0 && (
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">{t('sales.items')}</h3>
-                    <div className="space-y-3">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                      <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{t('sales.items')}</h3>
+                      <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
+                        {selectedSale.items.length} {selectedSale.items.length === 1 ? 'item' : 'items'}
+                      </span>
+                    </div>
+                    <div className="space-y-2.5">
                       {selectedSale.items.map((item) => {
                         const productImage = item.product?.image_url;
                         return (
-                        <div key={item.id} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                          {/* Imagen del producto */}
-                          <div className="flex-shrink-0">
-                            {productImage ? (
-                              <div className="relative w-16 h-16 rounded-md overflow-hidden">
-                                <Image
-                                  src={productImage}
-                                  alt={item.product_name}
-                                  fill
-                                  className="object-cover"
-                                  sizes="64px"
-                                  loading="lazy"
-                                  quality={75}
-                                />
-                              </div>
-                            ) : (
-                              <div className="w-16 h-16 rounded-md bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
-                                <Package className="w-8 h-8 text-gray-400 dark:text-gray-500" />
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Información del producto */}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 dark:text-gray-100">{item.product_name}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {item.quantity} x ${item.unit_price.toLocaleString('es-UY')}
-                              </p>
-                              {item.size && (
-                                <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full font-medium">
-                                  {t('sales.size')}: {item.size}
-                                </span>
+                          <div 
+                            key={item.id} 
+                            className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-700 transition-colors shadow-sm"
+                          >
+                            {/* Imagen del producto mejorada */}
+                            <div className="flex-shrink-0">
+                              {productImage ? (
+                                <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 shadow-sm">
+                                  <Image
+                                    src={productImage}
+                                    alt={item.product_name}
+                                    fill
+                                    className="object-cover"
+                                    sizes="64px"
+                                    loading="lazy"
+                                    quality={75}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center border border-gray-200 dark:border-gray-600 shadow-sm">
+                                  <Package className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                                </div>
                               )}
                             </div>
-                            {item.product_sku && (
-                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                                {t('sales.sku')}: {item.product_sku}
-                              </p>
-                            )}
+                            
+                            {/* Información del producto mejorada */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2 mb-1.5">
+                                <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{item.product_name}</p>
+                                <span className="flex-shrink-0 text-base font-bold text-gray-900 dark:text-gray-100">
+                                  ${item.total.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                              
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                                  {item.quantity} x ${item.unit_price.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                                {item.size && (
+                                  <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full font-semibold">
+                                    {t('sales.size')}: {item.size}
+                                  </span>
+                                )}
+                                {item.product_sku && (
+                                  <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full font-mono">
+                                    {t('sales.sku')}: {item.product_sku}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          
-                          {/* Total del item */}
-                          <div className="flex-shrink-0">
-                            <p className="font-semibold text-gray-900 dark:text-gray-100 text-right">
-                              ${item.total.toLocaleString('es-UY')}
-                            </p>
-                          </div>
-                        </div>
-                      )})}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                  <div className="flex justify-between items-center text-lg font-bold">
-                    <span className="text-gray-900 dark:text-gray-100">{t('sales.total')}:</span>
-                    <span className="text-green-600 dark:text-green-400">
-                      ${selectedSale.total.toLocaleString('es-UY')}
+                {/* Notas si existen */}
+                {selectedSale.notes && (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <FileText className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                      <p className="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wide">Notas</p>
+                    </div>
+                    <p className="text-xs text-amber-900 dark:text-amber-100">{selectedSale.notes}</p>
+                  </div>
+                )}
+
+                {/* Total mejorado */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border-2 border-green-200 dark:border-green-800">
+                  <div className="flex justify-between items-center">
+                    <span className="text-base font-bold text-gray-900 dark:text-gray-100">{t('sales.total')}:</span>
+                    <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      ${selectedSale.total.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
+                  {selectedSale.subtotal !== selectedSale.total && (
+                    <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+                      <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                        <span>Subtotal:</span>
+                        <span>${selectedSale.subtotal.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      {selectedSale.discount_amount > 0 && (
+                        <div className="flex justify-between text-xs text-red-600 dark:text-red-400">
+                          <span>Descuento:</span>
+                          <span>-${selectedSale.discount_amount.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

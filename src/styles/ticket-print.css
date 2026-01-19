@@ -1,0 +1,185 @@
+/* Estilos para impresión de tickets POS */
+
+/* Contenedor del ticket - oculto en pantalla, visible al imprimir */
+.ticket-print-container {
+  display: none;
+}
+
+@media print {
+  /* Ocultar todo excepto el ticket */
+  body * {
+    visibility: hidden;
+  }
+
+  .ticket-print-container,
+  .ticket-print-container * {
+    visibility: visible;
+  }
+
+  .ticket-print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    display: block;
+  }
+
+  /* Configuración de página para ticket térmico 80mm */
+  @page {
+    size: 80mm auto;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Contenedor del contenido del ticket */
+  .ticket-content {
+    width: 80mm;
+    max-width: 80mm;
+    margin: 0 auto;
+    padding: 10mm 5mm;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11pt;
+    line-height: 1.4;
+    color: #000;
+    background: #fff;
+  }
+
+  /* Encabezado */
+  .ticket-header {
+    text-align: center;
+    margin-bottom: 8mm;
+  }
+
+  .ticket-title {
+    font-weight: bold;
+    font-size: 14pt;
+    margin: 4mm 0;
+    text-transform: uppercase;
+  }
+
+  /* Separadores */
+  .ticket-separator {
+    text-align: center;
+    margin: 3mm 0;
+    font-family: 'Courier New', Courier, monospace;
+    color: #000;
+  }
+
+  /* Información de la venta */
+  .ticket-info {
+    margin-bottom: 5mm;
+  }
+
+  .ticket-line {
+    margin: 2mm 0;
+    font-size: 10pt;
+  }
+
+  /* Items */
+  .ticket-items {
+    margin: 5mm 0;
+  }
+
+  .ticket-section-title {
+    font-weight: bold;
+    margin-bottom: 2mm;
+    font-size: 11pt;
+  }
+
+  .ticket-item {
+    margin: 4mm 0;
+  }
+
+  .ticket-item-name {
+    font-weight: bold;
+    margin-bottom: 1mm;
+    font-size: 10pt;
+  }
+
+  .ticket-item-details {
+    display: flex;
+    justify-content: space-between;
+    margin: 1mm 0;
+    font-size: 10pt;
+  }
+
+  .ticket-item-quantity {
+    flex: 1;
+  }
+
+  .ticket-item-total {
+    font-weight: bold;
+    text-align: right;
+  }
+
+  .ticket-item-sku,
+  .ticket-item-size {
+    font-size: 9pt;
+    color: #666;
+    margin-top: 1mm;
+  }
+
+  /* Totales */
+  .ticket-totals {
+    margin: 5mm 0;
+  }
+
+  .ticket-total-line {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 12pt;
+    margin: 3mm 0;
+  }
+
+  .ticket-total-amount {
+    font-size: 14pt;
+  }
+
+  /* Pie de página */
+  .ticket-footer {
+    text-align: center;
+    margin-top: 8mm;
+  }
+
+  .ticket-thanks {
+    font-size: 11pt;
+    font-weight: bold;
+  }
+
+  /* Evitar saltos de página dentro del ticket */
+  .ticket-content {
+    page-break-inside: avoid;
+  }
+
+  .ticket-item {
+    page-break-inside: avoid;
+  }
+}
+
+/* Estilos para vista previa (opcional, para desarrollo) */
+.ticket-print-container.preview {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.ticket-print-container.preview .ticket-content {
+  width: 80mm;
+  max-width: 80mm;
+  margin: 0 auto;
+  padding: 10mm 5mm;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11pt;
+  line-height: 1.4;
+  color: #000;
+  background: #fff;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
