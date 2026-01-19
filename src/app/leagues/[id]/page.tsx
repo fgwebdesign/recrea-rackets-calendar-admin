@@ -18,12 +18,14 @@ import {
   FileText, 
   Trophy,
   ChevronDown,
-  Image as ImageIcon
+  Image as ImageIcon,
+  PlusIcon
 } from 'lucide-react'
 import { useToast } from "@/components/ui/use-toast"
 import { LeagueTeams } from '@/components/Leagues/LeagueTeams'
 import { LeagueHeader } from "@/components/Leagues/LeagueHeader"
 import { useTranslations } from '@/contexts/TranslationContext'
+import { Button } from '@/components/ui/button'
 
 // Definir la interfaz Team con la estructura exacta del backend
 interface RegisteredTeam {
@@ -154,6 +156,21 @@ export default function LeagueDetailsPage() {
               </Collapsible.Trigger>
               <Collapsible.Content>
                 <CardContent className="p-6">
+                  <div className="mb-4 flex justify-end">
+                    <Button
+                      onClick={() => router.push(`/leagues/${leagueId}/admin-register-team`)}
+                      disabled={(league.teams?.length || 0) >= league.team_size}
+                      className={`${
+                        (league.teams?.length || 0) >= league.team_size
+                          ? 'bg-gray-400 cursor-not-allowed opacity-60' 
+                          : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl'
+                      } text-white transition-all duration-200`}
+                      title={(league.teams?.length || 0) >= league.team_size ? `Cupo completo (${league.teams?.length || 0}/${league.team_size})` : 'Registrar nuevo equipo'}
+                    >
+                      <PlusIcon className="h-4 w-4 mr-2" />
+                      {(league.teams?.length || 0) >= league.team_size ? 'Cupo Completo' : t('registerTeam')}
+                    </Button>
+                  </div>
                   <LeagueTeams
                     teams={(league.teams || []).map(team => ({
                       ...team,

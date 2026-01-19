@@ -61,6 +61,7 @@ export interface LeagueMatch {
   team2: string;
   match_date: string;
   match_number: number;
+  round_number?: number | null; // Número de ronda desde league_schedule
   team1_sets1_won: number;
   team2_sets1_won: number;
   team1_sets2_won: number;

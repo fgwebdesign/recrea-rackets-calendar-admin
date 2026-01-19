@@ -1,17 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner"
 import { useLeague } from "@/hooks/useLeague"
 import { useCategories } from "@/hooks/useCategories"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { ArrowLeft, CalendarDays, Clock, Filter, ListFilter, ChevronLeft, ChevronRight, CheckCircle, XCircle, Calendar, MapPin } from "lucide-react"
+import { ArrowLeft, Clock, Filter, CheckCircle, XCircle, Calendar, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { LeagueMatchModal } from "@/components/Leagues/LeagueMatchModal"
-import { updateMatchResult, updateMatchSchedule } from "@/services/leagueService"
+import { updateMatchResult } from "@/services/leagueService"
 import { toast } from "@/components/ui/use-toast"
 import { formatUruguayDateTime } from "@/lib/utils"
 import {
@@ -24,26 +22,17 @@ import {
 import type { LeagueMatch } from "@/types/league"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-interface Match {
-  id: string;
-  category_id: string;
-  category_name: string;
-  team1: string;
-  team2: string;
-  match_date: string;
-  court_name: string;
-  status: "SCHEDULED" | "COMPLETED" | "WALKOVER";
+interface MatchResultData {
   team1_sets1_won: number;
   team1_sets2_won: number;
   team2_sets1_won: number;
   team2_sets2_won: number;
-}
-
-interface MatchResult {
-  team1_sets1_won: number;
-  team1_sets2_won: number;
-  team2_sets1_won: number;
-  team2_sets2_won: number;
+  team1_tie1_won?: number;
+  team2_tie1_won?: number;
+  team1_tie2_won?: number;
+  team2_tie2_won?: number;
+  team1_tie3_won?: number;
+  team2_tie3_won?: number;
 }
 
 function formatMatchDate(dateStr: string) {
@@ -57,6 +46,7 @@ export default function LeagueMatchesPage() {
   const leagueId = params.id as string
   const [matches, setMatches] = useState<LeagueMatch[]>([])
   const [filteredMatches, setFilteredMatches] = useState<LeagueMatch[]>([])
+  const [schedule, setSchedule] = useState<Array<{ round_number: number; scheduled_date: string }>>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedMatch, setSelectedMatch] = useState<LeagueMatch | null>(null)
@@ -72,13 +62,14 @@ export default function LeagueMatchesPage() {
   const { league, isLoading: isLoadingLeague, error: leagueError } = useLeague(leagueId)
   const { categories, isLoading: isLoadingCategories } = useCategories()
 
-  const fetchMatches = async () => {
+  const fetchMatches = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
       
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
-      const url = `${baseUrl}/leagues/matches/league/${leagueId}`
+      // ====== Obtener todos los matches sin paginación para ver todas las rondas ======
+      const url = `${baseUrl}/leagues/matches/league/${leagueId}?page=1&pageSize=1000`
       
       const response = await fetch(url, {
         headers: {
@@ -97,25 +88,50 @@ export default function LeagueMatchesPage() {
       )
       setMatches(allMatches)
       setFilteredMatches(allMatches)
+      // ====== NUEVO: Usar el schedule completo del backend ======
+      if (data.schedule && Array.isArray(data.schedule)) {
+        // Eliminar duplicados por round_number por si acaso
+        interface ScheduleItem {
+          round_number: number;
+          scheduled_date: string;
+        }
+        const uniqueSchedule = (data.schedule as ScheduleItem[]).filter((item: ScheduleItem, index: number, self: ScheduleItem[]) => 
+          index === self.findIndex((s: ScheduleItem) => s.round_number === item.round_number)
+        ).sort((a: ScheduleItem, b: ScheduleItem) => a.round_number - b.round_number);
+        setSchedule(uniqueSchedule)
+      } else {
+        setSchedule([])
+      }
     } catch (error) {
       console.error('Error:', error)
       setError(error instanceof Error ? error.message : 'Error desconocido')
     } finally {
       setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchMatches()
   }, [leagueId])
 
   useEffect(() => {
-    if (statusFilter === "all") {
-      setFilteredMatches(matches)
-    } else {
-      setFilteredMatches(matches.filter(match => match.status === statusFilter))
+    fetchMatches()
+  }, [fetchMatches])
+
+  useEffect(() => {
+    let filtered = matches;
+
+    // Filtrar por estado
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(match => match.status === statusFilter);
     }
-  }, [statusFilter, matches])
+
+    // Filtrar por ronda
+    if (selectedRound !== "all") {
+      const roundNum = parseInt(selectedRound);
+      filtered = filtered.filter(match => match.round_number === roundNum);
+    }
+
+    setFilteredMatches(filtered);
+    // Resetear a la primera página cuando cambian los filtros
+    setCurrentPage(1);
+  }, [statusFilter, selectedRound, matches])
 
   const handleMatchClick = (match: LeagueMatch) => {
     setSelectedMatch(match)
@@ -127,7 +143,7 @@ export default function LeagueMatchesPage() {
     setSelectedMatch(null)
   }
 
-  const handleSaveResult = async (matchId: string, result: any) => {
+  const handleSaveResult = async (matchId: string, result: MatchResultData) => {
     try {
       setIsUpdating(true)
       await updateMatchResult(matchId, result)
@@ -138,7 +154,7 @@ export default function LeagueMatchesPage() {
           ? {
               ...match,
               ...result,
-              status: 'COMPLETED',
+              status: 'COMPLETED' as const,
             }
           : match
       )
@@ -165,38 +181,6 @@ export default function LeagueMatchesPage() {
     }
   }
 
-  const handleScheduleUpdate = async (matchId: string, schedule: any) => {
-    try {
-      setIsUpdating(true)
-      await updateMatchSchedule(matchId, schedule)
-      
-      // Actualizar el estado local
-      const updatedMatches = matches.map(match =>
-        match.id === matchId
-          ? {
-              ...match,
-              match_date: `${schedule.date}T${schedule.time}`,
-            }
-          : match
-      )
-      
-      setMatches(updatedMatches)
-      toast({
-        title: 'Éxito',
-        description: 'Horario actualizado correctamente',
-      })
-      handleModalClose()
-    } catch (error) {
-      console.error('Error:', error)
-      toast({
-        title: 'Error',
-        description: 'No se pudo actualizar el horario',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsUpdating(false)
-    }
-  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -218,15 +202,27 @@ export default function LeagueMatchesPage() {
     return { completed, scheduled, walkover }
   }
 
+  // ====== Memoizar las rondas únicas para evitar duplicados ======
+  const uniqueRounds = useMemo(() => {
+    if (schedule.length > 0) {
+      // Usar schedule del backend y eliminar duplicados
+      const rounds = schedule
+        .map(s => s.round_number)
+        .filter((r): r is number => r !== null && r !== undefined && typeof r === 'number');
+      return Array.from(new Set(rounds)).sort((a, b) => a - b);
+    } else {
+      // Fallback a round_numbers de matches
+      const rounds = matches
+        .map(match => match.round_number)
+        .filter((r): r is number => r !== null && r !== undefined && typeof r === 'number');
+      return Array.from(new Set(rounds)).sort((a, b) => a - b);
+    }
+  }, [schedule, matches]);
+
   // Pagination handlers
-  const totalPages = Math.ceil(filteredMatches.length / matchesPerPage)
   const startIndex = (currentPage - 1) * matchesPerPage
   const endIndex = startIndex + matchesPerPage
   const currentMatches = filteredMatches.slice(startIndex, endIndex)
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
-  }
 
   if (isLoading) {
     return (
@@ -388,8 +384,17 @@ export default function LeagueMatchesPage() {
                   <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-purple-900 dark:text-purple-300">Fecha {matches[0]?.match_number || '-'}</p>
-                  <p className="text-xs text-purple-600 dark:text-purple-400">Ronda actual</p>
+                  <p className="text-sm font-medium text-purple-900 dark:text-purple-300">
+                    {selectedRound !== "all" 
+                      ? `Fecha ${selectedRound}` 
+                      : schedule.length > 0 
+                        ? `Fecha ${schedule[0]?.round_number || '-'}` 
+                        : matches.length > 0 
+                          ? `Fecha ${matches[0]?.round_number || '-'}` 
+                          : '-'
+                    }
+                  </p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400">Ronda {selectedRound !== "all" ? "seleccionada" : "actual"}</p>
                 </div>
               </div>
             </div>
@@ -455,7 +460,7 @@ export default function LeagueMatchesPage() {
                     >
                       Todas las fechas
                     </TabsTrigger>
-                    {Array.from(new Set(matches.map(match => match.match_number))).sort((a, b) => a - b).map((round) => (
+                    {uniqueRounds.filter(round => round != null).map((round) => (
                       <TabsTrigger 
                         key={round} 
                         value={round.toString()}
@@ -468,7 +473,12 @@ export default function LeagueMatchesPage() {
 
                   <TabsContent value="all" className="mt-6">
                     <div className="grid gap-4">
-                      {currentMatches.map((match) => {
+                      {filteredMatches.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                          No hay partidos que coincidan con los filtros seleccionados.
+                        </div>
+                      ) : (
+                        currentMatches.map((match) => {
                         const { date, time } = formatMatchDate(match.match_date);
                         return (
                           <Card key={match.id} className="overflow-hidden bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700">
@@ -525,16 +535,25 @@ export default function LeagueMatchesPage() {
                             </div>
                           </Card>
                         );
-                      })}
+                      }))}
                     </div>
                   </TabsContent>
 
-                  {Array.from(new Set(matches.map(match => match.match_number))).sort((a, b) => a - b).map((round) => (
+                  {uniqueRounds.filter(round => round != null).map((round) => {
+                      const roundMatches = matches.filter(match => 
+                        match.round_number === round && 
+                        (statusFilter === 'all' || match.status === statusFilter)
+                      );
+                      
+                      return (
                     <TabsContent key={round} value={round.toString()} className="mt-6">
                       <div className="grid gap-4">
-                        {matches
-                          .filter(match => match.match_number === round && (statusFilter === 'all' || match.status === statusFilter))
-                          .map((match) => {
+                        {roundMatches.length === 0 ? (
+                          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                            No hay partidos en esta fecha con los filtros seleccionados.
+                          </div>
+                        ) : (
+                          roundMatches.map((match) => {
                             const { date, time } = formatMatchDate(match.match_date);
                             return (
                               <Card key={match.id} className="overflow-hidden bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700">
@@ -584,10 +603,11 @@ export default function LeagueMatchesPage() {
                                 </div>
                               </Card>
                             );
-                          })}
+                          }))}
                       </div>
                     </TabsContent>
-                  ))}
+                    );
+                  })}
                 </Tabs>
               </div>
             </CardContent>

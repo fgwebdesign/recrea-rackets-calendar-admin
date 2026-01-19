@@ -94,7 +94,7 @@ const translations: Record<Locale, Record<string, any>> = {
       date: 'Fecha',
       time: 'Hora',
       noMatchesScheduled: '¡No hay partidos programados aún!',
-      noMatchesScheduledDescription: 'Los partidos de torneos aparecerán aquí cuando estén programados. ¡Mantente atento a las próximas competencias!',
+      noMatchesScheduledDescription: 'Los partidos aparecerán aquí cuando estén programados. ¡Mantente atento a las próximas competencias!',
       noMatchesForAllCategories: 'Los partidos de torneos aparecerán aquí cuando estén programados. ¡Mantente atento a las próximas competencias!',
       noMatchesForCategory: 'No hay partidos programados para la categoría {category}. ¡Revisa otras categorías o espera a que se programen más partidos!',
       noMatchesForNow: 'Sin partidos por ahora.',
@@ -1432,13 +1432,16 @@ const translations: Record<Locale, Record<string, any>> = {
       registeredTeams: 'Equipos Registrados',
       completed: 'completado',
       spotsAvailable: 'cupos disponibles',
+      spotAvailable: 'cupo disponible',
       spotsFull: 'Cupos Completos',
       inscriptionCost: 'Costo de Inscripción',
+      maxTeams: 'equipos máx',
       // League Detail Page
       backToLeagues: 'Volver a Ligas',
       loadingLeagueInfo: 'Cargando información de la liga...',
       errorLoadingLeague: 'No se pudo cargar la información de la liga.',
       registeredTeamsTitle: 'Equipos Registrados',
+      registerTeam: 'Registrar Equipo',
       // Pagination
       showing: 'Mostrando',
       to: 'a',
@@ -1463,6 +1466,8 @@ const translations: Record<Locale, Record<string, any>> = {
       continue: 'Continuar',
       // League Detail Page Sections
       upcomingMatches: 'Próximos Partidos',
+      noMatchesScheduled: 'No hay partidos programados aún',
+      noMatchesScheduledDescription: 'Los partidos de la liga aparecerán aquí cuando estén programados. Genera los partidos desde el botón "Generar partidos de la liga" cuando la liga esté completa.',
       leagueInfo: 'Información de la Liga',
       standings: 'Tabla de Posiciones',
       gallery: 'Galería de Imágenes',
@@ -1587,7 +1592,7 @@ const translations: Record<Locale, Record<string, any>> = {
       date: 'Date',
       time: 'Time',
       noMatchesScheduled: 'No matches scheduled yet!',
-      noMatchesScheduledDescription: 'Tournament matches will appear here when they are scheduled. Stay tuned for upcoming competitions!',
+      noMatchesScheduledDescription: 'Matches will appear here when they are scheduled. Stay tuned for upcoming competitions!',
       noMatchesForAllCategories: 'Tournament matches will appear here when they are scheduled. Stay tuned for upcoming competitions!',
       noMatchesForCategory: 'No matches scheduled for the {category} category. Check other categories or wait for more matches to be scheduled!',
       noMatchesForNow: 'No matches for now.',
@@ -2490,13 +2495,16 @@ const translations: Record<Locale, Record<string, any>> = {
     registeredTeams: 'Registered Teams',
     completed: 'completed',
     spotsAvailable: 'spots available',
+    spotAvailable: 'spot available',
     spotsFull: 'Spots Full',
     inscriptionCost: 'Registration Cost',
+    maxTeams: 'max teams',
     // League Detail Page
     backToLeagues: 'Back to Leagues',
     loadingLeagueInfo: 'Loading league information...',
     errorLoadingLeague: 'Could not load league information.',
     registeredTeamsTitle: 'Registered Teams',
+    registerTeam: 'Register Team',
     // Pagination
     showing: 'Showing',
     to: 'to',
@@ -2521,6 +2529,8 @@ const translations: Record<Locale, Record<string, any>> = {
     continue: 'Continue',
     // League Detail Page Sections
     upcomingMatches: 'Upcoming Matches',
+    noMatchesScheduled: 'No matches scheduled yet',
+    noMatchesScheduledDescription: 'League matches will appear here when they are scheduled. Generate matches from the "Generate league matches" button when the league is complete.',
     leagueInfo: 'League Information',
     standings: 'Standings',
     gallery: 'Image Gallery',
@@ -2559,8 +2569,6 @@ const translations: Record<Locale, Record<string, any>> = {
     unexpectedErrorDescription: 'An error occurred while generating the league',
     // League Header
     categoryNotSpecified: 'Category not specified',
-    spotAvailable: 'spot available',
-    maxTeams: 'max teams'
   },
   // Tournaments
   tournaments: {
