@@ -3,6 +3,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { tournamentCreationService, TournamentCreationData } from '@/services/tournamentCreationService';
+import { tournamentService } from '@/services/tournamentService';
 import { useTranslations } from '@/contexts/TranslationContext';
 
 interface TournamentResponse {
@@ -31,6 +32,7 @@ export interface TournamentFormData {
   // Paso 2: Información Detallada
   description: string;
   rules: string;
+  rules_pdf?: File | null;
   tournament_location: string;
   tournament_address: string;
   tournament_club_name: string; // Campo requerido por el backend
@@ -62,6 +64,7 @@ const INITIAL_FORM_DATA: TournamentFormData = {
   venues: [], // ✨ NUEVO: Multi-sede support
   description: '',
   rules: '',
+  rules_pdf: null,
   tournament_location: '',
   tournament_address: '',
   tournament_club_name: '',
@@ -150,8 +153,8 @@ export function useTournamentForm() {
       newErrors.description = t('create.validation.descriptionRequired');
     }
 
-    if (!data.rules.trim()) {
-      newErrors.rules = t('create.validation.rulesRequired');
+    if (!data.rules_pdf) {
+      newErrors.rules_pdf = t('create.validation.rulesPdfRequired');
     }
 
     if (!data.tournament_location.trim()) {
@@ -200,7 +203,7 @@ export function useTournamentForm() {
           const fileExt = file.name.split('.').pop();
           const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
           
-          const { error: uploadError, data: uploadData } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from('tournament-thumbnails')
             .upload(fileName, file);
 
@@ -231,6 +234,7 @@ export function useTournamentForm() {
 
   const handleSecondStep = async (data: TournamentFormData) => {
     if (validateSecondStep(data)) {
+      setIsSubmitting(true);
       try {
         const token = localStorage.getItem('adminToken');
         if (!token) throw new Error(t('create.error.notAuthenticated'));
@@ -253,7 +257,7 @@ export function useTournamentForm() {
           group_time_slots: [], // El backend genera estos dinámicamente
           requires_shirts: data.requires_shirts,
           description: data.description.trim(),
-          rules: data.rules.trim(),
+          rules: data.rules?.trim() || (data.rules_pdf ? 'Ver reglamento en PDF' : ''),
           tournament_location: data.tournament_location.trim(),
           tournament_address: data.tournament_address.trim(),
           tournament_club_name: data.tournament_club_name.trim(),
@@ -287,9 +291,25 @@ export function useTournamentForm() {
           );
 
           if (allHaveInfo) {
+            // Subir PDF del reglamento si se seleccionó uno
+            let pdfOk = true;
+            if (data.rules_pdf) {
+              try {
+                await Promise.all(
+                  result.torneos.map((torneo: TournamentResponse) => 
+                    tournamentService.uploadRulesPdf(torneo.id, data.rules_pdf!, token)
+                  )
+                );
+              } catch (pdfError) {
+                console.warn('Torneos creados pero error al subir PDF:', pdfError);
+                pdfOk = false;
+              }
+            }
             toast({
               title: t('create.success.title'),
-              description: t('create.success.description').replace('{count}', result.torneos.length.toString())
+              description: pdfOk
+                ? t('create.success.description').replace('{count}', result.torneos.length.toString())
+                : t('create.success.description').replace('{count}', result.torneos.length.toString()) + '. El PDF no pudo subirse; puedes subirlo desde el detalle del torneo.'
             });
             router.push('/tournaments');
           } else {
@@ -305,6 +325,8 @@ export function useTournamentForm() {
           description: error instanceof Error ? error.message : t('create.error.createTournament'),
           variant: "destructive"
         });
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };

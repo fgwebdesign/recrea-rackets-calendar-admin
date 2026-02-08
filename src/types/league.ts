@@ -80,6 +80,8 @@ export interface LeagueMatch {
   court_id: string;
   court?: Court;
   court_name?: string;
+  venue_id?: string;
+  venue_name?: string;
 } 
 
 import type { Court } from './court'; 

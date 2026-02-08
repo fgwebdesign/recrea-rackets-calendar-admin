@@ -26,10 +26,10 @@ export function TournamentTypeEditor({
 
   const formatTournamentType = (type: string) => {
     const typeConfig = {
-      SIX_PLAYERS: '6 Jugadores',
-      NINE_PLAYERS: '9 Jugadores',
-      TWELVE_PLAYERS: '12 Jugadores', 
-      SIXTEEN_PLAYERS: '16 Jugadores'
+      SIX_PLAYERS: '6 Equipos',
+      NINE_PLAYERS: '9 Equipos',
+      TWELVE_PLAYERS: '12 Equipos', 
+      SIXTEEN_PLAYERS: '16 Equipos'
     }
     return typeConfig[type as keyof typeof typeConfig] || type
   }
@@ -103,10 +103,10 @@ export function TournamentTypeEditor({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="SIX_PLAYERS">6 Jugadores</SelectItem>
-            <SelectItem value="NINE_PLAYERS">9 Jugadores</SelectItem>
-            <SelectItem value="TWELVE_PLAYERS">12 Jugadores</SelectItem>
-            <SelectItem value="SIXTEEN_PLAYERS">16 Jugadores</SelectItem>
+            <SelectItem value="SIX_PLAYERS">6 Equipos</SelectItem>
+            <SelectItem value="NINE_PLAYERS">9 Equipos</SelectItem>
+            <SelectItem value="TWELVE_PLAYERS">12 Equipos</SelectItem>
+            <SelectItem value="SIXTEEN_PLAYERS">16 Equipos</SelectItem>
           </SelectContent>
         </Select>
         

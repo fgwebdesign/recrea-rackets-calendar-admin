@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../../../recrea-client"
+		},
+		{
+			"path": "../../../matchly-landing-nextjs"
 		}
 	],
 	"settings": {}

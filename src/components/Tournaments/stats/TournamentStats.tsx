@@ -197,9 +197,10 @@ interface TournamentTypesChartProps {
 export function TournamentTypesChart({ tournamentTypes }: TournamentTypesChartProps) {
   const chartData = {
     labels: Object.entries(tournamentTypes).map(([type]) => 
-      type === 'NINE_PLAYERS' ? '9 Jugadores' : 
-      type === 'TWELVE_PLAYERS' ? '12 Jugadores' : 
-      '16 Jugadores'
+      type === 'SIX_PLAYERS' ? '6 Equipos' :
+      type === 'NINE_PLAYERS' ? '9 Equipos' : 
+      type === 'TWELVE_PLAYERS' ? '12 Equipos' : 
+      '16 Equipos'
     ),
     datasets: [
       {

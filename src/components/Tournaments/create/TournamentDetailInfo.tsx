@@ -4,8 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePicker, formatDateForInput, parseDateFromInput } from '@/components/ui/date-picker';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { cn } from "@/lib/utils";
-import { Info, Trophy, MapPin } from "lucide-react";
+import { Info, Trophy, MapPin, FileText } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { TournamentFormData } from '@/hooks/useTournamentForm';
 import { useTranslations } from '@/contexts/TranslationContext';
@@ -16,6 +15,7 @@ interface TournamentDetailInfoProps {
   onSubmit: (data: TournamentFormData) => void;
   onBack: () => void;
   isSubmitting?: boolean;
+  errors?: Record<string, string | null | undefined>;
 }
 
 function LabelWithTooltip({
@@ -44,7 +44,7 @@ function LabelWithTooltip({
   );
 }
 
-export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, isSubmitting = false }: TournamentDetailInfoProps) {
+export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, isSubmitting = false, errors = {} }: TournamentDetailInfoProps) {
   const t = useTranslations('tournaments');
   return (
     <TooltipProvider>
@@ -56,37 +56,59 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
         </div>
 
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <LabelWithTooltip
-                htmlFor="description"
-                label={t('create.detailInfo.description.label')}
-                tooltip={t('create.detailInfo.description.tooltip')}
-              />
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder={t('create.detailInfo.description.placeholder')}
-                className="min-h-[100px] bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
-              />
-            </div>
-
-            <div>
-              <LabelWithTooltip
-                htmlFor="rules"
-                label={t('create.detailInfo.rules.label')}
-                tooltip={t('create.detailInfo.rules.tooltip')}
-              />
-              <Textarea
-                id="rules"
-                value={formData.rules}
-                onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
-                placeholder={t('create.detailInfo.rules.placeholder')}
-                className="min-h-[100px] bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
-              />
-            </div>
+          <div>
+            <LabelWithTooltip
+              htmlFor="description"
+              label={t('create.detailInfo.description.label')}
+              tooltip={t('create.detailInfo.description.tooltip')}
+            />
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder={t('create.detailInfo.description.placeholder')}
+              className="min-h-[100px] bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
+            />
           </div>
+
+          {/* Reglamento en PDF */}
+          <Card className="border-2 border-dashed border-purple-200 dark:border-purple-800">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <FileText className="w-5 h-5 text-purple-500" />
+                {t('create.detailInfo.rulesPdf.label')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                {t('create.detailInfo.rulesPdf.description')}
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  id="rules_pdf"
+                  className="sr-only"
+                  onChange={(e) => setFormData({ ...formData, rules_pdf: e.target.files?.[0] ?? null })}
+                />
+                <label
+                  htmlFor="rules_pdf"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-purple-100 hover:bg-purple-200 dark:bg-purple-900/40 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 cursor-pointer transition-colors"
+                >
+                  <FileText className="h-4 w-4" />
+                  {t('create.detailInfo.rulesPdf.selectFile')}
+                </label>
+                {formData.rules_pdf ? (
+                  <span className="text-sm text-purple-600 dark:text-purple-400">✓ {formData.rules_pdf.name}</span>
+                ) : (
+                  <span className="text-sm text-slate-500 dark:text-slate-400">{t('create.detailInfo.rulesPdf.noFile')}</span>
+                )}
+              </div>
+              {errors.rules_pdf && (
+                <p className="mt-2 text-sm text-red-500">{errors.rules_pdf}</p>
+              )}
+            </CardContent>
+          </Card>
 
           <Card className="border-2 border-dashed">
             <CardHeader>

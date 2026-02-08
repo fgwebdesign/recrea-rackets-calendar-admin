@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Swords, AlertCircle, Info, CheckCircle2 } from 'lucide-react';
+import { Trophy, Swords, AlertCircle, Info, CheckCircle2, MapPin, Calendar, Clock } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -149,6 +148,26 @@ export function LeagueMatchModal({
     return false;
   };
 
+  const isSuperTiebreakValid = (superTiebreak: { team1: number; team2: number }): boolean => {
+    if (!superTiebreak || superTiebreak.team1 === 0 || superTiebreak.team2 === 0) return false;
+    
+    // El super tiebreak se juega hasta 10 puntos con diferencia de 2
+    const team1 = superTiebreak.team1;
+    const team2 = superTiebreak.team2;
+    
+    // Al menos uno debe llegar a 10
+    if (team1 < 10 && team2 < 10) return false;
+    
+    // El ganador debe tener diferencia de al menos 2
+    if (team1 > team2) {
+      return team1 >= 10 && (team1 - team2 >= 2);
+    } else if (team2 > team1) {
+      return team2 >= 10 && (team2 - team1 >= 2);
+    }
+    
+    return false;
+  };
+
   const handleSubmitResult = () => {
     setError(null);
 
@@ -222,10 +241,10 @@ export function LeagueMatchModal({
     
     return (
       <div className="space-y-2">
-        <Label className="text-sm font-semibold flex items-center gap-2 text-gray-800 dark:text-gray-200">
-          {teamName}
+        <Label className="text-sm font-semibold flex items-center gap-2 text-gray-800 dark:text-gray-200 break-words min-w-0">
+          <span className="break-words">{teamName}</span>
           {hasBothScores && isWinner && (
-            <Trophy className="w-4 h-4 text-yellow-500 animate-in fade-in zoom-in" />
+            <Trophy className="w-4 h-4 text-yellow-500 animate-in fade-in zoom-in flex-shrink-0" />
           )}
         </Label>
         <div className="relative">
@@ -380,32 +399,52 @@ export function LeagueMatchModal({
     );
   };
 
+  const { date, time } = formatMatchDate(match.match_date);
+
   return (
     <Dialog open={isOpen} onOpenChange={() => !isLoading && onClose()}>
-      <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 max-w-5xl p-0 gap-0">
+      <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 max-w-[95vw] lg:max-w-7xl p-0 gap-0 w-full">
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-900/10 dark:to-blue-900/10">
+          <div className="p-6 pr-16 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-br from-purple-100 via-purple-50 to-blue-50 dark:from-purple-900/30 dark:via-purple-800/20 dark:to-blue-900/20">
             <DialogHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                    <Trophy className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <div className="flex flex-col gap-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="p-2.5 rounded-lg bg-white/80 dark:bg-purple-900/50 shadow-sm flex-shrink-0 backdrop-blur-sm">
+                      <Trophy className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {match.status === 'COMPLETED' ? 'Resultado del Partido' : 'Gestionar Partido'}
+                      </DialogTitle>
+                      <div className="text-gray-700 dark:text-gray-300 font-medium text-base leading-relaxed mt-1.5 flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-gray-900 dark:text-white break-words">{match.team1}</span>
+                        <span className="text-purple-600 dark:text-purple-400 font-bold flex-shrink-0">vs</span>
+                        <span className="font-semibold text-gray-900 dark:text-white break-words">{match.team2}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {match.status === 'COMPLETED' ? 'Resultado del Partido' : 'Gestionar Partido'}
-                    </DialogTitle>
-                    <DialogDescription className="text-gray-600 dark:text-gray-400 mt-1.5 font-medium">
-                      {match.team1} <span className="text-purple-600 dark:text-purple-400 mx-2">vs</span> {match.team2}
-                    </DialogDescription>
+                  <div className="flex flex-col items-end gap-2 flex-shrink-0 mr-0">
+                    {match.court_name && (
+                      <Badge variant="outline" className="text-sm px-3 py-1.5 bg-white/90 dark:bg-gray-800/90 border-purple-300 dark:border-purple-700 whitespace-nowrap shadow-sm backdrop-blur-sm">
+                        <MapPin className="w-3.5 h-3.5 mr-1.5" />
+                        <span className="font-medium">
+                          {match.venue_name && match.court_name 
+                            ? `${match.venue_name} - ${match.court_name}`
+                            : match.court_name}
+                        </span>
+                      </Badge>
+                    )}
+                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 bg-white/70 dark:bg-gray-800/70 px-3 py-1.5 rounded-md shadow-sm backdrop-blur-sm">
+                      <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span className="font-medium">{date}</span>
+                      <span className="text-gray-400 dark:text-gray-500">•</span>
+                      <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span className="font-medium">{time}</span>
+                    </div>
                   </div>
                 </div>
-                {match.court_name && (
-                  <Badge variant="outline" className="text-sm px-3 py-1.5">
-                    {match.court_name}
-                  </Badge>
-                )}
               </div>
             </DialogHeader>
           </div>
@@ -418,20 +457,22 @@ export function LeagueMatchModal({
             ) : (
               <div className="flex flex-col h-full">
                   {/* Content */}
-                  <div className="flex-1 p-8">
-                      <div className="space-y-8">
-                        <div className="grid grid-cols-3 gap-8">
+                  <div className="flex-1 p-6 sm:p-8 overflow-y-auto">
+                      <div className="space-y-6 sm:space-y-8">
+                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8">
                           {/* Set 1 */}
-                          <div className="space-y-5 p-5 rounded-xl bg-gradient-to-br from-purple-50/50 to-blue-50/50 dark:from-purple-900/10 dark:to-blue-900/10 border border-purple-100 dark:border-purple-800/50">
+                          <div className="space-y-5 p-5 rounded-xl bg-gradient-to-br from-purple-50/50 to-blue-50/50 dark:from-purple-900/10 dark:to-blue-900/10 border border-purple-100 dark:border-purple-800/50 min-w-0">
                             <div className="flex items-center justify-between gap-2 pb-2 border-b border-purple-200 dark:border-purple-700">
                               <div className="flex items-center gap-2">
                                 <Swords className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                                 <h3 className="font-bold text-lg text-gray-900 dark:text-white">Set 1</h3>
                               </div>
                               {getSetWinner(set1) > 0 && (
-                                <Badge className="bg-green-500 dark:bg-green-600 text-white shadow-sm animate-in fade-in slide-in-from-right-2">
-                                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                                  {getSetWinner(set1) === 1 ? match.team1.split(' - ')[0] : match.team2.split(' - ')[0]}
+                                <Badge className="bg-green-500 dark:bg-green-600 text-white shadow-sm animate-in fade-in slide-in-from-right-2 max-w-[280px]">
+                                  <CheckCircle2 className="w-3 h-3 mr-1 flex-shrink-0" />
+                                  <span className="break-words line-clamp-2 text-xs leading-tight" title={getSetWinner(set1) === 1 ? match.team1 : match.team2}>
+                                    {getSetWinner(set1) === 1 ? match.team1 : match.team2}
+                                  </span>
                                 </Badge>
                               )}
                             </div>
@@ -461,8 +502,10 @@ export function LeagueMatchModal({
                                   </TooltipProvider>
                                 </h4>
                                 <div className="grid grid-cols-2 gap-4">
-                                  <div className="space-y-2">
-                                    <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">{match.team1.split(' - ')[0]}</Label>
+                                  <div className="space-y-2 min-w-0">
+                                    <Label className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                      <span className="break-words block leading-tight" title={match.team1}>{match.team1}</span>
+                                    </Label>
                                     <Input
                                       type="number"
                                       min="0"
@@ -484,8 +527,10 @@ export function LeagueMatchModal({
                                       )}
                                     />
                                   </div>
-                                  <div className="space-y-2">
-                                    <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">{match.team2.split(' - ')[0]}</Label>
+                                  <div className="space-y-2 min-w-0">
+                                    <Label className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                      <span className="break-words block leading-tight" title={match.team2}>{match.team2}</span>
+                                    </Label>
                                     <Input
                                       type="number"
                                       min="0"
@@ -513,16 +558,18 @@ export function LeagueMatchModal({
                           </div>
 
                           {/* Set 2 */}
-                          <div className="space-y-5 p-5 rounded-xl bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-900/10 dark:to-purple-900/10 border border-blue-100 dark:border-blue-800/50">
+                          <div className="space-y-5 p-5 rounded-xl bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-900/10 dark:to-purple-900/10 border border-blue-100 dark:border-blue-800/50 min-w-0">
                             <div className="flex items-center justify-between gap-2 pb-2 border-b border-blue-200 dark:border-blue-700">
                               <div className="flex items-center gap-2">
                                 <Swords className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                 <h3 className="font-bold text-lg text-gray-900 dark:text-white">Set 2</h3>
                               </div>
                               {getSetWinner(set2) > 0 && (
-                                <Badge className="bg-green-500 dark:bg-green-600 text-white shadow-sm animate-in fade-in slide-in-from-right-2">
-                                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                                  {getSetWinner(set2) === 1 ? match.team1.split(' - ')[0] : match.team2.split(' - ')[0]}
+                                <Badge className="bg-green-500 dark:bg-green-600 text-white shadow-sm animate-in fade-in slide-in-from-right-2 max-w-[280px]">
+                                  <CheckCircle2 className="w-3 h-3 mr-1 flex-shrink-0" />
+                                  <span className="break-words line-clamp-2 text-xs leading-tight" title={getSetWinner(set2) === 1 ? match.team1 : match.team2}>
+                                    {getSetWinner(set2) === 1 ? match.team1 : match.team2}
+                                  </span>
                                 </Badge>
                               )}
                             </div>
@@ -552,8 +599,10 @@ export function LeagueMatchModal({
                                   </TooltipProvider>
                                 </h4>
                                 <div className="grid grid-cols-2 gap-4">
-                                  <div className="space-y-2">
-                                    <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">{match.team1.split(' - ')[0]}</Label>
+                                  <div className="space-y-2 min-w-0">
+                                    <Label className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                      <span className="break-words block leading-tight" title={match.team1}>{match.team1}</span>
+                                    </Label>
                                     <Input
                                       type="number"
                                       min="0"
@@ -575,8 +624,10 @@ export function LeagueMatchModal({
                                       )}
                                     />
                                   </div>
-                                  <div className="space-y-2">
-                                    <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">{match.team2.split(' - ')[0]}</Label>
+                                  <div className="space-y-2 min-w-0">
+                                    <Label className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                      <span className="break-words block leading-tight" title={match.team2}>{match.team2}</span>
+                                    </Label>
                                     <Input
                                       type="number"
                                       min="0"
@@ -605,7 +656,7 @@ export function LeagueMatchModal({
 
                           {/* Super Tiebreak */}
                           {showSuperTiebreak ? (
-                            <div className="space-y-5 p-5 rounded-xl bg-gradient-to-br from-yellow-50/80 to-amber-50/80 dark:from-yellow-900/20 dark:to-amber-900/20 border-2 border-yellow-300 dark:border-yellow-700 animate-in fade-in slide-in-from-bottom-2">
+                            <div className="space-y-5 p-5 rounded-xl bg-gradient-to-br from-yellow-50/80 to-amber-50/80 dark:from-yellow-900/20 dark:to-amber-900/20 border-2 border-yellow-300 dark:border-yellow-700 animate-in fade-in slide-in-from-bottom-2 min-w-0">
                               <div className="flex items-center justify-between gap-2 pb-2 border-b border-yellow-300 dark:border-yellow-700">
                                 <div className="flex items-center gap-2">
                                   <Trophy className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
@@ -628,8 +679,10 @@ export function LeagueMatchModal({
                                 </Badge>
                               </div>
                               <div className="space-y-4">
-                                <div className="space-y-2">
-                                  <Label className="text-sm font-semibold text-gray-800 dark:text-gray-200">{match.team1.split(' - ')[0]}</Label>
+                                <div className="space-y-2 min-w-0">
+                                  <Label className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                    <span className="break-words block leading-tight" title={match.team1}>{match.team1}</span>
+                                  </Label>
                                   <Input
                                     type="number"
                                     min="0"
@@ -653,8 +706,10 @@ export function LeagueMatchModal({
                                   <span className="px-3 text-xs font-semibold text-yellow-600 dark:text-yellow-400">VS</span>
                                   <div className="h-px w-full bg-yellow-200 dark:bg-yellow-800"></div>
                                 </div>
-                                <div className="space-y-2">
-                                  <Label className="text-sm font-semibold text-gray-800 dark:text-gray-200">{match.team2.split(' - ')[0]}</Label>
+                                <div className="space-y-2 min-w-0">
+                                  <Label className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                    <span className="break-words block leading-tight" title={match.team2}>{match.team2}</span>
+                                  </Label>
                                   <Input
                                     type="number"
                                     min="0"
@@ -678,12 +733,6 @@ export function LeagueMatchModal({
                           ) : <div />}
                         </div>
 
-                        {error && (
-                          <Alert variant="destructive" className="mt-4 animate-in fade-in slide-in-from-top-1">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{error}</AlertDescription>
-                          </Alert>
-                        )}
                       </div>
                   </div>
                 </div>
@@ -692,41 +741,51 @@ export function LeagueMatchModal({
 
           {/* Footer */}
           <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-            <div className="flex justify-end gap-3">
-              <Button
-                variant="outline"
-                onClick={onClose}
-                disabled={isLoading}
-                className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 min-w-[100px]"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleSubmitResult}
-                disabled={Boolean(
-                  isLoading || 
-                  !validateSetScore(set1.team1) || 
-                  !validateSetScore(set1.team2) ||
-                  !validateSetScore(set2.team1) || 
-                  !validateSetScore(set2.team2) ||
-                  !isSetValid(set1) || 
-                  !isSetValid(set2) ||
-                  (showSuperTiebreak && (!superTiebreak || !validateTiebreakScore(superTiebreak.team1) || !validateTiebreakScore(superTiebreak.team2)))
-                )}
-                className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 min-w-[150px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Guardando...
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Guardar Resultado
-                  </span>
-                )}
-              </Button>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              {error && (
+                <Alert variant="destructive" className="flex-1 w-full sm:w-auto">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-sm">{error}</AlertDescription>
+                </Alert>
+              )}
+              <div className="flex justify-end gap-3 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isLoading}
+                  className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 min-w-[100px] border-gray-300 dark:border-gray-600"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleSubmitResult}
+                  disabled={Boolean(
+                    isLoading || 
+                    !validateSetScore(set1.team1) || 
+                    !validateSetScore(set1.team2) ||
+                    !validateSetScore(set2.team1) || 
+                    !validateSetScore(set2.team2) ||
+                    !isSetValid(set1) || 
+                    !isSetValid(set2) ||
+                    (showSet1Tiebreak && !isTiebreakValid(set1.tiebreak)) ||
+                    (showSet2Tiebreak && !isTiebreakValid(set2.tiebreak)) ||
+                    (showSuperTiebreak && (!superTiebreak || superTiebreak.team1 === 0 || superTiebreak.team2 === 0 || !isSuperTiebreakValid(superTiebreak)))
+                  )}
+                  className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white shadow-sm hover:shadow-md transition-all duration-200 min-w-[160px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Guardando...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Guardar Resultado
+                    </span>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

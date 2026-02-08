@@ -26,10 +26,11 @@ import {
 } from '@heroicons/react/24/outline'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { AlertCircle, RefreshCw } from 'lucide-react'
+import { AlertCircle, RefreshCw, Download } from 'lucide-react'
 import { getCategoryName } from '@/utils/category'
 import { TournamentTypeEditor } from '@/components/Tournaments/TournamentTypeEditor'
 import { useTranslations } from '@/contexts/TranslationContext'
+import { tournamentService } from '@/services/tournamentService'
 
 interface PageProps {
   params: Promise<{
@@ -47,11 +48,15 @@ export default function TournamentPage({ params }: PageProps) {
   const { 
     tournament, 
     tournamentInfo, 
+    teams,
     sponsors,
     loading, 
     error, 
     refetch 
   } = useTournament(id)
+
+  // Contador de equipos: priorizar tournament_teams (del full-details) o teams como fallback
+  const teamsCount = tournament?.tournament_teams?.length ?? teams?.length ?? 0
 
   const { 
     data: paymentStats, 
@@ -62,6 +67,8 @@ export default function TournamentPage({ params }: PageProps) {
 
   // Estado para manejar el tipo de torneo
   const [tournamentType, setTournamentType] = useState(tournament?.tournament_type || '')
+  const [rulesPdfUploading, setRulesPdfUploading] = useState(false)
+  const [rulesPdfError, setRulesPdfError] = useState<string | null>(null)
 
   // Actualizar el estado cuando cambie el torneo
   useEffect(() => {
@@ -284,7 +291,7 @@ export default function TournamentPage({ params }: PageProps) {
                   </div>
                   <div className="flex items-center gap-2">
                     <UsersIcon className="h-5 w-5 text-green-500" />
-                    <span className="font-medium">{tournament.tournament_teams?.length || 0}/{tournament.max_teams} {t('teams')}</span>
+                    <span className="font-medium">{teamsCount}/{tournament.max_teams} {t('teams')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <TrophyIcon className="h-5 w-5 text-yellow-500" />
@@ -302,22 +309,22 @@ export default function TournamentPage({ params }: PageProps) {
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium text-gray-700 dark:text-gray-300">{t('detail.registrationProgress')}</span>
                     <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {tournament.tournament_teams?.length || 0}/{tournament.max_teams}
+                      {teamsCount}/{tournament.max_teams}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
                     <div 
                       className={`h-3 rounded-full transition-all duration-500 ${
-                        (tournament.tournament_teams?.length || 0) >= tournament.max_teams
+                        teamsCount >= tournament.max_teams
                           ? 'bg-gradient-to-r from-green-500 to-emerald-500'
                           : 'bg-gradient-to-r from-blue-500 to-purple-500'
                       }`}
                       style={{ 
-                        width: `${Math.min(((tournament.tournament_teams?.length || 0) / tournament.max_teams) * 100, 100)}%` 
+                        width: `${Math.min((teamsCount / tournament.max_teams) * 100, 100)}%` 
                       }}
                     />
                   </div>
-                  {(tournament.tournament_teams?.length || 0) >= tournament.max_teams && (
+                  {teamsCount >= tournament.max_teams && (
                     <p className="text-sm font-medium text-green-600 dark:text-green-400">
                       {t('detail.registrationsComplete')}
                     </p>
@@ -410,21 +417,82 @@ export default function TournamentPage({ params }: PageProps) {
               </CardContent>
             </Card>
 
-            {tournamentInfo.rules && (
-              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800 shadow-lg hover:shadow-xl transition-all duration-300">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
-                    <DocumentTextIcon className="h-5 w-5" />
-                    {t('detail.info.rules')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                    {tournamentInfo.rules}
-                  </p>
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800 shadow-lg hover:shadow-xl transition-all duration-300">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
+                  <DocumentTextIcon className="h-5 w-5" />
+                  {t('detail.info.rules')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {tournamentInfo.rules_pdf_url ? (
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        <a
+                          href={tournamentInfo.rules_pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                          <DocumentTextIcon className="h-4 w-4" />
+                          Ver reglamento PDF
+                        </a>
+                        <a
+                          href={tournamentInfo.rules_pdf_url}
+                          download
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-800 dark:hover:bg-purple-700 text-purple-700 dark:text-purple-200 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          <Download className="h-4 w-4" />
+                          Descargar PDF
+                        </a>
+                      </div>
+                    </div>
+                  ) : null}
+                  {tournamentInfo.rules ? (
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {tournamentInfo.rules}
+                    </p>
+                  ) : null}
+                  {/* Upload PDF - Admin */}
+                  <div className="pt-4 border-t border-purple-200 dark:border-purple-800">
+                    <label className="block text-sm font-medium text-purple-700 dark:text-purple-300 mb-2">
+                      {tournamentInfo.rules_pdf_url ? 'Reemplazar' : 'Subir'} reglamento en PDF
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 dark:file:bg-purple-900/30 dark:file:text-purple-300"
+                      disabled={rulesPdfUploading}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
+                        if (!token) {
+                          setRulesPdfError('Debes iniciar sesión para subir archivos')
+                          return
+                        }
+                        setRulesPdfError(null)
+                        setRulesPdfUploading(true)
+                        try {
+                          await tournamentService.uploadRulesPdf(id, file, token)
+                          refetch()
+                        } catch (err) {
+                          setRulesPdfError(err instanceof Error ? err.message : 'Error al subir el PDF')
+                        } finally {
+                          setRulesPdfUploading(false)
+                          e.target.value = ''
+                        }
+                      }}
+                    />
+                    {rulesPdfError && (
+                      <p className="mt-2 text-sm text-red-600 dark:text-red-400">{rulesPdfError}</p>
+                    )}
+                    {rulesPdfUploading && (
+                      <p className="mt-2 text-sm text-purple-600 dark:text-purple-400">Subiendo PDF...</p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
-            )}
 
             {tournamentInfo.first_place_prize && (
               <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-800 shadow-lg hover:shadow-xl transition-all duration-300">

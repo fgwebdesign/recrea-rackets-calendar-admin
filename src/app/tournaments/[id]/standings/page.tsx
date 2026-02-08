@@ -110,10 +110,10 @@ export default function TournamentStandingsPage() {
   // Traducir formato del torneo
   const translateTournamentFormat = (format: string): string => {
     const formatTranslations: Record<string, string> = {
-      'SIX_PLAYERS': '6 Jugadores',
-      'NINE_PLAYERS': '9 Jugadores', 
-      'TWELVE_PLAYERS': '12 Jugadores',
-      'SIXTEEN_PLAYERS': '16 Jugadores'
+      'SIX_PLAYERS': '6 Equipos',
+      'NINE_PLAYERS': '9 Equipos', 
+      'TWELVE_PLAYERS': '12 Equipos',
+      'SIXTEEN_PLAYERS': '16 Equipos'
     };
     
     return formatTranslations[format] || format;

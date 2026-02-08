@@ -233,7 +233,7 @@ const translations: Record<Locale, Record<string, any>> = {
       viewLeagues: 'Ver ligas',
       createLeague: 'Crear liga',
       club: 'Club:',
-      clubName: 'Cordon Padel Club',
+      clubName: 'Padel Club',
       logout: 'Cerrar sesión',
       loggingOut: 'Cerrando sesión...',
       openMenu: 'Abrir menú',
@@ -1283,13 +1283,13 @@ const translations: Record<Locale, Record<string, any>> = {
           plural: 'canchas'
         },
         tournamentType: {
-          label: 'Tipo de Torneo',
-          tooltip: 'Formato del torneo',
-          placeholder: 'Selecciona el tipo',
-          sixPlayers: '6 Jugadores',
-          ninePlayers: '9 Jugadores',
-          twelvePlayers: '12 Jugadores',
-          sixteenPlayers: '16 Jugadores'
+          label: 'Formato de equipos',
+          tooltip: 'Cantidad de equipos por categoría (formato del torneo)',
+          placeholder: 'Selecciona el formato',
+          sixPlayers: '6 Equipos',
+          ninePlayers: '9 Equipos',
+          twelvePlayers: '12 Equipos',
+          sixteenPlayers: '16 Equipos'
         },
         image: {
           label: 'Imagen del Torneo',
@@ -1309,6 +1309,12 @@ const translations: Record<Locale, Record<string, any>> = {
           tooltip: 'Reglas y normativas específicas',
           placeholder: 'Especifica las reglas y normativas del torneo...'
         },
+        rulesPdf: {
+          label: 'Reglamento en PDF',
+          description: 'Sube un PDF con el reglamento completo del torneo.',
+          selectFile: 'Seleccionar archivo PDF',
+          noFile: 'Ningún archivo elegido'
+        },
         location: {
           title: 'Ubicación del Torneo',
           placeName: {
@@ -1321,7 +1327,7 @@ const translations: Record<Locale, Record<string, any>> = {
           },
           clubName: {
             label: 'Nombre del Club',
-            clubName: 'BayPadel San Francisco',
+            placeholder: 'Ej: BayPadel San Francisco',
           },
           signupLimit: {
             label: 'Fecha Límite de Inscripción',
@@ -1364,6 +1370,7 @@ const translations: Record<Locale, Record<string, any>> = {
         imageRequired: 'La imagen del torneo es requerida',
         descriptionRequired: 'La descripción es requerida',
         rulesRequired: 'Las reglas del torneo son requeridas',
+        rulesPdfRequired: 'Debes subir el reglamento en PDF',
         locationRequired: 'La ubicación del torneo es requerida',
         addressRequired: 'La dirección del torneo es requerida',
         clubNameRequired: 'El nombre del club es requerido',
@@ -1731,7 +1738,7 @@ const translations: Record<Locale, Record<string, any>> = {
       viewLeagues: 'View leagues',
       createLeague: 'Create league',
       club: 'Club:',
-  clubName: 'Cordon Padel Club',
+  clubName: 'Padel Club',
       logout: 'Log out',
       loggingOut: 'Logging out...',
       openMenu: 'Open menu',
@@ -2892,13 +2899,13 @@ const translations: Record<Locale, Record<string, any>> = {
           plural: 'courts'
         },
         tournamentType: {
-          label: 'Tournament Type',
-          tooltip: 'Tournament format',
-          placeholder: 'Select type',
-          sixPlayers: '6 Players',
-          ninePlayers: '9 Players',
-          twelvePlayers: '12 Players',
-          sixteenPlayers: '16 Players'
+          label: 'Team format',
+          tooltip: 'Number of teams per category (tournament format)',
+          placeholder: 'Select format',
+          sixPlayers: '6 Teams',
+          ninePlayers: '9 Teams',
+          twelvePlayers: '12 Teams',
+          sixteenPlayers: '16 Teams'
         },
         image: {
           label: 'Tournament Image',
@@ -2917,6 +2924,12 @@ const translations: Record<Locale, Record<string, any>> = {
           label: 'Tournament Rules',
           tooltip: 'Specific rules and regulations',
           placeholder: 'Specify the rules and regulations of the tournament...'
+        },
+        rulesPdf: {
+          label: 'Rules PDF',
+          description: 'Upload a PDF with the full tournament rules.',
+          selectFile: 'Select PDF file',
+          noFile: 'No file chosen'
         },
         location: {
           title: 'Tournament Location',
@@ -2973,6 +2986,7 @@ const translations: Record<Locale, Record<string, any>> = {
         imageRequired: 'Tournament image is required',
         descriptionRequired: 'Description is required',
         rulesRequired: 'Tournament rules are required',
+        rulesPdfRequired: 'You must upload the rules PDF',
         locationRequired: 'Tournament location is required',
         addressRequired: 'Tournament address is required',
         clubNameRequired: 'Club name is required',

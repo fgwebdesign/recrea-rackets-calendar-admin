@@ -151,6 +151,7 @@ export interface TournamentInfo {
   third_place_prize?: string
   description: string
   rules: string
+  rules_pdf_url?: string | null
   tournament_location: string
   signup_limit_date: string
   inscription_cost: number

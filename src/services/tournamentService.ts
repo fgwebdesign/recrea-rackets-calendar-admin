@@ -150,6 +150,22 @@ export class TournamentService {
     return handleApiResponse<void>(response)
   }
 
+  // 📄 Subir PDF del reglamento del torneo
+  async uploadRulesPdf(tournamentId: string, file: File, token: string): Promise<{ info: TournamentInfo; rules_pdf_url: string }> {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch(`${this.baseUrl}/${tournamentId}/rules-pdf`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // No incluir Content-Type - FormData lo establece automáticamente con boundary
+      },
+      body: formData
+    })
+    return handleApiResponse<{ info: TournamentInfo; rules_pdf_url: string }>(response)
+  }
+
   // 🔄 Cambiar tipo de torneo
   async changeTournamentType(id: string, newType: string, token: string): Promise<ApiResponse<Tournament>> {
     const response = await fetch(`${this.baseUrl}/${id}/change-type`, {

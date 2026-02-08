@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tournament } from '@/types/tournament'
 import { Button } from '@/components/ui/button'
@@ -12,10 +12,10 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { CalendarIcon, PlusIcon, TrophyIcon, UsersIcon, ClockIcon, FunnelIcon, StarIcon } from '@heroicons/react/24/outline'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertCircle, TrendingUp, DollarSign } from 'lucide-react'
+import { AlertCircle, DollarSign } from 'lucide-react'
 import Image from 'next/image'
 import CalendarFilter from '@/components/Tournaments/CalendarFilter'
 
@@ -33,13 +33,12 @@ export default function TournamentsPage() {
     loading, 
     error, 
     refetch,
-    fetchTournamentsWithFilters,
-    clearFilters
+    fetchTournamentsWithFilters
   } = useTournaments()
 
   // 🗓️ Manejar filtros de fecha
   const handleDateRangeChange = async (startDate: Date | null, endDate: Date | null) => {
-    const filters: any = {}
+    const filters: { start_date?: string; end_date?: string } = {}
     
     if (startDate) {
       filters.start_date = startDate.toISOString().split('T')[0]
@@ -52,13 +51,7 @@ export default function TournamentsPage() {
   }
 
   const handleQuickFilterChange = async (filter: string) => {
-    const filters: any = {}
-    
-    if (filter) {
-      filters.date_range = filter
-    }
-    
-    await fetchTournamentsWithFilters(filters)
+    await fetchTournamentsWithFilters(filter ? { date_range: filter } : {})
   }
 
   // 🎯 Filtrar torneos con lógica mejorada
@@ -498,12 +491,12 @@ export default function TournamentsPage() {
                            </div>
                            <div className="flex flex-wrap gap-2">
                              {tournament.tournament_sponsors && tournament.tournament_sponsors.length > 0 ? (
-                               tournament.tournament_sponsors.map((sponsor: any, index: number) => (
+                               tournament.tournament_sponsors.map((ts: { sponsor?: { logo_url?: string; name?: string } }, index: number) => (
                                  <div key={index} className="relative h-8 w-8 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-200">
-                                   {sponsor.logo_url ? (
+                                   {ts.sponsor?.logo_url ? (
                                      <Image
-                                       src={sponsor.logo_url}
-                                       alt={sponsor.name}
+                                       src={ts.sponsor.logo_url}
+                                       alt={ts.sponsor.name ?? ''}
                                        fill
                                        className="object-contain p-1"
                                        sizes="32px"

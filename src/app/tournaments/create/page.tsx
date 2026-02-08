@@ -35,7 +35,7 @@ export default function CreateTournamentPage() {
     };
     
     loadInitialData();
-  }, []);
+  }, [fetchCategories, fetchCourts]);
 
   if (isLoadingCategories || isLoadingCourts) {
     return (
@@ -87,6 +87,7 @@ export default function CreateTournamentPage() {
                 onSubmit={handleSecondStep}
                 onBack={handleBack}
                 isSubmitting={isSubmitting}
+                errors={errors}
               />
             )}
           </div>
