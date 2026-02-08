@@ -136,11 +136,12 @@ export interface TimeSlot {
 
 export interface GroupTimeSlot {
   id: string
-  tournament_day: number
-  start: string
-  end: string
   label: string
+  day?: number
+  tournament_day: number
   date: string
+  start_time: string
+  end_time: string
 }
 
 export interface TournamentInfo {

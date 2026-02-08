@@ -10,7 +10,15 @@ export interface TournamentCreationData {
   courts_available: number;
   tournament_type: 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS';
   time_slots: number[][];
-  group_time_slots: unknown[]; // El backend genera estos dinámicamente
+  group_time_slots: {
+    id: string;
+    label: string;
+    day?: number;
+    tournament_day: number;
+    date: string;
+    start_time: string;
+    end_time: string;
+  }[];
   requires_shirts: boolean;
   // ✨ NUEVO: Multi-sede support
   venues?: VenueConfig[];
@@ -21,6 +29,8 @@ export interface TournamentCreationData {
   tournament_location: string;
   tournament_address: string;
   tournament_club_name: string;
+  latitude?: number | null;
+  longitude?: number | null;
   signup_limit_date: string;
   inscription_cost: number;
   sponsor_ids: string[];
@@ -140,6 +150,18 @@ export class TournamentCreationService {
       errors.push('Tipo de torneo inválido');
     }
 
+    // Validar franjas horarias
+    if (!Array.isArray(data.group_time_slots) || data.group_time_slots.length === 0) {
+      errors.push('Debe configurar al menos una franja horaria');
+    } else {
+      const invalidFranjas = data.group_time_slots.filter(
+        f => !f.id || !f.label || !f.start_time || !f.end_time || !f.date || !f.tournament_day
+      );
+      if (invalidFranjas.length > 0) {
+        errors.push('Todas las franjas deben tener campos completos (id, label, start_time, end_time, date, tournament_day)');
+      }
+    }
+
     // Validaciones de información detallada
     if (!data.description?.trim()) {
       errors.push('La descripción es requerida');
@@ -220,7 +242,7 @@ export class TournamentCreationService {
       third_place_prize: data.third_place_prize.trim(),
       inscription_cost: Number(data.inscription_cost) || 0,
       sponsor_ids: data.sponsor_ids || [],
-      group_time_slots: [] // El backend genera estos dinámicamente
+      group_time_slots: data.group_time_slots
     };
   }
 }

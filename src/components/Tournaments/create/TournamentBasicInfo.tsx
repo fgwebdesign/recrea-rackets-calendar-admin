@@ -6,9 +6,10 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { DatePicker, formatDateForInput, parseDateFromInput } from '@/components/ui/date-picker';
 import { Switch } from '@/components/ui/switch';
 import { cn } from "@/lib/utils";
-import { Info, Shirt } from "lucide-react";
+import { Info, Shirt, Clock, Wand2, Trash2 } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { TournamentFormData } from '@/hooks/useTournamentForm';
+import { TournamentFormData, generateDefaultFranjas } from '@/hooks/useTournamentForm';
 import { Category } from '@/types/category';
 import { SponsorSelector } from './SponsorSelector';
 import { useTranslations } from '@/contexts/TranslationContext';
@@ -288,6 +289,83 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
               </div>
             </div>
           </div>
+
+          {/* Franjas Horarias */}
+          <Card className="border-2 border-dashed border-blue-200 dark:border-blue-800">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="w-5 h-5 text-blue-500" />
+                  Franjas Horarias
+                </div>
+                {formData.start_date && formData.end_date && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const franjas = generateDefaultFranjas(formData.start_date, formData.end_date);
+                      setFormData({ ...formData, group_time_slots: franjas });
+                    }}
+                    className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/20"
+                  >
+                    <Wand2 className="h-4 w-4 mr-1" />
+                    Generar franjas estándar
+                  </Button>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {!formData.start_date || !formData.end_date ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Seleccioná las fechas de inicio y fin del torneo para configurar las franjas horarias.
+                </p>
+              ) : formData.group_time_slots.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  No hay franjas configuradas. Hacé clic en &quot;Generar franjas estándar&quot; para crear las franjas 
+                  automáticamente, o agregalas manualmente.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {formData.group_time_slots.map((franja, idx) => (
+                    <div
+                      key={franja.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-300 text-xs font-bold">
+                          D{franja.tournament_day}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                            {franja.label}
+                          </p>
+                          <p className="text-xs text-blue-500 dark:text-blue-400">
+                            {franja.date} &middot; {franja.start_time} - {franja.end_time}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const updated = formData.group_time_slots.filter((_, i) => i !== idx);
+                          setFormData({ ...formData, group_time_slots: updated });
+                        }}
+                        className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {errors.group_time_slots && (
+                <p className="text-sm text-red-500">{errors.group_time_slots}</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* ✨ NUEVO: Selector de Sedes y Canchas (Multi-sede) */}
           <div>

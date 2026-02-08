@@ -8,6 +8,14 @@ import { Info, Trophy, MapPin, FileText } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { TournamentFormData } from '@/hooks/useTournamentForm';
 import { useTranslations } from '@/contexts/TranslationContext';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
+import dynamic from 'next/dynamic';
+
+// Importar MapPreview sin SSR (Leaflet requiere window)
+const MapPreview = dynamic(() => import('@/components/ui/map-preview').then(mod => ({ default: mod.MapPreview })), {
+  ssr: false,
+  loading: () => <div className="w-full h-[200px] rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />,
+});
 
 interface TournamentDetailInfoProps {
   formData: TournamentFormData;
@@ -135,13 +143,34 @@ export function TournamentDetailInfo({ formData, setFormData, onSubmit, onBack, 
                 <Label htmlFor="tournament_address">
                   {t('create.detailInfo.location.address.label')}
                 </Label>
-                <Input
-                  id="tournament_address"
+                <AddressAutocomplete
                   value={formData.tournament_address}
-                  onChange={(e) => setFormData({ ...formData, tournament_address: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, tournament_address: value })}
+                  onSelect={(selection) => setFormData({
+                    ...formData,
+                    tournament_address: selection.address,
+                    latitude: selection.latitude,
+                    longitude: selection.longitude,
+                  })}
                   placeholder={t('create.detailInfo.location.address.placeholder')}
-                  className="bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
                 />
+                {formData.latitude && formData.longitude && (
+                  <div className="mt-3">
+                    <MapPreview
+                      latitude={formData.latitude}
+                      longitude={formData.longitude}
+                      draggable
+                      onPositionChange={(lat, lng) => setFormData({
+                        ...formData,
+                        latitude: lat,
+                        longitude: lng,
+                      })}
+                    />
+                    <p className="text-xs text-slate-400 mt-1">
+                      Podés arrastrar el marcador para ajustar la ubicación exacta
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>

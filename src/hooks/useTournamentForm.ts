@@ -36,6 +36,8 @@ export interface TournamentFormData {
   tournament_location: string;
   tournament_address: string;
   tournament_club_name: string; // Campo requerido por el backend
+  latitude?: number | null;
+  longitude?: number | null;
   signup_limit_date: string;
   inscription_cost: number;
   sponsors: string[];
@@ -45,10 +47,12 @@ export interface TournamentFormData {
   time_slots: number[][];
   group_time_slots: {
     id: string;
-    day: string;
-    start: string;
-    end: string;
     label: string;
+    day?: number;
+    tournament_day: number;
+    date: string;
+    start_time: string;
+    end_time: string;
   }[];
 }
 
@@ -68,6 +72,8 @@ const INITIAL_FORM_DATA: TournamentFormData = {
   tournament_location: '',
   tournament_address: '',
   tournament_club_name: '',
+  latitude: null,
+  longitude: null,
   signup_limit_date: '',
   inscription_cost: 0,
   sponsors: [],
@@ -78,12 +84,82 @@ const INITIAL_FORM_DATA: TournamentFormData = {
     [9, 13],   // mañana
     [14, 22],  // tarde/noche
   ],
-  group_time_slots: [
-    { id: 'fri_night', day: 'friday', start: '18:00', end: '23:30', label: 'Viernes noche' },
-    { id: 'sat_morning', day: 'saturday', start: '09:00', end: '13:00', label: 'Sábado mañana' },
-    { id: 'sat_afternoon', day: 'saturday', start: '14:00', end: '22:00', label: 'Sábado tarde' },
-  ]
+  group_time_slots: []
 };
+
+/**
+ * Genera las franjas horarias estándar a partir de las fechas del torneo.
+ * Día 1 (viernes): Tarde 18-21, Noche 21-00
+ * Día 2 (sábado): Mañana 09-13, Tarde 14-22
+ */
+export function generateDefaultFranjas(startDate: string, endDate: string): TournamentFormData['group_time_slots'] {
+  if (!startDate || !endDate) return [];
+
+  const start = new Date(startDate + 'T12:00:00');
+  const end = new Date(endDate + 'T12:00:00');
+
+  const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const franjas: TournamentFormData['group_time_slots'] = [];
+  let tournamentDay = 1;
+
+  const current = new Date(start);
+  while (current <= end) {
+    const dateStr = current.toISOString().split('T')[0];
+    const dayName = dayNames[current.getDay()];
+    const dayId = dateStr.replace(/-/g, '');
+
+    if (tournamentDay === 1) {
+      // Primer día: Tarde y Noche (típico viernes)
+      franjas.push(
+        {
+          id: `franja_${dayId}_tarde`,
+          label: `${dayName} Tarde`,
+          day: tournamentDay,
+          tournament_day: tournamentDay,
+          date: dateStr,
+          start_time: '18:00',
+          end_time: '21:00',
+        },
+        {
+          id: `franja_${dayId}_noche`,
+          label: `${dayName} Noche`,
+          day: tournamentDay,
+          tournament_day: tournamentDay,
+          date: dateStr,
+          start_time: '21:00',
+          end_time: '00:00',
+        }
+      );
+    } else {
+      // Demás días: Mañana y Tarde (típico sábado)
+      franjas.push(
+        {
+          id: `franja_${dayId}_manana`,
+          label: `${dayName} Mañana`,
+          day: tournamentDay,
+          tournament_day: tournamentDay,
+          date: dateStr,
+          start_time: '09:00',
+          end_time: '13:00',
+        },
+        {
+          id: `franja_${dayId}_tarde`,
+          label: `${dayName} Tarde`,
+          day: tournamentDay,
+          tournament_day: tournamentDay,
+          date: dateStr,
+          start_time: '14:00',
+          end_time: '22:00',
+        }
+      );
+    }
+
+    tournamentDay++;
+    current.setDate(current.getDate() + 1);
+  }
+
+  return franjas;
+}
 
 export function useTournamentForm() {
   const router = useRouter();
@@ -140,6 +216,18 @@ export function useTournamentForm() {
 
     if (!data.tournament_thumbnail) {
       newErrors.tournament_thumbnail = t('create.validation.imageRequired');
+    }
+
+    // Validar franjas horarias
+    if (!data.group_time_slots || data.group_time_slots.length === 0) {
+      newErrors.group_time_slots = 'Debe configurar al menos una franja horaria';
+    } else {
+      const invalidFranjas = data.group_time_slots.filter(
+        f => !f.id || !f.label || !f.start_time || !f.end_time || !f.date || !f.tournament_day
+      );
+      if (invalidFranjas.length > 0) {
+        newErrors.group_time_slots = 'Todas las franjas deben tener ID, label, horarios, fecha y día de torneo';
+      }
     }
 
     setErrors(newErrors);
@@ -254,7 +342,7 @@ export function useTournamentForm() {
           courts_available: courtsAvailable,
           tournament_type: data.tournament_type,
           time_slots: data.time_slots,
-          group_time_slots: [], // El backend genera estos dinámicamente
+          group_time_slots: data.group_time_slots,
           requires_shirts: data.requires_shirts,
           description: data.description.trim(),
           rules: data.rules?.trim() || (data.rules_pdf ? 'Ver reglamento en PDF' : ''),
@@ -268,7 +356,9 @@ export function useTournamentForm() {
           first_place_prize: data.first_place_prize.trim(),
           second_place_prize: data.second_place_prize.trim(),
           third_place_prize: data.third_place_prize.trim(),
-          venues: data.venues || [] // ✨ NUEVO: Enviar venues al backend
+          venues: data.venues || [],
+          latitude: data.latitude || null,
+          longitude: data.longitude || null,
         };
 
         // Validar datos antes de enviar
