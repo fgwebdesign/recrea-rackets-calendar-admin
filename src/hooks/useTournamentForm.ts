@@ -91,6 +91,9 @@ const INITIAL_FORM_DATA: TournamentFormData = {
  * Genera las franjas horarias estándar a partir de las fechas del torneo.
  * Día 1 (viernes): Tarde 18-21, Noche 21-00
  * Día 2 (sábado): Mañana 09-13, Tarde 14-22
+ *
+ * IMPORTANTE: Solo se generan 2 días de torneo (patrón estándar Viernes + Sábado).
+ * Si el rango de fechas incluye más días (ej. hasta Domingo), se ignoran.
  */
 export function generateDefaultFranjas(startDate: string, endDate: string): TournamentFormData['group_time_slots'] {
   if (!startDate || !endDate) return [];
@@ -103,7 +106,8 @@ export function generateDefaultFranjas(startDate: string, endDate: string): Tour
   let tournamentDay = 1;
 
   const current = new Date(start);
-  while (current <= end) {
+  // Solo 2 días de torneo (Día 1 y Día 2), aunque end_date sea más lejana
+  while (current <= end && tournamentDay <= 2) {
     const dateStr = current.toISOString().split('T')[0];
     const dayName = dayNames[current.getDay()];
     const dayId = dateStr.replace(/-/g, '');

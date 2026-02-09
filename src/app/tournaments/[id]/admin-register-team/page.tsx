@@ -28,18 +28,19 @@ interface Player {
   status: 'Ya inscrito' | 'Disponible';
 }
 
-interface TimeSlot {
-  id: string;
+interface Franja {
+  franja_id: string;
   label: string;
-  day: number;
-  tournament_day?: number; // Día del torneo (1, 2, 3)
-  start: string;
-  end?: string;
-  date?: string;
-  capacity: number;
-  current_restrictions: number;
-  is_heavily_restricted: boolean;
-  available: boolean;
+  day?: number;
+  tournament_day: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  total_capacity: number;
+  used_slots: number;
+  available_slots: number;
+  utilization_percent: number;
+  teams_available: number;
 }
 
 export default function AdminRegisterTeamPage() {
@@ -49,11 +50,11 @@ export default function AdminRegisterTeamPage() {
   const t = useTranslations('tournaments');
   
   const [players, setPlayers] = useState<Player[]>([]);
-  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
+  const [franjas, setFranjas] = useState<Franja[]>([]);
   const [selectedPlayer1, setSelectedPlayer1] = useState<string>('');
   const [selectedPlayer2, setSelectedPlayer2] = useState<string>('');
-  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
-  const [slotsByDay, setSlotsByDay] = useState<{day1: TimeSlot[], day2: TimeSlot[]}>({day1: [], day2: []});
+  const [selectedFranjas, setSelectedFranjas] = useState<string[]>([]);
+  const [franjasByDay, setFranjasByDay] = useState<Record<number, Franja[]>>({});
   const [selectedShirtSizes, setSelectedShirtSizes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -67,13 +68,11 @@ export default function AdminRegisterTeamPage() {
   const { tournament, loading: tournamentLoading } = useTournament(tournamentId);
   const { categories } = useCategories();
 
-  // Calcular nombres de días dinámicamente desde los slots
-  const day1Name = slotsByDay.day1.length > 0 
-    ? slotsByDay.day1[0]?.label?.split(' ')[0] || 'Día 1'
-    : 'Día 1';
-  const day2Name = slotsByDay.day2.length > 0 
-    ? slotsByDay.day2[0]?.label?.split(' ')[0] || 'Día 2'
-    : 'Día 2';
+  // Calcular nombres de días dinámicamente desde las franjas
+  const getDayName = (dayNum: number) => {
+    const list = franjasByDay[dayNum] || [];
+    return list.length > 0 ? (list[0]?.label?.split(' ')[0] || `Día ${dayNum}`) : `Día ${dayNum}`;
+  };
 
   // Función para obtener si el torneo requiere remeras
   const getRequiresShirts = useCallback(() => {
@@ -130,19 +129,18 @@ export default function AdminRegisterTeamPage() {
       }
       
       const data = await response.json();
-      const slots = data.available_hours || [];
-      console.log('🔍 Slots recibidos del backend:', slots);
-      console.log('🔍 Primer slot:', slots[0]);
-      setAvailableSlots(slots);
+      const list = data.franjas || [];
+      setFranjas(list);
       
-      // Organizar por días según la guía
-      const organizedSlots = {
-        day1: slots.filter((slot: TimeSlot) => slot.day === 1 || slot.tournament_day === 1),
-        day2: slots.filter((slot: TimeSlot) => slot.day === 2 || slot.tournament_day === 2)
-      };
-      setSlotsByDay(organizedSlots);
+      const byDay: Record<number, Franja[]> = {};
+      for (const f of list) {
+        const d = f.tournament_day ?? f.day ?? 1;
+        if (!byDay[d]) byDay[d] = [];
+        byDay[d].push(f);
+      }
+      setFranjasByDay(byDay);
     } catch (err) {
-      console.error('Error cargando slots:', err);
+      console.error('Error cargando franjas:', err);
       toast({
         title: t('adminRegister.errors.title'),
         description: t('adminRegister.errors.loadSlotsDescription'),
@@ -189,23 +187,22 @@ export default function AdminRegisterTeamPage() {
       errors.player2 = t('adminRegister.validation.playersMustBeDifferent');
     }
 
-    // Validar time slots (máximo 2 según la guía)
-    if (selectedSlots.length === 0) {
+    // Validar franjas (mínimo 2, máximo 2 según la guía)
+    if (selectedFranjas.length === 0) {
       errors.slot = t('adminRegister.validation.slotRequired');
-    } else if (selectedSlots.length > 2) {
-      errors.slot = 'Máximo 2 slots por equipo';
+    } else if (selectedFranjas.length < 2) {
+      errors.slot = 'Seleccioná al menos 2 franjas donde el equipo puede jugar';
+    } else if (selectedFranjas.length > 2) {
+      errors.slot = 'Máximo 2 franjas por equipo';
     } else {
-      // Validar que todos los slots seleccionados existan y tengan disponibilidad
-      for (const slotId of selectedSlots) {
-        const slot = availableSlots.find(s => s.id === slotId);
-        if (!slot) {
-          errors.slot = `Slot ${slotId} no encontrado`;
+      for (const franjaId of selectedFranjas) {
+        const franja = franjas.find(f => f.franja_id === franjaId);
+        if (!franja) {
+          errors.slot = `Franja ${franjaId} no encontrada`;
           break;
         }
-        // Validar que el slot tenga disponibilidad
-        const availableSlotsCount = slot.capacity - slot.current_restrictions;
-        if (availableSlotsCount <= 0) {
-          errors.slot = `El horario ${slot.start} no tiene disponibilidad`;
+        if (franja.available_slots <= 0) {
+          errors.slot = `La franja ${franja.label} no tiene disponibilidad`;
           break;
         }
       }
@@ -231,10 +228,10 @@ export default function AdminRegisterTeamPage() {
 
   // Validar cuando cambian las selecciones
   useEffect(() => {
-    if (selectedPlayer1 || selectedPlayer2 || selectedSlots.length > 0 || selectedShirtSizes.length > 0) {
+    if (selectedPlayer1 || selectedPlayer2 || selectedFranjas.length > 0 || selectedShirtSizes.length > 0) {
       clearValidationErrors();
     }
-  }, [selectedPlayer1, selectedPlayer2, selectedSlots, selectedShirtSizes]);
+  }, [selectedPlayer1, selectedPlayer2, selectedFranjas, selectedShirtSizes]);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -259,7 +256,7 @@ export default function AdminRegisterTeamPage() {
       const requestBody = {
         userId1: selectedPlayer1,
         userId2: selectedPlayer2,
-        unavailable_times: selectedSlots, // Array de IDs según la guía
+        unavailable_times: selectedFranjas, // Franja IDs donde el equipo puede jugar
         ...(getRequiresShirts() && selectedShirtSizes.length > 0 && {
           shirt_sizes: selectedShirtSizes
         })
@@ -333,25 +330,25 @@ export default function AdminRegisterTeamPage() {
       // Éxito - mostrar toast y limpiar formulario
       const player1Name = players.find(p => p.id === selectedPlayer1);
       const player2Name = players.find(p => p.id === selectedPlayer2);
-      const selectedSlotsInfo = selectedSlots.map(slotId => 
-        availableSlots.find(s => s.id === slotId)?.label
+      const selectedFranjasInfo = selectedFranjas.map(id => 
+        franjas.find(f => f.franja_id === id)?.label
       ).join(', ');
       
       console.log('✅ Mostrando toast de éxito:', {
         player1: player1Name?.first_name,
         player2: player2Name?.first_name,
-        slots: selectedSlotsInfo
+        franjas: selectedFranjasInfo
       });
 
       toast({
         title: t('adminRegister.success.title'),
-        description: `${player1Name?.first_name} ${player1Name?.last_name} & ${player2Name?.first_name} ${player2Name?.last_name} registrados con horarios: ${selectedSlotsInfo}`,
+        description: `${player1Name?.first_name} ${player1Name?.last_name} & ${player2Name?.first_name} ${player2Name?.last_name} registrados con horarios: ${selectedFranjasInfo}`,
         variant: "default",
       });
       
       setSelectedPlayer1('');
       setSelectedPlayer2('');
-      setSelectedSlots([]);
+      setSelectedFranjas([]);
       setSelectedShirtSizes([]);
       
       // Recargar slots disponibles y lista de jugadores para actualizar estados
@@ -484,15 +481,15 @@ export default function AdminRegisterTeamPage() {
                 )}
               </div>
 
-              {/* Selección de Time Slots - Máximo 2 slots por equipo */}
+              {/* Selección de Franjas - Mínimo 2, máximo 2 por equipo */}
               <div>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Horarios Disponibles (Máximo 2)
+                      Horarios Disponibles (Mínimo 2, máximo 2)
                     </label>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {selectedSlots.length}/2 seleccionados
+                      {selectedFranjas.length}/2 seleccionados
                     </span>
                   </div>
                   
@@ -504,107 +501,67 @@ export default function AdminRegisterTeamPage() {
                     </div>
                   )}
                   
-                  {/* Día 1 - Dinámico */}
-                  {slotsByDay.day1.length > 0 && (
-                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-                        <CalendarIcon className="h-4 w-4 text-blue-600" />
-                        Día 1 - {day1Name}
-                      </h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {slotsByDay.day1.map((slot) => {
-                          const availableSlots = slot.capacity - slot.current_restrictions;
-                          const isAvailable = availableSlots > 0;
-                          const isDisabled = !selectedPlayer1 || !selectedPlayer2 || !isAvailable;
-                          
-                          return (
-                            <button
-                              key={slot.id}
-                              type="button"
-                              onClick={() => {
-                                if (!isAvailable) return; // Prevenir selección si no hay disponibilidad
-                                if (selectedSlots.includes(slot.id)) {
-                                  setSelectedSlots(selectedSlots.filter(id => id !== slot.id));
-                                } else if (selectedSlots.length < 2) {
-                                  setSelectedSlots([...selectedSlots, slot.id]);
-                                }
-                              }}
-                              disabled={isDisabled}
-                              className={`p-3 rounded-lg border text-sm font-medium transition-all ${
-                                !isAvailable
-                                  ? 'bg-gray-100 border-gray-200 text-gray-400 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
-                                  : selectedSlots.includes(slot.id)
-                                    ? 'bg-blue-100 border-blue-300 text-blue-900 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-100'
-                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
-                              }`}
-                            >
-                              <div className="text-center">
-                                <div className="font-medium">{slot.start}</div>
-                                <div className={`text-xs mt-1 ${
-                                  !isAvailable 
-                                    ? 'text-red-500 dark:text-red-400 font-semibold' 
-                                    : 'text-gray-500 dark:text-gray-400'
-                                }`}>
-                                  {availableSlots > 0 ? `${availableSlots} disponibles` : 'Sin disponibilidad'}
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Día 2 - Dinámico */}
-                  {slotsByDay.day2.length > 0 && (
-                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-                        <CalendarIcon className="h-4 w-4 text-green-600" />
-                        Día 2 - {day2Name}
-                      </h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {slotsByDay.day2.map((slot) => {
-                          const availableSlots = slot.capacity - slot.current_restrictions;
-                          const isAvailable = availableSlots > 0;
-                          const isDisabled = !selectedPlayer1 || !selectedPlayer2 || !isAvailable;
-                          
-                          return (
-                            <button
-                              key={slot.id}
-                              type="button"
-                              onClick={() => {
-                                if (!isAvailable) return; // Prevenir selección si no hay disponibilidad
-                                if (selectedSlots.includes(slot.id)) {
-                                  setSelectedSlots(selectedSlots.filter(id => id !== slot.id));
-                                } else if (selectedSlots.length < 2) {
-                                  setSelectedSlots([...selectedSlots, slot.id]);
-                                }
-                              }}
-                              disabled={isDisabled}
-                              className={`p-3 rounded-lg border text-sm font-medium transition-all ${
-                                !isAvailable
-                                  ? 'bg-gray-100 border-gray-200 text-gray-400 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
-                                  : selectedSlots.includes(slot.id)
-                                    ? 'bg-green-100 border-green-300 text-green-900 dark:bg-green-900/30 dark:border-green-700 dark:text-green-100'
-                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
-                              }`}
-                            >
-                              <div className="text-center">
-                                <div className="font-medium">{slot.start}</div>
-                                <div className={`text-xs mt-1 ${
-                                  !isAvailable 
-                                    ? 'text-red-500 dark:text-red-400 font-semibold' 
-                                    : 'text-gray-500 dark:text-gray-400'
-                                }`}>
-                                  {availableSlots > 0 ? `${availableSlots} disponibles` : 'Sin disponibilidad'}
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                  {/* Franjas agrupadas por día del torneo */}
+                  {Object.entries(franjasByDay)
+                    .sort(([a], [b]) => Number(a) - Number(b))
+                    .map(([dayNum, dayFranjas]) => {
+                      const dayIndex = (Number(dayNum) - 1) % 3;
+                      const iconClass = dayIndex === 0 ? 'text-blue-600' : dayIndex === 1 ? 'text-green-600' : 'text-purple-600';
+                      const selectedClass = dayIndex === 0
+                        ? 'bg-blue-100 border-blue-300 text-blue-900 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-100'
+                        : dayIndex === 1
+                          ? 'bg-green-100 border-green-300 text-green-900 dark:bg-green-900/30 dark:border-green-700 dark:text-green-100'
+                          : 'bg-purple-100 border-purple-300 text-purple-900 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-100';
+                      return (
+                        <div key={dayNum} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                            <CalendarIcon className={`h-4 w-4 ${iconClass}`} />
+                            Día {dayNum} - {getDayName(Number(dayNum))}
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {dayFranjas.map((franja) => {
+                              const isAvailable = franja.available_slots > 0;
+                              const isDisabled = !selectedPlayer1 || !selectedPlayer2 || !isAvailable;
+                              const isSelected = selectedFranjas.includes(franja.franja_id);
+                              
+                              return (
+                                <button
+                                  key={franja.franja_id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (!isAvailable) return;
+                                    if (isSelected) {
+                                      setSelectedFranjas(selectedFranjas.filter(id => id !== franja.franja_id));
+                                    } else if (selectedFranjas.length < 2) {
+                                      setSelectedFranjas([...selectedFranjas, franja.franja_id]);
+                                    }
+                                  }}
+                                  disabled={isDisabled}
+                                  className={`p-3 rounded-lg border text-sm font-medium transition-all ${
+                                    !isAvailable
+                                      ? 'bg-gray-100 border-gray-200 text-gray-400 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
+                                      : isSelected
+                                        ? selectedClass
+                                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
+                                  }`}
+                                >
+                                  <div className="text-center">
+                                    <div className="font-medium">{franja.label || franja.start_time}</div>
+                                    <div className={`text-xs mt-1 ${
+                                      !isAvailable 
+                                        ? 'text-red-500 dark:text-red-400 font-semibold' 
+                                        : 'text-gray-500 dark:text-gray-400'
+                                    }`}>
+                                      {franja.available_slots > 0 ? `${franja.available_slots} disponibles` : 'Sin disponibilidad'}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
                 
                 {validationErrors.slot && (
@@ -631,22 +588,22 @@ export default function AdminRegisterTeamPage() {
               <FormStatus
                 player1={selectedPlayer1}
                 player2={selectedPlayer2}
-                slot={selectedSlots.length > 0 ? selectedSlots[0] : ''}
+                slot={selectedFranjas.length > 0 ? selectedFranjas[0] : ''}
                 validationErrors={validationErrors}
               />
 
               {/* Resumen del Equipo */}
-              {selectedPlayer1 && selectedPlayer2 && selectedSlots.length > 0 && (
+              {selectedPlayer1 && selectedPlayer2 && selectedFranjas.length > 0 && (
                 <TeamSummary
                   player1={players.find(p => p.id === selectedPlayer1) || null}
                   player2={players.find(p => p.id === selectedPlayer2) || null}
-                  slotLabel={selectedSlots.map(slotId => 
-                    availableSlots.find(s => s.id === slotId)?.label
+                  slotLabel={selectedFranjas.map(id => 
+                    franjas.find(f => f.franja_id === id)?.label
                   ).join(', ')}
-                  slotInfo={availableSlots.find(s => s.id === selectedSlots[0]) ? {
-                    remaining_slots: availableSlots.find(s => s.id === selectedSlots[0])!.capacity - availableSlots.find(s => s.id === selectedSlots[0])!.current_restrictions,
-                    percentage_full: Math.round((availableSlots.find(s => s.id === selectedSlots[0])!.current_restrictions / availableSlots.find(s => s.id === selectedSlots[0])!.capacity) * 100),
-                    total_capacity: availableSlots.find(s => s.id === selectedSlots[0])!.capacity
+                  slotInfo={franjas.find(f => f.franja_id === selectedFranjas[0]) ? {
+                    remaining_slots: franjas.find(f => f.franja_id === selectedFranjas[0])!.available_slots,
+                    percentage_full: franjas.find(f => f.franja_id === selectedFranjas[0])!.utilization_percent,
+                    total_capacity: franjas.find(f => f.franja_id === selectedFranjas[0])!.total_capacity
                   } : undefined}
                 />
               )}
@@ -660,7 +617,7 @@ export default function AdminRegisterTeamPage() {
                     loading || 
                     !selectedPlayer1 || 
                     !selectedPlayer2 || 
-                    selectedSlots.length === 0 ||
+                    selectedFranjas.length < 2 ||
                     (getRequiresShirts() && selectedShirtSizes.length === 0)
                   }
                   className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-4 px-6 rounded-lg focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl text-lg font-semibold"
