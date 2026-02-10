@@ -55,6 +55,7 @@ export default function AdminRegisterTeamPage() {
   const [selectedPlayer2, setSelectedPlayer2] = useState<string>('');
   const [selectedFranjas, setSelectedFranjas] = useState<string[]>([]);
   const [franjasByDay, setFranjasByDay] = useState<Record<number, Franja[]>>({});
+  const [teamsCountFromApi, setTeamsCountFromApi] = useState<number | null>(null);
   const [selectedShirtSizes, setSelectedShirtSizes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -119,7 +120,8 @@ export default function AdminRegisterTeamPage() {
 
   const loadAvailableSlots = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/available-group-hours`, {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/available-group-hours?t=${Date.now()}`;
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         }
@@ -132,7 +134,8 @@ export default function AdminRegisterTeamPage() {
       const data = await response.json();
       const list = data.franjas || [];
       setFranjas(list);
-      
+      setTeamsCountFromApi(typeof data.teams_count === 'number' ? data.teams_count : null);
+
       const byDay: Record<number, Franja[]> = {};
       for (const f of list) {
         const d = f.tournament_day ?? f.day ?? 1;
@@ -338,7 +341,7 @@ export default function AdminRegisterTeamPage() {
       setSelectedFranjas([]);
       setSelectedShirtSizes([]);
       
-      // Refrescar disponibilidad de franjas y jugadores para que se vea el consumo de cupos
+      await new Promise((r) => setTimeout(r, 400));
       setRefreshingSlots(true);
       try {
         await Promise.all([
@@ -483,7 +486,12 @@ export default function AdminRegisterTeamPage() {
                         Horarios en los que NO puede jugar
                       </label>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {teamsCountFromApi !== null && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          Disponibilidad calculada con {teamsCountFromApi} equipo{teamsCountFromApi !== 1 ? 's' : ''} inscrito{teamsCountFromApi !== 1 ? 's' : ''}.
+                        </span>
+                      )}
                       <span className={`text-xs ${franjas.length - selectedFranjas.length >= 2 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                         {selectedFranjas.length} bloqueado{selectedFranjas.length !== 1 ? 's' : ''} · {franjas.length - selectedFranjas.length} disponible{(franjas.length - selectedFranjas.length) !== 1 ? 's' : ''}
                       </span>
