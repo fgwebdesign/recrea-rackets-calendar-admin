@@ -9,7 +9,9 @@ import { cn } from "@/lib/utils";
 import { Info, Shirt, Clock, Wand2, Trash2 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { useState } from 'react';
 import { TournamentFormData, generateDefaultFranjas } from '@/hooks/useTournamentForm';
+import { tournamentCreationService } from '@/services/tournamentCreationService';
 import { Category } from '@/types/category';
 import { SponsorSelector } from './SponsorSelector';
 import { useTranslations } from '@/contexts/TranslationContext';
@@ -57,6 +59,25 @@ function LabelWithTooltip({
 
 export function TournamentBasicInfo({ formData, setFormData, categories = [], courts = [], onSubmit, errors }: TournamentBasicInfoProps) {
   const t = useTranslations('tournaments');
+  const [loadingFranjas, setLoadingFranjas] = useState(false);
+  const [franjasError, setFranjasError] = useState<string | null>(null);
+
+  const handleGenerateDefaultFranjas = async () => {
+    if (!formData.start_date || !formData.end_date) return;
+    setFranjasError(null);
+    setLoadingFranjas(true);
+    try {
+      const res = await tournamentCreationService.getDefaultFranjas(formData.start_date, formData.end_date);
+      setFormData({ ...formData, group_time_slots: res.franjas_para_jugadores });
+    } catch (err) {
+      setFranjasError(err instanceof Error ? err.message : 'Error al cargar franjas');
+      const fallback = generateDefaultFranjas(formData.start_date, formData.end_date);
+      setFormData({ ...formData, group_time_slots: fallback });
+    } finally {
+      setLoadingFranjas(false);
+    }
+  };
+
   const handleCategoryToggle = (categoryId: string) => {
     const currentCategories = Array.isArray(formData.categories) ? formData.categories : [];
     const isSelected = currentCategories.includes(categoryId);
@@ -303,19 +324,22 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      const franjas = generateDefaultFranjas(formData.start_date, formData.end_date);
-                      setFormData({ ...formData, group_time_slots: franjas });
-                    }}
+                    disabled={loadingFranjas}
+                    onClick={handleGenerateDefaultFranjas}
                     className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/20"
                   >
                     <Wand2 className="h-4 w-4 mr-1" />
-                    Generar franjas estándar
+                    {loadingFranjas ? 'Cargando...' : 'Generar franjas estándar'}
                   </Button>
                 )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {franjasError && (
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  Se usaron franjas locales: {franjasError}
+                </p>
+              )}
               {!formData.start_date || !formData.end_date ? (
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   Seleccioná las fechas de inicio y fin del torneo para configurar las franjas horarias.

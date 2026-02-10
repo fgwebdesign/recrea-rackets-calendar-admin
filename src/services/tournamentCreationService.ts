@@ -67,11 +67,34 @@ export interface TournamentCreationResponse {
   };
 }
 
+export interface DefaultFranjasResponse {
+  message: string;
+  franjas: TournamentCreationData['group_time_slots'];
+  franjas_para_jugadores: TournamentCreationData['group_time_slots'];
+}
+
 export class TournamentCreationService {
   private baseUrl: string;
 
   constructor() {
     this.baseUrl = `${API_BASE_URL}/tournaments`;
+  }
+
+  /**
+   * Obtener franjas estándar desde el backend (Día 1: 2, Día 2: 4, Día 3: 2).
+   * GET /tournaments/default-franjas?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+   */
+  async getDefaultFranjas(startDate: string, endDate: string): Promise<DefaultFranjasResponse> {
+    const params = new URLSearchParams({
+      start_date: startDate,
+      end_date: endDate,
+    });
+    const response = await fetch(`${this.baseUrl}/default-franjas?${params}`);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || 'Error al obtener franjas estándar');
+    }
+    return response.json();
   }
 
   /**

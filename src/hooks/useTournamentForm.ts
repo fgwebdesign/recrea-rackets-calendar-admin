@@ -88,81 +88,27 @@ const INITIAL_FORM_DATA: TournamentFormData = {
 };
 
 /**
- * Genera las franjas horarias estándar a partir de las fechas del torneo.
- * Día 1 (viernes): Tarde 18-21, Noche 21-00
- * Día 2 (sábado): Mañana 09-13, Tarde 14-22
- *
- * IMPORTANTE: Solo se generan 2 días de torneo (patrón estándar Viernes + Sábado).
- * Si el rango de fechas incluye más días (ej. hasta Domingo), se ignoran.
+ * Genera franjas horarias estándar solo para Día 1 y Día 2 (fallback local).
+ * Día 3 no se genera aquí: es solo para eliminatorias y se maneja en el admin después.
+ * - Día 1: 2 franjas (Tarde, Noche)
+ * - Día 2: 4 franjas (Mañana, Mediodía, Tarde, Noche)
  */
 export function generateDefaultFranjas(startDate: string, endDate: string): TournamentFormData['group_time_slots'] {
   if (!startDate || !endDate) return [];
 
-  const start = new Date(startDate + 'T12:00:00');
-  const end = new Date(endDate + 'T12:00:00');
+  const day1Date = startDate;
+  const day2Obj = new Date(startDate + 'T12:00:00');
+  day2Obj.setDate(day2Obj.getDate() + 1);
+  const day2Date = day2Obj.toISOString().split('T')[0];
 
-  const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const franjas: TournamentFormData['group_time_slots'] = [];
-  let tournamentDay = 1;
-
-  const current = new Date(start);
-  // Solo 2 días de torneo (Día 1 y Día 2), aunque end_date sea más lejana
-  while (current <= end && tournamentDay <= 2) {
-    const dateStr = current.toISOString().split('T')[0];
-    const dayName = dayNames[current.getDay()];
-    const dayId = dateStr.replace(/-/g, '');
-
-    if (tournamentDay === 1) {
-      // Primer día: Tarde y Noche (típico viernes)
-      franjas.push(
-        {
-          id: `franja_${dayId}_tarde`,
-          label: `${dayName} Tarde`,
-          day: tournamentDay,
-          tournament_day: tournamentDay,
-          date: dateStr,
-          start_time: '18:00',
-          end_time: '21:00',
-        },
-        {
-          id: `franja_${dayId}_noche`,
-          label: `${dayName} Noche`,
-          day: tournamentDay,
-          tournament_day: tournamentDay,
-          date: dateStr,
-          start_time: '21:00',
-          end_time: '00:00',
-        }
-      );
-    } else {
-      // Demás días: Mañana y Tarde (típico sábado)
-      franjas.push(
-        {
-          id: `franja_${dayId}_manana`,
-          label: `${dayName} Mañana`,
-          day: tournamentDay,
-          tournament_day: tournamentDay,
-          date: dateStr,
-          start_time: '09:00',
-          end_time: '13:00',
-        },
-        {
-          id: `franja_${dayId}_tarde`,
-          label: `${dayName} Tarde`,
-          day: tournamentDay,
-          tournament_day: tournamentDay,
-          date: dateStr,
-          start_time: '14:00',
-          end_time: '22:00',
-        }
-      );
-    }
-
-    tournamentDay++;
-    current.setDate(current.getDate() + 1);
-  }
-
-  return franjas;
+  return [
+    { id: 'franja_day1_tarde', label: 'Día 1 Tarde', day: 1, tournament_day: 1, date: day1Date, start_time: '18:00', end_time: '21:00' },
+    { id: 'franja_day1_noche', label: 'Día 1 Noche', day: 1, tournament_day: 1, date: day1Date, start_time: '21:00', end_time: '00:00' },
+    { id: 'franja_day2_manana', label: 'Día 2 Mañana', day: 2, tournament_day: 2, date: day2Date, start_time: '09:00', end_time: '13:00' },
+    { id: 'franja_day2_mediodia', label: 'Día 2 Mediodía', day: 2, tournament_day: 2, date: day2Date, start_time: '13:00', end_time: '17:00' },
+    { id: 'franja_day2_tarde', label: 'Día 2 Tarde', day: 2, tournament_day: 2, date: day2Date, start_time: '17:00', end_time: '21:00' },
+    { id: 'franja_day2_noche', label: 'Día 2 Noche', day: 2, tournament_day: 2, date: day2Date, start_time: '21:00', end_time: '00:00' },
+  ];
 }
 
 export function useTournamentForm() {
