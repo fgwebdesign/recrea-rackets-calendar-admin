@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import type { Map as LeafletMap, Marker as LeafletMarker } from 'leaflet';
 import { cn } from '@/lib/utils';
 
 interface MapPreviewProps {
@@ -27,8 +28,8 @@ export function MapPreview({
   zoom = 15,
 }: MapPreviewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const markerRef = useRef<LeafletMarker | null>(null);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -36,6 +37,7 @@ export function MapPreview({
     // Import Leaflet dinámicamente (no funciona en SSR)
     const initMap = async () => {
       const L = (await import('leaflet')).default;
+      // @ts-expect-error - leaflet CSS no tiene declaración de tipos
       await import('leaflet/dist/leaflet.css');
 
       // Fix para el ícono default de Leaflet en bundlers
@@ -67,9 +69,11 @@ export function MapPreview({
         scrollWheelZoom: false,
       });
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19,
+      // CartoDB Voyager: estilo moderno, colores suaves (sin el gris antiguo de OSM estándar)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20,
       }).addTo(map);
 
       const marker = L.marker([latitude, longitude], {

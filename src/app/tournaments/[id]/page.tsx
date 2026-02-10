@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import { 
   ArrowLeftIcon,
   TrophyIcon,
@@ -22,11 +23,18 @@ import {
   InformationCircleIcon,
   DocumentTextIcon,
   StarIcon,
-  PlayIcon
+  PlayIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import { AlertCircle, RefreshCw, Download } from 'lucide-react'
+
+const MapPreview = dynamic(
+  () => import('@/components/ui/map-preview').then((mod) => ({ default: mod.MapPreview })),
+  { ssr: false, loading: () => <div className="w-full h-[200px] rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" /> }
+)
 import { getCategoryName } from '@/utils/category'
 import { TournamentTypeEditor } from '@/components/Tournaments/TournamentTypeEditor'
 import { useTranslations } from '@/contexts/TranslationContext'
@@ -69,6 +77,31 @@ export default function TournamentPage({ params }: PageProps) {
   const [tournamentType, setTournamentType] = useState(tournament?.tournament_type || '')
   const [rulesPdfUploading, setRulesPdfUploading] = useState(false)
   const [rulesPdfError, setRulesPdfError] = useState<string | null>(null)
+  const [rulesPdfSelectedName, setRulesPdfSelectedName] = useState<string | null>(null)
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null)
+
+  // Geocodificar dirección para mostrar el mapa (Nominatim)
+  useEffect(() => {
+    const address = tournamentInfo?.tournament_address?.trim()
+    if (!address) {
+      setLocationCoords(null)
+      return
+    }
+    let cancelled = false
+    const params = new URLSearchParams({ q: address, format: 'json', limit: '1' })
+    fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+      headers: { 'Accept-Language': 'es', 'User-Agent': 'MatchlyTournamentAdmin/1.0' },
+    })
+      .then((res) => res.json())
+      .then((data: { lat?: string; lon?: string }[]) => {
+        if (cancelled || !Array.isArray(data) || data.length === 0) return
+        const lat = parseFloat(data[0].lat ?? '')
+        const lon = parseFloat(data[0].lon ?? '')
+        if (!Number.isNaN(lat) && !Number.isNaN(lon)) setLocationCoords({ lat, lng: lon })
+      })
+      .catch(() => setLocationCoords(null))
+    return () => { cancelled = true }
+  }, [tournamentInfo?.tournament_address])
 
   // Actualizar el estado cuando cambie el torneo
   useEffect(() => {
@@ -87,35 +120,112 @@ export default function TournamentPage({ params }: PageProps) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
         <div className="max-w-7xl mx-auto">
-          {/* Header Skeleton */}
+          {/* Back + Header Skeleton (imagen izq, centro, categoría derecha) */}
           <div className="mb-8">
-            <Skeleton className="h-8 w-32 mb-4" />
-            <div className="flex items-center gap-6">
-              <Skeleton className="h-32 w-32 rounded-lg" />
-              <div className="flex-1">
-                <Skeleton className="h-8 w-64 mb-2" />
-                <Skeleton className="h-6 w-48 mb-4" />
-                <div className="flex gap-4">
-                  <Skeleton className="h-6 w-24" />
-                  <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-9 w-40 mb-6 rounded-md" />
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] gap-6 p-6 sm:p-8 items-start">
+                <Skeleton className="h-32 w-32 sm:h-36 sm:w-36 rounded-xl flex-shrink-0" />
+                <div className="min-w-0 space-y-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Skeleton className="h-8 w-48 rounded" />
+                    <Skeleton className="h-6 w-28 rounded-full" />
+                  </div>
+                  <div className="flex flex-wrap gap-4">
+                    <Skeleton className="h-5 w-44 rounded" />
+                    <Skeleton className="h-5 w-32 rounded" />
+                    <Skeleton className="h-5 w-36 rounded" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Skeleton className="h-4 w-40 rounded" />
+                      <Skeleton className="h-4 w-12 rounded" />
+                    </div>
+                    <Skeleton className="h-3 w-full rounded-full" />
+                  </div>
+                </div>
+                <div className="flex flex-col items-start lg:items-end">
+                  <Skeleton className="h-3 w-16 mb-2 rounded" />
+                  <Skeleton className="h-12 w-28 rounded-xl" />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Navigation Cards Skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <Skeleton className="h-6 w-32" />
+          {/* Gestionar torneo Skeleton (6 cards con icono + título + descripción + flecha) */}
+          <div className="mb-10">
+            <Skeleton className="h-4 w-36 mb-4 rounded" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700">
+                  <Skeleton className="h-10 w-10 rounded-lg flex-shrink-0" />
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <Skeleton className="h-4 w-24 rounded" />
+                    <Skeleton className="h-3 w-full rounded" />
+                  </div>
+                  <Skeleton className="h-5 w-5 rounded flex-shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Información del torneo Skeleton (2 cards iguales) */}
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-48 rounded" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+              <Card className="border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <CardHeader className="pb-3 pt-5 px-5 border-b border-gray-100 dark:border-gray-700/80">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-5 w-5 rounded" />
+                    <Skeleton className="h-4 w-40 rounded" />
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-3/4" />
+                <CardContent className="px-5 py-4 space-y-4">
+                  <div>
+                    <Skeleton className="h-3 w-24 mb-2 rounded" />
+                    <Skeleton className="h-4 w-full rounded" />
+                    <Skeleton className="h-4 w-4/5 mt-1 rounded" />
+                  </div>
+                  <div className="py-3 border-t border-gray-100 dark:border-gray-700/80">
+                    <Skeleton className="h-3 w-32 mb-2 rounded" />
+                    <Skeleton className="h-8 w-20 rounded" />
+                  </div>
+                  <div className="py-3 border-t border-gray-100 dark:border-gray-700/80">
+                    <Skeleton className="h-3 w-20 mb-2 rounded" />
+                    <div className="flex gap-3">
+                      <Skeleton className="h-7 w-7 rounded-full" />
+                      <Skeleton className="h-7 w-7 rounded-full" />
+                      <Skeleton className="h-7 w-7 rounded-full" />
+                    </div>
+                  </div>
+                  <div className="py-3 border-t border-gray-100 dark:border-gray-700/80">
+                    <Skeleton className="h-3 w-28 mb-2 rounded" />
+                    <Skeleton className="h-9 w-24 rounded-md" />
+                    <Skeleton className="h-9 w-28 rounded-md mt-2" />
+                  </div>
                 </CardContent>
               </Card>
-            ))}
+              <Card className="border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <CardHeader className="pb-3 pt-5 px-5 border-b border-gray-100 dark:border-gray-700/80">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-5 w-5 rounded" />
+                    <Skeleton className="h-4 w-28 rounded" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-5 py-4 space-y-4">
+                  <Skeleton className="h-4 w-36 rounded" />
+                  <Skeleton className="h-4 w-full rounded" />
+                  <div className="pt-2 border-t border-gray-100 dark:border-gray-700/80">
+                    <Skeleton className="h-3 w-28 mb-2 rounded" />
+                    <Skeleton className="h-4 w-40 rounded" />
+                  </div>
+                  <div className="pt-2 border-t border-gray-100 dark:border-gray-700/80 flex-1 min-h-[220px]">
+                    <Skeleton className="h-3 w-16 mb-2 rounded" />
+                    <Skeleton className="w-full h-[220px] rounded-lg" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
@@ -240,358 +350,369 @@ export default function TournamentPage({ params }: PageProps) {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/tournaments')}
-            className="mb-6 flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-          >
-            <ArrowLeftIcon className="w-4 h-4 mr-2" />
-            {t('detail.backToTournaments')}
-          </Button>
+        <TooltipProvider delayDuration={300}>
+          <div className="mb-8">
+            <Button
+              variant="ghost"
+              onClick={() => router.push('/tournaments')}
+              className="mb-6 flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+            >
+              <ArrowLeftIcon className="w-4 h-4 mr-2" />
+              {t('detail.backToTournaments')}
+            </Button>
 
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-800/20 rounded-2xl p-8 border border-blue-200 dark:border-blue-800 shadow-lg">
-            <div className="flex items-center gap-6">
-              {/* Tournament Image */}
-              <div className="relative h-32 w-32 rounded-xl overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                {tournamentInfo?.tournament_thumbnail ? (
-                  <Image
-                    src={tournamentInfo.tournament_thumbnail}
-                    alt={tournament.name}
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <TrophyIcon className="h-16 w-16 text-white" />
-                )}
-              </div>
-
-              {/* Tournament Info */}
-              <div className="flex-1">
-                <div className="flex items-center gap-4 mb-4">
-                  <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-                    {tournament.name}
-                  </h1>
-                  {getStatusBadge(tournament.status)}
-                </div>
-                
-                {/* Categoría */}
-                <div className="mb-4">
-                  <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
-                    {getCategoryName(tournament.category_id, categories)}
-                  </Badge>
-                </div>
-                
-                <div className="flex items-center gap-8 text-sm text-gray-600 dark:text-gray-400 mb-6">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-5 w-5 text-blue-500" />
-                    <span className="font-medium">
-                      {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <UsersIcon className="h-5 w-5 text-green-500" />
-                    <span className="font-medium">{teamsCount}/{tournament.max_teams} {t('teams')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <TrophyIcon className="h-5 w-5 text-yellow-500" />
-                    <TournamentTypeEditor
-                      tournamentId={id}
-                      currentType={tournamentType}
-                      onTypeChange={handleTournamentTypeChange}
-                      disabled={tournament.status === 'completed'}
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 shadow-sm overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] gap-6 p-6 sm:p-8 items-start">
+                {/* Izquierda: imagen del torneo */}
+                <div className="relative h-32 w-32 sm:h-36 sm:w-36 flex-shrink-0 rounded-xl overflow-hidden bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center ring-2 ring-gray-200 dark:ring-gray-600 shadow-md">
+                  {tournamentInfo?.tournament_thumbnail ? (
+                    <Image
+                      src={tournamentInfo.tournament_thumbnail}
+                      alt={tournament.name}
+                      fill
+                      className="object-cover"
                     />
-                  </div>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">{t('detail.registrationProgress')}</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">
-                      {teamsCount}/{tournament.max_teams}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-                    <div 
-                      className={`h-3 rounded-full transition-all duration-500 ${
-                        teamsCount >= tournament.max_teams
-                          ? 'bg-gradient-to-r from-green-500 to-emerald-500'
-                          : 'bg-gradient-to-r from-blue-500 to-purple-500'
-                      }`}
-                      style={{ 
-                        width: `${Math.min((teamsCount / tournament.max_teams) * 100, 100)}%` 
-                      }}
-                    />
-                  </div>
-                  {teamsCount >= tournament.max_teams && (
-                    <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                      {t('detail.registrationsComplete')}
-                    </p>
+                  ) : (
+                    <TrophyIcon className="h-16 w-16 sm:h-20 sm:w-20 text-white/90" />
                   )}
+                </div>
+
+                {/* Centro: todos los detalles (más color y bold) */}
+                <div className="min-w-0 space-y-4 order-3 lg:order-2">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-gray-100 truncate tracking-tight">
+                      {tournament.name}
+                    </h1>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>{getStatusBadge(tournament.status)}</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs">
+                        <p>Estado actual del torneo: inscripciones y visibilidad.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-2">
+                          <CalendarIcon className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                          <span className="font-semibold text-blue-700 dark:text-blue-300">
+                            {new Date(tournament.start_date).toLocaleDateString()}
+                          </span>
+                          <span className="text-gray-500 dark:text-gray-400 font-medium">–</span>
+                          <span className="font-semibold text-blue-700 dark:text-blue-300">
+                            {new Date(tournament.end_date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p>Fechas de realización del torneo.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-2">
+                          <UsersIcon className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+                          <span className="font-bold text-emerald-700 dark:text-emerald-300">{teamsCount}</span>
+                          <span className="text-gray-500 dark:text-gray-400 font-medium">/</span>
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">{tournament.max_teams} equipos</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p>Equipos inscritos vs. cupo máximo.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-2">
+                          <TrophyIcon className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                          <TournamentTypeEditor
+                            tournamentId={id}
+                            currentType={tournamentType}
+                            onTypeChange={handleTournamentTypeChange}
+                            disabled={tournament.status === 'completed'}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p>Formato del torneo (ej. grupos + eliminatorias). Clic para editar.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">{t('detail.registrationProgress')}</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p>Avance de inscripciones respecto al cupo máximo.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <span className="font-bold text-gray-900 dark:text-gray-100">
+                        {teamsCount} / {tournament.max_teams}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                      <div 
+                        className={`h-3 rounded-full transition-all duration-500 ${
+                          teamsCount >= tournament.max_teams
+                            ? 'bg-emerald-500'
+                            : 'bg-blue-500'
+                        }`}
+                        style={{ width: `${Math.min((teamsCount / tournament.max_teams) * 100, 100)}%` }}
+                      />
+                    </div>
+                    {teamsCount >= tournament.max_teams && (
+                      <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                        {t('detail.registrationsComplete')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Derecha arriba: categoría bien grande */}
+                <div className="flex flex-col items-start lg:items-end order-2 lg:order-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">
+                    Categoría
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <span className="px-5 py-3 rounded-xl bg-violet-100 dark:bg-violet-900/50 text-violet-800 dark:text-violet-200 border-2 border-violet-200 dark:border-violet-700 font-bold text-xl sm:text-2xl shadow-sm">
+                          {getCategoryName(tournament.category_id, categories)}
+                        </span>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                      <p>Nivel o categoría en la que se disputa este torneo.</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             </div>
           </div>
+        </TooltipProvider>
+
+        {/* Navegación: acciones principales del torneo (más visible) */}
+        <div className="mb-10">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+            Gestionar torneo
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {navigationCards.map((card) => {
+              const IconComponent = card.icon
+              return (
+                <button
+                  key={card.title}
+                  type="button"
+                  onClick={() => router.push(card.href)}
+                  className="group flex items-center gap-4 w-full text-left p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md active:scale-[0.99] transition-all duration-200"
+                >
+                  <div className={`flex-shrink-0 p-2.5 rounded-lg ${card.color}`}>
+                    <IconComponent className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 dark:text-gray-100">{card.title}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">{card.description}</div>
+                  </div>
+                  <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 flex-shrink-0" />
+                </button>
+              )
+            })}
+          </div>
         </div>
 
-        {/* Tournament Info Cards */}
+        {/* Información del torneo: solo 2 cards de igual tamaño */}
         {tournamentInfo && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800 shadow-lg hover:shadow-xl transition-all duration-300">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
-                  <InformationCircleIcon className="h-5 w-5" />
-                  {t('detail.info.description')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {tournamentInfo.description || t('detail.info.noDescription')}
-                </p>
-              </CardContent>
-            </Card>
+          <div className="space-y-4">
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Información del torneo
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+              {/* Card 1: Descripción, Costo, Premios, Patrocinadores y Reglamento */}
+              <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 shadow-sm flex flex-col overflow-hidden">
+                <CardHeader className="pb-3 pt-5 px-5 border-b border-gray-100 dark:border-gray-700/80">
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-gray-800 dark:text-gray-200">
+                    <InformationCircleIcon className="h-5 w-5 text-slate-500" />
+                    Información general
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-5 py-4 flex-1 flex flex-col min-h-0 space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{t('detail.info.description')}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {tournamentInfo.description || t('detail.info.noDescription')}
+                    </p>
+                  </div>
 
-            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800 shadow-lg hover:shadow-xl transition-all duration-300">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
-                  <MapPinIcon className="h-5 w-5" />
-                  {t('detail.info.location')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                  {tournamentInfo.tournament_club_name}
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  {tournamentInfo.tournament_address}
-                </p>
-                {/* ✨ NUEVO: Mostrar información de venues si está disponible */}
-                {tournament?.tournament_venues && tournament.tournament_venues.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
-                    <p className="text-xs font-semibold text-green-700 dark:text-green-300 mb-2">
-                      {t('detail.info.venuesAndCourts')}:
+                  <div className="py-3 border-t border-gray-100 dark:border-gray-700/80">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5 flex items-center gap-1.5">
+                      <BanknotesIcon className="h-4 w-4" />
+                      {t('detail.info.inscriptionCost')}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">${tournamentInfo.inscription_cost}</p>
+                  </div>
+
+                  {(tournamentInfo.first_place_prize || tournamentInfo.second_place_prize || tournamentInfo.third_place_prize) && (
+                    <div className="py-3 border-t border-gray-100 dark:border-gray-700/80">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                        <TrophyIcon className="h-4 w-4" />
+                        {t('detail.info.prizes')}
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        {tournamentInfo.first_place_prize && (
+                          <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                            <span className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center text-white text-xs font-bold">1°</span>
+                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{tournamentInfo.first_place_prize}</span>
+                          </span>
+                        )}
+                        {tournamentInfo.second_place_prize && (
+                          <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+                            <span className="w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-bold">2°</span>
+                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{tournamentInfo.second_place_prize}</span>
+                          </span>
+                        )}
+                        {tournamentInfo.third_place_prize && (
+                          <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-700/30 dark:border-amber-800">
+                            <span className="w-5 h-5 rounded-full bg-amber-700 flex items-center justify-center text-white text-xs font-bold">3°</span>
+                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{tournamentInfo.third_place_prize}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {sponsors && sponsors.length > 0 && (
+                    <div className="py-3 border-t border-gray-100 dark:border-gray-700/80">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                        <StarIcon className="h-4 w-4" />
+                        {t('sponsors')}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {sponsors.map((sponsor, index: number) => (
+                          <div key={index} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                            {sponsor.logo_url && (
+                              <div className="relative h-6 w-6 rounded overflow-hidden flex-shrink-0">
+                                <Image src={sponsor.logo_url} alt={sponsor.name} fill className="object-contain" sizes="24px" />
+                              </div>
+                            )}
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{sponsor.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="py-3 border-t border-gray-100 dark:border-gray-700/80 flex-1 flex flex-col min-h-0">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                      <DocumentTextIcon className="h-4 w-4" />
+                      {t('detail.info.rules')}
                     </p>
                     <div className="space-y-2">
+                      {tournamentInfo.rules_pdf_url && (
+                        <div className="flex flex-wrap gap-2">
+                          <a href={tournamentInfo.rules_pdf_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+                            <DocumentTextIcon className="h-4 w-4" /> Ver PDF
+                          </a>
+                          <a href={tournamentInfo.rules_pdf_url} download className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <Download className="h-4 w-4" /> Descargar
+                          </a>
+                        </div>
+                      )}
+                      {tournamentInfo.rules && <p className="text-sm text-gray-600 dark:text-gray-400">{tournamentInfo.rules}</p>}
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{tournamentInfo.rules_pdf_url ? 'Reemplazar' : 'Subir'} reglamento en PDF</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            id="rules-pdf-upload"
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            className="sr-only"
+                            disabled={rulesPdfUploading}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+                              setRulesPdfSelectedName(file.name)
+                              const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
+                              if (!token) { setRulesPdfError('Debes iniciar sesión para subir archivos'); return }
+                              setRulesPdfError(null)
+                              setRulesPdfUploading(true)
+                              try {
+                                await tournamentService.uploadRulesPdf(id, file, token)
+                                refetch()
+                              } catch (err) {
+                                setRulesPdfError(err instanceof Error ? err.message : 'Error al subir el PDF')
+                              } finally {
+                                setRulesPdfUploading(false)
+                                setRulesPdfSelectedName(null)
+                                e.target.value = ''
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor="rules-pdf-upload"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 cursor-pointer transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                          >
+                            <DocumentTextIcon className="h-4 w-4" />
+                            Elegir archivo
+                          </label>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {rulesPdfUploading ? 'Subiendo...' : rulesPdfSelectedName ?? 'Ningún archivo elegido'}
+                          </span>
+                        </div>
+                        {rulesPdfError && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{rulesPdfError}</p>}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Card 2: Ubicación + mapa (misma altura) */}
+              <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 shadow-sm flex flex-col overflow-hidden">
+                <CardHeader className="pb-3 pt-5 px-5 border-b border-gray-100 dark:border-gray-700/80">
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-gray-800 dark:text-gray-200">
+                    <MapPinIcon className="h-5 w-5 text-slate-500" />
+                    {t('detail.info.location')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-5 py-4 flex-1 flex flex-col min-h-0 space-y-4">
+                  <p className="font-semibold text-gray-800 dark:text-gray-200">{tournamentInfo.tournament_club_name}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{tournamentInfo.tournament_address}</p>
+                  {tournament?.tournament_venues && tournament.tournament_venues.length > 0 && (
+                    <div className="pt-2 border-t border-gray-100 dark:border-gray-700/80">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{t('detail.info.venuesAndCourts')}</p>
                       {tournament.tournament_venues.map((tv) => (
-                        <div key={tv.id} className="text-xs">
-                          <div className="flex items-center gap-1 mb-1">
-                            <span className="font-medium text-gray-800 dark:text-gray-200">
-                              {tv.venue?.name || 'Sede'}
-                            </span>
-                            {tv.is_primary && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
-                                Principal
-                              </Badge>
-                            )}
-                          </div>
+                        <div key={tv.id} className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5 flex-wrap">
+                          <span className="font-medium text-gray-700 dark:text-gray-300">{tv.venue?.name || 'Sede'}</span>
+                          {tv.is_primary && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">Principal</Badge>}
                           {tv.tournament_venue_courts && tv.tournament_venue_courts.length > 0 && (
-                            <p className="text-gray-600 dark:text-gray-400 ml-2">
-                              {tv.tournament_venue_courts.length} {tv.tournament_venue_courts.length === 1 ? 'cancha' : 'canchas'}
-                              {tv.tournament_venue_courts.length > 0 && (
-                                <span className="ml-1">
-                                  ({tv.tournament_venue_courts.map((cvc) => cvc.court?.name).filter(Boolean).join(', ')})
-                                </span>
-                              )}
-                            </p>
+                            <span>— {tv.tournament_venue_courts.length} canchas ({tv.tournament_venue_courts.map((cvc) => cvc.court?.name).filter(Boolean).join(', ')})</span>
                           )}
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border-yellow-200 dark:border-yellow-800 shadow-lg hover:shadow-xl transition-all duration-300">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm text-yellow-700 dark:text-yellow-300">
-                  <BanknotesIcon className="h-5 w-5" />
-                  {t('detail.info.inscriptionCost')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  ${tournamentInfo.inscription_cost}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800 shadow-lg hover:shadow-xl transition-all duration-300">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
-                  <DocumentTextIcon className="h-5 w-5" />
-                  {t('detail.info.rules')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {tournamentInfo.rules_pdf_url ? (
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap gap-2">
-                        <a
-                          href={tournamentInfo.rules_pdf_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
-                        >
-                          <DocumentTextIcon className="h-4 w-4" />
-                          Ver reglamento PDF
-                        </a>
-                        <a
-                          href={tournamentInfo.rules_pdf_url}
-                          download
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 hover:bg-purple-200 dark:bg-purple-800 dark:hover:bg-purple-700 text-purple-700 dark:text-purple-200 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          <Download className="h-4 w-4" />
-                          Descargar PDF
-                        </a>
-                      </div>
+                  )}
+                  {locationCoords ? (
+                    <div className="pt-2 border-t border-gray-100 dark:border-gray-700/80 flex-1 min-h-[200px] flex flex-col">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Mapa</p>
+                      <MapPreview
+                        latitude={locationCoords.lat}
+                        longitude={locationCoords.lng}
+                        className="w-full flex-1 min-h-[220px] rounded-lg border border-gray-200 dark:border-gray-700"
+                      />
                     </div>
-                  ) : null}
-                  {tournamentInfo.rules ? (
-                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {tournamentInfo.rules}
-                    </p>
-                  ) : null}
-                  {/* Upload PDF - Admin */}
-                  <div className="pt-4 border-t border-purple-200 dark:border-purple-800">
-                    <label className="block text-sm font-medium text-purple-700 dark:text-purple-300 mb-2">
-                      {tournamentInfo.rules_pdf_url ? 'Reemplazar' : 'Subir'} reglamento en PDF
-                    </label>
-                    <input
-                      type="file"
-                      accept=".pdf,application/pdf"
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 dark:file:bg-purple-900/30 dark:file:text-purple-300"
-                      disabled={rulesPdfUploading}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        if (!file) return
-                        const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null
-                        if (!token) {
-                          setRulesPdfError('Debes iniciar sesión para subir archivos')
-                          return
-                        }
-                        setRulesPdfError(null)
-                        setRulesPdfUploading(true)
-                        try {
-                          await tournamentService.uploadRulesPdf(id, file, token)
-                          refetch()
-                        } catch (err) {
-                          setRulesPdfError(err instanceof Error ? err.message : 'Error al subir el PDF')
-                        } finally {
-                          setRulesPdfUploading(false)
-                          e.target.value = ''
-                        }
-                      }}
-                    />
-                    {rulesPdfError && (
-                      <p className="mt-2 text-sm text-red-600 dark:text-red-400">{rulesPdfError}</p>
-                    )}
-                    {rulesPdfUploading && (
-                      <p className="mt-2 text-sm text-purple-600 dark:text-purple-400">Subiendo PDF...</p>
-                    )}
-                  </div>
+                  ) : (
+                    <div className="flex-1 min-h-[200px]" />
+                  )}
                 </CardContent>
               </Card>
-
-            {tournamentInfo.first_place_prize && (
-              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-800 shadow-lg hover:shadow-xl transition-all duration-300">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm text-orange-700 dark:text-orange-300">
-                    <TrophyIcon className="h-5 w-5" />
-                    {t('detail.info.prizes')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    {tournamentInfo.first_place_prize && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
-                        <p className="text-gray-700 dark:text-gray-300 font-medium">{tournamentInfo.first_place_prize}</p>
-                      </div>
-                    )}
-                    {tournamentInfo.second_place_prize && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
-                        <p className="text-gray-700 dark:text-gray-300 font-medium">{tournamentInfo.second_place_prize}</p>
-                      </div>
-                    )}
-                    {tournamentInfo.third_place_prize && (
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-orange-600 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
-                        <p className="text-gray-700 dark:text-gray-300 font-medium">{tournamentInfo.third_place_prize}</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {sponsors && sponsors.length > 0 && (
-              <Card className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 border-pink-200 dark:border-pink-800 shadow-lg hover:shadow-xl transition-all duration-300">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-sm text-pink-700 dark:text-pink-300">
-                    <StarIcon className="h-5 w-5" />
-                    {t('sponsors')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-3">
-                    {sponsors.map((sponsor, index: number) => (
-                      <div key={index} className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-pink-200 dark:border-pink-800">
-                        {sponsor.logo_url && (
-                          <div className="relative h-8 w-8 rounded-md overflow-hidden">
-                            <Image
-                              src={sponsor.logo_url}
-                              alt={sponsor.name}
-                              fill
-                              className="object-contain"
-                              priority={false}
-                              sizes="32px"
-                            />
-                          </div>
-                        )}
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {sponsor.name}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            </div>
           </div>
         )}
-
-        {/* Navigation Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {navigationCards.map((card) => {
-            const IconComponent = card.icon
-            return (
-              <Card 
-                key={card.title}
-                className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-gray-200 dark:border-gray-700 shadow-lg"
-                onClick={() => router.push(card.href)}
-              >
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <div className={`p-3 rounded-xl ${card.color} text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                      <IconComponent className="h-6 w-6" />
-                    </div>
-                    <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      {card.title}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                    {card.description}
-                  </p>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
 
         {/* Estadísticas Avanzadas */}
         {paymentStats && !paymentStatsLoading && (

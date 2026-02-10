@@ -1,31 +1,31 @@
 'use client';
 
 import { useState } from 'react';
+import { Switch } from '@/components/ui/switch';
 import { TeamPayment } from '@/hooks/usePayments';
 
-interface TournamentPaymentsPanelProps {
+export interface TournamentPaymentsPanelProps {
   teams: TeamPayment[];
   inscriptionCost: number;
   category?: string;
-  onMarkAsPaid: (teamId: string, paymentMethod: string) => Promise<void>;
-  handlePaymentMethodChange: (teamId: string, payment_reference: string) => void;
+  onPaymentChange: (teamId: string, paid: boolean) => Promise<void>;
 }
 
-export function TournamentPaymentsPanel({ 
-  teams, 
+export function TournamentPaymentsPanel({
+  teams,
   inscriptionCost,
   category,
-  onMarkAsPaid,
-  handlePaymentMethodChange
+  onPaymentChange,
 }: TournamentPaymentsPanelProps) {
-  const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
-  const handleMarkAsPaid = async (teamId: string) => {
-    setIsProcessing(teamId);
+  const handleToggle = async (teamId: string, paid: boolean) => {
+    if (isUpdating) return;
+    setIsUpdating(teamId);
     try {
-      await onMarkAsPaid(teamId, 'en_persona');
+      await onPaymentChange(teamId, paid);
     } finally {
-      setIsProcessing(null);
+      setIsUpdating(null);
     }
   };
 
@@ -70,7 +70,7 @@ export function TournamentPaymentsPanel({
                 Método de Pago
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Acciones
+                Pagado
               </th>
             </tr>
           </thead>
@@ -98,23 +98,35 @@ export function TournamentPaymentsPanel({
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                   {teamEntry.payment_status === 'paid' ? (
                     <span className="text-gray-900 dark:text-gray-100">
-                      {teamEntry.payment_reference === 'en_persona' ? 'En persona' : 'Mercado Pago'}
+                      {teamEntry.payment_reference === 'en_persona'
+                        ? 'En persona'
+                        : teamEntry.payment_reference
+                          ? teamEntry.payment_reference
+                          : '—'}
                     </span>
                   ) : (
                     '-'
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {teamEntry.payment_status !== 'paid' && (
-                    <button
-                      onClick={() => handleMarkAsPaid(teamEntry.team_id)}
-                      disabled={isProcessing === teamEntry.team_id}
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 
-                               disabled:opacity-50 transition-colors"
-                    >
-                      {isProcessing === teamEntry.team_id ? 'Procesando...' : 'Marcar como pagado'}
-                    </button>
-                  )}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={teamEntry.payment_status === 'paid'}
+                      onCheckedChange={(checked) => handleToggle(teamEntry.team_id, !!checked)}
+                      disabled={isUpdating === teamEntry.team_id}
+                    />
+                    <span className={`text-sm px-2 py-1 rounded-full ${
+                      teamEntry.payment_status === 'paid'
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    }`}>
+                      {isUpdating === teamEntry.team_id
+                        ? 'Actualizando...'
+                        : teamEntry.payment_status === 'paid'
+                          ? 'Pagado'
+                          : 'Pendiente'}
+                    </span>
+                  </div>
                 </td>
               </tr>
             ))}

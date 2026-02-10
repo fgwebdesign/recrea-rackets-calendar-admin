@@ -107,8 +107,25 @@ export function TeamCard({ team, index, tournamentStartDate }: TeamCardProps) {
     
     if (!slotValue) return t('teamsPage.noRestrictions');
     
-    // Función para formatear un slot individual del tipo "slot_day1_1700"
+    // Mapeo franja del backend (ej. franja_day2_manana) -> etiqueta amigable
+    const franjaPeriodToLabel: Record<string, string> = {
+      manana: t('teamsPage.timeSlots.morning'),
+      mediodia: 'Mediodía',
+      tarde: t('teamsPage.timeSlots.afternoon'),
+      noche: t('teamsPage.timeSlots.night'),
+    };
+
+    // Función para formatear un slot individual
     const formatSingleSlot = (slotId: string): string => {
+      // Formato backend: franja_day1_manana, franja_day2_mediodia, franja_day2_tarde, franja_day2_noche
+      const franjaMatch = slotId.match(/franja_day(\d+)_(manana|mediodia|tarde|noche)/);
+      if (franjaMatch) {
+        const dayNum = franjaMatch[1];
+        const period = franjaMatch[2];
+        const periodLabel = franjaPeriodToLabel[period] ?? period;
+        return `Día ${dayNum} - ${periodLabel}`;
+      }
+      
       // Extraer día y hora del formato "slot_day1_1700" o "slot_day1_1745"
       const slotMatch = slotId.match(/slot_day(\d+)_(\d+)/);
       if (slotMatch) {
@@ -119,46 +136,34 @@ export function TeamCard({ team, index, tournamentStartDate }: TeamCardProps) {
         // Formatear la hora (1700 -> 17:00, 1745 -> 17:45)
         const formattedTime = `${time.slice(0, 2)}:${time.slice(2, 4)}`;
         
-        // Mapear el día con nombre del día de la semana si es posible
         const dayText = day === '1' ? 'Día 1' : day === '2' ? 'Día 2' : `Día ${day}`;
-        
-        // Obtener la fecha del calendario si está disponible
         const calendarDate = getCalendarDateForTournamentDay(dayNumber);
         
-        // Si hay fecha, mostrarla junto al día
         if (calendarDate) {
           return `${dayText} (${calendarDate}) - ${formattedTime}`;
         }
-        
         return `${dayText} - ${formattedTime}`;
       }
       
-      // Si no coincide con el formato esperado, intentar con el mapeo anterior
+      // Mapeo por clave (day1_morning, etc.)
       const timeSlotMap: Record<string, string> = {
-        // Día 1
         'day1_morning': t('teamsPage.timeSlots.day1Morning'),
-        'day1_afternoon': t('teamsPage.timeSlots.day1Afternoon'), 
+        'day1_afternoon': t('teamsPage.timeSlots.day1Afternoon'),
         'day1_evening': t('teamsPage.timeSlots.day1Evening'),
         'day1_night': t('teamsPage.timeSlots.day1Night'),
         'dayl_night': t('teamsPage.timeSlots.day1Night'),
-        
-        // Día 2
         'day2_morning': t('teamsPage.timeSlots.day2Morning'),
         'day2_afternoon': t('teamsPage.timeSlots.day2Afternoon'),
         'day2_evening': t('teamsPage.timeSlots.day2Evening'),
         'day2_night': t('teamsPage.timeSlots.day2Night'),
-        
-        // Día 3
         'day3_morning': t('teamsPage.timeSlots.day3Morning'),
         'day3_afternoon': t('teamsPage.timeSlots.day3Afternoon'),
         'day3_evening': t('teamsPage.timeSlots.day3Evening'),
         'day3_night': t('teamsPage.timeSlots.day3Night'),
-        
-        // Posibles variaciones adicionales
         'morning': t('teamsPage.timeSlots.morning'),
         'afternoon': t('teamsPage.timeSlots.afternoon'),
         'evening': t('teamsPage.timeSlots.evening'),
-        'night': t('teamsPage.timeSlots.night')
+        'night': t('teamsPage.timeSlots.night'),
       };
 
       return timeSlotMap[slotId] || slotId;

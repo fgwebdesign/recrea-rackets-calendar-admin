@@ -16,7 +16,7 @@ export default function TournamentPaymentsPage() {
   const tournamentId = params.tournamentId as string;
   
   const { tournaments, loading: tournamentsLoading, error: tournamentsError } = useTournaments();
-  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
+  const { categories, isLoading: categoriesLoading } = useCategories();
   const { 
     payments, 
     isLoading: paymentsLoading, 
@@ -35,15 +35,15 @@ export default function TournamentPaymentsPage() {
     if (tournamentId) {
       fetchTournamentPayments(tournamentId);
     }
-  }, [tournamentId]);
+  }, [tournamentId, fetchTournamentPayments]);
 
   if (paymentsLoading || tournamentsLoading || categoriesLoading) return <LoadingSpinner />;
   if (paymentsError) return <ErrorMessage message={paymentsError} />;
   if (tournamentsError) return <ErrorMessage message={tournamentsError} />;
-  if (categoriesError) return <ErrorMessage message={categoriesError} />;
 
-  const handleMarkAsPaid = async (teamId: string) => {
-    await updatePaymentStatus(tournamentId, teamId, 'paid');
+  const handlePaymentChange = async (teamId: string, paid: boolean) => {
+    const ok = await updatePaymentStatus(tournamentId, teamId, paid ? 'paid' : 'pending');
+    if (ok) fetchTournamentPayments(tournamentId);
   };
 
   return (
@@ -77,10 +77,9 @@ export default function TournamentPaymentsPage() {
 
         <TournamentPaymentsPanel
           teams={payments}
-          inscriptionCost={currentTournament?.tournament_info[0]?.inscription_cost || 0}
+          inscriptionCost={currentTournament?.tournament_info?.inscription_cost ?? 0}
           category={tournamentCategory?.name}
-          onMarkAsPaid={handleMarkAsPaid}
-          handlePaymentMethodChange={() => {}}
+          onPaymentChange={handlePaymentChange}
         />
       </div>
     </div>
