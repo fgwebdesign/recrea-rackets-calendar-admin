@@ -41,8 +41,17 @@ export default function TournamentGroupsPage() {
     }).filter(Boolean);
   };
 
+  // Tipo para equipo con jugadores (uso en grupos)
+  type TeamWithPlayers = {
+    team_id?: string;
+    teams?: {
+      player1?: { first_name?: string; last_name?: string };
+      player2?: { first_name?: string; last_name?: string };
+    };
+  };
+
   // Función para formatear nombres de jugadores
-  const formatPlayerNames = (team: any) => {
+  const formatPlayerNames = (team: TeamWithPlayers | null | undefined) => {
     if (!team?.teams) return 'Equipo desconocido';
     
     const player1 = team.teams.player1;
@@ -60,7 +69,7 @@ export default function TournamentGroupsPage() {
   };
 
   // Función para obtener inicial del equipo
-  const getTeamInitial = (team: any) => {
+  const getTeamInitial = (team: TeamWithPlayers | null | undefined) => {
     if (team?.teams?.player1?.first_name) {
       return team.teams.player1.first_name[0].toUpperCase();
     } else if (team?.teams?.player2?.first_name) {
@@ -96,15 +105,17 @@ export default function TournamentGroupsPage() {
         throw new Error(data.message || 'Error al generar grupos automáticamente');
       }
 
-      // Mostrar mensaje de éxito con detalles del auto-grouping
+      // Mostrar mensaje de éxito; si es parcial (equipos sin asignar), aviso no bloqueante
       const isRegenerating = totalGroups > 0;
+      const isPartial = data.partial === true && (data.conflicts?.length ?? 0) > 0;
       toast({
-        title: `¡${isRegenerating ? 'Grupos regenerados' : 'Grupos generados'} exitosamente!`,
-        description: `Se ${isRegenerating ? 'reorganizaron' : 'crearon'} ${data.groups_created?.length || 0} grupos usando distribución inteligente por preferencias de día`,
+        title: `¡${isRegenerating ? 'Grupos regenerados' : 'Grupos generados'}!`,
+        description: isPartial
+          ? data.message ?? `Se crearon ${data.groups_created?.length ?? 0} grupos. ${data.conflicts?.length ?? 0} equipo(s) no pudieron ser asignados; revisá conflictos o asigná manualmente.`
+          : `Se ${isRegenerating ? 'reorganizaron' : 'crearon'} ${data.groups_created?.length || 0} grupos usando distribución inteligente por preferencias de día`,
         variant: "default",
       });
 
-      // Refrescar los datos para mostrar los grupos creados/regenerados
       await refetch();
 
     } catch (error) {

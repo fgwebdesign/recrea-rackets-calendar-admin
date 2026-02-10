@@ -56,6 +56,7 @@ export default function AdminRegisterTeamPage() {
   const [selectedFranjas, setSelectedFranjas] = useState<string[]>([]);
   const [franjasByDay, setFranjasByDay] = useState<Record<number, Franja[]>>({});
   const [teamsCountFromApi, setTeamsCountFromApi] = useState<number | null>(null);
+  const [slotInstructions, setSlotInstructions] = useState<{ max_blocked: number; min_available: number; message?: string } | null>(null);
   const [selectedShirtSizes, setSelectedShirtSizes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -135,6 +136,15 @@ export default function AdminRegisterTeamPage() {
       const list = data.franjas || [];
       setFranjas(list);
       setTeamsCountFromApi(typeof data.teams_count === 'number' ? data.teams_count : null);
+      if (data.instructions && typeof data.instructions.max_blocked === 'number') {
+        setSlotInstructions({
+          max_blocked: data.instructions.max_blocked,
+          min_available: data.instructions.min_available ?? Math.max(0, list.length - data.instructions.max_blocked),
+          message: data.instructions.message
+        });
+      } else {
+        setSlotInstructions({ max_blocked: 2, min_available: Math.max(0, list.length - 2), message: undefined });
+      }
 
       const byDay: Record<number, Franja[]> = {};
       for (const f of list) {
@@ -191,10 +201,10 @@ export default function AdminRegisterTeamPage() {
       errors.player2 = t('adminRegister.validation.playersMustBeDifferent');
     }
 
-    // Franjas bloqueadas (donde NO puede jugar): debe quedar al menos 2 disponibles
-    const availableCount = franjas.length - selectedFranjas.length;
-    if (availableCount < 2) {
-      errors.slot = `Dejá al menos 2 horarios sin marcar (donde sí puede jugar). Máximo ${Math.max(0, franjas.length - 2)} bloqueados.`;
+    // Franjas bloqueadas (donde NO puede jugar): máximo 2 (0, 1 o 2 restricciones)
+    const maxBlocked = slotInstructions?.max_blocked ?? 2;
+    if (selectedFranjas.length > maxBlocked) {
+      errors.slot = slotInstructions?.message ?? `Podés marcar como máximo ${maxBlocked} horarios en los que NO podés jugar (0, 1 o 2 restricciones).`;
     } else {
       for (const franjaId of selectedFranjas) {
         const franja = franjas.find(f => f.franja_id === franjaId);
@@ -476,7 +486,7 @@ export default function AdminRegisterTeamPage() {
                 )}
               </div>
 
-              {/* Horarios en los que NO puede jugar (debe quedar al menos 2 disponibles) */}
+              {/* Horarios en los que NO puede jugar (máximo 2 restricciones) */}
               <div>
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -492,8 +502,8 @@ export default function AdminRegisterTeamPage() {
                           Disponibilidad calculada con {teamsCountFromApi} equipo{teamsCountFromApi !== 1 ? 's' : ''} inscrito{teamsCountFromApi !== 1 ? 's' : ''}.
                         </span>
                       )}
-                      <span className={`text-xs ${franjas.length - selectedFranjas.length >= 2 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                        {selectedFranjas.length} bloqueado{selectedFranjas.length !== 1 ? 's' : ''} · {franjas.length - selectedFranjas.length} disponible{(franjas.length - selectedFranjas.length) !== 1 ? 's' : ''}
+                      <span className={`text-xs ${selectedFranjas.length <= (slotInstructions?.max_blocked ?? 2) ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        {selectedFranjas.length} bloqueado{selectedFranjas.length !== 1 ? 's' : ''} (máx. {slotInstructions?.max_blocked ?? 2}) · {franjas.length - selectedFranjas.length} disponible{(franjas.length - selectedFranjas.length) !== 1 ? 's' : ''}
                       </span>
                       <Button
                         type="button"
@@ -531,7 +541,7 @@ export default function AdminRegisterTeamPage() {
                     </div>
                   )}
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Marcá los horarios en los que el equipo <strong>no</strong> puede jugar. Dejá al menos 2 sin marcar (donde sí puede).
+                    Marcá los horarios en los que el equipo <strong>no</strong> puede jugar. Podés elegir como máximo {slotInstructions?.max_blocked ?? 2} (0, 1 o 2 restricciones); en el resto se asume que sí puede.
                   </p>
                   
                   {/* Franjas agrupadas por día del torneo */}
@@ -548,13 +558,11 @@ export default function AdminRegisterTeamPage() {
                           </h4>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                             {dayFranjas.map((franja) => {
-                              const isAvailable = franja.available_slots > 0;
-                              const maxBlocked = Math.max(0, franjas.length - 2);
-                              const isDisabled = !selectedPlayer1 || !selectedPlayer2 || !isAvailable;
+                              const maxBlocked = slotInstructions?.max_blocked ?? 2;
+                              const isDisabled = !selectedPlayer1 || !selectedPlayer2;
                               const isBlocked = selectedFranjas.includes(franja.franja_id);
-                              const buttonClass = !isAvailable
-                                ? 'bg-gray-100 border-gray-200 text-gray-400 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
-                                : isBlocked
+                              const canSelectMore = selectedFranjas.length < maxBlocked;
+                              const buttonClass = isBlocked
                                   ? 'bg-amber-100 border-2 border-amber-500 text-amber-900 dark:bg-amber-900/40 dark:border-amber-400 dark:text-amber-100 ring-2 ring-amber-400'
                                   : 'bg-green-50 border-green-300 text-green-800 hover:bg-green-100 hover:border-green-400 dark:bg-green-900/25 dark:border-green-700 dark:text-green-100 dark:hover:bg-green-900/40';
                               
@@ -563,10 +571,9 @@ export default function AdminRegisterTeamPage() {
                                   key={franja.franja_id}
                                   type="button"
                                   onClick={() => {
-                                    if (!isAvailable) return;
                                     if (isBlocked) {
                                       setSelectedFranjas(selectedFranjas.filter(id => id !== franja.franja_id));
-                                    } else if (selectedFranjas.length < maxBlocked) {
+                                    } else if (canSelectMore) {
                                       setSelectedFranjas([...selectedFranjas, franja.franja_id]);
                                     }
                                   }}
@@ -589,13 +596,9 @@ export default function AdminRegisterTeamPage() {
                                     </div>
                                   </div>
                                   <div className={`text-xs shrink-0 ${
-                                    !isAvailable 
-                                      ? 'text-red-500 dark:text-red-400 font-semibold' 
-                                      : isBlocked 
-                                        ? 'text-amber-700 dark:text-amber-200' 
-                                        : 'text-green-600 dark:text-green-300'
+                                    isBlocked ? 'text-amber-700 dark:text-amber-200' : 'text-green-600 dark:text-green-300'
                                   }`}>
-                                    {franja.available_slots > 0 ? `${franja.available_slots} disp.` : 'Sin cupo'}
+                                    {franja.available_slots != null ? `${franja.available_slots} disp.` : '—'}
                                   </div>
                                 </button>
                               );
@@ -635,7 +638,7 @@ export default function AdminRegisterTeamPage() {
               />
 
               {/* Resumen del Equipo */}
-              {selectedPlayer1 && selectedPlayer2 && (selectedFranjas.length > 0 || franjas.length - selectedFranjas.length >= 2) && (
+              {selectedPlayer1 && selectedPlayer2 && (
                 <TeamSummary
                   player1={players.find(p => p.id === selectedPlayer1) || null}
                   player2={players.find(p => p.id === selectedPlayer2) || null}
@@ -663,7 +666,7 @@ export default function AdminRegisterTeamPage() {
                     loading || 
                     !selectedPlayer1 || 
                     !selectedPlayer2 || 
-                    (franjas.length - selectedFranjas.length) < 2 ||
+                    selectedFranjas.length > (slotInstructions?.max_blocked ?? 2) ||
                     (getRequiresShirts() && selectedShirtSizes.length === 0)
                   }
                   className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-4 px-6 rounded-lg focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl text-lg font-semibold"

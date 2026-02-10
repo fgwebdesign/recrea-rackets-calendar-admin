@@ -404,13 +404,26 @@ export default function TournamentMatchesPage() {
 
       const result = await response.json();
       console.log('✅ Auto-scheduling completado:', result);
-      
-      // Mostrar resumen del auto-scheduling
-      const { scheduled, failed, total, success_rate } = result;
-      alert(`🎾 Auto-scheduling completado!\n\n✅ Partidos programados: ${scheduled}\n❌ Partidos sin programar: ${failed}\n📊 Total procesados: ${total}\n🎯 Tasa de éxito: ${success_rate}`);
-      
-      // Recargar datos para mostrar los horarios y canchas asignados
-      
+
+      const scheduledCount = result.scheduled_count ?? 0;
+      const failedCount = result.failed_count ?? result.failed?.length ?? 0;
+
+      // Si hay partidos que requieren asignación manual, ir a la tab Gestión Manual
+      if (failedCount > 0) {
+        setActiveTab('manual');
+        toast({
+          title: 'Programación completada con asignaciones pendientes',
+          description: `Se programaron ${scheduledCount} de ${result.total_matches ?? (scheduledCount + failedCount)} partidos. ${failedCount} requieren asignación manual. Usá la pestaña "Gestión Manual" para asignar día, hora y cancha.`,
+          variant: 'default',
+        });
+      } else {
+        toast({
+          title: 'Auto-scheduling completado',
+          description: `Todos los partidos fueron programados (${scheduledCount} partidos).`,
+          variant: 'default',
+        });
+      }
+
       await refetch();
       
     } catch (error: unknown) {

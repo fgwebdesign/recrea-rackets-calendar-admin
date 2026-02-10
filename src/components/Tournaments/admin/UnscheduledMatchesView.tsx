@@ -46,6 +46,7 @@ interface UnscheduledMatch {
     time: boolean
     court: boolean
   }
+  needs_manual?: boolean
 }
 
 interface UnscheduledMatchesViewProps {
@@ -296,6 +297,12 @@ export function UnscheduledMatchesView({
                           <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                             <MapPin className="h-3 w-3 mr-1" />
                             Cancha
+                          </Badge>
+                        )}
+                        {match.needs_manual && (
+                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Requiere asignación
                           </Badge>
                         )}
                       </div>
