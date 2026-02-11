@@ -29,7 +29,7 @@ import {
   CalendarDays,
   Settings
 } from 'lucide-react';
-import { TournamentMatch } from '@/types/tournament';
+import { TournamentMatch, MatchResultData } from '@/types/tournament';
 import { TournamentMatchModal } from '@/components/Tournaments/TournamentMatchModal';
 import { getCategoryName } from '@/utils/category';
 import EliminationBracketGenerator from '@/components/Tournaments/EliminationBracketGenerator';
@@ -37,9 +37,8 @@ import { useTranslations } from '@/contexts/TranslationContext';
 import { IncompleteCategoriesModal } from '@/components/Tournaments/admin/IncompleteCategoriesModal';
 import { useToast } from '@/hooks/use-toast';
 import { UnscheduledMatchesView } from '@/components/Tournaments/admin/UnscheduledMatchesView';
-import { AvailableSlotsView } from '@/components/Tournaments/admin/AvailableSlotsView';
-import { GroupDayAssigner } from '@/components/Tournaments/admin/GroupDayAssigner';
 import { MatchRescheduler } from '@/components/Tournaments/admin/MatchRescheduler';
+import { GroupFranjaScheduler } from '@/components/Tournaments/admin/GroupFranjaScheduler';
 
 interface MatchResult {
   matchId: string;
@@ -124,7 +123,6 @@ export default function TournamentMatchesPage() {
   }
 
   const [selectedMatchForReschedule, setSelectedMatchForReschedule] = useState<MatchForReschedule | null>(null);
-  const [selectedGroupForDayAssign, setSelectedGroupForDayAssign] = useState<GroupForDayAssign | null>(null);
   const [groups, setGroups] = useState<GroupForDayAssign[]>([]);
 
   // Calcular estadísticas
@@ -435,10 +433,36 @@ export default function TournamentMatchesPage() {
     }
   };
 
+  // Convertir MatchResult (formulario) a MatchResultData (API) y calcular ganador
+  const toMatchResultData = (result: MatchResult, match: TournamentMatch | null): MatchResultData => {
+    const homeSetsWon = (result.team1Sets1 > result.team2Sets1 ? 1 : 0) + (result.team1Sets2 > result.team2Sets2 ? 1 : 0);
+    const awaySetsWon = (result.team2Sets1 > result.team1Sets1 ? 1 : 0) + (result.team2Sets2 > result.team1Sets2 ? 1 : 0);
+    const winner_team_id = match
+      ? (homeSetsWon > awaySetsWon ? match.home_team_id : match.away_team_id)
+      : '';
+
+    return {
+      team1_sets1_won: result.team1Sets1,
+      team2_sets1_won: result.team2Sets1,
+      team1_sets2_won: result.team1Sets2,
+      team2_sets2_won: result.team2Sets2,
+      team1_tie1_won: result.team1Tie1,
+      team2_tie1_won: result.team2Tie1,
+      team1_tie2_won: result.team1Tie2,
+      team2_tie2_won: result.team2Tie2,
+      team1_tie3_won: result.team1Tie3,
+      team2_tie3_won: result.team2Tie3,
+      winner_team_id,
+    };
+  };
+
   // Actualizar resultado de partido
   const handleUpdateResult = async (matchId: string) => {
     const result = matchResults[matchId];
     if (!result) return;
+
+    const match = Array.isArray(matches) ? matches.find((m) => m.id === matchId) ?? null : null;
+    const payload = toMatchResultData(result, match);
 
     setIsUpdatingResult(matchId);
     try {
@@ -449,7 +473,7 @@ export default function TournamentMatchesPage() {
         throw new Error('No hay token de autenticación disponible');
       }
       
-      await matchService.updateMatchResult(matchId, result, tournamentId, token);
+      await matchService.updateMatchResult(matchId, payload, tournamentId, token);
       setShowResultForm(null);
       setMatchResults(prev => {
         const newResults = { ...prev };
@@ -1471,6 +1495,37 @@ export default function TournamentMatchesPage() {
             {/* Tab Content: Gestión Manual */}
             <TabsContent value="manual" className="p-4 space-y-6">
               <div className="space-y-6">
+                <Alert className="border-blue-200 bg-blue-50/50 dark:bg-blue-900/10 dark:border-blue-800">
+                  <Calendar className="h-4 w-4 text-blue-600" />
+                  <AlertDescription>
+                    <strong>Recomendado:</strong> usá <strong>Asignar franja por grupo</strong> para elegir una franja en la que el grupo puede jugar (respetando restricciones de equipos) y programar todos sus partidos de una vez. Si preferís, podés asignar partido por partido en <strong>Partidos Sin Programar</strong>.
+                  </AlertDescription>
+                </Alert>
+
+                {/* Sección: Asignar franja por grupo (recomendado) */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-green-500" />
+                      Asignar franja por grupo (recomendado)
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground font-normal mt-1">
+                      Solo se muestran franjas en las que pueden jugar todos los equipos del grupo. Un clic asigna la franja y programa los partidos automáticamente.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <GroupFranjaScheduler
+                      tournamentId={tournamentId}
+                      groups={groups}
+                      matches={matches ?? []}
+                      onSuccess={() => {
+                        refetch();
+                        loadGroups();
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+
                 {/* Sección: Partidos Sin Programar */}
                 <Card>
                   <CardHeader>
@@ -1478,6 +1533,9 @@ export default function TournamentMatchesPage() {
                       <Calendar className="h-5 w-5 text-blue-500" />
                       Partidos Sin Programar
                     </CardTitle>
+                    <p className="text-sm text-muted-foreground font-normal mt-1">
+                      Clic en &quot;Asignar horario&quot; para elegir día, franja, hora y cancha.
+                    </p>
                   </CardHeader>
                   <CardContent>
                     <UnscheduledMatchesView
@@ -1522,87 +1580,6 @@ export default function TournamentMatchesPage() {
                     />
                   </CardContent>
                 </Card>
-
-                {/* Sección: Slots Disponibles */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-green-500" />
-                      Slots Disponibles
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <AvailableSlotsView
-                      tournamentId={tournamentId}
-                      onSlotSelect={(slot, court) => {
-                        // Si hay un partido seleccionado, abrir el modal de reasignación
-                        if (selectedMatchForReschedule) {
-                          // El modal ya está abierto, solo mostrar toast
-                          toast({
-                            title: 'Slot seleccionado',
-                            description: `${slot.start} - ${slot.end} en ${court.name}`,
-                          });
-                        }
-                      }}
-                    />
-                  </CardContent>
-                </Card>
-
-                {/* Sección: Gestión de Grupos */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-purple-500" />
-                      Gestión de Grupos
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Haz clic en un grupo para cambiar su día asignado.
-                      </p>
-                      {groups.length === 0 ? (
-                        <div className="text-center py-8">
-                          <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            No hay grupos disponibles. Los grupos se generan automáticamente cuando se crean los partidos.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {groups.map((group) => (
-                            <Card
-                              key={group.id}
-                              className="hover:shadow-md transition-all duration-200 cursor-pointer border hover:border-purple-300"
-                              onClick={() => setSelectedGroupForDayAssign(group)}
-                            >
-                              <CardHeader className="pb-3">
-                                <CardTitle className="text-sm font-medium">
-                                  Grupo {group.group_number}
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <Badge variant={group.is_homogeneous ? 'default' : 'secondary'}>
-                                    {group.is_homogeneous ? 'Homogéneo' : 'Mixto'}
-                                  </Badge>
-                                  {group.preferred_day && (
-                                    <Badge variant="outline">
-                                      {group.preferred_day === 'DAY_1' ? 'Día 1' : 'Día 2'}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400">
-                                  Haz clic para cambiar el día
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             </TabsContent>
           </Tabs>
@@ -1618,21 +1595,6 @@ export default function TournamentMatchesPage() {
             onSuccess={() => {
               refetch();
               setSelectedMatchForReschedule(null);
-            }}
-          />
-        )}
-
-        {/* Modal para asignar día a grupo */}
-        {selectedGroupForDayAssign && (
-          <GroupDayAssigner
-            tournamentId={tournamentId}
-            group={selectedGroupForDayAssign}
-            isOpen={!!selectedGroupForDayAssign}
-            onClose={() => setSelectedGroupForDayAssign(null)}
-            onSuccess={() => {
-              refetch();
-              loadGroups();
-              setSelectedGroupForDayAssign(null);
             }}
           />
         )}

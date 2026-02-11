@@ -268,19 +268,40 @@ export function UnscheduledMatchesView({
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredMatches.map((match) => (
-                <Card 
-                  key={match.id}
-                  className="hover:shadow-md transition-all duration-200 cursor-pointer border hover:border-blue-300"
-                  onClick={() => onMatchSelect?.(match.id)}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-medium">
-                        Grupo {match.group_number} - Partido #{match.match_number}
-                      </CardTitle>
-                      <div className="flex items-center gap-1">
+            <div className="space-y-6">
+              {(() => {
+                const byGroup = filteredMatches.reduce<Record<number, UnscheduledMatch[]>>((acc, m) => {
+                  const g = m.group_number ?? 0
+                  if (!acc[g]) acc[g] = []
+                  acc[g].push(m)
+                  return acc
+                }, {})
+                const groupNumbers = Object.keys(byGroup).map(Number).sort((a, b) => a - b)
+                return groupNumbers.map((groupNum) => {
+                  const groupMatches = byGroup[groupNum] || []
+                  return (
+                    <div key={groupNum} className="space-y-3">
+                      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 pb-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                          Grupo {groupNum}
+                        </h3>
+                        <Badge variant="secondary" className="text-xs">
+                          {groupMatches.length} sin programar
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {groupMatches.map((match) => (
+                          <Card 
+                            key={match.id}
+                            className="hover:shadow-md transition-all duration-200 border hover:border-blue-300"
+                          >
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center justify-between">
+                                <CardTitle className="text-sm font-medium">
+                                  Partido #{match.match_number}
+                                </CardTitle>
+                      <div className="flex items-center gap-1 flex-wrap justify-end">
                         {match.needs.day && (
                           <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
                             <Calendar className="h-3 w-3 mr-1" />
@@ -358,9 +379,28 @@ export function UnscheduledMatchesView({
                         </div>
                       )}
                     </div>
+
+                    {/* CTA: Asignar horario */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="w-full mt-2 bg-green-600 hover:bg-green-700"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onMatchSelect?.(match.id)
+                      }}
+                    >
+                      <Clock className="h-3.5 w-3 mr-2" />
+                      Asignar horario
+                    </Button>
                   </CardContent>
                 </Card>
-              ))}
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })
+              })()}
             </div>
           )}
         </TabsContent>

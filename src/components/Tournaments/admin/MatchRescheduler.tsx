@@ -10,19 +10,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { 
   Calendar, 
-  Clock, 
   MapPin,
   AlertCircle,
   RefreshCw,
@@ -58,21 +49,23 @@ interface Match {
   } | null
 }
 
-interface Court {
-  id: string
-  name: string
+/** Una opción concreta: Día + Franja + Hora + Cancha (un solo clic para asignar) */
+export interface AssignableOption {
+  tournament_day: number
+  start_time: string
+  court_id: string
+  court_name: string
+  franja_label: string
 }
 
-interface AvailableSlot {
-  id: string
-  start: string
-  end: string
-  courts: Court[]
-  availability: {
-    available: number
-    occupied: number
-    total: number
-  }
+/** Partido del mismo grupo ya programado (contexto para mostrar horarios cercanos) */
+export interface GroupScheduledMatch {
+  match_number: number
+  tournament_day: number
+  start_time: string
+  court_id: string
+  court_name: string
+  franja_label: string
 }
 
 interface MatchReschedulerProps {
@@ -90,225 +83,98 @@ export function MatchRescheduler({
   onClose,
   onSuccess
 }: MatchReschedulerProps) {
-  const [selectedDay, setSelectedDay] = useState<string>('1')
-  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([])
-  const [courts, setCourts] = useState<Court[]>([])
-  const [selectedSlot, setSelectedSlot] = useState<string>('')
-  const [selectedCourt, setSelectedCourt] = useState<string>('')
+  const [options, setOptions] = useState<AssignableOption[]>([])
+  const [groupScheduledMatches, setGroupScheduledMatches] = useState<GroupScheduledMatch[]>([])
+  const [selectedOption, setSelectedOption] = useState<AssignableOption | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [validationError, setValidationError] = useState<string | null>(null)
   const { toast } = useToast()
 
-  // Cargar slots disponibles cuando cambia el día
+  // Cargar solo opciones válidas para este partido (franjas sin restricciones + slots libres)
   useEffect(() => {
-    if (isOpen && selectedDay) {
-      loadAvailableSlots(parseInt(selectedDay))
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, selectedDay])
+    if (!isOpen || !tournamentId || !match?.id) return
 
-  // Resetear cuando se abre el modal
-  useEffect(() => {
-    if (isOpen && match) {
-      setSelectedDay(match.tournament_day?.toString() || '1')
-      setSelectedSlot('')
-      setSelectedCourt('')
-      setError(null)
-      setValidationError(null)
-    }
-  }, [isOpen, match])
+    setSelectedOption(null)
+    setError(null)
 
-  const loadAvailableSlots = async (day: number) => {
-    setLoadingSlots(true)
-    try {
-      const token = localStorage.getItem('adminToken')
-      if (!token) {
-        throw new Error('No hay token de autenticación disponible')
-      }
+    const load = async () => {
+      setLoadingSlots(true)
+      try {
+        const token = localStorage.getItem('adminToken')
+        if (!token) throw new Error('No hay token de autenticación disponible')
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/available-slots-for-day?day=${day}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/matches/${match.id}/available-slots`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
           }
+        )
+        if (!response.ok) {
+          const err = await response.json()
+          throw new Error(err.message || 'Error al cargar horarios')
         }
-      )
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Error al cargar slots disponibles')
+        const data = await response.json()
+        const opts: AssignableOption[] = (data.options || []).map((o: { tournament_day: number; start_time: string; court_id: string; court_name: string; franja_label: string }) => ({
+          tournament_day: o.tournament_day,
+          start_time: o.start_time?.length === 5 ? o.start_time : (o.start_time || '').substring(0, 5),
+          court_id: o.court_id,
+          court_name: o.court_name,
+          franja_label: o.franja_label || `Día ${o.tournament_day}`
+        }))
+        setOptions(opts)
+        setGroupScheduledMatches((data.group_scheduled_matches ?? []) as GroupScheduledMatch[])
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Error al cargar horarios'
+        toast({ title: 'Error', description: msg, variant: 'destructive' })
+        setOptions([])
+        setGroupScheduledMatches([])
+      } finally {
+        setLoadingSlots(false)
       }
-
-      const data = await response.json()
-      
-      // El backend retorna courts separado y slots sin courts dentro
-      const courtsList = data.courts || []
-      const slots = (data.slots || []).map((slot: {
-        id: string
-        start: string
-        end: string
-        availability?: {
-          total_capacity?: number
-          total?: number
-          occupied?: number
-          available?: number
-        }
-      }) => {
-        const totalCapacity = slot.availability?.total_capacity ?? slot.availability?.total ?? courtsList.length
-        const occupied = slot.availability?.occupied ?? 0
-        const available = slot.availability?.available ?? (totalCapacity - occupied)
-        
-        return {
-          ...slot,
-          courts: courtsList, // Asignar todas las canchas a cada slot
-          availability: {
-            available: Math.max(0, available),
-            occupied: occupied,
-            total: totalCapacity
-          }
-        }
-      })
-      
-      setAvailableSlots(slots)
-      setCourts(courtsList)
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive'
-      })
-    } finally {
-      setLoadingSlots(false)
     }
-  }
+    load()
+  }, [isOpen, tournamentId, match?.id, toast])
 
-  const validateSchedule = async () => {
-    if (!match || !selectedSlot || !selectedCourt) return
-
-    setValidationError(null)
-    setLoading(true)
-
-    try {
-      const token = localStorage.getItem('adminToken')
-      if (!token) {
-        throw new Error('No hay token de autenticación disponible')
-      }
-
-      const slot = availableSlots.find(s => s.id === selectedSlot)
-      if (!slot) {
-        throw new Error('Slot no encontrado')
-      }
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/matches/${match.id}/validate-schedule`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            tournament_day: parseInt(selectedDay),
-            start_time: slot.start,
-            court_id: selectedCourt
-          })
-        }
-      )
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Error al validar horario')
-      }
-
-      const data = await response.json()
-      
-      if (!data.valid || !data.can_schedule) {
-        let errorMsg = 'El horario seleccionado tiene conflictos:\n'
-        
-        if (data.conflicts?.has_conflicts) {
-          errorMsg += '- Conflictos con otros partidos\n'
-        }
-        
-        if (data.team_restrictions?.has_conflicts) {
-          errorMsg += '- Restricciones de equipos\n'
-        }
-        
-        setValidationError(errorMsg)
-        return false
-      }
-
-      return true
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setValidationError(errorMessage)
-      return false
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleReschedule = async () => {
-    if (!match || !selectedSlot || !selectedCourt) return
-
-    // Validar antes de asignar
-    const isValid = await validateSchedule()
-    if (!isValid) return
+  const assignOption = async () => {
+    if (!match || !selectedOption) return
 
     setLoading(true)
     setError(null)
 
     try {
       const token = localStorage.getItem('adminToken')
-      if (!token) {
-        throw new Error('No hay token de autenticación disponible')
-      }
+      if (!token) throw new Error('No hay token de autenticación disponible')
 
-      const slot = availableSlots.find(s => s.id === selectedSlot)
-      if (!slot) {
-        throw new Error('Slot no encontrado')
-      }
-
-      const response = await fetch(
+      const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/matches/${match.id}/schedule`,
         {
           method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            tournament_day: parseInt(selectedDay),
-            start_time: slot.start,
-            court_id: selectedCourt
+            tournament_day: selectedOption.tournament_day,
+            start_time: selectedOption.start_time,
+            court_id: selectedOption.court_id
           })
         }
       )
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Error al reasignar partido')
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.message || 'Error al asignar partido')
       }
 
-      toast({
-        title: 'Éxito',
-        description: 'Partido reasignado exitosamente',
-      })
-
+      toast({ title: 'Listo', description: 'Partido asignado correctamente.' })
       onSuccess?.()
       onClose()
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(errorMessage)
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive'
-      })
+      const msg = err instanceof Error ? err.message : 'Error al asignar'
+      setError(msg)
+      toast({ title: 'Error', description: msg, variant: 'destructive' })
     } finally {
       setLoading(false)
     }
@@ -316,197 +182,131 @@ export function MatchRescheduler({
 
   const formatPlayerNames = (team: Match['home_team'] | null): string => {
     if (!team) return 'Equipo no disponible'
-    
     if (team.team_name) return team.team_name
-    
-    // El backend puede retornar players como array de strings (nombres completos)
     if (Array.isArray(team.players)) {
-      if (team.players.length >= 2) {
-        return `${team.players[0]} / ${team.players[1]}`
-      }
-      if (team.players.length === 1) {
-        return team.players[0]
-      }
+      if (team.players.length >= 2) return `${team.players[0]} / ${team.players[1]}`
+      if (team.players.length === 1) return team.players[0]
       return 'Equipo no disponible'
     }
-    
-    // O como objeto con player1 y player2
-    const player1 = team.players?.player1
-    const player2 = team.players?.player2
-    
-    if (!player1 || !player2) return 'Equipo no disponible'
-    
-    const name1 = `${player1.first_name || ''} ${player1.last_name || ''}`.trim()
-    const name2 = `${player2.first_name || ''} ${player2.last_name || ''}`.trim()
-    
-    return `${name1} / ${name2}`
+    const p1 = team.players?.player1
+    const p2 = team.players?.player2
+    if (!p1 || !p2) return 'Equipo no disponible'
+    const n1 = `${p1.first_name || ''} ${p1.last_name || ''}`.trim()
+    const n2 = `${p2.first_name || ''} ${p2.last_name || ''}`.trim()
+    return `${n1} / ${n2}`
   }
-
-  const selectedSlotData = availableSlots.find(s => s.id === selectedSlot)
-  const availableCourts = (Array.isArray(selectedSlotData?.courts) 
-    ? selectedSlotData.courts 
-    : courts).filter(() => 
-    (selectedSlotData?.availability.available ?? 0) > 0
-  )
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[580px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-blue-500" />
-            Reasignar Partido
+            Asignar horario al partido
           </DialogTitle>
           <DialogDescription>
-            Cambia el día, hora y cancha del partido. El sistema validará conflictos automáticamente.
+            Elegí un horario de la lista. Los horarios cercanos a los ya asignados del grupo aparecen primero. Solo se muestran opciones válidas (ambos equipos pueden jugar y el slot está libre).
           </DialogDescription>
         </DialogHeader>
 
         {match && (
-          <div className="space-y-4 py-4">
-            {/* Información del partido */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
+          <div className="space-y-4 py-2">
+            {/* Partido */}
+            <div className="p-3 bg-muted/50 rounded-lg space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Grupo {match.group_number} - Partido #{match.match_number}
+                <span className="text-sm font-semibold">
+                  Grupo {match.group_number} · Partido #{match.match_number}
                 </span>
-                {match.tournament_day && match.start_time && (
-                  <Badge variant="outline" className="text-xs">
-                    Día {match.tournament_day} - {match.start_time.substring(0, 5)}
-                  </Badge>
-                )}
               </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-                  <Users className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-gray-900 dark:text-white">
-                    {formatPlayerNames(match.home_team)}
-                  </span>
-                </div>
-                <div className="text-center text-xs text-gray-400">vs</div>
-                <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 rounded">
-                  <Users className="h-4 w-4 text-red-600" />
-                  <span className="text-sm text-gray-900 dark:text-white">
-                    {formatPlayerNames(match.away_team)}
-                  </span>
-                </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="h-3.5 w-3" />
+                {formatPlayerNames(match.home_team)} vs {formatPlayerNames(match.away_team)}
               </div>
             </div>
 
-            {/* Selector de día */}
+            {/* Contexto: partidos del grupo ya programados */}
+            {!loadingSlots && groupScheduledMatches.length > 0 && (
+              <div className="p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+                <div className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                  Este grupo ya tiene partidos programados:
+                </div>
+                <ul className="space-y-1.5 text-sm text-blue-700 dark:text-blue-300">
+                  {groupScheduledMatches.map((m) => (
+                    <li key={`${m.match_number}-${m.tournament_day}-${m.start_time}-${m.court_id}`} className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="secondary" className="text-xs font-normal">
+                        Partido #{m.match_number}
+                      </Badge>
+                      <span>→ Día {m.tournament_day} · {m.franja_label} · {m.start_time} · {m.court_name}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                  Los horarios cercanos a estos aparecen primero en la lista.
+                </p>
+              </div>
+            )}
+
+            {/* Lista única de horarios disponibles (ordenados por proximidad al grupo) */}
             <div className="space-y-2">
-              <Label htmlFor="day">Día del Torneo</Label>
-              <Select value={selectedDay} onValueChange={(value) => {
-                setSelectedDay(value)
-                setSelectedSlot('')
-                setSelectedCourt('')
-              }}>
-                <SelectTrigger id="day">
-                  <SelectValue placeholder="Selecciona un día" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Día 1</SelectItem>
-                  <SelectItem value="2">Día 2</SelectItem>
-                </SelectContent>
-              </Select>
+              {loadingSlots ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : options.length === 0 ? (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    No hay horarios disponibles para este partido (restricciones de equipos o todos los slots ocupados).
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div className="max-h-[280px] overflow-y-auto space-y-1.5 pr-1">
+                  {options.map((opt) => {
+                    const isSelected = selectedOption?.court_id === opt.court_id &&
+                      selectedOption?.start_time === opt.start_time &&
+                      selectedOption?.tournament_day === opt.tournament_day
+                    return (
+                      <button
+                        key={`${opt.tournament_day}-${opt.start_time}-${opt.court_id}`}
+                        type="button"
+                        onClick={() => setSelectedOption(isSelected ? null : opt)}
+                        className={`w-full text-left p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
+                          isSelected
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                        }`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="secondary" className="text-xs font-normal">
+                              Día {opt.tournament_day}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs font-normal">
+                              {opt.franja_label}
+                            </Badge>
+                            <span className="font-medium tabular-nums">{opt.start_time}</span>
+                            <span className="text-muted-foreground">·</span>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-3.5 w-3" />
+                              {opt.court_name}
+                            </span>
+                          </div>
+                        </div>
+                        {isSelected && <CheckCircle className="h-5 w-5 text-primary shrink-0" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Selector de slot/hora */}
-            {loadingSlots ? (
-              <div className="flex items-center justify-center py-8">
-                <RefreshCw className="h-5 w-5 animate-spin text-gray-400" />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="slot">Hora</Label>
-                <Select 
-                  value={selectedSlot} 
-                  onValueChange={(value) => {
-                    setSelectedSlot(value)
-                    setSelectedCourt('')
-                  }}
-                >
-                  <SelectTrigger id="slot">
-                    <SelectValue placeholder="Selecciona una hora" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableSlots
-                      .filter(slot => slot.availability.available > 0)
-                      .map((slot) => (
-                        <SelectItem key={slot.id} value={slot.id}>
-                          {slot.start} - {slot.end} ({slot.availability.available} disponibles)
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                {availableSlots.filter(s => s.availability.available > 0).length === 0 && (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      No hay slots disponibles para el día {selectedDay}
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-            )}
-
-            {/* Selector de cancha */}
-            {selectedSlot && availableCourts.length > 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="court">Cancha</Label>
-                <Select value={selectedCourt} onValueChange={setSelectedCourt}>
-                  <SelectTrigger id="court">
-                    <SelectValue placeholder="Selecciona una cancha" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableCourts.map((court) => (
-                      <SelectItem key={court.id} value={court.id}>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-3 w-3" />
-                          {court.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Resumen de selección */}
-            {selectedSlot && selectedCourt && selectedSlotData && (
-              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-semibold text-green-900 dark:text-green-100">
-                    Resumen de asignación
-                  </span>
-                </div>
-                <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-3 w-3" />
-                    <span>Día {selectedDay}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-3 w-3" />
-                    <span>{selectedSlotData.start} - {selectedSlotData.end}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-3 w-3" />
-                    <span>{availableCourts.find(c => c.id === selectedCourt)?.name}</span>
-                  </div>
+            {selectedOption && (
+              <div className="p-3 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
+                <div className="flex items-center gap-2 text-sm font-medium text-green-800 dark:text-green-200">
+                  <CheckCircle className="h-4 w-4" />
+                  Asignar aquí: Día {selectedOption.tournament_day} · {selectedOption.start_time} · {selectedOption.court_name}
                 </div>
               </div>
-            )}
-
-            {/* Errores */}
-            {validationError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="whitespace-pre-line">
-                  {validationError}
-                </AlertDescription>
-              </Alert>
             )}
 
             {error && (
@@ -519,27 +319,23 @@ export function MatchRescheduler({
         )}
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={loading}
-          >
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancelar
           </Button>
           <Button
-            onClick={handleReschedule}
-            disabled={loading || !selectedSlot || !selectedCourt || loadingSlots}
-            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+            onClick={assignOption}
+            disabled={loading || !selectedOption || loadingSlots || options.length === 0}
+            className="bg-green-600 hover:bg-green-700"
           >
             {loading ? (
               <>
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Reasignando...
+                Asignando...
               </>
             ) : (
               <>
                 <CheckCircle className="h-4 w-4 mr-2" />
-                Reasignar Partido
+                Asignar partido aquí
               </>
             )}
           </Button>
@@ -548,4 +344,3 @@ export function MatchRescheduler({
     </Dialog>
   )
 }
-

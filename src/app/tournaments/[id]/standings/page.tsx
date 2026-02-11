@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTournament } from '@/hooks/useTournaments';
 import { useStandings } from '@/hooks/useStandings';
@@ -11,14 +12,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   ArrowLeft,
   Trophy,
-  Users,
   Target,
   RefreshCw,
   AlertCircle,
   Medal,
   Award,
-  TrendingUp,
-  Play
+  Play,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { getCategoryName } from '@/utils/category';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -40,44 +41,27 @@ interface TeamStanding {
   points: number;
 }
 
-interface GroupStanding {
-  group_id: string;
-  group_number: number;
-  teams: TeamStanding[];
-}
-
-interface StandingsResponse {
-  tournament: {
-    id: string;
-    name: string;
-    category: string;
-    type: string;
-  };
-  standings: Record<string, GroupStanding>;
-  classification_summary: {
-    qualified_teams: Array<{
-      team_id: string;
-      team_info: any;
-      group: number;
-      position: number;
-    }>;
-    format: string;
-    classification_rules: any;
-  };
-  data_source: 'persistent' | 'dynamic';
-}
-
 export default function TournamentStandingsPage() {
   const params = useParams();
   const router = useRouter();
   const tournamentId = params.id as string;
-  
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  useEffect(() => {
+    if (!isFullScreen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullScreen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isFullScreen]);
+
   const { tournament, loading: tournamentLoading, error: tournamentError } = useTournament(tournamentId);
   const { standings, loading, error, refetch } = useStandings(tournamentId);
   const { categories } = useCategories();
 
   // Formatear nombres de jugadores
-  const formatPlayerNames = (teamInfo: any): string => {
+  const formatPlayerNames = (teamInfo: { player1?: string; player2?: string } | null | undefined): string => {
     if (!teamInfo?.player1 || !teamInfo?.player2) return 'Equipo desconocido';
     
     // El backend devuelve player1 y player2 como strings directamente
@@ -98,7 +82,7 @@ export default function TournamentStandingsPage() {
   };
 
   // Obtener ícono de posición
-  const getPositionIcon = (position: number) => {
+  const getPositionIcon = (position: number): React.ReactNode => {
     switch (position) {
       case 1: return <Trophy className="h-4 w-4" />;
       case 2: return <Medal className="h-4 w-4" />;
@@ -194,14 +178,25 @@ export default function TournamentStandingsPage() {
               </p>
             </div>
             
-            <Button
-              variant="outline"
-              onClick={refetch}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Actualizar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsFullScreen(true)}
+                className="flex items-center gap-2"
+                title="Ver tabla en pantalla completa"
+              >
+                <Maximize2 className="h-4 w-4" />
+                Pantalla completa
+              </Button>
+              <Button
+                variant="outline"
+                onClick={refetch}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Actualizar
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -261,37 +256,22 @@ export default function TournamentStandingsPage() {
                     </Badge>
                   </CardTitle>
                 </CardHeader>
-                
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-gray-50 dark:bg-gray-800">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Pos
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Equipo
-                          </th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            PJ
-                          </th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            PG
-                          </th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            PP
-                          </th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Sets
-                          </th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Pts
-                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pos</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Equipo</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PJ</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PG</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PP</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sets</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pts</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {group.teams.map((team) => (
+                        {group.teams.map((team: TeamStanding) => (
                           <tr key={team.team_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td className="px-4 py-4 whitespace-nowrap">
                               <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${getPositionColor(team.position)}`}>
@@ -302,40 +282,24 @@ export default function TournamentStandingsPage() {
                             <td className="px-4 py-4 whitespace-nowrap">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                                  <span className="text-white text-sm font-semibold">
-                                    {formatPlayerNames(team.team_info).charAt(0)}
-                                  </span>
+                                  <span className="text-white text-sm font-semibold">{formatPlayerNames(team.team_info).charAt(0)}</span>
                                 </div>
                                 <div>
-                                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {formatPlayerNames(team.team_info)}
-                                  </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    ID: {team.team_id.slice(-8)}
-                                  </div>
+                                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatPlayerNames(team.team_info)}</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">ID: {team.team_id.slice(-8)}</div>
                                 </div>
                               </div>
                             </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">{team.matches_played}</td>
                             <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">
-                              {team.matches_played}
+                              <span className="text-green-600 dark:text-green-400 font-semibold">{team.matches_won}</span>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">
-                              <span className="text-green-600 dark:text-green-400 font-semibold">
-                                {team.matches_won}
-                              </span>
+                              <span className="text-red-600 dark:text-red-400 font-semibold">{team.matches_lost}</span>
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">
-                              <span className="text-red-600 dark:text-red-400 font-semibold">
-                                {team.matches_lost}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">
-                              {team.sets_won}-{team.sets_lost}
-                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">{team.sets_won}-{team.sets_lost}</td>
                             <td className="px-4 py-4 whitespace-nowrap text-center">
-                              <Badge className="bg-blue-500 hover:bg-blue-500 text-white">
-                                {team.points}
-                              </Badge>
+                              <Badge className="bg-blue-500 hover:bg-blue-500 text-white">{team.points}</Badge>
                             </td>
                           </tr>
                         ))}
@@ -376,6 +340,97 @@ export default function TournamentStandingsPage() {
           </Card>
         )}
       </div>
+
+      {/* Overlay pantalla completa */}
+      {isFullScreen && standings?.standings && (
+        <div className="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 overflow-auto">
+          <div className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 shadow-sm">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white truncate">
+              Tabla de posiciones — {tournament?.name}
+            </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsFullScreen(false)}
+              className="flex items-center gap-2 shrink-0"
+              title="Salir de pantalla completa"
+            >
+              <Minimize2 className="h-4 w-4" />
+              Salir de pantalla completa
+            </Button>
+          </div>
+          <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 gap-8">
+              {Object.entries(standings.standings).map(([groupNumber, group]) => (
+                <Card key={groupNumber} className="shadow-lg">
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+                    <CardTitle className="flex items-center gap-3 text-lg">
+                      <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                        <Trophy className="h-6 w-6 text-white" />
+                      </div>
+                      Grupo {group.group_number}
+                      <Badge variant="outline" className="ml-auto">
+                        {group.teams.length} equipos
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50 dark:bg-gray-800">
+                          <tr>
+                            <th className="px-5 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pos</th>
+                            <th className="px-5 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Equipo</th>
+                            <th className="px-5 py-4 text-center text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PJ</th>
+                            <th className="px-5 py-4 text-center text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PG</th>
+                            <th className="px-5 py-4 text-center text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PP</th>
+                            <th className="px-5 py-4 text-center text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sets</th>
+                            <th className="px-5 py-4 text-center text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {group.teams.map((team: TeamStanding) => (
+                            <tr key={team.team_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                              <td className="px-5 py-4 whitespace-nowrap">
+                                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-base font-semibold ${getPositionColor(team.position)}`}>
+                                  {getPositionIcon(team.position)}
+                                  {team.position}°
+                                </div>
+                              </td>
+                              <td className="px-5 py-4 whitespace-nowrap">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                    <span className="text-white text-base font-semibold">{formatPlayerNames(team.team_info).charAt(0)}</span>
+                                  </div>
+                                  <div>
+                                    <div className="text-base font-medium text-gray-900 dark:text-gray-100">{formatPlayerNames(team.team_info)}</div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">ID: {team.team_id.slice(-8)}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-5 py-4 whitespace-nowrap text-center text-base text-gray-900 dark:text-gray-100">{team.matches_played}</td>
+                              <td className="px-5 py-4 whitespace-nowrap text-center text-base text-gray-900 dark:text-gray-100">
+                                <span className="text-green-600 dark:text-green-400 font-semibold">{team.matches_won}</span>
+                              </td>
+                              <td className="px-5 py-4 whitespace-nowrap text-center text-base text-gray-900 dark:text-gray-100">
+                                <span className="text-red-600 dark:text-red-400 font-semibold">{team.matches_lost}</span>
+                              </td>
+                              <td className="px-5 py-4 whitespace-nowrap text-center text-base text-gray-900 dark:text-gray-100">{team.sets_won}-{team.sets_lost}</td>
+                              <td className="px-5 py-4 whitespace-nowrap text-center">
+                                <Badge className="bg-blue-500 hover:bg-blue-500 text-white text-sm px-2.5 py-0.5">{team.points}</Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
