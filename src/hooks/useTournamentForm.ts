@@ -145,12 +145,9 @@ export function useTournamentForm() {
       newErrors.end_date = t('create.validation.endDateAfterStart');
     }
 
-    // ✨ NUEVO: Validar venues o courts_available
+    // Validar venues (las canchas se derivan de la selección de sedes)
     if (!data.venues || data.venues.length === 0) {
-      // Si no hay venues, validar courts_available como fallback
-    if (!data.courts_available || data.courts_available < 1) {
-      newErrors.courts_available = t('create.validation.courtsRequired');
-      }
+      newErrors.venues = 'Debe seleccionar al menos una sede con canchas';
     } else {
       // Si hay venues, validar que cada venue tenga al menos una cancha
       const venuesWithoutCourts = data.venues.filter(v => !v.court_ids || v.court_ids.length === 0);

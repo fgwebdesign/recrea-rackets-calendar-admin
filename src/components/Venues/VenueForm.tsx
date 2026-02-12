@@ -9,7 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ComboboxInput } from "@/components/ui/combobox";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { Building2, Upload, X } from "lucide-react";
+import dynamic from 'next/dynamic';
+
+const MapPreview = dynamic(() => import('@/components/ui/map-preview').then(mod => ({ default: mod.MapPreview })), {
+  ssr: false,
+  loading: () => <div className="w-full h-[180px] rounded-lg bg-gray-100 dark:bg-gray-700 animate-pulse" />,
+});
 import { Venue } from "@/types/venue";
 import { useTranslations } from '@/contexts/TranslationContext';
 import { supabase } from '@/lib/supabase';
@@ -76,6 +83,8 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
     description: '',
     is_default: false,
     is_active: true,
+    latitude: undefined,
+    longitude: undefined,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -167,6 +176,8 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
         is_default: venue.is_default || false,
         is_active: venue.is_active !== undefined ? venue.is_active : true,
         photo_url: venue.photo_url || '',
+        latitude: venue.latitude,
+        longitude: venue.longitude,
       });
       setPreviewUrl(venue.photo_url || null);
       setImageFile(null);
@@ -186,6 +197,8 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
         is_default: false,
         is_active: true,
         photo_url: '',
+        latitude: undefined,
+        longitude: undefined,
       });
       setPreviewUrl(null);
       setImageFile(null);
@@ -371,6 +384,8 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
       description: '',
       is_default: false,
       is_active: true,
+      latitude: undefined,
+      longitude: undefined,
     });
     setErrors({});
     onClose();
@@ -478,13 +493,37 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                   <Label htmlFor="address" className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-bold">
                     {t('address')}
                   </Label>
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                  <AddressAutocomplete
+                    value={formData.address || ''}
+                    onChange={(value) => setFormData(prev => ({ ...prev, address: value }))}
+                    onSelect={(selection) => setFormData(prev => ({
+                      ...prev,
+                      address: selection.address,
+                      latitude: selection.latitude,
+                      longitude: selection.longitude,
+                    }))}
                     placeholder={t('addressPlaceholder')}
-                    className="text-sm sm:text-base bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 h-9 sm:h-10"
+                    countryCode={selectedCountryCode ? selectedCountryCode.toLowerCase() : 'uy'}
+                    className="text-sm sm:text-base bg-white dark:bg-gray-700 h-9 sm:h-10"
                   />
+                  {formData.latitude != null && formData.longitude != null && (
+                    <div className="mt-3 relative z-0">
+                      <MapPreview
+                        latitude={formData.latitude}
+                        longitude={formData.longitude}
+                        draggable
+                        onPositionChange={(lat, lng) => setFormData(prev => ({
+                          ...prev,
+                          latitude: lat,
+                          longitude: lng,
+                        }))}
+                        className="rounded-lg border border-gray-200 dark:border-gray-600"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Podés arrastrar el marcador para ajustar la ubicación exacta
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
               

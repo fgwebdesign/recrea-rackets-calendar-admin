@@ -151,9 +151,10 @@ export class TournamentCreationService {
       errors.push('La fecha de fin debe ser posterior a la fecha de inicio');
     }
 
-    // ✨ NUEVO: Validar venues o courts_available
-    if (data.venues && data.venues.length > 0) {
-      // Validar que cada venue tenga al menos una cancha
+    // Validar venues (las canchas se derivan de la selección de sedes)
+    if (!data.venues || data.venues.length === 0) {
+      errors.push('Debe seleccionar al menos una sede con canchas');
+    } else {
       const venuesWithoutCourts = data.venues.filter(v => !v.court_ids || v.court_ids.length === 0);
       if (venuesWithoutCourts.length > 0) {
         errors.push('Cada sede debe tener al menos una cancha seleccionada');
@@ -161,11 +162,6 @@ export class TournamentCreationService {
       const totalCourts = data.venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0);
       if (totalCourts === 0) {
         errors.push('Debe seleccionar al menos una cancha en total');
-      }
-    } else {
-      // Fallback: validar courts_available si no hay venues
-      if (!data.courts_available || data.courts_available < 1) {
-        errors.push('Debe haber al menos una cancha disponible');
       }
     }
 

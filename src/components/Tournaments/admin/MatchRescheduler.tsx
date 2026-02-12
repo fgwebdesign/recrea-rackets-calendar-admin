@@ -79,7 +79,6 @@ export function MatchRescheduler({
 }: MatchReschedulerProps) {
   const [options, setOptions] = useState<AvailableSlot[]>([])
   const [usedFallbackSlots, setUsedFallbackSlots] = useState(false)
-  const [hasSlotsFromBackend, setHasSlotsFromBackend] = useState(true)
   const [selectedOption, setSelectedOption] = useState<AvailableSlot | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingSlots, setLoadingSlots] = useState(false)
@@ -92,6 +91,7 @@ export function MatchRescheduler({
 
     setSelectedOption(null)
     setError(null)
+    setUsedFallbackSlots(false)
 
     const load = async () => {
       setLoadingSlots(true)
@@ -115,8 +115,6 @@ export function MatchRescheduler({
           allowedFranjaIds && allowedFranjaIds.size > 0
             ? all.filter((slot) => slot.franja_id && allowedFranjaIds.has(slot.franja_id))
             : all
-
-        setHasSlotsFromBackend(all.length > 0)
 
         if (filtered.length === 0 && all.length > 0) {
           setOptions(all)
@@ -232,10 +230,19 @@ export function MatchRescheduler({
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      No hay horarios disponibles para este partido. Puede que todos los slots estén ocupados, o que los equipos tengan restricciones que impiden jugar en las franjas libres. Probá asignar otra franja al grupo desde &quot;Asignar franja por grupo&quot;.
+                      No hay slots libres en ningún horario. Probá: (1) Asignar la franja al grupo desde &quot;Asignar franja por grupo&quot; y ejecutar la programación automática, o (2) Revisar si otras categorías ocupan todos los horarios.
                     </AlertDescription>
                   </Alert>
                 ) : (
+                  <>
+                  {usedFallbackSlots && (
+                    <Alert className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10">
+                      <Info className="h-4 w-4 text-blue-600" />
+                      <AlertDescription>
+                        Mostramos todos los horarios disponibles. Elegí uno donde todos los equipos puedan jugar; si hay conflicto con las restricciones, te lo indicaremos.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <div className="max-h-[280px] overflow-y-auto space-y-1.5 pr-1">
                     {options.map((opt) => {
                       const isSelected =
@@ -283,6 +290,7 @@ export function MatchRescheduler({
                       )
                     })}
                   </div>
+                  </>
                 )}
               </div>
 

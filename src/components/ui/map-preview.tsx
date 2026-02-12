@@ -112,7 +112,7 @@ export function MapPreview({
     <div
       ref={mapContainerRef}
       className={cn(
-        'w-full h-[200px] rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700',
+        'w-full h-[200px] rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 relative z-0',
         className,
       )}
     />

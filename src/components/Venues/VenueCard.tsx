@@ -1,7 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { MapPin, Phone, Mail, Building2, Star, Trash2, Pencil, Grid3x3 } from "lucide-react";
+
+const MapPreview = dynamic(() => import('@/components/ui/map-preview').then(mod => ({ default: mod.MapPreview })), {
+  ssr: false,
+  loading: () => <div className="w-full h-32 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />,
+});
 import { Button } from "@/components/ui/button";
 import { Venue } from "@/types/venue";
 import { useTranslations } from '@/contexts/TranslationContext';
@@ -14,6 +21,7 @@ interface VenueCardProps {
 }
 
 export default function VenueCard({ venue, onEdit, onDelete, priority = false }: VenueCardProps) {
+  const router = useRouter();
   const t = useTranslations('venues');
   const location = [venue.address, venue.city, venue.state]
     .filter(Boolean)
@@ -22,7 +30,13 @@ export default function VenueCard({ venue, onEdit, onDelete, priority = false }:
   const courtsCount = venue.courts_count || venue.courts?.length || 0;
 
   return (
-    <div className="group bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-900/50 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => router.push(`/venues/${venue.id}`)}
+      onKeyDown={(e) => e.key === 'Enter' && router.push(`/venues/${venue.id}`)}
+      className="group bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-900/50 rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 cursor-pointer"
+    >
       {/* Imagen destacada */}
       <div className="relative h-48 w-full bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 overflow-hidden">
         {venue.photo_url ? (
@@ -55,10 +69,12 @@ export default function VenueCard({ venue, onEdit, onDelete, priority = false }:
         {/* Botones de acción en la esquina superior */}
         <div className="absolute top-4 left-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <Button
+            type="button"
             variant="secondary"
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
+              e.preventDefault();
               onEdit(venue);
             }}
             className="h-8 w-8 p-0 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 shadow-md backdrop-blur-sm"
@@ -66,10 +82,12 @@ export default function VenueCard({ venue, onEdit, onDelete, priority = false }:
             <Pencil className="h-4 w-4 text-gray-700 dark:text-gray-300" />
           </Button>
           <Button
+            type="button"
             variant="secondary"
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
+              e.preventDefault();
               onDelete(venue);
             }}
             className="h-8 w-8 p-0 bg-white/90 dark:bg-gray-800/90 hover:bg-red-50 dark:hover:bg-red-900/30 shadow-md backdrop-blur-sm"
@@ -107,6 +125,18 @@ export default function VenueCard({ venue, onEdit, onDelete, priority = false }:
             </div>
           )}
         </div>
+
+        {/* Mapa (si hay coordenadas) */}
+        {venue.latitude != null && venue.longitude != null && (
+          <div className="relative z-0 mb-5 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+            <MapPreview
+              latitude={venue.latitude}
+              longitude={venue.longitude}
+              className="h-32 rounded-lg"
+              zoom={14}
+            />
+          </div>
+        )}
 
         {/* Separador */}
         <div className="border-t border-gray-200 dark:border-gray-700 my-5" />

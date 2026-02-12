@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Building2, PlusCircle } from "lucide-react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,18 @@ export default function VenuesPage() {
   });
   const [selectedVenueFilter, setSelectedVenueFilter] = useState<string>("all");
   const [newlyCreatedVenueId, setNewlyCreatedVenueId] = useState<string | null>(null);
+  const hasSetInitialDefaultVenue = useRef(false);
+
+  // Por defecto mostrar la sede destacada (is_default) en el filtro de canchas
+  useEffect(() => {
+    if (venues.length > 0 && !hasSetInitialDefaultVenue.current) {
+      const defaultVenue = venues.find(v => v.is_default);
+      if (defaultVenue) {
+        setSelectedVenueFilter(defaultVenue.id);
+      }
+      hasSetInitialDefaultVenue.current = true;
+    }
+  }, [venues]);
 
   const handleVenueSubmit = async (data: Partial<Venue>) => {
     try {

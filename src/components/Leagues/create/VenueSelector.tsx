@@ -95,13 +95,13 @@ export function VenueSelector({ selectedVenues, onChange }: VenueSelectorProps) 
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
+    <div className="p-4 sm:p-6 space-y-5">
+      {/* Header - tamaño reducido para no competir con el label de la sección */}
       <div>
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+        <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
           {t('selectVenuesAndCourts')}
-        </h2>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">
+        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
           {t('selectVenuesDescription')}
         </p>
       </div>

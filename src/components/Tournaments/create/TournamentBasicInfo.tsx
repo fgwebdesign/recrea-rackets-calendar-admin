@@ -6,7 +6,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { DatePicker, formatDateForInput, parseDateFromInput } from '@/components/ui/date-picker';
 import { Switch } from '@/components/ui/switch';
 import { cn } from "@/lib/utils";
-import { Info, Shirt, Clock, Wand2, Trash2 } from "lucide-react";
+import { Info, Shirt, Clock, Wand2, Trash2, Plus } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { useState } from 'react';
@@ -16,17 +16,12 @@ import { Category } from '@/types/category';
 import { SponsorSelector } from './SponsorSelector';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { VenueSelector } from '@/components/Leagues/create/VenueSelector';
-
-interface Court {
-  id: string;
-  name: string;
-}
+import { FranjasHorariasModal } from './FranjasHorariasModal';
 
 interface TournamentBasicInfoProps {
   formData: TournamentFormData;
   setFormData: (data: TournamentFormData) => void;
   categories: Category[];
-  courts: Court[];
   onSubmit: (data: TournamentFormData) => void;
   errors: Record<string, string | null | undefined>;
 }
@@ -57,18 +52,20 @@ function LabelWithTooltip({
   );
 }
 
-export function TournamentBasicInfo({ formData, setFormData, categories = [], courts = [], onSubmit, errors }: TournamentBasicInfoProps) {
+export function TournamentBasicInfo({ formData, setFormData, categories = [], onSubmit, errors }: TournamentBasicInfoProps) {
   const t = useTranslations('tournaments');
   const [loadingFranjas, setLoadingFranjas] = useState(false);
   const [franjasError, setFranjasError] = useState<string | null>(null);
+  const [showFranjasModal, setShowFranjasModal] = useState(false);
 
+  // 1. Generar franjas estándar: llama al backend y popula directamente (sin modal)
   const handleGenerateDefaultFranjas = async () => {
     if (!formData.start_date || !formData.end_date) return;
     setFranjasError(null);
     setLoadingFranjas(true);
     try {
       const res = await tournamentCreationService.getDefaultFranjas(formData.start_date, formData.end_date);
-      setFormData({ ...formData, group_time_slots: res.franjas_para_jugadores });
+      setFormData({ ...formData, group_time_slots: res.franjas_para_jugadores || [] });
     } catch (err) {
       setFranjasError(err instanceof Error ? err.message : 'Error al cargar franjas');
       const fallback = generateDefaultFranjas(formData.start_date, formData.end_date);
@@ -76,6 +73,11 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
     } finally {
       setLoadingFranjas(false);
     }
+  };
+
+  // 2. Abrir modal para crear/editar franjas manualmente
+  const handleOpenFranjasModal = () => {
+    setShowFranjasModal(true);
   };
 
   const handleCategoryToggle = (categoryId: string) => {
@@ -169,6 +171,21 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
               label={t('create.basicInfo.categories.label')}
               tooltip={t('create.basicInfo.categories.tooltip')}
             />
+            <div className="flex justify-end mb-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const allSelected = categories.length === formData.categories.length;
+                  const newCategories = allSelected ? [] : categories.map(cat => cat.id);
+                  setFormData({ ...formData, categories: newCategories });
+                }}
+                className="text-sm"
+              >
+                {categories.length === formData.categories.length ? 'Desmarcar todas' : 'Seleccionar todas'}
+              </Button>
+            </div>
             <div className="space-y-2">
               <div className={cn(
                 "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3",
@@ -198,9 +215,231 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
               {errors.categories && (
                 <p className="text-sm text-red-500">{errors.categories}</p>
               )}
+              {Array.isArray(formData.categories) && formData.categories.length > 0 && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Categorías seleccionadas: {formData.categories.length}
+                </p>
+              )}
             </div>
           </div>
 
+          {/* Formato de equipos */}
+          <div>
+            <LabelWithTooltip
+              htmlFor="tournament_type"
+              label={t('create.basicInfo.tournamentType.label')}
+              tooltip={t('create.basicInfo.tournamentType.tooltip')}
+            />
+            <div className="space-y-2">
+              <Select
+                value={formData.tournament_type}
+                onValueChange={(value: 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS') => 
+                  setFormData({ ...formData, tournament_type: value })
+                }
+              >
+                <SelectTrigger 
+                  className={cn(
+                    "bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700",
+                    errors.tournament_type && "border-red-500 dark:border-red-500"
+                  )}
+                >
+                  <SelectValue placeholder={t('create.basicInfo.tournamentType.placeholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SIX_PLAYERS">{t('create.basicInfo.tournamentType.sixPlayers')}</SelectItem>
+                  <SelectItem value="NINE_PLAYERS">{t('create.basicInfo.tournamentType.ninePlayers')}</SelectItem>
+                  <SelectItem value="TWELVE_PLAYERS">{t('create.basicInfo.tournamentType.twelvePlayers')}</SelectItem>
+                  <SelectItem value="SIXTEEN_PLAYERS">{t('create.basicInfo.tournamentType.sixteenPlayers')}</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.tournament_type && (
+                <p className="text-sm text-red-500">{errors.tournament_type}</p>
+              )}
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 flex items-start gap-2">
+                <Info className="h-4 w-4 shrink-0 mt-0.5 text-slate-400" />
+                <span>Este es el número de equipos que se jugarán por categoría. Podés modificarlo una vez creado el torneo.</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Sedes y Canchas */}
+          <div>
+            <LabelWithTooltip
+              label="Sedes y Canchas"
+              tooltip="Selecciona las sedes donde se realizará el torneo y las canchas disponibles en cada una. Si no seleccionas sedes, se usará el método tradicional."
+            />
+            <div className="space-y-2">
+              <VenueSelector
+                selectedVenues={formData.venues || []}
+                onChange={(venues) => {
+                  const totalCourts = venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0);
+                  setFormData({ 
+                    ...formData, 
+                    venues,
+                    courts_available: totalCourts > 0 ? totalCourts : formData.courts_available
+                  });
+                }}
+              />
+              {errors.venues && (
+                <p className="text-sm text-red-500">{errors.venues}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Fechas inicio y fin */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <LabelWithTooltip
+                htmlFor="start_date"
+                label={t('create.basicInfo.dates.startDate.label')}
+                tooltip={t('create.basicInfo.dates.startDate.tooltip')}
+              />
+              <div className="space-y-2">
+                <DatePicker
+                  value={formData.start_date ? parseDateFromInput(formData.start_date) : undefined}
+                  onChange={(date) => setFormData({ 
+                    ...formData, 
+                    start_date: date ? formatDateForInput(date) : '' 
+                  })}
+                  placeholder={t('create.basicInfo.dates.startDate.placeholder')}
+                  error={!!errors.start_date}
+                />
+                {errors.start_date && (
+                  <p className="text-sm text-red-500">{errors.start_date}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <LabelWithTooltip
+                htmlFor="end_date"
+                label={t('create.basicInfo.dates.endDate.label')}
+                tooltip={t('create.basicInfo.dates.endDate.tooltip')}
+              />
+              <div className="space-y-2">
+                <DatePicker
+                  value={formData.end_date ? parseDateFromInput(formData.end_date) : undefined}
+                  onChange={(date) => setFormData({ 
+                    ...formData, 
+                    end_date: date ? formatDateForInput(date) : '' 
+                  })}
+                  placeholder={t('create.basicInfo.dates.endDate.placeholder')}
+                  error={!!errors.end_date}
+                  suggestedDates={getSuggestedEndDates()}
+                  restrictedDates={getRestrictedEndDates()}
+                  startDate={formData.start_date ? parseDateFromInput(formData.start_date) : undefined}
+                />
+                {errors.end_date && (
+                  <p className="text-sm text-red-500">{errors.end_date}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Franjas Horarias */}
+          <Card className="border-2 border-dashed border-blue-200 dark:border-blue-800">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="w-5 h-5 text-blue-500" />
+                  Franjas Horarias
+                </div>
+                {formData.start_date && formData.end_date && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={loadingFranjas || formData.group_time_slots.length > 0}
+                      onClick={handleGenerateDefaultFranjas}
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Wand2 className="h-4 w-4 mr-1" />
+                      {loadingFranjas ? 'Cargando...' : 'Generar franjas estándar'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      onClick={handleOpenFranjasModal}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Agregar manualmente
+                    </Button>
+                  </div>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {franjasError && (
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  Se usaron franjas locales: {franjasError}
+                </p>
+              )}
+              {!formData.start_date || !formData.end_date ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Seleccioná las fechas de inicio y fin del torneo para configurar las franjas horarias.
+                </p>
+              ) : formData.group_time_slots.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  No hay franjas configuradas. Usá &quot;Generar franjas estándar&quot; para cargar las del backend, o &quot;Agregar manualmente&quot; para crearlas en el configurador.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {formData.group_time_slots.map((franja, idx) => (
+                    <div
+                      key={franja.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-300 text-xs font-bold">
+                          D{franja.tournament_day}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                            {franja.label}
+                          </p>
+                          <p className="text-xs text-blue-500 dark:text-blue-400">
+                            {franja.date} &middot; {franja.start_time} - {franja.end_time}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const updated = formData.group_time_slots.filter((_, i) => i !== idx);
+                          setFormData({ ...formData, group_time_slots: updated });
+                        }}
+                        className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {errors.group_time_slots && (
+                <p className="text-sm text-red-500">{errors.group_time_slots}</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <FranjasHorariasModal
+            open={showFranjasModal}
+            onOpenChange={setShowFranjasModal}
+            startDate={formData.start_date}
+            endDate={formData.end_date}
+            initialFranjas={formData.group_time_slots}
+            onConfirm={(franjas) => {
+              setFormData({ ...formData, group_time_slots: franjas });
+              setFranjasError(null);
+            }}
+          />
+
+          {/* Remeras y Patrocinadores (al final) */}
           <div>
             <LabelWithTooltip
               label={t('create.basicInfo.shirts.label')}
@@ -260,242 +499,6 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], co
               onSponsorsChange={(sponsorIds) => setFormData({ ...formData, sponsors: sponsorIds })}
               error={errors.sponsors || undefined}
             />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <LabelWithTooltip
-                htmlFor="start_date"
-                label={t('create.basicInfo.dates.startDate.label')}
-                tooltip={t('create.basicInfo.dates.startDate.tooltip')}
-              />
-              <div className="space-y-2">
-                <DatePicker
-                  value={formData.start_date ? parseDateFromInput(formData.start_date) : undefined}
-                  onChange={(date) => setFormData({ 
-                    ...formData, 
-                    start_date: date ? formatDateForInput(date) : '' 
-                  })}
-                  placeholder={t('create.basicInfo.dates.startDate.placeholder')}
-                  error={!!errors.start_date}
-                />
-                {errors.start_date && (
-                  <p className="text-sm text-red-500">{errors.start_date}</p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <LabelWithTooltip
-                htmlFor="end_date"
-                label={t('create.basicInfo.dates.endDate.label')}
-                tooltip={t('create.basicInfo.dates.endDate.tooltip')}
-              />
-              <div className="space-y-2">
-                <DatePicker
-                  value={formData.end_date ? parseDateFromInput(formData.end_date) : undefined}
-                  onChange={(date) => setFormData({ 
-                    ...formData, 
-                    end_date: date ? formatDateForInput(date) : '' 
-                  })}
-                  placeholder={t('create.basicInfo.dates.endDate.placeholder')}
-                  error={!!errors.end_date}
-                  suggestedDates={getSuggestedEndDates()}
-                  restrictedDates={getRestrictedEndDates()}
-                  startDate={formData.start_date ? parseDateFromInput(formData.start_date) : undefined}
-                />
-                {errors.end_date && (
-                  <p className="text-sm text-red-500">{errors.end_date}</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Franjas Horarias */}
-          <Card className="border-2 border-dashed border-blue-200 dark:border-blue-800">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="w-5 h-5 text-blue-500" />
-                  Franjas Horarias
-                </div>
-                {formData.start_date && formData.end_date && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={loadingFranjas}
-                    onClick={handleGenerateDefaultFranjas}
-                    className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/20"
-                  >
-                    <Wand2 className="h-4 w-4 mr-1" />
-                    {loadingFranjas ? 'Cargando...' : 'Generar franjas estándar'}
-                  </Button>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {franjasError && (
-                <p className="text-sm text-amber-600 dark:text-amber-400">
-                  Se usaron franjas locales: {franjasError}
-                </p>
-              )}
-              {!formData.start_date || !formData.end_date ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Seleccioná las fechas de inicio y fin del torneo para configurar las franjas horarias.
-                </p>
-              ) : formData.group_time_slots.length === 0 ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  No hay franjas configuradas. Hacé clic en &quot;Generar franjas estándar&quot; para crear las franjas 
-                  automáticamente, o agregalas manualmente.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {formData.group_time_slots.map((franja, idx) => (
-                    <div
-                      key={franja.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-300 text-xs font-bold">
-                          D{franja.tournament_day}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                            {franja.label}
-                          </p>
-                          <p className="text-xs text-blue-500 dark:text-blue-400">
-                            {franja.date} &middot; {franja.start_time} - {franja.end_time}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const updated = formData.group_time_slots.filter((_, i) => i !== idx);
-                          setFormData({ ...formData, group_time_slots: updated });
-                        }}
-                        className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 h-8 w-8 p-0"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {errors.group_time_slots && (
-                <p className="text-sm text-red-500">{errors.group_time_slots}</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* ✨ NUEVO: Selector de Sedes y Canchas (Multi-sede) */}
-          <div>
-            <LabelWithTooltip
-              label="Sedes y Canchas"
-              tooltip="Selecciona las sedes donde se realizará el torneo y las canchas disponibles en cada una. Si no seleccionas sedes, se usará el método tradicional."
-            />
-            <div className="space-y-2">
-              <VenueSelector
-                selectedVenues={formData.venues || []}
-                onChange={(venues) => {
-                  // Calcular courts_available automáticamente desde venues
-                  const totalCourts = venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0);
-                  setFormData({ 
-                    ...formData, 
-                    venues,
-                    courts_available: totalCourts > 0 ? totalCourts : formData.courts_available
-                  });
-                }}
-              />
-              {errors.venues && (
-                <p className="text-sm text-red-500">{errors.venues}</p>
-              )}
-              {/* Mostrar resumen si hay venues seleccionadas */}
-              {formData.venues && formData.venues.length > 0 && (
-                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    <strong>Resumen:</strong> {formData.venues.length} {formData.venues.length === 1 ? 'sede' : 'sedes'} seleccionada{formData.venues.length > 1 ? 's' : ''}, 
-                    {' '}{formData.venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0)} canchas en total
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Fallback: Campo tradicional de canchas (solo si no hay venues) */}
-          {(!formData.venues || formData.venues.length === 0) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <LabelWithTooltip
-                  htmlFor="courts_available"
-                  label={t('create.basicInfo.courts.label')}
-                  tooltip={t('create.basicInfo.courts.tooltip')}
-                />
-                <div className="space-y-2">
-                  <Select
-                    value={formData.courts_available.toString()}
-                    onValueChange={(value) => setFormData({ ...formData, courts_available: parseInt(value) })}
-                  >
-                    <SelectTrigger 
-                      className={cn(
-                        "bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700",
-                        errors.courts_available && "border-red-500 dark:border-red-500"
-                      )}
-                    >
-                      <SelectValue placeholder={t('create.basicInfo.courts.placeholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {courts.map((court, index) => (
-                        <SelectItem key={court.id} value={(index + 1).toString()}>
-                          {index + 1} {index === 0 ? t('create.basicInfo.courts.single') : t('create.basicInfo.courts.plural')}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.courts_available && (
-                    <p className="text-sm text-red-500">{errors.courts_available}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Tipo de Torneo (siempre visible) */}
-          <div>
-            <LabelWithTooltip
-              htmlFor="tournament_type"
-              label={t('create.basicInfo.tournamentType.label')}
-              tooltip={t('create.basicInfo.tournamentType.tooltip')}
-            />
-            <div className="space-y-2">
-              <Select
-                value={formData.tournament_type}
-                onValueChange={(value: 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS') => 
-                  setFormData({ ...formData, tournament_type: value })
-                }
-              >
-                <SelectTrigger 
-                  className={cn(
-                    "bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700",
-                    errors.tournament_type && "border-red-500 dark:border-red-500"
-                  )}
-                >
-                  <SelectValue placeholder={t('create.basicInfo.tournamentType.placeholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="SIX_PLAYERS">{t('create.basicInfo.tournamentType.sixPlayers')}</SelectItem>
-                  <SelectItem value="NINE_PLAYERS">{t('create.basicInfo.tournamentType.ninePlayers')}</SelectItem>
-                  <SelectItem value="TWELVE_PLAYERS">{t('create.basicInfo.tournamentType.twelvePlayers')}</SelectItem>
-                  <SelectItem value="SIXTEEN_PLAYERS">{t('create.basicInfo.tournamentType.sixteenPlayers')}</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.tournament_type && (
-                <p className="text-sm text-red-500">{errors.tournament_type}</p>
-              )}
-            </div>
           </div>
 
           <div>

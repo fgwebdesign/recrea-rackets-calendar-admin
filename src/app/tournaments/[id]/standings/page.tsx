@@ -62,13 +62,13 @@ export default function TournamentStandingsPage() {
 
   // Formatear nombres de jugadores
   const formatPlayerNames = (teamInfo: { player1?: string; player2?: string } | null | undefined): string => {
-    if (!teamInfo?.player1 || !teamInfo?.player2) return 'Equipo desconocido';
-    
-    // El backend devuelve player1 y player2 como strings directamente
-    const name1 = teamInfo.player1.toString().trim();
-    const name2 = teamInfo.player2.toString().trim();
-    
-    return `${name1} / ${name2}`;
+    if (!teamInfo) return 'Equipo desconocido';
+    const name1 = String(teamInfo.player1 || '').trim();
+    const name2 = String(teamInfo.player2 || '').trim();
+    if (name1 && name2) return `${name1} / ${name2}`;
+    if (name1) return name1;
+    if (name2) return name2;
+    return 'Equipo desconocido';
   };
 
   // Obtener color de posición
