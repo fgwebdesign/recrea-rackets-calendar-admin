@@ -1,11 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { getUnscheduledMatches } from '@/services/tournamentSchedulingService'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { 
   Calendar, 
   Clock, 
@@ -51,7 +58,7 @@ interface UnscheduledMatch {
 
 interface UnscheduledMatchesViewProps {
   tournamentId: string
-  onMatchSelect?: (matchId: string) => void
+  onMatchSelect?: (match: UnscheduledMatch) => void
   onRefresh?: () => void
 }
 
@@ -66,32 +73,12 @@ export function UnscheduledMatchesView({
   const [selectedDay, setSelectedDay] = useState<string>('all')
   const { toast } = useToast()
 
-  const fetchUnscheduledMatches = async () => {
+  const fetchUnscheduledMatches = useCallback(async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
-      const token = localStorage.getItem('adminToken')
-      if (!token) {
-        throw new Error('No hay token de autenticación disponible')
-      }
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/matches/unscheduled`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      )
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Error al cargar partidos sin programar')
-      }
-
-      const data = await response.json()
+      const data = await getUnscheduledMatches(tournamentId)
       setMatches(data.matches || [])
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
@@ -104,11 +91,11 @@ export function UnscheduledMatchesView({
     } finally {
       setLoading(false)
     }
-  }
+  }, [tournamentId, toast])
 
   useEffect(() => {
     fetchUnscheduledMatches()
-  }, [tournamentId])
+  }, [fetchUnscheduledMatches])
 
   const formatPlayerNames = (team: UnscheduledMatch['home_team']): string => {
     if (!team) return 'Equipo no disponible'
@@ -185,6 +172,7 @@ export function UnscheduledMatchesView({
   }
 
   return (
+    <TooltipProvider delayDuration={300}>
     <div className="space-y-4">
       {/* Resumen */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -381,18 +369,26 @@ export function UnscheduledMatchesView({
                     </div>
 
                     {/* CTA: Asignar horario */}
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="w-full mt-2 bg-green-600 hover:bg-green-700"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onMatchSelect?.(match.id)
-                      }}
-                    >
-                      <Clock className="h-3.5 w-3 mr-2" />
-                      Asignar horario
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="w-full mt-2 bg-green-600 hover:bg-green-700"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onMatchSelect?.(match)
+                            }}
+                          >
+                            <Clock className="h-3.5 w-3 mr-2" />
+                            Asignar horario
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Elegir día, franja, hora y cancha para este partido.</p>
+                          <p className="text-xs mt-1 opacity-90">Solo se muestran horarios donde los jugadores pueden jugar.</p>
+                        </TooltipContent>
+                      </Tooltip>
                   </CardContent>
                 </Card>
                         ))}
@@ -421,6 +417,7 @@ export function UnscheduledMatchesView({
         </Button>
       </div>
     </div>
+    </TooltipProvider>
   )
 }
 

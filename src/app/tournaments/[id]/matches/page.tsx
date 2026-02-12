@@ -186,24 +186,12 @@ export default function TournamentMatchesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, tournamentId]);
 
-  // Debug: verificar datos de partidos en la página
-  console.log('🔍 Matches in page:', matches);
-  console.log('🔍 Total matches:', totalMatches);
-  console.log('🔍 Matches is array?', Array.isArray(matches));
-  console.log('🔍 Teams in page:', teams);
-  console.log('🔍 Teams is array?', Array.isArray(teams));
-  console.log('🔍 Teams count:', Array.isArray(teams) ? teams.length : 0);
-
   // Obtener equipos por ID
   const getTeamById = (teamId: string): { team_id: string; teams?: { player1?: { first_name?: string; last_name?: string }; player2?: { first_name?: string; last_name?: string } } } | null => {
     if (!Array.isArray(teams)) return null;
     const team = teams.find(team => team.team_id === teamId) || null;
     
     // Debug: verificar un equipo específico
-    if (teamId === '9211ac3e-5db5-47d5-9178-c798d79cfbf4') {
-      console.log('🔍 Found team for ID:', teamId, team);
-    }
-    
     return team;
   };
 
@@ -781,7 +769,7 @@ export default function TournamentMatchesPage() {
                         <p className="text-xs font-medium text-orange-600 dark:text-orange-400">Sin Programar</p>
                         <p className="text-lg font-bold text-orange-900 dark:text-orange-100">{unprogrammedMatches}</p>
                         <p className="text-xs text-orange-600 dark:text-orange-400">
-                          {unscheduledMatches > 0 ? `${unscheduledMatches} listos` : 'Todos programados'}
+                          {unscheduledMatches > 0 ? `${unscheduledMatches} requieren horario` : 'Todos programados'}
                         </p>
                       </div>
                     </div>
@@ -1236,9 +1224,6 @@ export default function TournamentMatchesPage() {
                     return acc;
                   }, {} as Record<string, TournamentMatch[]>);
                   
-                  // Debug: mostrar qué rounds tenemos
-                  console.log('🔍 Rounds encontrados:', Object.keys(matchesByRound));
-
                   // Mapeo de las claves de ronda a nombres canónicos para ordenar y mostrar
                   const roundKeyToCanonicalName: Record<string, string> = {
                     'quarter_finals': 'Cuartos de Final',
@@ -1498,7 +1483,7 @@ export default function TournamentMatchesPage() {
                 <Alert className="border-blue-200 bg-blue-50/50 dark:bg-blue-900/10 dark:border-blue-800">
                   <Calendar className="h-4 w-4 text-blue-600" />
                   <AlertDescription>
-                    <strong>Recomendado:</strong> usá <strong>Asignar franja por grupo</strong> para elegir una franja en la que el grupo puede jugar (respetando restricciones de equipos) y programar todos sus partidos de una vez. Si preferís, podés asignar partido por partido en <strong>Partidos Sin Programar</strong>.
+                    <strong>Recomendado:</strong> Usá <strong>Asignar franja por grupo</strong> primero. Las franjas en verde son horarios donde todos los equipos pueden jugar; las rojas están bloqueadas por restricciones de jugadores. Un clic asigna la franja y programa los partidos automáticamente. Si preferís, asigná partido por partido en <strong>Partidos Sin Programar</strong>.
                   </AlertDescription>
                 </Alert>
 
@@ -1534,47 +1519,14 @@ export default function TournamentMatchesPage() {
                       Partidos Sin Programar
                     </CardTitle>
                     <p className="text-sm text-muted-foreground font-normal mt-1">
-                      Clic en &quot;Asignar horario&quot; para elegir día, franja, hora y cancha.
+                      Solo se muestran horarios donde los jugadores pueden jugar (según sus restricciones). Clic en &quot;Asignar horario&quot; para elegir día, franja, hora y cancha.
                     </p>
                   </CardHeader>
                   <CardContent>
                     <UnscheduledMatchesView
                       tournamentId={tournamentId}
-                      onMatchSelect={(matchId) => {
-                        // Buscar el partido en los matches
-                        const match = Array.isArray(matches) 
-                          ? matches.find(m => m.id === matchId) 
-                          : null;
-                        
-                        if (match) {
-                          // Convertir a formato esperado por MatchRescheduler
-                          const homeTeam = getTeamById(match.home_team_id);
-                          const awayTeam = getTeamById(match.away_team_id);
-                          
-                          const unscheduledMatch: MatchForReschedule = {
-                            id: match.id,
-                            group_number: match.group_number || 0,
-                            match_number: match.match_number || 0,
-                            tournament_day: match.tournament_day ?? null,
-                            start_time: match.start_time ?? null,
-                            court_id: match.court_id ?? null,
-                            home_team: homeTeam ? {
-                              id: homeTeam.team_id,
-                              players: homeTeam.teams ? {
-                                player1: homeTeam.teams.player1,
-                                player2: homeTeam.teams.player2
-                              } : undefined
-                            } : null,
-                            away_team: awayTeam ? {
-                              id: awayTeam.team_id,
-                              players: awayTeam.teams ? {
-                                player1: awayTeam.teams.player1,
-                                player2: awayTeam.teams.player2
-                              } : undefined
-                            } : null
-                          };
-                          setSelectedMatchForReschedule(unscheduledMatch);
-                        }
+                      onMatchSelect={(match) => {
+                        setSelectedMatchForReschedule(match as MatchForReschedule)
                       }}
                       onRefresh={refetch}
                     />
