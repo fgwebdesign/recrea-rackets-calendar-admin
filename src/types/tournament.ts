@@ -172,6 +172,8 @@ export interface TournamentTeam {
   created_at: string
   updated_at: string
   payment_status: 'pending' | 'paid' | 'failed'
+  player1_payment_status?: 'pending' | 'paid' | 'failed'
+  player2_payment_status?: 'pending' | 'paid' | 'failed'
   payment_reference?: string
   payment_date?: string
   payment_amount?: number

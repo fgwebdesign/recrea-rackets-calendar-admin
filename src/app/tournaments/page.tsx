@@ -76,13 +76,29 @@ export default function TournamentsPage() {
   }
 
   // 📊 Estadísticas rápidas
+  // Ingresos por inscripciones: total a cobrar (inscription_cost × equipos), cobrado (equipos marcados pagados), pendiente
+  const inscriptionStats = tournaments.reduce(
+    (acc, t) => {
+      const teams = t.tournament_teams || []
+      const cost = t.tournament_info?.inscription_cost ?? 0
+      const paidCount = teams.filter((team: { payment_status?: string }) => team.payment_status === 'paid').length
+      acc.totalToInvoice += teams.length * cost
+      acc.revenuePaid += paidCount * cost
+      return acc
+    },
+    { totalToInvoice: 0, revenuePaid: 0 }
+  )
+  const revenuePending = inscriptionStats.totalToInvoice - inscriptionStats.revenuePaid
+
   const stats = {
     total: tournaments.length,
     upcoming: tournaments.filter(t => t.status === 'upcoming').length,
     inProgress: tournaments.filter(t => t.status === 'in_progress').length,
     completed: tournaments.filter(t => t.status === 'completed').length,
     totalTeams: tournaments.reduce((sum, t) => sum + (t.tournament_teams?.length || 0), 0),
-    totalRevenue: tournaments.reduce((sum, t) => sum + ((t.tournament_teams?.length || 0) * (t.tournament_info?.inscription_cost || 0)), 0)
+    totalToInvoice: inscriptionStats.totalToInvoice,
+    revenuePaid: inscriptionStats.revenuePaid,
+    revenuePending,
   }
 
   // 🚨 Manejo de errores mejorado
@@ -219,7 +235,13 @@ export default function TournamentsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-amber-600 dark:text-amber-400">{t('revenue')}</p>
-                  <p className="text-3xl font-bold text-amber-700 dark:text-amber-300">${stats.totalRevenue.toLocaleString()}</p>
+                  <p className="text-3xl font-bold text-amber-700 dark:text-amber-300">${stats.revenuePending.toLocaleString()}</p>
+                  <p className="text-xs text-amber-600/90 dark:text-amber-400/90 mt-1">
+                    Pendiente · Cobrado: ${stats.revenuePaid.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">
+                    Total a facturar: ${stats.totalToInvoice.toLocaleString()}
+                  </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-amber-500" />
               </div>

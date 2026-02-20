@@ -54,6 +54,39 @@ export default function TournamentPaymentsPage() {
     }
   };
 
+  const handlePlayerPaymentChange = async (teamId: string, player: 1 | 2, paid: boolean) => {
+    try {
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('userToken');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tournaments/${params.id}/teams/${teamId}/player-payment`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ player, payment_status: paid ? 'paid' : 'pending' }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error al actualizar pago por jugador:', errorText);
+        throw new Error('Error al actualizar el estado de pago');
+      }
+
+      await refetch();
+      toast({
+        title: "Pago por jugador actualizado",
+        description: paid ? `Jugador ${player} marcado como pagado.` : `Jugador ${player} marcado como pendiente.`,
+      });
+    } catch (error) {
+      console.error('Error al actualizar pago por jugador:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado de pago. Por favor, intenta nuevamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getCategoryName = (categoryId: string, categoriesList: Category[] | undefined) => {
     const category = categoriesList?.find(cat => cat.id === categoryId);
     return category?.name ?? 'N/A';
@@ -94,6 +127,8 @@ export default function TournamentPaymentsPage() {
           teams={actualTeams.map(team => ({
             team_id: team.team_id,
             payment_status: (team.payment_status === 'paid' ? 'paid' : 'pending') as 'pending' | 'paid' | 'completed',
+            player1_payment_status: team.player1_payment_status,
+            player2_payment_status: team.player2_payment_status,
             payment_date: team.payment_date,
             payment_reference: team.payment_reference,
             created_at: team.created_at,
@@ -108,6 +143,7 @@ export default function TournamentPaymentsPage() {
           inscriptionCost={tournamentInfo?.inscription_cost ?? tournament?.tournament_info?.inscription_cost ?? 0}
           category={getCategoryName(tournament.category_id, categories)}
           onPaymentChange={handlePaymentChange}
+          onPlayerPaymentChange={handlePlayerPaymentChange}
         />
       </div>
     </div>

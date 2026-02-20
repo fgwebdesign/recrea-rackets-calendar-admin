@@ -118,10 +118,10 @@ export function TournamentStandings({ selectedTournament, onTournamentChange }: 
               onChange={(e) => onTournamentChange?.(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
-              <option value="">Seleccionar torneo</option>
+              <option value="">Seleccionar categoría</option>
               {tournaments.map((tournament) => (
                 <option key={tournament.id} value={tournament.id}>
-                  {tournament.name}
+                  {getCategoryName(tournament.category_id || '', categories)}
                 </option>
               ))}
             </select>
@@ -168,7 +168,7 @@ export function TournamentStandings({ selectedTournament, onTournamentChange }: 
           >
             {tournaments?.map((tournament) => (
               <option key={tournament.id} value={tournament.id}>
-                {tournament.name}
+                {getCategoryName(tournament.category_id || '', categories)}
               </option>
             ))}
           </select>
@@ -212,7 +212,7 @@ export function TournamentStandings({ selectedTournament, onTournamentChange }: 
           >
             {tournaments?.map((tournament) => (
               <option key={tournament.id} value={tournament.id}>
-                {tournament.name}
+                {getCategoryName(tournament.category_id || '', categories)}
               </option>
             ))}
           </select>
