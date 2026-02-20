@@ -22,6 +22,7 @@ import {
   BuildingOfficeIcon,
   TagIcon,
   CubeIcon,
+  TvIcon,
 } from '@heroicons/react/24/outline';
 import { ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -191,8 +192,15 @@ const Sidebar = () => {
           name: t('createTournament'), 
           href: '/tournaments/create', 
           icon: PlusIcon,
-          iconColor: 'text-orange-600',
-          textColor: 'text-orange-600 font-medium'
+          iconColor: 'text-green-600',
+          textColor: 'text-green-600 font-bold'
+        },
+        { 
+          name: t('tvDisplay'), 
+          href: '/tv', 
+          icon: TvIcon,
+          iconColor: 'text-blue-500',
+          textColor: 'text-blue-500 font-medium'
         },
       ]
     },

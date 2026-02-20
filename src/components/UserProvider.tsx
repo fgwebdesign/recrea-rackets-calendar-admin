@@ -11,6 +11,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const isLoginPage = pathname === '/';
+  const isTVPage = pathname.startsWith('/tv');
 
   // Verificar el estado de autenticación
   const checkAuth = async () => {
@@ -97,8 +98,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return <LoadingScreen message="Verificando sesión..." />;
   }
 
-  // Si es la página de login, no mostramos el sidebar
-  if (isLoginPage) {
+  // Si es la página de login o pantalla TV, no mostramos el sidebar
+  if (isLoginPage || isTVPage) {
     return children;
   }
 

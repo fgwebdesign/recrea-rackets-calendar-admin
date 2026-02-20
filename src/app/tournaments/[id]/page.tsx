@@ -29,7 +29,7 @@ import {
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
-import { AlertCircle, RefreshCw, Download } from 'lucide-react'
+import { AlertCircle, RefreshCw, Download, Tv } from 'lucide-react'
 
 const MapPreview = dynamic(
   () => import('@/components/ui/map-preview').then((mod) => ({ default: mod.MapPreview })),
@@ -352,14 +352,25 @@ export default function TournamentPage({ params }: PageProps) {
         {/* Header */}
         <TooltipProvider delayDuration={300}>
           <div className="mb-8">
-            <Button
-              variant="ghost"
-              onClick={() => router.push('/tournaments')}
-              className="mb-6 flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-            >
-              <ArrowLeftIcon className="w-4 h-4 mr-2" />
-              {t('detail.backToTournaments')}
-            </Button>
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <Button
+                variant="ghost"
+                onClick={() => router.push('/tournaments')}
+                className="flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+              >
+                <ArrowLeftIcon className="w-4 h-4 mr-2" />
+                {t('detail.backToTournaments')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(`/tv?event=single_${id}`, '_blank', 'noopener,noreferrer')}
+                className="flex items-center gap-2"
+              >
+                <Tv className="w-4 h-4" />
+                Pantalla TV
+              </Button>
+            </div>
 
             <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/80 shadow-sm overflow-hidden">
               <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] gap-6 p-6 sm:p-8 items-start">
