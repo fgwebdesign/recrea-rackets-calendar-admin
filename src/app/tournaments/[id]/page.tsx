@@ -301,10 +301,12 @@ export default function TournamentPage({ params }: PageProps) {
   }
 
 
+  const isAmericano = tournament.tournament_type === 'AMERICANO'
+
   const navigationCards = [
     {
-      title: t('detail.navigation.teams'),
-      description: t('detail.navigation.teamsDescription'),
+      title: isAmericano ? t('detail.navigation.players') : t('detail.navigation.teams'),
+      description: isAmericano ? t('detail.navigation.playersDescription') : t('detail.navigation.teamsDescription'),
       icon: UsersIcon,
       href: `/tournaments/${id}/teams`,
       color: 'bg-green-500'
@@ -330,13 +332,13 @@ export default function TournamentPage({ params }: PageProps) {
       href: `/tournaments/${id}/standings`,
       color: 'bg-orange-500'
     },
-    {
+    ...(isAmericano ? [] : [{
       title: t('detail.navigation.bracket'),
       description: t('detail.navigation.bracketDescription'),
       icon: TrophyIcon,
       href: `/tournaments/${id}/bracket`,
       color: 'bg-yellow-500'
-    },
+    }]),
     {
       title: t('detail.navigation.payments'),
       description: t('detail.navigation.paymentsDescription'),
@@ -428,11 +430,13 @@ export default function TournamentPage({ params }: PageProps) {
                           <UsersIcon className="h-5 w-5 text-emerald-500 flex-shrink-0" />
                           <span className="font-bold text-emerald-700 dark:text-emerald-300">{teamsCount}</span>
                           <span className="text-gray-500 dark:text-gray-400 font-medium">/</span>
-                          <span className="font-semibold text-gray-700 dark:text-gray-300">{tournament.max_teams} equipos</span>
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">
+                            {tournament.max_teams} {isAmericano ? 'jugadores' : 'equipos'}
+                          </span>
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="bottom">
-                        <p>Equipos inscritos vs. cupo máximo.</p>
+                        <p>{isAmericano ? 'Jugadores inscritos vs. cupo máximo.' : 'Equipos inscritos vs. cupo máximo.'}</p>
                       </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -464,7 +468,7 @@ export default function TournamentPage({ params }: PageProps) {
                         </TooltipContent>
                       </Tooltip>
                       <span className="font-bold text-gray-900 dark:text-gray-100">
-                        {teamsCount} / {tournament.max_teams}
+                        {teamsCount} / {tournament.max_teams} {isAmericano ? 'jugadores' : ''}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">

@@ -95,13 +95,15 @@ export default function TournamentStandingsPage() {
   const translateTournamentFormat = (format: string): string => {
     const formatTranslations: Record<string, string> = {
       'SIX_PLAYERS': '6 Equipos',
-      'NINE_PLAYERS': '9 Equipos', 
+      'NINE_PLAYERS': '9 Equipos',
       'TWELVE_PLAYERS': '12 Equipos',
-      'SIXTEEN_PLAYERS': '16 Equipos'
+      'SIXTEEN_PLAYERS': '16 Equipos',
+      'AMERICANO': 'Americano'
     };
-    
     return formatTranslations[format] || format;
   };
+
+  const isAmericano = tournament?.tournament_type === 'AMERICANO';
 
   if (loading || tournamentLoading) {
     return (
@@ -216,7 +218,7 @@ export default function TournamentStandingsPage() {
                     {standings.classification_summary.qualified_teams?.length || 0}
                   </div>
                   <div className="text-sm text-yellow-600 dark:text-yellow-400">
-                    Equipos Clasificados
+                    {isAmericano ? 'Jugadores Clasificados' : 'Equipos Clasificados'}
                   </div>
                 </div>
                 <div className="text-center">
@@ -262,7 +264,7 @@ export default function TournamentStandingsPage() {
                       <thead className="bg-gray-50 dark:bg-gray-800">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pos</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Equipo</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{isAmericano ? 'Jugador' : 'Equipo'}</th>
                           <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PJ</th>
                           <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PG</th>
                           <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PP</th>
@@ -380,7 +382,7 @@ export default function TournamentStandingsPage() {
                         <thead className="bg-gray-50 dark:bg-gray-800">
                           <tr>
                             <th className="px-5 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pos</th>
-                            <th className="px-5 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Equipo</th>
+                            <th className="px-5 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{isAmericano ? 'Jugador' : 'Equipo'}</th>
                             <th className="px-5 py-4 text-center text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PJ</th>
                             <th className="px-5 py-4 text-center text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PG</th>
                             <th className="px-5 py-4 text-center text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">PP</th>

@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTournament } from '@/hooks/useTournaments';
 import { useCategories } from '@/hooks/useCategories';
@@ -10,8 +9,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   ArrowLeft, 
   Trophy, 
-  Calendar, 
-  Clock, 
   RefreshCw,
   AlertCircle,
   Loader2
@@ -26,16 +23,10 @@ export default function TournamentBracketPage() {
   
   const { tournament, matches, loading, error, refetch } = useTournament(tournamentId);
   const { categories } = useCategories();
-  const [bracketData, setBracketData] = useState<any>(null);
 
-  // Detectar si existen partidos eliminatorios
-  const hasEliminationMatches = Array.isArray(matches) ? 
-    matches.some(match => match.round !== 'group') : false;
-
-  // Función para manejar cuando se genera el bracket
-  const handleBracketGenerated = (data: any) => {
-    setBracketData(data);
-  };
+  const hasEliminationMatches = Array.isArray(matches)
+    ? matches.some(match => match.round !== 'group')
+    : false;
 
   if (loading) {
     return (
@@ -63,6 +54,67 @@ export default function TournamentBracketPage() {
     );
   }
 
+  if (!tournament) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+          <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription>Torneo no encontrado.</AlertDescription>
+          </Alert>
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/tournaments')}
+            className="mt-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver a torneos
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (tournament.tournament_type === 'AMERICANO') {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+          <Button
+            variant="ghost"
+            onClick={() => router.push(`/tournaments/${tournamentId}`)}
+            className="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver al torneo
+          </Button>
+          <Card className="text-center py-16 border-2 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10">
+            <CardContent>
+              <div className="flex flex-col items-center gap-6">
+                <div className="p-6 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                  <Trophy className="h-16 w-16 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+                    Torneo Americano
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">
+                    Este torneo es tipo Americano. La clasificación es por puntaje o juegos acumulados por jugador; no hay cuadro de eliminatorias.
+                  </p>
+                  <Button
+                    onClick={() => router.push(`/tournaments/${tournamentId}/standings`)}
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-3"
+                  >
+                    Ver clasificación
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header Profesional */}
@@ -83,7 +135,7 @@ export default function TournamentBracketPage() {
               
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {tournament?.name}
+                  {tournament.name}
                 </h1>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -91,7 +143,7 @@ export default function TournamentBracketPage() {
                   </span>
                   <div className="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
                   <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
-                    {getCategoryName(tournament?.category_id || '', categories)}
+                    {getCategoryName(tournament.category_id, categories)}
                   </span>
                 </div>
               </div>
@@ -147,9 +199,8 @@ export default function TournamentBracketPage() {
             {/* Bracket en Pantalla Completa */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden w-full">
               <div className="p-6 w-full overflow-hidden">
-                <EliminationBracketViewer 
+                <EliminationBracketViewer
                   tournamentId={tournamentId}
-                  bracketData={bracketData}
                   tournament={tournament}
                 />
               </div>

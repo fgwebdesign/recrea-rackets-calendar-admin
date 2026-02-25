@@ -25,17 +25,20 @@ export function TournamentTypeEditor({
   const [isLoading, setIsLoading] = useState(false)
 
   const formatTournamentType = (type: string) => {
-    const typeConfig = {
+    const typeConfig: Record<string, string> = {
       SIX_PLAYERS: '6 Equipos',
       NINE_PLAYERS: '9 Equipos',
-      TWELVE_PLAYERS: '12 Equipos', 
-      SIXTEEN_PLAYERS: '16 Equipos'
+      TWELVE_PLAYERS: '12 Equipos',
+      SIXTEEN_PLAYERS: '16 Equipos',
+      AMERICANO: 'Americano'
     }
-    return typeConfig[type as keyof typeof typeConfig] || type
+    return typeConfig[type] || type
   }
 
+  const isAmericano = currentType === 'AMERICANO'
+
   const handleEdit = () => {
-    if (disabled) return
+    if (disabled || isAmericano) return
     setIsEditing(true)
     setSelectedType(currentType)
   }
@@ -135,7 +138,7 @@ export function TournamentTypeEditor({
   return (
     <div className="flex items-center gap-2">
       <span className="font-medium">{formatTournamentType(currentType)}</span>
-      {!disabled && (
+      {!disabled && !isAmericano && (
         <Button
           size="sm"
           variant="ghost"

@@ -24,8 +24,9 @@ interface TeamSummaryProps {
 
 export function TeamSummary({ player1, player2, slotLabel, slotInfo }: TeamSummaryProps) {
   const t = useTranslations('tournaments');
-  
-  if (!player1 || !player2) return null;
+  const singlePlayer = !player2;
+
+  if (!player1) return null;
 
   const getPlayerInitials = (player: Player) => {
     return `${player.first_name[0]}${player.last_name[0]}`.toUpperCase();
@@ -38,7 +39,7 @@ export function TeamSummary({ player1, player2, slotLabel, slotInfo }: TeamSumma
           <UsersIcon className="h-5 w-5 text-white" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          {t('adminRegister.teamSummary.title')}
+          {singlePlayer ? t('adminRegister.teamSummary.titlePlayer') : t('adminRegister.teamSummary.title')}
         </h3>
         <Badge className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
           <CheckCircleIcon className="h-3 w-3 mr-1" />
@@ -49,7 +50,7 @@ export function TeamSummary({ player1, player2, slotLabel, slotInfo }: TeamSumma
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Jugadores */}
         <div className="space-y-4">
-          <h4 className="font-medium text-gray-700 dark:text-gray-300">{t('adminRegister.teamSummary.players')}:</h4>
+          <h4 className="font-medium text-gray-700 dark:text-gray-300">{singlePlayer ? t('adminRegister.teamSummary.player') : t('adminRegister.teamSummary.players')}:</h4>
           
           {/* Jugador 1 */}
           <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -69,7 +70,7 @@ export function TeamSummary({ player1, player2, slotLabel, slotInfo }: TeamSumma
             </Badge>
           </div>
 
-          {/* Jugador 2 */}
+          {!singlePlayer && player2 && (
           <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-semibold">
               {getPlayerInitials(player2)}
@@ -86,6 +87,7 @@ export function TeamSummary({ player1, player2, slotLabel, slotInfo }: TeamSumma
               {t('adminRegister.teamSummary.player2')}
             </Badge>
           </div>
+          )}
         </div>
 
         {/* Información del Horario */}

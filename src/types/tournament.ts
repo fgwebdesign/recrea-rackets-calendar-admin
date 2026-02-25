@@ -65,7 +65,7 @@ export interface Sponsor {
 // 🏆 TIPOS DE TORNEOS
 // ========================================
 
-export type TournamentType = 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS'
+export type TournamentType = 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS' | 'AMERICANO'
 export type TournamentStatus = 'upcoming' | 'in_progress' | 'completed'
 
 export interface TournamentVenueCourt {
@@ -120,8 +120,16 @@ export interface Tournament {
   tournament_matches?: TournamentMatch[]
   tournament_standings?: TournamentStanding[]
   tournament_sponsors?: TournamentSponsor[]
-  // ✨ NUEVO: Multi-sede support
+  // ✨ Multi-sede support
   tournament_venues?: TournamentVenue[]
+  // Americano: config cuando tournament_type === 'AMERICANO' (Supabase devuelve array 0 o 1)
+  tournament_americano_config?: Array<{
+    scoring_mode: 'points' | 'sets'
+    points_per_match?: number
+    sets_per_match?: number
+    games_to_win_set?: number
+    tie_break_at?: number
+  }>
 }
 
 export interface TimeSlot {

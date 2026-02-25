@@ -13,9 +13,12 @@ interface FormStatusProps {
     player2?: string;
     slot?: string;
   };
+  singlePlayer?: boolean;
+  /** Si true (ej. Americano), no se muestra ni valida horario; solo jugador */
+  singlePlayerNoSchedule?: boolean;
 }
 
-export function FormStatus({ player1, player2, slot, validationErrors }: FormStatusProps) {
+export function FormStatus({ player1, player2, slot, validationErrors, singlePlayer = false, singlePlayerNoSchedule = false }: FormStatusProps) {
   const t = useTranslations('tournaments');
   
   const getStatusIcon = (hasValue: boolean, hasError: boolean) => {
@@ -28,7 +31,7 @@ export function FormStatus({ player1, player2, slot, validationErrors }: FormSta
     return <ExclamationTriangleIcon className="h-4 w-4 text-gray-400" />;
   };
 
-  const getStatusText = (hasValue: boolean, hasError: boolean, fieldName: string) => {
+  const getStatusText = (hasValue: boolean, hasError: boolean) => {
     if (hasError) {
       return t('adminRegister.formStatus.error');
     }
@@ -48,23 +51,20 @@ export function FormStatus({ player1, player2, slot, validationErrors }: FormSta
     return 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200';
   };
 
-  const fields = [
-    {
-      name: t('adminRegister.formStatus.firstPlayer'),
-      value: player1,
-      error: validationErrors.player1
-    },
-    {
-      name: t('adminRegister.formStatus.secondPlayer'),
-      value: player2,
-      error: validationErrors.player2
-    },
-    {
-      name: t('adminRegister.formStatus.schedule'),
-      value: slot,
-      error: validationErrors.slot
-    }
-  ];
+  const fields = singlePlayerNoSchedule
+    ? [
+        { name: t('adminRegister.formStatus.player'), value: player1, error: validationErrors.player1 }
+      ]
+    : singlePlayer
+    ? [
+        { name: t('adminRegister.formStatus.player'), value: player1, error: validationErrors.player1 },
+        { name: t('adminRegister.formStatus.schedule'), value: slot, error: validationErrors.slot }
+      ]
+    : [
+        { name: t('adminRegister.formStatus.firstPlayer'), value: player1, error: validationErrors.player1 },
+        { name: t('adminRegister.formStatus.secondPlayer'), value: player2, error: validationErrors.player2 },
+        { name: t('adminRegister.formStatus.schedule'), value: slot, error: validationErrors.slot }
+      ];
 
   const completedFields = fields.filter(field => field.value && !field.error).length;
   const totalFields = fields.length;
@@ -95,7 +95,7 @@ export function FormStatus({ player1, player2, slot, validationErrors }: FormSta
                 </span>
               </div>
               <Badge className={getStatusColor(hasValue, hasError)}>
-                {getStatusText(hasValue, hasError, field.name)}
+                {getStatusText(hasValue, hasError)}
               </Badge>
             </div>
           );

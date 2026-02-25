@@ -114,17 +114,20 @@ export default function TournamentTeamsPage() {
   const pendingTeams = Array.isArray(teams) ? teams.filter(team => team.payment_status === 'pending').length : 0;
   const totalRevenue = Array.isArray(teams) ? teams.reduce((sum, team) => sum + (team.payment_amount || 0), 0) : 0;
 
-  // Calcular cupo según tipo de torneo
+  // Calcular cupo según tipo de torneo (Americano usa max_teams = jugadores)
   const getTournamentCapacity = (tournamentType: string) => {
     switch (tournamentType) {
+      case 'SIX_PLAYERS': return 6;
       case 'NINE_PLAYERS': return 9;
       case 'TWELVE_PLAYERS': return 12;
       case 'SIXTEEN_PLAYERS': return 16;
-      default: return 9;
+      case 'AMERICANO': return tournament?.max_teams ?? 8;
+      default: return tournament?.max_teams ?? 9;
     }
   };
 
-  const tournamentCapacity = tournament?.tournament_type ? getTournamentCapacity(tournament.tournament_type) : 9;
+  const tournamentCapacity = tournament?.tournament_type ? getTournamentCapacity(tournament.tournament_type) : (tournament?.max_teams ?? 9);
+  const isAmericano = tournament?.tournament_type === 'AMERICANO';
   const isTournamentFull = totalTeams >= tournamentCapacity;
 
   return (
@@ -145,7 +148,7 @@ export default function TournamentTeamsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {t('teamsPage.title')} - {tournament.name}
+                {isAmericano ? t('teamsPage.playersTitle') : t('teamsPage.title')} - {tournament.name}
               </h1>
               <div className="flex items-center gap-3 mb-2">
                 <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
@@ -153,7 +156,7 @@ export default function TournamentTeamsPage() {
                 </Badge>
               </div>
               <p className="text-gray-600 dark:text-gray-400">
-                {t('teamsPage.description')}
+                {isAmericano ? t('teamsPage.playersDescription') : t('teamsPage.description')}
               </p>
             </div>
             {isAdmin && (
@@ -165,10 +168,10 @@ export default function TournamentTeamsPage() {
                     ? 'bg-gray-400 cursor-not-allowed opacity-60' 
                     : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl'
                 } text-white transition-all duration-200`}
-                title={isTournamentFull ? `Cupo completo (${totalTeams}/${tournamentCapacity})` : 'Registrar nuevo equipo'}
+                title={isTournamentFull ? `Cupo completo (${totalTeams}/${tournamentCapacity})` : (isAmericano ? 'Registrar jugador' : 'Registrar nuevo equipo')}
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
-                {isTournamentFull ? 'Cupo Completo' : t('teamsPage.registerTeam')}
+                {isTournamentFull ? 'Cupo Completo' : (isAmericano ? t('teamsPage.registerPlayer') : t('teamsPage.registerTeam'))}
               </Button>
             )}
           </div>
@@ -183,12 +186,12 @@ export default function TournamentTeamsPage() {
           totalRevenue={totalRevenue}
           tournamentType={tournament.tournament_type}
           translations={{
-            registeredTeams: t('teamsPage.registeredTeams'),
+            registeredTeams: isAmericano ? t('teamsPage.registeredPlayers') : t('teamsPage.registeredTeams'),
             fullCapacity: t('teamsPage.fullCapacity'),
-            teamsRemaining: t('teamsPage.teamsRemaining'),
-            paidTeamsTitle: t('teamsPage.paidTeamsTitle'),
+            teamsRemaining: isAmericano ? t('teamsPage.playersRemaining') : t('teamsPage.teamsRemaining'),
+            paidTeamsTitle: isAmericano ? t('teamsPage.paidPlayersTitle') : t('teamsPage.paidTeamsTitle'),
             ofTotal: t('teamsPage.ofTotal'),
-            noTeams: t('teamsPage.noTeams'),
+            noTeams: isAmericano ? t('teamsPage.noPlayers') : t('teamsPage.noTeams'),
             pending: t('teamsPage.pending'),
             toPay: t('teamsPage.toPay'),
             revenue: t('teamsPage.revenue'),
@@ -203,9 +206,9 @@ export default function TournamentTeamsPage() {
               <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                 <UsersIcon className="h-5 w-5 text-white" />
               </div>
-              {t('teamsPage.registeredTeams')}
+              {isAmericano ? t('teamsPage.registeredPlayers') : t('teamsPage.registeredTeams')}
               <span className="ml-auto text-sm font-normal text-gray-500 dark:text-gray-400">
-                {totalTeams} {t('teams')}
+                {totalTeams} {isAmericano ? t('teamsPage.players') : t('teams')}
               </span>
             </CardTitle>
           </CardHeader>
@@ -229,10 +232,10 @@ export default function TournamentTeamsPage() {
                   <UsersIcon className="w-16 h-16 text-blue-500" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-                  {t('teamsPage.noTeamsRegistered')}
+                  {isAmericano ? t('teamsPage.noPlayersRegistered') : t('teamsPage.noTeamsRegistered')}
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">
-                  {t('teamsPage.noTeamsDescription')}
+                  {isAmericano ? t('teamsPage.noPlayersDescription') : t('teamsPage.noTeamsDescription')}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button 
@@ -248,7 +251,7 @@ export default function TournamentTeamsPage() {
                       className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
                     >
                       <PlusIcon className="h-4 w-4 mr-2" />
-                      {t('teamsPage.registerTeam')}
+                      {isAmericano ? t('teamsPage.registerPlayer') : t('teamsPage.registerTeam')}
                     </Button>
                   )}
                 </div>

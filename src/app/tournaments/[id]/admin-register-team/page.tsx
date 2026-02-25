@@ -185,41 +185,44 @@ export default function AdminRegisterTeamPage() {
     }
   }, [tournament, getRequiresShirts]);
 
-  // Función para validar formulario completo
+  const isAmericanoValidation = tournament?.tournament_type === 'AMERICANO';
+
   const validateForm = () => {
     const errors: { player1?: string; player2?: string; slot?: string; shirtSizes?: string } = {};
 
-    // Validar jugador 1
     if (!selectedPlayer1) {
-      errors.player1 = t('adminRegister.validation.player1Required');
+      errors.player1 = isAmericanoValidation ? t('adminRegister.validation.playerRequired') : t('adminRegister.validation.player1Required');
     }
 
-    // Validar jugador 2
-    if (!selectedPlayer2) {
-      errors.player2 = t('adminRegister.validation.player2Required');
-    } else if (selectedPlayer1 && selectedPlayer1 === selectedPlayer2) {
-      errors.player2 = t('adminRegister.validation.playersMustBeDifferent');
+    if (!isAmericanoValidation) {
+      if (!selectedPlayer2) {
+        errors.player2 = t('adminRegister.validation.player2Required');
+      } else if (selectedPlayer1 && selectedPlayer1 === selectedPlayer2) {
+        errors.player2 = t('adminRegister.validation.playersMustBeDifferent');
+      }
     }
 
-    // Franjas bloqueadas (donde NO puede jugar): máximo 2 (0, 1 o 2 restricciones)
-    const maxBlocked = slotInstructions?.max_blocked ?? 2;
-    if (selectedFranjas.length > maxBlocked) {
-      errors.slot = slotInstructions?.message ?? `Podés marcar como máximo ${maxBlocked} horarios en los que NO podés jugar (0, 1 o 2 restricciones).`;
-    } else {
-      for (const franjaId of selectedFranjas) {
-        const franja = franjas.find(f => f.franja_id === franjaId);
-        if (!franja) {
-          errors.slot = `Franja ${franjaId} no encontrada`;
-          break;
+    // Franjas bloqueadas solo para torneos clásicos (Americano no usa horarios)
+    if (!isAmericanoValidation) {
+      const maxBlocked = slotInstructions?.max_blocked ?? 2;
+      if (selectedFranjas.length > maxBlocked) {
+        errors.slot = slotInstructions?.message ?? `Podés marcar como máximo ${maxBlocked} horarios en los que NO podés jugar (0, 1 o 2 restricciones).`;
+      } else {
+        for (const franjaId of selectedFranjas) {
+          const franja = franjas.find(f => f.franja_id === franjaId);
+          if (!franja) {
+            errors.slot = `Franja ${franjaId} no encontrada`;
+            break;
+          }
         }
       }
     }
 
-    // Validar talles de remera si el torneo los requiere
     if (getRequiresShirts()) {
+      const maxSizes = isAmericanoValidation ? 1 : 2;
       if (selectedShirtSizes.length === 0) {
         errors.shirtSizes = t('adminRegister.validation.shirtSizesRequired');
-      } else if (selectedShirtSizes.length > 2) {
+      } else if (selectedShirtSizes.length > maxSizes) {
         errors.shirtSizes = t('adminRegister.validation.shirtSizesMax');
       }
     }
@@ -262,10 +265,10 @@ export default function AdminRegisterTeamPage() {
     try {
       const requestBody = {
         userId1: selectedPlayer1,
-        userId2: selectedPlayer2,
-        unavailable_times: selectedFranjas, // Franja IDs donde el equipo NO puede jugar
+        ...(isAmericano ? { userId2: null } : { userId2: selectedPlayer2 }),
+        unavailable_times: isAmericano ? [] : selectedFranjas,
         ...(getRequiresShirts() && selectedShirtSizes.length > 0 && {
-          shirt_sizes: selectedShirtSizes
+          shirt_sizes: isAmericano ? selectedShirtSizes.slice(0, 1) : selectedShirtSizes
         })
       };
 
@@ -334,18 +337,21 @@ export default function AdminRegisterTeamPage() {
         return;
       }
 
-      // Éxito - mostrar toast y limpiar formulario
       const player1Name = players.find(p => p.id === selectedPlayer1);
-      const player2Name = players.find(p => p.id === selectedPlayer2);
-      const blockedLabels = selectedFranjas.map(id => franjas.find(f => f.franja_id === id)?.label).filter(Boolean).join(', ');
-      const availableCount = franjas.length - selectedFranjas.length;
+      const player2Name = isAmericano ? null : players.find(p => p.id === selectedPlayer2);
+      const blockedLabels = isAmericano ? '' : selectedFranjas.map(id => franjas.find(f => f.franja_id === id)?.label).filter(Boolean).join(', ');
+      const availableCount = isAmericano ? 0 : franjas.length - selectedFranjas.length;
+      const namesText = isAmericano
+        ? `${player1Name?.first_name} ${player1Name?.last_name}`
+        : `${player1Name?.first_name} ${player1Name?.last_name} & ${player2Name?.first_name} ${player2Name?.last_name}`;
+      const descriptionSuffix = isAmericano ? '' : `${blockedLabels ? ` No puede en: ${blockedLabels}.` : ''} ${availableCount} horario${availableCount !== 1 ? 's' : ''} disponible${availableCount !== 1 ? 's' : ''}.`;
 
       toast({
-        title: t('adminRegister.success.title'),
-        description: `${player1Name?.first_name} ${player1Name?.last_name} & ${player2Name?.first_name} ${player2Name?.last_name} registrados.${blockedLabels ? ` No puede en: ${blockedLabels}.` : ''} ${availableCount} horario${availableCount !== 1 ? 's' : ''} disponible${availableCount !== 1 ? 's' : ''}.`,
+        title: isAmericano ? t('adminRegister.success.titlePlayer') : t('adminRegister.success.title'),
+        description: `${namesText} registrado${isAmericano ? '' : 's'}.${descriptionSuffix}`,
         variant: "default",
       });
-      
+
       setSelectedPlayer1('');
       setSelectedPlayer2('');
       setSelectedFranjas([]);
@@ -413,6 +419,8 @@ export default function AdminRegisterTeamPage() {
     );
   }
 
+  const isAmericano = tournament.tournament_type === 'AMERICANO';
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 lg:p-8">
       <div className="max-w-5xl mx-auto">
@@ -429,7 +437,7 @@ export default function AdminRegisterTeamPage() {
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-            {t('adminRegister.title')} - {tournament.name}
+            {isAmericano ? t('adminRegister.titlePlayer') : t('adminRegister.title')} - {tournament.name}
           </h1>
           <div className="flex items-center gap-3 mb-3">
             <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
@@ -437,7 +445,7 @@ export default function AdminRegisterTeamPage() {
             </Badge>
           </div>
           <p className="text-gray-600 dark:text-gray-400">
-            {t('adminRegister.description')}
+            {isAmericano ? t('adminRegister.descriptionPlayer') : t('adminRegister.description')}
           </p>
         </div>
 
@@ -452,13 +460,13 @@ export default function AdminRegisterTeamPage() {
           </CardHeader>
           <CardContent className="p-8">
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Selección de Jugador 1 */}
+              {/* Selección de jugador(es) */}
               <div>
                 <PlayerSelector
                   players={players}
                   selectedPlayer={selectedPlayer1}
                   onPlayerSelect={setSelectedPlayer1}
-                  placeholder={t('adminRegister.placeholders.selectFirstPlayer')}
+                  placeholder={isAmericano ? t('adminRegister.placeholders.selectPlayer') : t('adminRegister.placeholders.selectFirstPlayer')}
                 />
                 {validationErrors.player1 && (
                   <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
@@ -468,7 +476,7 @@ export default function AdminRegisterTeamPage() {
                 )}
               </div>
 
-              {/* Selección de Jugador 2 */}
+              {!isAmericano && (
               <div>
                 <PlayerSelector
                   players={players}
@@ -485,7 +493,10 @@ export default function AdminRegisterTeamPage() {
                   </p>
                 )}
               </div>
+              )}
 
+              {!isAmericano && (
+              <>
               {/* Horarios en los que NO puede jugar (máximo 2 restricciones) */}
               <div>
                 <div className="space-y-4">
@@ -616,6 +627,8 @@ export default function AdminRegisterTeamPage() {
                   </p>
                 )}
               </div>
+              </>
+              )}
 
               {/* Selección de Talles de Remera - Solo si el torneo los requiere */}
               {getRequiresShirts() && (
@@ -624,29 +637,29 @@ export default function AdminRegisterTeamPage() {
                     selectedSizes={selectedShirtSizes}
                     onSizesChange={setSelectedShirtSizes}
                     error={validationErrors.shirtSizes}
-                    disabled={!selectedPlayer1 || !selectedPlayer2}
+                    disabled={isAmericano ? !selectedPlayer1 : !selectedPlayer1 || !selectedPlayer2}
                   />
                 </div>
               )}
 
-              {/* Estado del Formulario */}
               <FormStatus
                 player1={selectedPlayer1}
-                player2={selectedPlayer2}
+                player2={isAmericano ? '' : selectedPlayer2}
                 slot={selectedFranjas.length > 0 ? selectedFranjas[0] : ''}
                 validationErrors={validationErrors}
+                singlePlayer={isAmericano}
+                singlePlayerNoSchedule={isAmericano}
               />
 
-              {/* Resumen del Equipo */}
-              {selectedPlayer1 && selectedPlayer2 && (
+              {(selectedPlayer1 && (isAmericano || selectedPlayer2)) && (
                 <TeamSummary
                   player1={players.find(p => p.id === selectedPlayer1) || null}
-                  player2={players.find(p => p.id === selectedPlayer2) || null}
-                  slotLabel={selectedFranjas.length > 0 
+                  player2={isAmericano ? null : (players.find(p => p.id === selectedPlayer2) || null)}
+                  slotLabel={isAmericano ? undefined : (selectedFranjas.length > 0 
                     ? `No puede: ${selectedFranjas.map(id => franjas.find(f => f.franja_id === id)?.label).filter(Boolean).join(', ')} · ${franjas.length - selectedFranjas.length} disponible${(franjas.length - selectedFranjas.length) !== 1 ? 's' : ''}`
                     : `${franjas.length} horarios disponibles`
-                  }
-                  slotInfo={(() => {
+                  )}
+                  slotInfo={isAmericano ? undefined : (() => {
                     const firstAvailable = franjas.find(f => !selectedFranjas.includes(f.franja_id));
                     return firstAvailable ? {
                       remaining_slots: firstAvailable.available_slots,
@@ -663,10 +676,10 @@ export default function AdminRegisterTeamPage() {
                 <Button
                   type="submit"
                   disabled={
-                    loading || 
-                    !selectedPlayer1 || 
-                    !selectedPlayer2 || 
-                    selectedFranjas.length > (slotInstructions?.max_blocked ?? 2) ||
+                    loading ||
+                    !selectedPlayer1 ||
+                    (!isAmericano && !selectedPlayer2) ||
+                    (!isAmericano && selectedFranjas.length > (slotInstructions?.max_blocked ?? 2)) ||
                     (getRequiresShirts() && selectedShirtSizes.length === 0)
                   }
                   className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-4 px-6 rounded-lg focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl text-lg font-semibold"
@@ -674,12 +687,12 @@ export default function AdminRegisterTeamPage() {
                   {loading ? (
                     <>
                       <Loader2 className="h-5 w-5 mr-3 animate-spin" />
-                      {t('adminRegister.registering')}
+                      {isAmericano ? t('adminRegister.registeringPlayer') : t('adminRegister.registering')}
                     </>
                   ) : (
                     <>
                       <UsersIcon className="h-5 w-5 mr-3" />
-                      {t('adminRegister.registerTeam')}
+                      {isAmericano ? t('adminRegister.registerPlayer') : t('adminRegister.registerTeam')}
                     </>
                   )}
                 </Button>
