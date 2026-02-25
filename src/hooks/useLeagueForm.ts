@@ -25,7 +25,7 @@ export interface LeagueFormData {
   image?: File | null;
   image_url?: string | null;
   // Nuevos campos
-  league_type?: 'round_robin' | 'knockout' | 'groups' | 'custom';
+  league_type?: 'round_robin' | 'groups';
   rounds?: 1 | 2;
   match_times?: string[];
   courts_per_time_slot?: number;
@@ -106,6 +106,24 @@ export function useLeagueForm() {
       toast({
         title: "Error de validación",
         description: "El número de equipos debe estar entre 4 y 16",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    // Sedes: al menos una sede con al menos una cancha
+    if (!data.venues || data.venues.length === 0) {
+      toast({
+        title: "Error de validación",
+        description: "Debes seleccionar al menos una sede",
+        variant: "destructive"
+      });
+      return false;
+    }
+    if (!data.venues.every(v => v.court_ids && v.court_ids.length > 0)) {
+      toast({
+        title: "Error de validación",
+        description: "Cada sede seleccionada debe tener al menos una cancha",
         variant: "destructive"
       });
       return false;
@@ -197,25 +215,6 @@ export function useLeagueForm() {
   };
 
   const handleThirdStep = () => {
-    // Validar que haya al menos una sede con canchas
-    if (!formData.venues || formData.venues.length === 0) {
-      toast({
-        title: "Error de validación",
-        description: "Debes seleccionar al menos una sede",
-        variant: "destructive"
-      });
-      return false;
-    }
-
-    if (!formData.venues.every(v => v.court_ids.length > 0)) {
-      toast({
-        title: "Error de validación",
-        description: "Cada sede seleccionada debe tener al menos una cancha",
-        variant: "destructive"
-      });
-      return false;
-    }
-
     setStep(4);
     return true;
   };
@@ -251,7 +250,7 @@ export function useLeagueForm() {
         team_size: number;
         image_url?: string | null;
         category_days: Record<string, string>;
-        league_type?: 'round_robin' | 'knockout' | 'groups' | 'custom';
+        league_type?: 'round_robin' | 'groups';
         rounds?: 1 | 2;
         match_times?: string[];
         courts_per_time_slot?: number;

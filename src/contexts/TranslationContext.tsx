@@ -706,7 +706,7 @@ const translations: Record<Locale, Record<string, any>> = {
           title: 'Horarios y Configuración Avanzada',
           matchTimes: 'Horarios de Partidos: Define los horarios específicos (ej: 22:30, 23:15)',
           courtsPerTime: 'Canchas por Horario: Indica cuántas canchas se usarán simultáneamente',
-          leagueType: 'Tipo de Liga: Elige Round Robin, Eliminación, Grupos o Personalizado',
+          leagueType: 'Tipo de Liga: Round Robin o Fase de grupos + Playoffs',
           rounds: 'Vueltas: 1 vuelta (solo ida) o 2 vueltas (ida y vuelta)'
         },
         tip: '💡 Tip: Una vez creada la liga, los equipos podrán inscribirse. Después de las inscripciones, podrás generar los partidos automáticamente desde la página de detalles de la liga.'
@@ -2264,7 +2264,7 @@ const translations: Record<Locale, Record<string, any>> = {
         title: 'Schedules and Advanced Configuration',
         matchTimes: 'Match Times: Define specific times (e.g., 22:30, 23:15)',
         courtsPerTime: 'Courts per Time: Indicate how many courts will be used simultaneously',
-        leagueType: 'League Type: Choose Round Robin, Elimination, Groups or Custom',
+        leagueType: 'League Type: Round Robin or Groups + Playoffs',
         rounds: 'Rounds: 1 round (single leg) or 2 rounds (home and away)'
       },
       tip: '💡 Tip: Once the league is created, teams will be able to register. After registrations, you can automatically generate matches from the league details page.'

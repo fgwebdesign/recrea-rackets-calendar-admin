@@ -213,7 +213,7 @@ export default function LeagueDetailsPage() {
                                 'Content-Type': 'application/json',
                                 'Authorization': `Bearer ${adminToken}`
                               },
-                              body: JSON.stringify({ rounds: 1 })
+                              body: JSON.stringify({ rounds: league?.rounds ?? 1 })
                             });
 
                             if (!response.ok) {

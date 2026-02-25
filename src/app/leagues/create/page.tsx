@@ -71,12 +71,30 @@ export default function CreateLeaguePage() {
 
           <div className="bg-white dark:bg-slate-800/50 rounded-xl shadow-md dark:shadow-lg border border-gray-200 dark:border-gray-700">
             {step === 1 ? (
-              <LeagueBasicInfo
-                formData={formData}
-                setFormData={setFormData}
-                categories={categories}
-                onSubmit={handleFirstStep}
-              />
+              <>
+                <LeagueBasicInfo
+                  formData={formData}
+                  setFormData={setFormData}
+                  categories={categories}
+                  onSubmit={handleFirstStep}
+                  hideSubmitButton
+                />
+                <div className="px-6 pb-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-emerald-500" />
+                    Sedes y canchas
+                  </h3>
+                  <VenueSelector
+                    selectedVenues={formData.venues || []}
+                    onChange={(venues) => setFormData({ ...formData, venues })}
+                  />
+                  <div className="flex justify-end mt-6">
+                    <Button onClick={() => handleFirstStep(formData)} className="bg-primary hover:bg-primary/90 font-bold">
+                      {tCommon('next')} →
+                    </Button>
+                  </div>
+                </div>
+              </>
             ) : step === 2 ? (
               <LeagueScheduleInfo
                 formData={formData}
@@ -86,29 +104,6 @@ export default function CreateLeaguePage() {
                 categories={categories}
               />
             ) : step === 3 ? (
-              <div className="p-6">
-                <VenueSelector
-                  selectedVenues={formData.venues || []}
-                  onChange={(venues) => setFormData({ ...formData, venues })}
-                />
-                <div className="flex justify-between mt-6">
-                  <Button onClick={handleBack} variant="outline" className="font-bold">
-                    ← {t('back')}
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      if (handleThirdStep()) {
-                        // El step se actualiza dentro de handleThirdStep
-                      }
-                    }}
-                    className="bg-primary hover:bg-primary/90 font-bold"
-                  >
-                    {tCommon('next')} →
-                    
-                  </Button>
-                </div>
-              </div>
-            ) : step === 4 ? (
               <div className="p-6 space-y-6">
                 <MatchTimesEditor
                   matchTimes={formData.match_times || ['21:00', '22:00']}
@@ -117,7 +112,17 @@ export default function CreateLeaguePage() {
                   onTimesChange={(times) => setFormData({ ...formData, match_times: times })}
                   onCourtsChange={(courts) => setFormData({ ...formData, courts_per_time_slot: courts })}
                 />
-                
+                <div className="flex justify-between mt-6">
+                  <Button onClick={handleBack} variant="outline" className="font-bold">
+                    ← {t('back')}
+                  </Button>
+                  <Button onClick={() => handleThirdStep()} className="bg-primary hover:bg-primary/90 font-bold">
+                    {tCommon('next')} →
+                  </Button>
+                </div>
+              </div>
+            ) : step === 4 ? (
+              <div className="p-6 space-y-6">
                 {/* Resumen Completo de la Liga */}
                 <div className="mt-8 rounded-2xl border-2 border-emerald-200 dark:border-emerald-800 overflow-hidden">
                   {/* Header */}
@@ -147,7 +152,7 @@ export default function CreateLeaguePage() {
                           <div className="flex justify-between">
                             <span className="text-slate-500 dark:text-slate-400">Tipo</span>
                             <span className="font-medium text-slate-800 dark:text-slate-200">
-                              {formData.league_type === 'round_robin' ? 'Round Robin' : formData.league_type}
+                              {formData.league_type === 'round_robin' ? 'Round Robin' : formData.league_type === 'groups' ? 'Fase de grupos + Playoffs' : formData.league_type}
                             </span>
                           </div>
                           <div className="flex justify-between">

@@ -4,261 +4,237 @@ import { useState } from 'react'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { CalendarIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameMonth, isSameDay, isWithinInterval } from 'date-fns'
+import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/contexts/TranslationContext'
+import {
+  CalendarIcon,
+  CalendarRange,
+  ChevronDown,
+  Clock,
+  XCircle,
+  Sparkles,
+} from 'lucide-react'
 
 interface CalendarFilterProps {
   onDateRangeChange: (startDate: Date | null, endDate: Date | null) => void
   onQuickFilterChange: (filter: string) => void
+  /** Sincronizar desde el padre (p. ej. currentFilters del hook) para que el estado persista tras loading que desmonta el componente. */
+  activeDateRange?: { start_date?: string; end_date?: string; date_range?: string }
   className?: string
 }
 
-export default function CalendarFilter({ 
-  onDateRangeChange, 
+const CLEAR_KEY = 'clear'
+
+const PRESET_KEYS = ['this_month', 'next_month', 'this_year', 'upcoming'] as const
+
+export default function CalendarFilter({
+  onDateRangeChange,
   onQuickFilterChange,
-  className 
+  activeDateRange,
+  className,
 }: CalendarFilterProps) {
   const t = useTranslations('tournaments')
-  const [startDate, setStartDate] = useState<Date | null>(null)
-  const [endDate, setEndDate] = useState<Date | null>(null)
-  const [activeQuickFilter, setActiveQuickFilter] = useState<string>('')
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [isOpen, setIsOpen] = useState(false)
+  const [open, setOpen] = useState(false)
+  const [startDate, setStartDate] = useState<Date | null>(() => {
+    if (activeDateRange?.start_date) {
+      const d = new Date(activeDateRange.start_date + 'T00:00:00')
+      return isNaN(d.getTime()) ? null : d
+    }
+    return null
+  })
+  const [endDate, setEndDate] = useState<Date | null>(() => {
+    if (activeDateRange?.end_date) {
+      const d = new Date(activeDateRange.end_date + 'T00:00:00')
+      return isNaN(d.getTime()) ? null : d
+    }
+    return null
+  })
+  const [activeQuickFilter, setActiveQuickFilter] = useState<string>(() => {
+    if (activeDateRange?.date_range && PRESET_KEYS.includes(activeDateRange.date_range as (typeof PRESET_KEYS)[number])) {
+      return activeDateRange.date_range
+    }
+    return ''
+  })
 
-  const quickFilters = [
-    { key: 'this_month', label: t('thisMonth'), icon: '📅' },
-    { key: 'next_month', label: t('nextMonth'), icon: '📆' },
-    { key: 'this_year', label: t('thisYear'), icon: '🗓️' },
-    { key: 'upcoming', label: t('upcoming'), icon: '⏰' },
-    { key: 'clear', label: t('clear'), icon: '❌' }
+  const quickFilters: { key: string; label: string; icon: React.ReactNode }[] = [
+    { key: 'this_month', label: t('thisMonth'), icon: <CalendarIcon className="h-4 w-4" /> },
+    { key: 'next_month', label: t('nextMonth'), icon: <CalendarRange className="h-4 w-4" /> },
+    { key: 'this_year', label: t('thisYear'), icon: <Sparkles className="h-4 w-4" /> },
+    { key: 'upcoming', label: t('upcoming'), icon: <Clock className="h-4 w-4" /> },
   ]
 
-  const handleDateSelect = (date: Date | undefined) => {
-    if (!date) return
-
-    if (!startDate || (startDate && endDate)) {
-      // Seleccionar fecha de inicio
-      setStartDate(date)
-      setEndDate(null)
-      onDateRangeChange(date, null)
-    } else if (startDate && !endDate) {
-      // Seleccionar fecha de fin
-      const newEndDate = date < startDate ? date : date
-      const newStartDate = date < startDate ? date : startDate
-      
-      setStartDate(newStartDate)
-      setEndDate(newEndDate)
-      onDateRangeChange(newStartDate, newEndDate)
-      setIsOpen(false) // Cerrar el popover cuando se selecciona el rango completo
-    }
-  }
-
-  const handleQuickFilter = (filterKey: string) => {
-    if (filterKey === 'clear') {
+  const handlePreset = (key: string) => {
+    if (key === CLEAR_KEY) {
       setStartDate(null)
       setEndDate(null)
       setActiveQuickFilter('')
       onDateRangeChange(null, null)
       onQuickFilterChange('')
     } else {
-      setActiveQuickFilter(filterKey)
       setStartDate(null)
       setEndDate(null)
-      onQuickFilterChange(filterKey)
+      setActiveQuickFilter(key)
+      onQuickFilterChange(key)
+    }
+    setOpen(false)
+  }
+
+  // Solo actualizar estado local; no disparar filtro hasta que el usuario pulse "Aplicar"
+  const handleRangeSelect = (range: { from?: Date; to?: Date } | undefined) => {
+    const from = range?.from ?? null
+    const to = range?.to ?? null
+    const start = from && to ? (from <= to ? from : to) : from
+    const end = from && to ? (from <= to ? to : from) : to
+    setStartDate(start)
+    setEndDate(end ?? null)
+    setActiveQuickFilter('')
+  }
+
+  const applyRange = () => {
+    if (startDate && endDate) {
+      onDateRangeChange(startDate, endDate)
+      onQuickFilterChange('')
+      setOpen(false)
     }
   }
 
-  const clearCustomRange = () => {
+  const clearAll = () => {
     setStartDate(null)
     setEndDate(null)
     setActiveQuickFilter('')
     onDateRangeChange(null, null)
     onQuickFilterChange('')
+    setOpen(false)
   }
 
-  const hasActiveFilter = startDate || endDate || activeQuickFilter
+  const hasActive = activeQuickFilter || startDate || endDate
+  const hasRangeComplete = startDate && endDate
+  const rangeValue = hasRangeComplete ? { from: startDate, to: endDate } : startDate ? { from: startDate, to: undefined } : undefined
 
-  // Función para determinar si una fecha está en el rango seleccionado
-  const isDateInRange = (date: Date) => {
-    if (!startDate || !endDate) return false
-    return isWithinInterval(date, { start: startDate, end: endDate })
-  }
-
-  // Función para determinar si una fecha es el inicio o fin del rango
-  const isRangeEdge = (date: Date) => {
-    if (!startDate || !endDate) return false
-    return isSameDay(date, startDate) || isSameDay(date, endDate)
-  }
+  const triggerLabel = activeQuickFilter
+    ? quickFilters.find((f) => f.key === activeQuickFilter)?.label ?? t('dateFilter')
+    : hasRangeComplete
+      ? `${format(startDate, 'd MMM', { locale: es })} – ${format(endDate, 'd MMM', { locale: es })}`
+      : startDate
+        ? `${format(startDate, 'd MMM', { locale: es })} – ${t('selectEnd')}`
+        : t('selectDates')
 
   return (
-    <div className={cn("space-y-4", className)}>
-      {/* 🗓️ Filtros Rápidos */}
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          {t('quickFilters')}
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {quickFilters.map((filter) => (
-            <Button
-              key={filter.key}
-              variant={activeQuickFilter === filter.key ? "default" : "outline"}
-              size="sm"
-              onClick={() => handleQuickFilter(filter.key)}
-              className={cn(
-                "h-8 px-3 text-xs transition-all duration-200",
-                activeQuickFilter === filter.key
-                  ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
-                  : "hover:bg-gray-50 dark:hover:bg-gray-800"
+    <div className={cn('flex items-center gap-2', className)}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant={hasActive ? 'default' : 'outline'}
+            size="sm"
+            className={cn(
+              'min-w-[220px] justify-between gap-2 font-normal transition-colors',
+              hasActive && 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm ring-2 ring-primary/20'
+            )}
+          >
+            <span className="flex items-center gap-2 truncate">
+              <CalendarIcon className={cn('h-4 w-4 shrink-0', hasActive ? 'text-primary-foreground/90' : 'text-muted-foreground')} />
+              <span className="truncate">{triggerLabel}</span>
+              {hasActive && (
+                <span className="shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+                  Activo
+                </span>
               )}
-            >
-              <span className="mr-1">{filter.icon}</span>
-              {filter.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* 📅 Selector de Rango Personalizado - Estilo Airbnb */}
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          {t('customRange')}
-        </p>
-        
-        <div className="flex items-center gap-2">
-          <Popover open={isOpen} onOpenChange={setIsOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal h-10",
-                  !startDate && !endDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate && endDate ? (
-                  `${format(startDate, "dd MMM", { locale: es })} - ${format(endDate, "dd MMM", { locale: es })}`
-                ) : startDate ? (
-                  `${format(startDate, "dd MMM", { locale: es })} - ${t('selectEnd')}`
-                ) : (
-                  t('selectDates')
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <div className="p-4">
-                {/* Header del calendario con navegación */}
-                <div className="flex items-center justify-between mb-4">
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <div className="flex flex-col sm:flex-row">
+            {/* Presets */}
+            <div className="border-b sm:border-b-0 sm:border-r border-border bg-muted/30 p-2 sm:min-w-[160px]">
+              <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                {t('quickFilters')}
+              </p>
+              <div className="flex flex-row flex-wrap gap-1 sm:flex-col sm:flex-nowrap">
+                {quickFilters.map((f) => (
                   <Button
+                    key={f.key}
                     variant="ghost"
                     size="sm"
-                    onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                    className="h-8 w-8 p-0"
+                    className={cn(
+                      'justify-start gap-2 text-sm font-normal',
+                      activeQuickFilter === f.key && 'bg-primary/10 text-primary'
+                    )}
+                    onClick={() => handlePreset(f.key)}
                   >
-                    <ChevronLeftIcon className="h-4 w-4" />
+                    {f.icon}
+                    {f.label}
                   </Button>
-                  
-                  <h3 className="text-lg font-semibold">
-                    {format(currentMonth, "MMMM yyyy", { locale: es })}
-                  </h3>
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronRightIcon className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* Calendario personalizado */}
-                <Calendar
-                  mode="single"
-                  selected={startDate || undefined}
-                  onSelect={handleDateSelect}
-                  disabled={(date) => date < new Date("1900-01-01")}
-                  initialFocus
-                  locale={es}
-                  className="rounded-md border-0"
-                  components={{
-                    Day: ({ date, ...props }) => {
-                      const isSelected = startDate && isSameDay(date, startDate)
-                      const isEndSelected = endDate && isSameDay(date, endDate)
-                      const isInRange = isDateInRange(date)
-                      const isEdge = isRangeEdge(date)
-                      
-                      return (
-                        <button
-                          {...props}
-                          className={cn(
-                            "h-9 w-9 rounded-full text-sm font-medium transition-colors",
-                            "hover:bg-blue-100 dark:hover:bg-blue-900/20",
-                            isSelected && "bg-blue-600 text-white hover:bg-blue-700",
-                            isEndSelected && "bg-blue-600 text-white hover:bg-blue-700",
-                            isInRange && !isEdge && "bg-blue-100 dark:bg-blue-900/20",
-                            isEdge && "bg-blue-600 text-white hover:bg-blue-700"
-                          )}
-                        >
-                          {format(date, "d")}
-                        </button>
-                      )
-                    }
-                  }}
-                />
-
-                {/* Información del rango seleccionado */}
-                {startDate && endDate && (
-                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
-                      <CalendarIcon className="h-4 w-4" />
-                      <span>
-                        {format(startDate, "dd MMM yyyy", { locale: es })} - {format(endDate, "dd MMM yyyy", { locale: es })}
-                      </span>
-                    </div>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                      {Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1} {t('daysSelected')}
-                    </p>
-                  </div>
-                )}
+                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start gap-2 text-sm font-normal text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => handlePreset(CLEAR_KEY)}
+                >
+                  <XCircle className="h-4 w-4" />
+                  {t('clear')}
+                </Button>
               </div>
-            </PopoverContent>
-          </Popover>
-
-          {hasActiveFilter && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearCustomRange}
-              className="h-10 px-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <XMarkIcon className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-
-        {/* 📊 Indicador de Rango Seleccionado */}
-        {startDate && endDate && (
-          <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm text-blue-700 dark:text-blue-300">
-              {t('showingTournaments')} {format(startDate, "dd MMM yyyy", { locale: es })} {t('to')} {format(endDate, "dd MMM yyyy", { locale: es })}
-            </span>
+            </div>
+            {/* Calendar range: primera clic = inicio, segunda clic = fin → filtra por start_date y end_date en backend */}
+            <div className="p-3">
+              <p className="mb-1 px-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                {t('customRange')}
+              </p>
+              <p className="mb-2 px-1 text-[11px] text-muted-foreground">
+                {hasRangeComplete
+                  ? `${format(startDate, 'd MMM', { locale: es })} – ${format(endDate, 'd MMM', { locale: es })}`
+                  : startDate
+                    ? t('selectEnd')
+                    : 'Clic en fecha de inicio, luego en fecha de fin'}
+              </p>
+              <Calendar
+                mode="range"
+                selected={rangeValue}
+                onSelect={handleRangeSelect}
+                disabled={(date) => date < new Date('2000-01-01')}
+                locale={es}
+                numberOfMonths={2}
+                defaultMonth={startDate ?? new Date()}
+                className="rounded-md border-0"
+              />
+              <div className="mt-3 flex items-center justify-end gap-2 border-t border-border pt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setStartDate(null)
+                    setEndDate(null)
+                  }}
+                >
+                  {t('clear')}
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={!startDate || !endDate}
+                  onClick={applyRange}
+                >
+                  Aplicar
+                </Button>
+              </div>
+            </div>
           </div>
-        )}
-
-        {activeQuickFilter && (
-          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-            <CalendarIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <span className="text-sm text-green-700 dark:text-green-300">
-              {t('activeFilter')} {quickFilters.find(f => f.key === activeQuickFilter)?.label}
-            </span>
-          </div>
-        )}
-      </div>
+        </PopoverContent>
+      </Popover>
+      {hasActive && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="shrink-0 text-muted-foreground hover:text-foreground"
+          onClick={clearAll}
+          title={t('clear')}
+        >
+          <XCircle className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   )
 }

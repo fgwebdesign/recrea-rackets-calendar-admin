@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,8 @@ interface LeagueBasicInfoProps {
   setFormData: (data: LeagueFormData) => void;
   categories: Category[];
   onSubmit: (data: LeagueFormData) => void;
+  /** Si true, no se muestra el botón Continuar (se usa cuando el paso incluye VenueSelector debajo) */
+  hideSubmitButton?: boolean;
 }
 
 function LabelWithTooltip({
@@ -42,7 +45,7 @@ function LabelWithTooltip({
   );
 }
 
-export function LeagueBasicInfo({ formData, setFormData, categories = [], onSubmit }: LeagueBasicInfoProps) {
+export function LeagueBasicInfo({ formData, setFormData, categories = [], onSubmit, hideSubmitButton }: LeagueBasicInfoProps) {
   const [errors, setErrors] = useState({
     name: false,
     description: false,
@@ -220,10 +223,13 @@ export function LeagueBasicInfo({ formData, setFormData, categories = [], onSubm
               <div className="flex flex-col items-center">
                 {previewUrl ? (
                   <div className="relative group">
-                    <img
+                    <Image
                       src={previewUrl}
                       alt="Preview"
+                      width={160}
+                      height={160}
                       className="h-40 w-40 object-contain rounded-lg"
+                      unoptimized
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                       <button
@@ -324,14 +330,12 @@ export function LeagueBasicInfo({ formData, setFormData, categories = [], onSubm
               <div className="grid grid-cols-1 gap-3 mt-2">
                 {[
                   { value: 'round_robin', label: 'Todos contra todos (Round Robin)', desc: 'Cada equipo juega contra todos los demás' },
-                  { value: 'knockout', label: 'Eliminación directa', desc: 'El perdedor queda eliminado' },
-                  { value: 'groups', label: 'Fase de grupos + Playoffs', desc: 'Grupos clasificatorios y luego eliminatorias' },
-                  { value: 'custom', label: 'Personalizado', desc: 'Configuración manual de partidos' }
+                  { value: 'groups', label: 'Fase de grupos + Playoffs', desc: 'Grupos clasificatorios y luego eliminatorias' }
                 ].map(type => (
                   <button
                     key={type.value}
                     type="button"
-                    onClick={() => setFormData({ ...formData, league_type: type.value as any })}
+                    onClick={() => setFormData({ ...formData, league_type: type.value as 'round_robin' | 'groups' })}
                     className={`p-3 rounded-lg border-2 text-left transition-all ${
                       formData.league_type === type.value
                         ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/20'
@@ -378,11 +382,13 @@ export function LeagueBasicInfo({ formData, setFormData, categories = [], onSubm
             )}
           </div>
 
-          <div className="pt-4 flex justify-end">
-            <Button onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
-              Continuar
-            </Button>
-          </div>
+          {!hideSubmitButton && (
+            <div className="pt-4 flex justify-end">
+              <Button onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
+                Continuar
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </TooltipProvider>

@@ -9,13 +9,16 @@ interface GenerateMatchesButtonProps {
   status: string;
   registeredTeams: number;
   maxTeams: number;
+  /** 1 = solo ida, 2 = ida y vuelta (usa el de la liga si no se pasa) */
+  rounds?: 1 | 2;
 }
 
 export function GenerateMatchesButton({ 
   leagueId, 
   status, 
   registeredTeams,
-  maxTeams 
+  maxTeams,
+  rounds = 1
 }: GenerateMatchesButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [hasExistingMatches, setHasExistingMatches] = useState(false);
@@ -78,11 +81,9 @@ export function GenerateMatchesButton({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}` // Aseguramos que se envía el token
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         },
-        body: JSON.stringify({
-          rounds: 1 // Por ahora solo generamos una ronda
-        }),
+        body: JSON.stringify({ rounds }),
       });
 
       if (!response.ok) {

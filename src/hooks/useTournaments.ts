@@ -43,9 +43,10 @@ interface UseTournamentsReturn {
   createTournament: (data: TournamentFormData, token: string) => Promise<Tournament>
   updateTournament: (id: string, data: Partial<TournamentFormData>, token: string) => Promise<Tournament>
   deleteTournament: (id: string, token: string) => Promise<void>
-  // 🗓️ Nuevos métodos para filtros de fecha
   fetchTournamentsWithFilters: (filters: TournamentFilters) => Promise<void>
-  clearFilters: () => void
+  clearFilters: () => Promise<void>
+  currentFilters: TournamentFilters
+  hasDateFilter: boolean
 }
 
 interface TournamentFilters {
@@ -107,16 +108,18 @@ export function useTournaments(): UseTournamentsReturn {
   const [error, setError] = useState<string | null>(null)
   const [currentFilters, setCurrentFilters] = useState<TournamentFilters>({})
 
-  // 🎯 Función principal para obtener torneos con filtros
+  // 🎯 Función principal para obtener torneos con filtros (start_date, end_date, date_range → backend filtra por tabla tournaments)
   const fetchTournamentsWithFilters = useCallback(async (filters: TournamentFilters = {}) => {
     try {
       setLoading(true)
       setError(null)
       setCurrentFilters(filters)
 
-      // Por ahora usar el servicio existente que funciona
-      // TODO: Implementar filtros en el backend más adelante
-      const data = await tournamentService.getTournaments()
+      const data = await tournamentService.getTournaments({
+        start_date: filters.start_date,
+        end_date: filters.end_date,
+        date_range: filters.date_range,
+      })
       
       // Procesar datos para asegurar consistencia
       const processedTournaments: Tournament[] = Array.isArray(data) ? data.map(tournament => {
@@ -194,6 +197,10 @@ export function useTournaments(): UseTournamentsReturn {
     fetchTournamentsWithFilters({})
   }, [fetchTournamentsWithFilters])
 
+  const hasDateFilter = Boolean(
+    currentFilters.start_date || currentFilters.end_date || currentFilters.date_range
+  )
+
   return {
     tournaments,
     loading,
@@ -203,7 +210,9 @@ export function useTournaments(): UseTournamentsReturn {
     updateTournament,
     deleteTournament,
     fetchTournamentsWithFilters,
-    clearFilters
+    clearFilters,
+    currentFilters,
+    hasDateFilter,
   }
 }
 

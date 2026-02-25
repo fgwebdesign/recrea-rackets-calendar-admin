@@ -289,13 +289,14 @@ export function LeagueMatchModal({
             placeholder="0"
             disabled={isLoading}
             className={cn(
-              "w-full h-14 text-2xl font-bold text-center bg-white dark:bg-gray-800 border-2 transition-all duration-200",
+              "w-full h-14 text-2xl font-bold text-center rounded-xl transition-all duration-200",
+              "bg-gray-50 dark:bg-gray-800/80 border-2 shadow-inner",
               "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
               hasBothScores && isWinner
-                ? "border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
+                ? "border-emerald-500 dark:border-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-200 dark:ring-emerald-800"
                 : hasBothScores && isLeading
-                ? "border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                : "border-gray-300 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20"
+                ? "border-violet-300 dark:border-violet-600 bg-violet-50/50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300"
+                : "border-gray-200 dark:border-gray-600 focus:border-violet-500 dark:focus:border-violet-400 focus:ring-2 focus:ring-violet-500/25 dark:focus:ring-violet-400/25 focus:bg-white dark:focus:bg-gray-800"
             )}
           />
           <TooltipProvider>
@@ -403,44 +404,43 @@ export function LeagueMatchModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={() => !isLoading && onClose()}>
-      <DialogContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 max-w-[95vw] lg:max-w-7xl p-0 gap-0 w-full">
+      <DialogContent className="bg-white dark:bg-gray-900 border-0 shadow-2xl max-w-[95vw] lg:max-w-4xl p-0 gap-0 w-full overflow-hidden rounded-2xl">
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="p-6 pr-16 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-br from-purple-100 via-purple-50 to-blue-50 dark:from-purple-900/30 dark:via-purple-800/20 dark:to-blue-900/20">
-            <DialogHeader>
+          <div className="relative p-6 pr-14 border-b border-gray-200/80 dark:border-gray-700/80 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 dark:from-violet-700 dark:via-purple-700 dark:to-fuchsia-700 text-white">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(255,255,255,0.25),transparent)]" aria-hidden />
+            <DialogHeader className="relative">
               <div className="flex flex-col gap-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="p-2.5 rounded-lg bg-white/80 dark:bg-purple-900/50 shadow-sm flex-shrink-0 backdrop-blur-sm">
-                      <Trophy className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                    <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 shadow-lg flex-shrink-0">
+                      <Trophy className="w-7 h-7 text-amber-200" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+                      <DialogTitle className="text-2xl font-bold text-white drop-shadow-sm">
                         {match.status === 'COMPLETED' ? 'Resultado del Partido' : 'Gestionar Partido'}
                       </DialogTitle>
-                      <div className="text-gray-700 dark:text-gray-300 font-medium text-base leading-relaxed mt-1.5 flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-gray-900 dark:text-white break-words">{match.team1}</span>
-                        <span className="text-purple-600 dark:text-purple-400 font-bold flex-shrink-0">vs</span>
-                        <span className="font-semibold text-gray-900 dark:text-white break-words">{match.team2}</span>
-                      </div>
+                      <p className="text-white/90 font-medium text-base leading-relaxed mt-1.5 flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-white break-words">{match.team1}</span>
+                        <span className="text-amber-200 font-bold flex-shrink-0">vs</span>
+                        <span className="font-semibold text-white break-words">{match.team2}</span>
+                      </p>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2 flex-shrink-0 mr-0">
+                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
                     {match.court_name && (
-                      <Badge variant="outline" className="text-sm px-3 py-1.5 bg-white/90 dark:bg-gray-800/90 border-purple-300 dark:border-purple-700 whitespace-nowrap shadow-sm backdrop-blur-sm">
+                      <Badge className="text-sm px-3 py-1.5 bg-white/20 text-white border border-white/30 backdrop-blur-sm shadow-sm font-medium">
                         <MapPin className="w-3.5 h-3.5 mr-1.5" />
-                        <span className="font-medium">
-                          {match.venue_name && match.court_name 
-                            ? `${match.venue_name} - ${match.court_name}`
-                            : match.court_name}
-                        </span>
+                        {match.venue_name && match.court_name
+                          ? `${match.venue_name} - ${match.court_name}`
+                          : match.court_name}
                       </Badge>
                     )}
-                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 bg-white/70 dark:bg-gray-800/70 px-3 py-1.5 rounded-md shadow-sm backdrop-blur-sm">
-                      <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <div className="flex items-center gap-2 text-sm text-white/95 bg-white/15 px-3 py-2 rounded-lg backdrop-blur-sm border border-white/20">
+                      <Calendar className="w-4 h-4 text-amber-200" />
                       <span className="font-medium">{date}</span>
-                      <span className="text-gray-400 dark:text-gray-500">•</span>
-                      <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      <span className="text-white/60">•</span>
+                      <Clock className="w-4 h-4 text-amber-200" />
                       <span className="font-medium">{time}</span>
                     </div>
                   </div>
@@ -461,10 +461,12 @@ export function LeagueMatchModal({
                       <div className="space-y-6 sm:space-y-8">
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8">
                           {/* Set 1 */}
-                          <div className="space-y-5 p-5 rounded-xl bg-gradient-to-br from-purple-50/50 to-blue-50/50 dark:from-purple-900/10 dark:to-blue-900/10 border border-purple-100 dark:border-purple-800/50 min-w-0">
-                            <div className="flex items-center justify-between gap-2 pb-2 border-b border-purple-200 dark:border-purple-700">
-                              <div className="flex items-center gap-2">
-                                <Swords className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                          <div className="group space-y-5 p-6 rounded-2xl bg-gradient-to-br from-violet-50 to-fuchsia-50/50 dark:from-violet-950/40 dark:to-fuchsia-950/30 border border-violet-200/80 dark:border-violet-800/50 shadow-sm hover:shadow-md transition-shadow duration-300 min-w-0">
+                            <div className="flex items-center justify-between gap-2 pb-3 border-b border-violet-200 dark:border-violet-700/70">
+                              <div className="flex items-center gap-2.5">
+                                <div className="p-1.5 rounded-lg bg-violet-500/10 dark:bg-violet-400/10">
+                                  <Swords className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                                </div>
                                 <h3 className="font-bold text-lg text-gray-900 dark:text-white">Set 1</h3>
                               </div>
                               {getSetWinner(set1) > 0 && (
@@ -478,10 +480,10 @@ export function LeagueMatchModal({
                             </div>
                             <div className="space-y-4">
                               {renderTeamScore(match.team1, true, set1, 1)}
-                              <div className="flex items-center justify-center py-2">
-                                <div className="h-px w-full bg-gray-200 dark:bg-gray-700"></div>
-                                <span className="px-3 text-xs font-semibold text-gray-400 dark:text-gray-500">VS</span>
-                                <div className="h-px w-full bg-gray-200 dark:bg-gray-700"></div>
+                              <div className="flex items-center justify-center py-1">
+                                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-violet-300 dark:via-violet-600 to-transparent" />
+                                <span className="px-4 py-1 text-xs font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/40 rounded-full">Vs</span>
+                                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-violet-300 dark:via-violet-600 to-transparent" />
                               </div>
                               {renderTeamScore(match.team2, false, set1, 1)}
                             </div>
@@ -558,10 +560,12 @@ export function LeagueMatchModal({
                           </div>
 
                           {/* Set 2 */}
-                          <div className="space-y-5 p-5 rounded-xl bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-900/10 dark:to-purple-900/10 border border-blue-100 dark:border-blue-800/50 min-w-0">
-                            <div className="flex items-center justify-between gap-2 pb-2 border-b border-blue-200 dark:border-blue-700">
-                              <div className="flex items-center gap-2">
-                                <Swords className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                          <div className="group space-y-5 p-6 rounded-2xl bg-gradient-to-br from-fuchsia-50/50 to-violet-50 dark:from-fuchsia-950/30 dark:to-violet-950/40 border border-fuchsia-200/80 dark:border-fuchsia-800/50 shadow-sm hover:shadow-md transition-shadow duration-300 min-w-0">
+                            <div className="flex items-center justify-between gap-2 pb-3 border-b border-fuchsia-200 dark:border-fuchsia-700/70">
+                              <div className="flex items-center gap-2.5">
+                                <div className="p-1.5 rounded-lg bg-fuchsia-500/10 dark:bg-fuchsia-400/10">
+                                  <Swords className="w-5 h-5 text-fuchsia-600 dark:text-fuchsia-400" />
+                                </div>
                                 <h3 className="font-bold text-lg text-gray-900 dark:text-white">Set 2</h3>
                               </div>
                               {getSetWinner(set2) > 0 && (
@@ -575,10 +579,10 @@ export function LeagueMatchModal({
                             </div>
                             <div className="space-y-4">
                               {renderTeamScore(match.team1, true, set2, 2)}
-                              <div className="flex items-center justify-center py-2">
-                                <div className="h-px w-full bg-gray-200 dark:bg-gray-700"></div>
-                                <span className="px-3 text-xs font-semibold text-gray-400 dark:text-gray-500">VS</span>
-                                <div className="h-px w-full bg-gray-200 dark:bg-gray-700"></div>
+                              <div className="flex items-center justify-center py-1">
+                                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-fuchsia-300 dark:via-fuchsia-600 to-transparent" />
+                                <span className="px-4 py-1 text-xs font-bold uppercase tracking-wider text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-100 dark:bg-fuchsia-900/40 rounded-full">Vs</span>
+                                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-fuchsia-300 dark:via-fuchsia-600 to-transparent" />
                               </div>
                               {renderTeamScore(match.team2, false, set2, 2)}
                             </div>
@@ -656,10 +660,12 @@ export function LeagueMatchModal({
 
                           {/* Super Tiebreak */}
                           {showSuperTiebreak ? (
-                            <div className="space-y-5 p-5 rounded-xl bg-gradient-to-br from-yellow-50/80 to-amber-50/80 dark:from-yellow-900/20 dark:to-amber-900/20 border-2 border-yellow-300 dark:border-yellow-700 animate-in fade-in slide-in-from-bottom-2 min-w-0">
-                              <div className="flex items-center justify-between gap-2 pb-2 border-b border-yellow-300 dark:border-yellow-700">
-                                <div className="flex items-center gap-2">
-                                  <Trophy className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                            <div className="space-y-5 p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/30 border-2 border-amber-300/80 dark:border-amber-700/50 shadow-sm hover:shadow-md transition-shadow duration-300 animate-in fade-in slide-in-from-bottom-2 min-w-0">
+                              <div className="flex items-center justify-between gap-2 pb-3 border-b border-amber-300 dark:border-amber-700/70">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="p-1.5 rounded-lg bg-amber-500/20 dark:bg-amber-400/20">
+                                    <Trophy className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                                  </div>
                                   <h3 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
                                     Super Tiebreak
                                     <TooltipProvider>
@@ -674,7 +680,7 @@ export function LeagueMatchModal({
                                     </TooltipProvider>
                                   </h3>
                                 </div>
-                                <Badge className="bg-yellow-500 dark:bg-yellow-600 text-white">
+                                <Badge className="bg-amber-500 dark:bg-amber-600 text-white font-medium shadow-sm">
                                   Decisivo
                                 </Badge>
                               </div>
@@ -696,15 +702,15 @@ export function LeagueMatchModal({
                                       }));
                                     }}
                                     className={cn(
-                                      "h-14 text-2xl font-bold text-center bg-white dark:bg-gray-800 border-2 border-yellow-300 dark:border-yellow-700 focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400",
+                                      "h-14 text-2xl font-bold text-center rounded-xl bg-amber-50/50 dark:bg-gray-800 border-2 border-amber-300 dark:border-amber-700 focus:ring-2 focus:ring-amber-500/30 dark:focus:ring-amber-400/30",
                                       "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     )}
                                   />
                                 </div>
-                                <div className="flex items-center justify-center py-2">
-                                  <div className="h-px w-full bg-yellow-200 dark:bg-yellow-800"></div>
-                                  <span className="px-3 text-xs font-semibold text-yellow-600 dark:text-yellow-400">VS</span>
-                                  <div className="h-px w-full bg-yellow-200 dark:bg-yellow-800"></div>
+                                <div className="flex items-center justify-center py-1">
+                                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-300 dark:via-amber-600 to-transparent" />
+                                  <span className="px-4 py-1 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 rounded-full">Vs</span>
+                                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-amber-300 dark:via-amber-600 to-transparent" />
                                 </div>
                                 <div className="space-y-2 min-w-0">
                                   <Label className="text-sm font-semibold text-gray-800 dark:text-gray-200">
@@ -723,7 +729,7 @@ export function LeagueMatchModal({
                                       }));
                                     }}
                                     className={cn(
-                                      "h-14 text-2xl font-bold text-center bg-white dark:bg-gray-800 border-2 border-yellow-300 dark:border-yellow-700 focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400",
+                                      "h-14 text-2xl font-bold text-center rounded-xl bg-amber-50/50 dark:bg-gray-800 border-2 border-amber-300 dark:border-amber-700 focus:ring-2 focus:ring-amber-500/30 dark:focus:ring-amber-400/30",
                                       "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     )}
                                   />
@@ -740,20 +746,20 @@ export function LeagueMatchModal({
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gradient-to-b from-gray-50 to-gray-100/50 dark:from-gray-800/50 dark:to-gray-900/50">
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
               {error && (
-                <Alert variant="destructive" className="flex-1 w-full sm:w-auto">
+                <Alert variant="destructive" className="flex-1 w-full sm:max-w-md">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="text-sm">{error}</AlertDescription>
                 </Alert>
               )}
-              <div className="flex justify-end gap-3 w-full sm:w-auto">
+              <div className="flex justify-end gap-3 w-full sm:w-auto ml-auto">
                 <Button
                   variant="outline"
                   onClick={onClose}
                   disabled={isLoading}
-                  className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 min-w-[100px] border-gray-300 dark:border-gray-600"
+                  className="min-w-[100px] rounded-xl border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:border-gray-400 dark:hover:border-gray-500 transition-colors font-medium"
                 >
                   Cancelar
                 </Button>
@@ -771,16 +777,16 @@ export function LeagueMatchModal({
                     (showSet2Tiebreak && !isTiebreakValid(set2.tiebreak)) ||
                     (showSuperTiebreak && (!superTiebreak || superTiebreak.team1 === 0 || superTiebreak.team2 === 0 || !isSuperTiebreakValid(superTiebreak)))
                   )}
-                  className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white shadow-sm hover:shadow-md transition-all duration-200 min-w-[160px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="min-w-[180px] rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 dark:from-violet-600 dark:to-fuchsia-600 dark:hover:from-violet-500 dark:hover:to-fuchsia-500 text-white font-semibold shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       Guardando...
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4" />
+                      <CheckCircle2 className="w-5 h-5" />
                       Guardar Resultado
                     </span>
                   )}

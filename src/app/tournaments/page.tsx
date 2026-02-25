@@ -11,7 +11,7 @@ import { useTranslations } from '@/contexts/TranslationContext'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { CalendarIcon, PlusIcon, TrophyIcon, UsersIcon, ClockIcon, FunnelIcon, StarIcon } from '@heroicons/react/24/outline'
+import { CalendarIcon, PlusIcon, TrophyIcon, UsersIcon, ClockIcon, StarIcon } from '@heroicons/react/24/outline'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -25,16 +25,32 @@ export default function TournamentsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
-  const [showCalendarFilter, setShowCalendarFilter] = useState(false)
   
   const { categories, isLoading: isLoadingCategories } = useCategories()
-  const { 
-    tournaments, 
-    loading, 
-    error, 
+  const {
+    tournaments,
+    loading,
+    error,
     refetch,
-    fetchTournamentsWithFilters
+    fetchTournamentsWithFilters,
+    clearFilters,
+    hasDateFilter,
+    currentFilters,
   } = useTournaments()
+
+  const [filterClearKey, setFilterClearKey] = useState(0)
+  const hasActiveFilters = Boolean(
+    searchQuery ||
+    selectedCategory !== 'all' ||
+    selectedStatus !== 'all' ||
+    hasDateFilter
+  )
+
+  const dateFilterLabel = hasDateFilter && currentFilters.date_range
+    ? t(currentFilters.date_range === 'this_month' ? 'thisMonth' : currentFilters.date_range === 'next_month' ? 'nextMonth' : currentFilters.date_range === 'this_year' ? 'thisYear' : 'upcoming')
+    : hasDateFilter && currentFilters.start_date && currentFilters.end_date
+      ? `${new Date(currentFilters.start_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} – ${new Date(currentFilters.end_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}`
+      : null
 
   // 🗓️ Manejar filtros de fecha
   const handleDateRangeChange = async (startDate: Date | null, endDate: Date | null) => {
@@ -75,15 +91,22 @@ export default function TournamentsPage() {
     }
   }
 
-  // 📊 Estadísticas rápidas
-  // Ingresos por inscripciones: total a cobrar (inscription_cost × equipos), cobrado (equipos marcados pagados), pendiente
+  // 📊 Estadísticas rápidas - Ingresos por inscripción: cada JUGADOR paga inscription_cost (pareja = 2 × cost)
+  // Total a facturar = inscription_cost × 2 × equipos. Cobrado = inscription_cost × (jugadores marcados como pagados)
+  type TeamWithPlayerPayment = { payment_status?: string; player1_payment_status?: string; player2_payment_status?: string }
   const inscriptionStats = tournaments.reduce(
     (acc, t) => {
-      const teams = t.tournament_teams || []
+      const teams = (t.tournament_teams || []) as TeamWithPlayerPayment[]
       const cost = t.tournament_info?.inscription_cost ?? 0
-      const paidCount = teams.filter((team: { payment_status?: string }) => team.payment_status === 'paid').length
-      acc.totalToInvoice += teams.length * cost
-      acc.revenuePaid += paidCount * cost
+      // Total a facturar: cada jugador paga cost → 2 × cost por equipo
+      acc.totalToInvoice += teams.length * cost * 2
+      // Cobrado: por cada equipo, contar cuántos jugadores están pagados
+      teams.forEach((team) => {
+        const p1 = team.player1_payment_status ?? (team.payment_status === 'paid' ? 'paid' : 'pending')
+        const p2 = team.player2_payment_status ?? (team.payment_status === 'paid' ? 'paid' : 'pending')
+        const paidPlayers = (p1 === 'paid' ? 1 : 0) + (p2 === 'paid' ? 1 : 0)
+        acc.revenuePaid += paidPlayers * cost
+      })
       return acc
     },
     { totalToInvoice: 0, revenuePaid: 0 }
@@ -278,19 +301,19 @@ export default function TournamentsPage() {
                   </SelectContent>
                 </Select>
 
-                {/* 🗓️ Botón de filtro de calendario */}
-                <Button
-                  variant={showCalendarFilter ? "default" : "outline"}
-                  onClick={() => setShowCalendarFilter(!showCalendarFilter)}
-                  className={`h-10 px-4 transition-all duration-200 ${
-                    showCalendarFilter 
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md' 
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  <FunnelIcon className="h-4 w-4 mr-2" />
-                  {t('dateFilter')}
-                </Button>
+                {/* 🗓️ Filtro por fechas (Popover con presets + rango) */}
+                <CalendarFilter
+                  key={filterClearKey}
+                  activeDateRange={currentFilters}
+                  onDateRangeChange={handleDateRangeChange}
+                  onQuickFilterChange={handleQuickFilterChange}
+                />
+                {dateFilterLabel && (
+                  <Badge variant="secondary" className="shrink-0 bg-primary/15 text-primary border border-primary/30 font-medium">
+                    <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                    {dateFilterLabel}
+                  </Badge>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -343,25 +366,7 @@ export default function TournamentsPage() {
           </CardContent>
         </Card>
 
-        {/* 🗓️ Filtro de Calendario */}
-        {showCalendarFilter && (
-          <Card className="mb-8 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-200 dark:border-blue-800">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <CalendarIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
-                  {t('dateFilter')}
-                </h3>
-              </div>
-              <CalendarFilter
-                onDateRangeChange={handleDateRangeChange}
-                onQuickFilterChange={handleQuickFilterChange}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 🏆 Grid de Torneos Revolucionario Mejorado */}
+        {/* 🏆 Grid de Torneos */}
         {filteredTournaments.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
             {filteredTournaments.map((tournament, index) => {
@@ -563,20 +568,16 @@ export default function TournamentsPage() {
               <div className="bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full p-6 mb-6">
                 <TrophyIcon className="w-16 h-16 text-blue-500" />
               </div>
-              
+
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all'
-                  ? t('noTournamentsFound')
-                  : t('startFirstTournament')}
+                {hasActiveFilters ? t('noTournamentsFound') : t('startFirstTournament')}
               </h3>
-              
+
               <p className="text-gray-500 dark:text-gray-400 text-center mb-8 max-w-md">
-                {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all'
-                  ? t('noTournamentsFoundDescription')
-                  : t('startFirstTournamentDescription')}
+                {hasActiveFilters ? t('noTournamentsFoundDescription') : t('startFirstTournamentDescription')}
               </p>
 
-              {!searchQuery && selectedCategory === 'all' && selectedStatus === 'all' && (
+              {!hasActiveFilters && (
                 <div className="flex justify-center">
                   <Button
                     onClick={() => router.push('/tournaments/create')}
@@ -588,13 +589,15 @@ export default function TournamentsPage() {
                 </div>
               )}
 
-              {(searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all') && (
+              {hasActiveFilters && (
                 <Button
                   variant="outline"
-                  onClick={() => {
+                  onClick={async () => {
                     setSearchQuery('')
                     setSelectedCategory('all')
                     setSelectedStatus('all')
+                    setFilterClearKey((k) => k + 1)
+                    await clearFilters()
                   }}
                   className="px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >

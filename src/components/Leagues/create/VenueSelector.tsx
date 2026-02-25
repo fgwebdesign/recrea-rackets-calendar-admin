@@ -172,17 +172,25 @@ export function VenueSelector({ selectedVenues, onChange }: VenueSelectorProps) 
                     </span>
                   )}
                   {isSelected && !isPrimary && selectedVenues.length > 1 && (
-                    <button
-                      type="button"
+                    <span
+                      role="button"
+                      tabIndex={0}
                       onClick={(e) => {
                         e.stopPropagation();
                         setPrimaryVenue(venue.id);
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setPrimaryVenue(venue.id);
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-700 dark:hover:text-amber-400 transition-colors cursor-pointer"
                     >
                       <Star className="h-3.5 w-3.5" />
                       Hacer principal
-                    </button>
+                    </span>
                   )}
                   <span className={cn(
                     "text-sm font-medium px-3 py-1.5 rounded-full",

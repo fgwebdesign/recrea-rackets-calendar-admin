@@ -21,6 +21,8 @@ export interface League {
   registration_status: 'open' | 'closed';
   team_size: number;
   registeredTeams: number;
+  /** 1 = solo ida, 2 = ida y vuelta */
+  rounds?: 1 | 2;
   teams?: {
     id: string;
     league_team_id: string;

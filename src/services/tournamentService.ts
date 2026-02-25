@@ -79,9 +79,15 @@ const getAuthHeaders = (token?: string) => {
 export class TournamentService {
   private baseUrl = `${API_BASE_URL}/tournaments`
 
-  // 📋 Obtener todos los torneos
-  async getTournaments(): Promise<Tournament[]> {
-    const response = await fetch(this.baseUrl)
+  /** Obtener torneos, opcionalmente filtrados por start_date, end_date (YYYY-MM-DD) o date_range (this_month | next_month | this_year | upcoming). */
+  async getTournaments(filters?: { start_date?: string; end_date?: string; date_range?: string }): Promise<Tournament[]> {
+    const params = new URLSearchParams()
+    if (filters?.start_date) params.set('start_date', filters.start_date)
+    if (filters?.end_date) params.set('end_date', filters.end_date)
+    if (filters?.date_range) params.set('date_range', filters.date_range)
+    const qs = params.toString()
+    const url = qs ? `${this.baseUrl}?${qs}` : this.baseUrl
+    const response = await fetch(url)
     return handleApiResponse<Tournament[]>(response)
   }
 
