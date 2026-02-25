@@ -22,7 +22,8 @@ export default function Home() {
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9999';
+      const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -35,7 +36,7 @@ export default function Home() {
         
         // Verificar si el usuario es admin consultando la tabla users
         try {
-          const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+          const userResponse = await fetch(`${apiUrl}/auth/me`, {
             headers: {
               'Authorization': `Bearer ${data.session.access_token}`
             }
@@ -75,7 +76,8 @@ export default function Home() {
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     if (token) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9999';
+      fetch(`${apiUrl}/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

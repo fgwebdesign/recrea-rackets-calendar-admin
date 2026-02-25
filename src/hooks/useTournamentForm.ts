@@ -101,27 +101,64 @@ const INITIAL_FORM_DATA: TournamentFormData = {
 };
 
 /**
- * Genera franjas horarias estándar solo para Día 1 y Día 2 (fallback local).
- * Día 3 no se genera aquí: es solo para eliminatorias y se maneja en el admin después.
+ * Genera franjas horarias estándar (fallback local cuando el backend no está disponible).
+ * Días 1..(N-1) = fase de grupos; Día N = eliminatorias.
  * - Día 1: 2 franjas (Tarde, Noche)
- * - Día 2: 4 franjas (Mañana, Mediodía, Tarde, Noche)
+ * - Días 2..N-1: 4 franjas cada uno (Mañana, Mediodía, Tarde, Noche)
+ * - Día N: 2 franjas (eliminatorias)
+ * Mínimo 3 días para coincidir con validación del backend.
  */
 export function generateDefaultFranjas(startDate: string, endDate: string): TournamentFormData['group_time_slots'] {
   if (!startDate || !endDate) return [];
 
-  const day1Date = startDate;
-  const day2Obj = new Date(startDate + 'T12:00:00');
-  day2Obj.setDate(day2Obj.getDate() + 1);
-  const day2Date = day2Obj.toISOString().split('T')[0];
+  const start = new Date(startDate + 'T12:00:00');
+  const end = new Date(endDate + 'T12:00:00');
+  const durationDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  if (durationDays < 3) return [];
 
-  return [
-    { id: 'franja_day1_tarde', label: 'Día 1 Tarde', day: 1, tournament_day: 1, date: day1Date, start_time: '18:00', end_time: '21:00' },
-    { id: 'franja_day1_noche', label: 'Día 1 Noche', day: 1, tournament_day: 1, date: day1Date, start_time: '21:00', end_time: '00:00' },
-    { id: 'franja_day2_manana', label: 'Día 2 Mañana', day: 2, tournament_day: 2, date: day2Date, start_time: '09:00', end_time: '13:00' },
-    { id: 'franja_day2_mediodia', label: 'Día 2 Mediodía', day: 2, tournament_day: 2, date: day2Date, start_time: '13:00', end_time: '17:00' },
-    { id: 'franja_day2_tarde', label: 'Día 2 Tarde', day: 2, tournament_day: 2, date: day2Date, start_time: '17:00', end_time: '21:00' },
-    { id: 'franja_day2_noche', label: 'Día 2 Noche', day: 2, tournament_day: 2, date: day2Date, start_time: '21:00', end_time: '00:00' },
+  const dayDates: string[] = [];
+  for (let i = 0; i < durationDays; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    dayDates.push(d.toISOString().split('T')[0]);
+  }
+
+  const franjas: TournamentFormData['group_time_slots'] = [];
+  franjas.push(
+    { id: 'franja_day1_tarde', label: 'Día 1 Tarde', day: 1, tournament_day: 1, date: dayDates[0], start_time: '17:00', end_time: '21:00' },
+    { id: 'franja_day1_noche', label: 'Día 1 Noche', day: 1, tournament_day: 1, date: dayDates[0], start_time: '21:00', end_time: '00:00' }
+  );
+
+  const groupLabels = ['Mañana', 'Mediodía', 'Tarde', 'Noche'];
+  const groupSlots = [
+    { start_time: '08:00', end_time: '13:00' },
+    { start_time: '13:00', end_time: '18:00' },
+    { start_time: '18:00', end_time: '22:00' },
+    { start_time: '22:00', end_time: '01:00' },
   ];
+  for (let dayNum = 2; dayNum < durationDays; dayNum++) {
+    const date = dayDates[dayNum - 1];
+    groupLabels.forEach((label, idx) => {
+      const slot = groupSlots[idx];
+      franjas.push({
+        id: `franja_day${dayNum}_${label.toLowerCase()}`,
+        label: `Día ${dayNum} ${label}`,
+        day: dayNum,
+        tournament_day: dayNum,
+        date,
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+      });
+    });
+  }
+
+  const lastDate = dayDates[durationDays - 1];
+  franjas.push(
+    { id: `franja_day${durationDays}_manana`, label: `Día ${durationDays} Mañana`, day: durationDays, tournament_day: durationDays, date: lastDate, start_time: '08:00', end_time: '13:00' },
+    { id: `franja_day${durationDays}_tarde`, label: `Día ${durationDays} Tarde`, day: durationDays, tournament_day: durationDays, date: lastDate, start_time: '14:00', end_time: '19:00' }
+  );
+
+  return franjas;
 }
 
 export function useTournamentForm() {

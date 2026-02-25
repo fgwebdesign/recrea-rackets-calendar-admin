@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cp .env.development .env.local && next dev --turbopack",
-    "dev:prod": "cp .env.production .env.local && next dev --turbopack",
+    "dev": "shx cp .env.development .env.local && next dev --turbopack",
+    "dev:prod": "shx cp .env.production .env.local && next dev --turbopack",
     "build": "next build",
-    "build:dev": "cp .env.development .env.local && next build",
-    "build:prod": "cp .env.production .env.local && next build",
+    "build:dev": "shx cp .env.development .env.local && next build",
+    "build:prod": "shx cp .env.production .env.local && next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -98,6 +98,7 @@
     "yet-another-react-lightbox": "^3.24.0"
   },
   "devDependencies": {
+    "shx": "^0.3.4",
     "@types/html2pdf.js": "^0.10.0",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
