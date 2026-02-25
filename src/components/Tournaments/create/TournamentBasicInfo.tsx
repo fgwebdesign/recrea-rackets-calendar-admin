@@ -111,10 +111,12 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
       return [suggested];
     }
 
-    // Formato clásico: sugerir exactamente 3 días (inicio, día 2, día 3)
-    const suggestedDate = new Date(startDate);
-    suggestedDate.setDate(startDate.getDate() + 2);
-    return [suggestedDate];
+    // Formato clásico: sugerir 3, 4 y 5 días (mínimo 3; 4 y 5 son habituales para más categorías)
+    return [2, 3, 4].map((daysAfterStart) => {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + daysAfterStart);
+      return d;
+    });
   };
 
   // Función para calcular fechas restringidas para la fecha de fin
@@ -124,15 +126,13 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
     // Americano: sin restricciones de mínimo/máximo de días
     if (formData.tournament_type === 'AMERICANO') return [];
 
+    // Formato clásico: solo restringir menos de 3 días (mismo día o 2 días). 3+ días permitidos.
     const startDate = parseDateFromInput(formData.start_date);
     const restrictedDates: Date[] = [];
-    const restrictedDate1 = new Date(startDate);
-    restrictedDate1.setDate(startDate.getDate() + 1);
-    restrictedDates.push(restrictedDate1);
-    for (let i = 3; i <= 10; i++) {
-      const restrictedDate = new Date(startDate);
-      restrictedDate.setDate(startDate.getDate() + i);
-      restrictedDates.push(restrictedDate);
+    for (let i = 0; i <= 1; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      restrictedDates.push(d);
     }
     return restrictedDates;
   };

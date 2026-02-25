@@ -1293,7 +1293,7 @@ const translations: Record<Locale, Record<string, any>> = {
           },
           endDate: {
             label: 'Fecha de Fin',
-            tooltip: 'Fecha de finalización del torneo. La fecha verde es la recomendada (exactamente 3 días: inicio, día 2, día 3), las rojas están restringidas (muy cortas o muy largas).',
+            tooltip: 'Fecha de finalización del torneo. Las fechas verdes son recomendadas (3, 4 o 5 días). Las rojas están restringidas (menos de 3 días). Podés elegir más de 5 días si lo necesitás.',
             tooltipAmericano: 'Para Americano podés elegir 1 o más días. La fecha verde es una sugerencia según cantidad de jugadores.',
             americanoRecommended: 'Recomendado: {{days}} día(s) para {{players}} jugadores.',
             placeholder: 'Selecciona fecha de fin'
@@ -2933,7 +2933,7 @@ const translations: Record<Locale, Record<string, any>> = {
           },
           endDate: {
             label: 'End Date',
-            tooltip: 'Tournament end date. The green date is recommended (exactly 3 days: start, day 2, day 3), red ones are restricted (too short or too long).',
+            tooltip: 'Tournament end date. Green dates are recommended (3, 4 or 5 days). Red ones are restricted (less than 3 days). You can choose more than 5 days if needed.',
             tooltipAmericano: 'For Americano you can choose 1 or more days. The green date is a suggestion based on number of players.',
             americanoRecommended: 'Recommended: {{days}} day(s) for {{players}} players.',
             placeholder: 'Select end date'
