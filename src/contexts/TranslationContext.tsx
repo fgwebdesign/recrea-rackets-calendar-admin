@@ -1273,6 +1273,8 @@ const translations: Record<Locale, Record<string, any>> = {
           endDate: {
             label: 'Fecha de Fin',
             tooltip: 'Fecha de finalización del torneo. La fecha verde es la recomendada (exactamente 3 días: inicio, día 2, día 3), las rojas están restringidas (muy cortas o muy largas).',
+            tooltipAmericano: 'Para Americano podés elegir 1 o más días. La fecha verde es una sugerencia según cantidad de jugadores.',
+            americanoRecommended: 'Recomendado: {{days}} día(s) para {{players}} jugadores.',
             placeholder: 'Selecciona fecha de fin'
           }
         },
@@ -1284,8 +1286,8 @@ const translations: Record<Locale, Record<string, any>> = {
           plural: 'canchas'
         },
         tournamentType: {
-          label: 'Formato de equipos',
-          tooltip: 'Cantidad de equipos por categoría (formato del torneo)',
+          label: 'Formato de torneo',
+          tooltip: 'Formato clásico por equipos (6, 9, 12, 16) o Americano por jugadores individuales.',
           placeholder: 'Selecciona el formato',
           sixPlayers: '6 Equipos',
           ninePlayers: '9 Equipos',
@@ -2890,6 +2892,8 @@ const translations: Record<Locale, Record<string, any>> = {
           endDate: {
             label: 'End Date',
             tooltip: 'Tournament end date. The green date is recommended (exactly 3 days: start, day 2, day 3), red ones are restricted (too short or too long).',
+            tooltipAmericano: 'For Americano you can choose 1 or more days. The green date is a suggestion based on number of players.',
+            americanoRecommended: 'Recommended: {{days}} day(s) for {{players}} players.',
             placeholder: 'Select end date'
           }
         },
@@ -2901,8 +2905,8 @@ const translations: Record<Locale, Record<string, any>> = {
           plural: 'courts'
         },
         tournamentType: {
-          label: 'Team format',
-          tooltip: 'Number of teams per category (tournament format)',
+          label: 'Tournament format',
+          tooltip: 'Classic format by teams (6, 9, 12, 16) or Americano by individual players.',
           placeholder: 'Select format',
           sixPlayers: '6 Teams',
           ninePlayers: '9 Teams',

@@ -15,6 +15,16 @@ interface TournamentResponse {
 
 import { VenueConfig } from '@/types/venue';
 
+/** Configuración específica para torneo Americano (solo cuando tournament_type === 'AMERICANO') */
+export interface AmericanoConfig {
+  scoring_mode: 'points' | 'sets';
+  max_players: 4 | 8 | 12 | 16;
+  points_per_match?: 16 | 24 | 32 | 40;
+  sets_per_match?: 1 | 2 | 3;
+  games_to_win_set?: number;
+  tie_break_at?: number;
+}
+
 export interface TournamentFormData {
   // Paso 1: Información Básica
   name: string;
@@ -22,11 +32,13 @@ export interface TournamentFormData {
   start_date: string;
   end_date: string;
   courts_available: number;
-  tournament_type: 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS';
+  tournament_type: 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS' | 'AMERICANO';
   tournament_thumbnail: File | null;
   thumbnail_url?: string | null;
   requires_shirts: boolean;
-  // ✨ NUEVO: Multi-sede support
+  /** Solo cuando tournament_type === 'AMERICANO' */
+  americano_config?: AmericanoConfig;
+  // ✨ Multi-sede support
   venues?: VenueConfig[];
 
   // Paso 2: Información Detallada
@@ -84,7 +96,8 @@ const INITIAL_FORM_DATA: TournamentFormData = {
     [9, 13],   // mañana
     [14, 22],  // tarde/noche
   ],
-  group_time_slots: []
+  group_time_slots: [],
+  americano_config: undefined
 };
 
 /**
@@ -145,35 +158,55 @@ export function useTournamentForm() {
       newErrors.end_date = t('create.validation.endDateAfterStart');
     }
 
-    // Validar venues (las canchas se derivan de la selección de sedes)
-    if (!data.venues || data.venues.length === 0) {
-      newErrors.venues = 'Debe seleccionar al menos una sede con canchas';
-    } else {
-      // Si hay venues, validar que cada venue tenga al menos una cancha
-      const venuesWithoutCourts = data.venues.filter(v => !v.court_ids || v.court_ids.length === 0);
-      if (venuesWithoutCourts.length > 0) {
-        newErrors.venues = 'Cada sede debe tener al menos una cancha seleccionada';
+    const isAmericano = data.tournament_type === 'AMERICANO';
+    if (isAmericano) {
+      // Americano: validar config
+      const ac = data.americano_config;
+      if (!ac) {
+        newErrors.americano_config = 'Configuración del torneo americano requerida';
+      } else {
+        if (![4, 8, 12, 16].includes(ac.max_players)) {
+          newErrors.americano_config = 'Cantidad de jugadores debe ser 4, 8, 12 o 16';
+        }
+        if (!ac.scoring_mode || !['points', 'sets'].includes(ac.scoring_mode)) {
+          newErrors.americano_config = (newErrors.americano_config as string) || 'Seleccione puntuación: a puntos o a sets';
+        }
+        if (ac.scoring_mode === 'points' && ![16, 24, 32, 40].includes(ac.points_per_match ?? 0)) {
+          newErrors.americano_config = (newErrors.americano_config as string) || 'Puntos por partido: 16, 24, 32 o 40';
+        }
+        if (ac.scoring_mode === 'sets' && ![1, 2, 3].includes(ac.sets_per_match ?? 0)) {
+          newErrors.americano_config = (newErrors.americano_config as string) || 'Sets por partido: 1, 2 o 3';
+        }
       }
-      // Calcular courts_available automáticamente desde venues
-      const totalCourts = data.venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0);
-      if (totalCourts === 0) {
-        newErrors.venues = 'Debe seleccionar al menos una cancha en total';
-      }
-    }
-
-    if (!data.tournament_thumbnail) {
-      newErrors.tournament_thumbnail = t('create.validation.imageRequired');
-    }
-
-    // Validar franjas horarias
-    if (!data.group_time_slots || data.group_time_slots.length === 0) {
-      newErrors.group_time_slots = 'Debe configurar al menos una franja horaria';
+      // Americano no requiere franjas ni imagen obligatoria ni sedes (se usa 1 cancha por defecto)
     } else {
-      const invalidFranjas = data.group_time_slots.filter(
-        f => !f.id || !f.label || !f.start_time || !f.end_time || !f.date || !f.tournament_day
-      );
-      if (invalidFranjas.length > 0) {
-        newErrors.group_time_slots = 'Todas las franjas deben tener ID, label, horarios, fecha y día de torneo';
+      // Formato clásico: validar venues
+      if (!data.venues || data.venues.length === 0) {
+        newErrors.venues = 'Debe seleccionar al menos una sede con canchas';
+      } else {
+        const venuesWithoutCourts = data.venues.filter(v => !v.court_ids || v.court_ids.length === 0);
+        if (venuesWithoutCourts.length > 0) {
+          newErrors.venues = 'Cada sede debe tener al menos una cancha seleccionada';
+        }
+        const totalCourts = data.venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0);
+        if (totalCourts === 0) {
+          newErrors.venues = 'Debe seleccionar al menos una cancha en total';
+        }
+      }
+
+      if (!data.tournament_thumbnail) {
+        newErrors.tournament_thumbnail = t('create.validation.imageRequired');
+      }
+
+      if (!data.group_time_slots || data.group_time_slots.length === 0) {
+        newErrors.group_time_slots = 'Debe configurar al menos una franja horaria';
+      } else {
+        const invalidFranjas = data.group_time_slots.filter(
+          f => !f.id || !f.label || !f.start_time || !f.end_time || !f.date || !f.tournament_day
+        );
+        if (invalidFranjas.length > 0) {
+          newErrors.group_time_slots = 'Todas las franjas deben tener ID, label, horarios, fecha y día de torneo';
+        }
       }
     }
 
@@ -274,9 +307,13 @@ export function useTournamentForm() {
         const token = localStorage.getItem('adminToken');
         if (!token) throw new Error(t('create.error.notAuthenticated'));
 
-        // ✨ Calcular courts_available desde venues si están disponibles
+        // ✨ Calcular courts_available desde venues (formato clásico) o 1 para Americano sin sedes
         let courtsAvailable = data.courts_available;
-        if (data.venues && data.venues.length > 0) {
+        if (data.tournament_type === 'AMERICANO') {
+          courtsAvailable = (data.venues && data.venues.length > 0)
+            ? data.venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0)
+            : 1;
+        } else if (data.venues && data.venues.length > 0) {
           courtsAvailable = data.venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0);
         }
 
@@ -288,6 +325,7 @@ export function useTournamentForm() {
           end_date: data.end_date,
           courts_available: courtsAvailable,
           tournament_type: data.tournament_type,
+          americano_config: data.tournament_type === 'AMERICANO' ? data.americano_config : undefined,
           time_slots: data.time_slots,
           group_time_slots: data.group_time_slots,
           requires_shirts: data.requires_shirts,

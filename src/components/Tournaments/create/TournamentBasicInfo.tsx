@@ -96,40 +96,61 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
   };
 
   // Función para calcular fechas sugeridas para la fecha de fin
-  const getSuggestedEndDates = () => {
+  const getSuggestedEndDates = (): Date[] => {
     if (!formData.start_date) return [];
-    
+
     const startDate = parseDateFromInput(formData.start_date);
-    const suggestedDates = [];
-    
-    // Sugerir EXACTAMENTE 2 días después (3 días INCLUSIVO: inicio, día 2, día 3)
+
+    // Americano: sugerencia según cantidad de jugadores (sin restricción de 3 días)
+    if (formData.tournament_type === 'AMERICANO' && formData.americano_config) {
+      const players = formData.americano_config.max_players ?? 8;
+      // 4 jugadores → mismo día (1 día); 8 → +1 día (2 días); 12/16 → +2 días (3 días)
+      const daysAfterStart = players <= 4 ? 0 : players <= 8 ? 1 : 2;
+      const suggested = new Date(startDate);
+      suggested.setDate(startDate.getDate() + daysAfterStart);
+      return [suggested];
+    }
+
+    // Formato clásico: sugerir exactamente 3 días (inicio, día 2, día 3)
     const suggestedDate = new Date(startDate);
     suggestedDate.setDate(startDate.getDate() + 2);
-    suggestedDates.push(suggestedDate);
-    
-    return suggestedDates;
+    return [suggestedDate];
   };
 
   // Función para calcular fechas restringidas para la fecha de fin
-  const getRestrictedEndDates = () => {
+  const getRestrictedEndDates = (): Date[] => {
     if (!formData.start_date) return [];
-    
+
+    // Americano: sin restricciones de mínimo/máximo de días
+    if (formData.tournament_type === 'AMERICANO') return [];
+
     const startDate = parseDateFromInput(formData.start_date);
-    const restrictedDates = [];
-    
-    // Restringir fecha de 1 día después (muy corta - solo 2 días)
+    const restrictedDates: Date[] = [];
     const restrictedDate1 = new Date(startDate);
     restrictedDate1.setDate(startDate.getDate() + 1);
     restrictedDates.push(restrictedDate1);
-    
-    // Restringir fechas de más de 2 días después (muy largas - más de 3 días)
     for (let i = 3; i <= 10; i++) {
       const restrictedDate = new Date(startDate);
       restrictedDate.setDate(startDate.getDate() + i);
       restrictedDates.push(restrictedDate);
     }
-    
     return restrictedDates;
+  };
+
+  const getEndDateTooltip = (): string => {
+    if (formData.tournament_type === 'AMERICANO') {
+      const base = t('create.basicInfo.dates.endDate.tooltipAmericano');
+      if (formData.americano_config?.max_players) {
+        const players = formData.americano_config.max_players;
+        const days = players <= 4 ? 1 : players <= 8 ? 2 : 3;
+        const recommended = t('create.basicInfo.dates.endDate.americanoRecommended')
+          .replace('{{days}}', String(days))
+          .replace('{{players}}', String(players));
+        return `${base} ${recommended}`;
+      }
+      return base;
+    }
+    return t('create.basicInfo.dates.endDate.tooltip');
   };
 
   return (
@@ -223,7 +244,7 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
             </div>
           </div>
 
-          {/* Formato de equipos */}
+          {/* Formato de torneo: clásico (6/9/12/16 equipos) o Americano */}
           <div>
             <LabelWithTooltip
               htmlFor="tournament_type"
@@ -233,9 +254,19 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
             <div className="space-y-2">
               <Select
                 value={formData.tournament_type}
-                onValueChange={(value: 'SIX_PLAYERS' | 'NINE_PLAYERS' | 'TWELVE_PLAYERS' | 'SIXTEEN_PLAYERS') => 
-                  setFormData({ ...formData, tournament_type: value })
-                }
+                onValueChange={(value: TournamentFormData['tournament_type']) => {
+                  const next = { ...formData, tournament_type: value };
+                  if (value === 'AMERICANO' && !next.americano_config) {
+                    next.americano_config = {
+                      scoring_mode: 'points',
+                      max_players: 8,
+                      points_per_match: 24,
+                      games_to_win_set: 6,
+                      tie_break_at: 6
+                    };
+                  }
+                  setFormData(next);
+                }}
               >
                 <SelectTrigger 
                   className={cn(
@@ -250,41 +281,182 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
                   <SelectItem value="NINE_PLAYERS">{t('create.basicInfo.tournamentType.ninePlayers')}</SelectItem>
                   <SelectItem value="TWELVE_PLAYERS">{t('create.basicInfo.tournamentType.twelvePlayers')}</SelectItem>
                   <SelectItem value="SIXTEEN_PLAYERS">{t('create.basicInfo.tournamentType.sixteenPlayers')}</SelectItem>
+                  <SelectItem value="AMERICANO">Americano</SelectItem>
                 </SelectContent>
               </Select>
               {errors.tournament_type && (
                 <p className="text-sm text-red-500">{errors.tournament_type}</p>
               )}
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 flex items-start gap-2">
-                <Info className="h-4 w-4 shrink-0 mt-0.5 text-slate-400" />
-                <span>Este es el número de equipos que se jugarán por categoría. Podés modificarlo una vez creado el torneo.</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Sedes y Canchas */}
-          <div>
-            <LabelWithTooltip
-              label="Sedes y Canchas"
-              tooltip="Selecciona las sedes donde se realizará el torneo y las canchas disponibles en cada una. Si no seleccionas sedes, se usará el método tradicional."
-            />
-            <div className="space-y-2">
-              <VenueSelector
-                selectedVenues={formData.venues || []}
-                onChange={(venues) => {
-                  const totalCourts = venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0);
-                  setFormData({ 
-                    ...formData, 
-                    venues,
-                    courts_available: totalCourts > 0 ? totalCourts : formData.courts_available
-                  });
-                }}
-              />
-              {errors.venues && (
-                <p className="text-sm text-red-500">{errors.venues}</p>
+              {formData.tournament_type !== 'AMERICANO' && (
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 flex items-start gap-2">
+                  <Info className="h-4 w-4 shrink-0 mt-0.5 text-slate-400" />
+                  <span>Este es el número de equipos que se jugarán por categoría. Podés modificarlo una vez creado el torneo.</span>
+                </p>
               )}
             </div>
           </div>
+
+          {/* Campos solo para Americano */}
+          {formData.tournament_type === 'AMERICANO' && formData.americano_config && (
+            <div className="space-y-4 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+              <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-200">Configuración Americano</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-slate-700 dark:text-slate-300">Cantidad de jugadores</Label>
+                  <Select
+                    value={String(formData.americano_config.max_players)}
+                    onValueChange={(v) => setFormData({
+                      ...formData,
+                      americano_config: { ...formData.americano_config!, max_players: Number(v) as 4 | 8 | 12 | 16 }
+                    })}
+                  >
+                    <SelectTrigger className="mt-1 bg-white dark:bg-slate-800/50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="4">4</SelectItem>
+                      <SelectItem value="8">8</SelectItem>
+                      <SelectItem value="12">12</SelectItem>
+                      <SelectItem value="16">16</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-slate-700 dark:text-slate-300">Puntuación</Label>
+                  <Select
+                    value={formData.americano_config.scoring_mode}
+                    onValueChange={(v: 'points' | 'sets') => setFormData({
+                      ...formData,
+                      americano_config: {
+                        ...formData.americano_config!,
+                        scoring_mode: v,
+                        points_per_match: v === 'points' ? 24 : undefined,
+                        sets_per_match: v === 'sets' ? 1 : undefined
+                      }
+                    })}
+                  >
+                    <SelectTrigger className="mt-1 bg-white dark:bg-slate-800/50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="points">A puntos</SelectItem>
+                      <SelectItem value="sets">A sets</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {formData.americano_config.scoring_mode === 'points' && (
+                <div>
+                  <Label className="text-slate-700 dark:text-slate-300">Puntos por partido</Label>
+                  <Select
+                    value={String(formData.americano_config.points_per_match ?? 24)}
+                    onValueChange={(v) => setFormData({
+                      ...formData,
+                      americano_config: { ...formData.americano_config!, points_per_match: Number(v) as 16 | 24 | 32 | 40 }
+                    })}
+                  >
+                    <SelectTrigger className="mt-1 bg-white dark:bg-slate-800/50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="16">16</SelectItem>
+                      <SelectItem value="24">24</SelectItem>
+                      <SelectItem value="32">32</SelectItem>
+                      <SelectItem value="40">40</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {formData.americano_config.scoring_mode === 'sets' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-slate-700 dark:text-slate-300">Sets por partido</Label>
+                    <Select
+                      value={String(formData.americano_config.sets_per_match ?? 1)}
+                      onValueChange={(v) => setFormData({
+                        ...formData,
+                        americano_config: { ...formData.americano_config!, sets_per_match: Number(v) as 1 | 2 | 3 }
+                      })}
+                    >
+                      <SelectTrigger className="mt-1 bg-white dark:bg-slate-800/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 set</SelectItem>
+                        <SelectItem value="2">2 sets</SelectItem>
+                        <SelectItem value="3">Al mejor de 3</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-slate-700 dark:text-slate-300">Juegos para ganar set</Label>
+                    <Select
+                      value={String(formData.americano_config.games_to_win_set ?? 6)}
+                      onValueChange={(v) => setFormData({
+                        ...formData,
+                        americano_config: { ...formData.americano_config!, games_to_win_set: Number(v) }
+                      })}
+                    >
+                      <SelectTrigger className="mt-1 bg-white dark:bg-slate-800/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="4">4</SelectItem>
+                        <SelectItem value="5">5</SelectItem>
+                        <SelectItem value="6">6</SelectItem>
+                        <SelectItem value="7">7</SelectItem>
+                        <SelectItem value="8">8</SelectItem>
+                        <SelectItem value="9">9</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+              {errors.americano_config && (
+                <p className="text-sm text-red-500">{errors.americano_config}</p>
+              )}
+            </div>
+          )}
+
+          {/* Sedes y Canchas (solo formato clásico; Americano puede usar 1 cancha por defecto) */}
+          {formData.tournament_type !== 'AMERICANO' && (
+            <div>
+              <LabelWithTooltip
+                label="Sedes y Canchas"
+                tooltip="Selecciona las sedes donde se realizará el torneo y las canchas disponibles en cada una. Si no seleccionas sedes, se usará el método tradicional."
+              />
+              <div className="space-y-2">
+                <VenueSelector
+                  selectedVenues={formData.venues || []}
+                  onChange={(venues) => {
+                    const totalCourts = venues.reduce((sum, v) => sum + (v.court_ids?.length || 0), 0);
+                    setFormData({ 
+                      ...formData, 
+                      venues,
+                      courts_available: totalCourts > 0 ? totalCourts : formData.courts_available
+                    });
+                  }}
+                />
+                {errors.venues && (
+                  <p className="text-sm text-red-500">{errors.venues}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Americano: sede opcional */}
+          {formData.tournament_type === 'AMERICANO' && (
+            <div>
+              <Label className="text-slate-700 dark:text-slate-300">Sede (opcional)</Label>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Si no elegís sede, se usará 1 cancha por defecto.</p>
+              <VenueSelector
+                selectedVenues={formData.venues || []}
+                onChange={(venues) => {
+                  setFormData({ ...formData, venues, courts_available: venues.reduce((s, v) => s + (v.court_ids?.length || 0), 0) || 1 });
+                }}
+              />
+            </div>
+          )}
 
           {/* Fechas inicio y fin */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -314,7 +486,7 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
               <LabelWithTooltip
                 htmlFor="end_date"
                 label={t('create.basicInfo.dates.endDate.label')}
-                tooltip={t('create.basicInfo.dates.endDate.tooltip')}
+                tooltip={getEndDateTooltip()}
               />
               <div className="space-y-2">
                 <DatePicker
@@ -336,7 +508,8 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
             </div>
           </div>
 
-          {/* Franjas Horarias */}
+          {/* Franjas Horarias (solo formato clásico) */}
+          {formData.tournament_type !== 'AMERICANO' && (
           <Card className="border-2 border-dashed border-blue-200 dark:border-blue-800">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -426,6 +599,7 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
               )}
             </CardContent>
           </Card>
+          )}
 
           <FranjasHorariasModal
             open={showFranjasModal}
@@ -439,7 +613,8 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
             }}
           />
 
-          {/* Remeras y Patrocinadores (al final) */}
+          {/* Remeras y Patrocinadores (solo formato clásico) */}
+          {formData.tournament_type !== 'AMERICANO' && (
           <div>
             <LabelWithTooltip
               label={t('create.basicInfo.shirts.label')}
@@ -492,7 +667,9 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
               )}
             </div>
           </div>
+          )}
 
+          {formData.tournament_type !== 'AMERICANO' && (
           <div>
             <SponsorSelector
               selectedSponsors={formData.sponsors || []}
@@ -500,6 +677,7 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
               error={errors.sponsors || undefined}
             />
           </div>
+          )}
 
           <div>
             <LabelWithTooltip
