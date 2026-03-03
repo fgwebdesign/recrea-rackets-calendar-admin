@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { LeagueScheduleCard } from "@/components/Dashboard/LeagueScheduleCard"
 import { useCategories } from "@/hooks/useCategories"
@@ -12,56 +12,18 @@ import * as Collapsible from "@radix-ui/react-collapsible"
 import { GalleryUploadForm } from "@/components/Leagues/Gallery/GalleryUploadForm"
 import { GalleryGrid } from "@/components/Leagues/Gallery/GalleryGrid"
 import { 
-  ArrowLeft, 
   CalendarDays, 
   Clock, 
   DollarSign, 
   FileText, 
   Trophy,
-  Users2,
   ChevronDown,
   Image as ImageIcon
 } from 'lucide-react'
 import { CategoryStandings } from "@/components/Dashboard/CategoryStandings"
 import { useToast } from "@/components/ui/use-toast"
 import { LeagueTeams } from '@/components/Leagues/LeagueTeams'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { LeagueHeader } from "@/components/Leagues/LeagueHeader"
-
-// Definir la interfaz Team con la estructura exacta del backend
-interface RegisteredTeam {
-  id: string;
-  league_team_id: string;
-  inscription_paid: boolean;
-  alternate_player: string;
-  player1: {
-    id: string;
-    name: string;
-  };
-  player2: {
-    id: string;
-    name: string;
-  };
-}
-
-interface League {
-  id: string;
-  name: string;
-  description?: string;
-  category_id: string;
-  status: string;
-  team_size: number;
-  start_date: string;
-  end_date: string;
-  inscription_cost: number;
-  points_for_win: number;
-  points_for_loss: number;
-  points_for_loss_with_set: number;
-  points_for_walkover?: number;
-  teams: RegisteredTeam[];
-  matches?: any[];
-}
 
 export default function LeagueDetailsPage() {
   const params = useParams()
@@ -74,7 +36,7 @@ export default function LeagueDetailsPage() {
 
   const { league, isLoading: isLoadingLeague, error: leagueError } = useLeague(leagueId)
   const { categories, isLoading: isLoadingCategories } = useCategories()
-  const { standings, isLoading: isLoadingStandings, error: standingsError } = useStandings(
+  const { standings, isLoading: isLoadingStandings } = useStandings(
     league?.category_id // Usar el category_id de la liga
   )
 
@@ -181,7 +143,8 @@ export default function LeagueDetailsPage() {
                   <LeagueTeams
                     teams={(league.teams || []).map(team => ({
                       ...team,
-                      alternate_player: (team as any).alternate_player || ''
+                      alternate_player: team.alternate_player ?? '',
+                      alternate_player_2: team.alternate_player_2 ?? undefined
                     }))}
                     maxTeams={league.team_size}
                     status={league.status}
@@ -207,7 +170,7 @@ export default function LeagueDetailsPage() {
 
                             setIsGeneratingLeague(true);
                             // Mostrar toast de estado "generando"
-                            const loadingToast = toast({
+                            toast({
                               title: "Generando liga...",
                               description: "Por favor espera mientras se generan los partidos y se envían las notificaciones",
                               variant: "default",

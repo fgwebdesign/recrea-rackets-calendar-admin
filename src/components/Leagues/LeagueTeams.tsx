@@ -1,6 +1,6 @@
 "use client"
 
-import { Users2, Trophy, UserCircle2, Trash2 } from 'lucide-react';
+import { Users2, UserCircle2, Trash2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,11 @@ interface Team {
   league_team_id: string;
   inscription_paid: boolean;
   alternate_player: string;
+  alternate_player_2?: string;
+  alternate_player_id?: string;
+  alternate_player_2_id?: string;
+  player1_shirt_size?: string;
+  player2_shirt_size?: string;
   player1: {
     id: string;
     name: string;
@@ -39,6 +44,7 @@ interface LeagueTeamsProps {
   hasGeneratedMatches: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- status reservado para uso futuro
 export function LeagueTeams({ teams: initialTeams, maxTeams, status, leagueId, hasGeneratedMatches }: LeagueTeamsProps) {
   const [teams, setTeams] = useState<Team[]>(initialTeams);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -191,22 +197,32 @@ export function LeagueTeams({ teams: initialTeams, maxTeams, status, leagueId, h
             <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-6 items-center">
               <div className="flex items-center gap-2">
                 <UserCircle2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {team.player1.name}
-                </p>
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {team.player1.name}
+                    {team.player1_shirt_size && (
+                      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">· {team.player1_shirt_size}</span>
+                    )}
+                  </p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <UserCircle2 className="w-5 h-5 text-purple-500 dark:text-purple-400" />
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {team.player2.name}
-                </p>
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {team.player2.name}
+                    {team.player2_shirt_size && (
+                      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">· {team.player2_shirt_size}</span>
+                    )}
+                  </p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <UserCircle2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                 <div className="flex flex-col">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Suplente</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Suplentes</span>
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {team.alternate_player || 'No asignado'}
+                    {[team.alternate_player, team.alternate_player_2].filter(Boolean).join(' · ') || 'No asignado'}
                   </p>
                 </div>
               </div>

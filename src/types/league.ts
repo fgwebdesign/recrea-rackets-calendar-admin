@@ -25,6 +25,12 @@ export interface League {
     id: string;
     league_team_id: string;
     inscription_paid: boolean;
+    alternate_player?: string;
+    alternate_player_2?: string;
+    alternate_player_id?: string;
+    alternate_player_2_id?: string;
+    player1_shirt_size?: string;
+    player2_shirt_size?: string;
     player1: {
       id: string;
       name: string;
