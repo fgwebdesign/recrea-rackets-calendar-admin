@@ -56,6 +56,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
     availability_days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
     availability_hours: "",
     hourly_rate: 0,
+    commission_percent: null as number | null,
     instagram_handle: "",
     whatsapp_number: "",
     photo: null
@@ -154,6 +155,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
       availability_days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
       availability_hours: "",
       hourly_rate: 0,
+      commission_percent: null,
       instagram_handle: "",
       whatsapp_number: "",
       photo: null
@@ -430,6 +432,27 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                   className="mt-2"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Requerido para registrar clases de este profesor.</p>
+              </div>
+              {/* Comisión club (opcional) */}
+              <div>
+                <Label htmlFor="commission_percent" className="text-gray-700 dark:text-gray-300 font-medium">
+                  Comisión del club para este profesor (%)
+                </Label>
+                <Input
+                  id="commission_percent"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  value={formData.commission_percent ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData(prev => ({ ...prev, commission_percent: v === '' ? null : parseFloat(v) || null }));
+                  }}
+                  placeholder="Vacío = usar comisión por defecto"
+                  className="mt-2"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Opcional. Si está vacío se usa la comisión por defecto del club.</p>
               </div>
 
               {/* Contacto */}

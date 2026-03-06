@@ -8,3 +8,4 @@ export { HoursOverTimeChart } from './HoursOverTimeChart';
 export { RevenueDistributionChart } from './RevenueDistributionChart';
 export { SummaryTables } from './SummaryTables';
 export { ExportReportButton } from './ExportReportButton';
+export { PaymentReportSection } from './PaymentReportSection';

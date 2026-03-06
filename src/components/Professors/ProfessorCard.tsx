@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Trash2, Pencil, User, Instagram, Phone, Calendar, Award, Clock } from "lucide-react";
+import { Trash2, Pencil, User, Instagram, Phone, Calendar, Award, Clock } from 'lucide-react';
 import { Professor } from '@/types/professor';
 import { useTranslations } from '@/contexts/TranslationContext';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ interface ProfessorCardProps {
   professor: Professor;
   onDelete: (professor: Professor) => void;
   onEdit: (professor: Professor) => void;
-  priority?: boolean; // Para las primeras imágenes visibles
+  priority?: boolean;
 }
 
 const DEFAULT_PROFESSOR_IMAGE = '/assets/user.png';
@@ -27,197 +27,182 @@ function getImageUrl(photoUrl: string | null) {
 export default function ProfessorCard({ professor, onDelete, onEdit, priority = false }: ProfessorCardProps) {
   const t = useTranslations('professors');
   const tDateTime = useTranslations('datetime');
-  
-  const daysMap = {
+
+  const daysMap: Record<string, string> = {
     monday: tDateTime('monday'),
-    tuesday: tDateTime('tuesday'), 
+    tuesday: tDateTime('tuesday'),
     wednesday: tDateTime('wednesday'),
     thursday: tDateTime('thursday'),
     friday: tDateTime('friday'),
     saturday: tDateTime('saturday'),
-    sunday: tDateTime('sunday')
-  };
-
-  // Función para determinar el color de las especialidades basado en el tipo
-  const getSpecializationColor = (spec: string) => {
-    const padelSpecs = ['Todos los niveles', 'Principiantes', 'Nivel Intermedio', 'Avanzado', 'Entrenamiento personalizado', 'Clases grupales', 'Técnica básica', 'Técnica avanzada', 'Torneos y competencias'];
-    const futbolSpecs = ['Entrenador de fútbol', 'Preparador físico', 'Técnica de fútbol', 'Táctica de fútbol', 'Fútbol juvenil', 'Fútbol competitivo', 'Entrenamiento de porteros'];
-    const saludSpecs = ['Fisioterapeuta', 'Masajista deportivo', 'Rehabilitación deportiva', 'Prevención de lesiones', 'Nutrición deportiva', 'Psicología deportiva'];
-    
-    if (padelSpecs.includes(spec)) {
-      return 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-200 border border-blue-200 dark:border-blue-800';
-    } else if (futbolSpecs.includes(spec)) {
-      return 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 dark:from-green-900/30 dark:to-emerald-900/30 dark:text-green-200 border border-green-200 dark:border-green-800';
-    } else if (saludSpecs.includes(spec)) {
-      return 'bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 dark:from-purple-900/30 dark:to-violet-900/30 dark:text-purple-200 border border-purple-200 dark:border-purple-800';
-    } else {
-      return 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 dark:from-orange-900/30 dark:to-amber-900/30 dark:text-orange-200 border border-orange-200 dark:border-orange-800';
-    }
+    sunday: tDateTime('sunday'),
   };
 
   return (
-    <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-lg hover:shadow-xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 group">
-      {/* Header con foto */}
-      <div className="relative w-full aspect-square bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 overflow-hidden">
+    <article className="bg-card rounded-2xl border border-border/80 shadow-sm hover:shadow-lg hover:border-border transition-all duration-200 overflow-hidden group">
+      {/* Foto */}
+      <div className="relative w-full aspect-[4/3] bg-muted/50 overflow-hidden">
         {professor.photo_url ? (
           <Image
             src={getImageUrl(professor.photo_url)}
             alt={professor.name}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            className="object-cover group-hover:scale-[1.03] transition-transform duration-300"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             priority={priority}
-            loading={priority ? undefined : "lazy"}
+            loading={priority ? undefined : 'lazy'}
             quality={85}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="p-4 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-full">
-              <User className="h-16 w-16 text-blue-500 dark:text-blue-400" />
-            </div>
+          <div className="w-full h-full flex items-center justify-center bg-muted/80">
+            <User className="h-16 w-16 text-muted-foreground/50" />
           </div>
         )}
-        
-        {/* Status badge mejorado */}
-        <div className="absolute top-3 right-3">
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold shadow-lg ${
-            professor.is_active 
-              ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-green-200 dark:shadow-green-800' 
-              : 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-red-200 dark:shadow-red-800'
-          }`}>
-            {professor.is_active ? t('active') : t('inactive')}
-          </span>
-        </div>
 
-        {/* Overlay con botones de acción */}
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <div className="flex space-x-3">
+        <span
+          className={`absolute top-3 right-3 text-xs font-medium px-2.5 py-1 rounded-full backdrop-blur-sm ${
+            professor.is_active
+              ? 'bg-emerald-500/90 text-white'
+              : 'bg-slate-500/90 text-white'
+          }`}
+        >
+          {professor.is_active ? t('active') : t('inactive')}
+        </span>
+
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 duration-200">
+          <div className="flex gap-2">
             <button
               onClick={() => onEdit(professor)}
-              className="p-2 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-lg hover:bg-blue-500 hover:text-white transition-all duration-200"
+              className="p-2.5 rounded-full bg-white/95 text-slate-700 hover:bg-primary hover:text-primary-foreground shadow-md transition-colors"
+              type="button"
+              aria-label={t('editProfessor')}
             >
-              <Pencil className="h-5 w-5" />
+              <Pencil className="h-4 w-4" />
             </button>
             <button
               onClick={() => onDelete(professor)}
-              className="p-2 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-lg hover:bg-red-500 hover:text-white transition-all duration-200"
+              className="p-2.5 rounded-full bg-white/95 text-slate-700 hover:bg-destructive hover:text-destructive-foreground shadow-md transition-colors"
+              type="button"
+              aria-label="Eliminar"
             >
-              <Trash2 className="h-5 w-5" />
+              <Trash2 className="h-4 w-4" />
             </button>
           </div>
         </div>
       </div>
-      
-      {/* Contenido de la tarjeta */}
-      <div className="p-6">
+
+      <div className="p-5 space-y-4">
         {/* Nombre y descripción */}
-        <div className="mb-4">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground tracking-tight">
             {professor.name}
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+          <p className="text-sm text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
             {professor.description}
           </p>
         </div>
 
-        {/* Especialidades mejoradas */}
-        {professor.specializations && professor.specializations.length > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center mb-2">
-              <div className="p-1 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-lg mr-2">
-                <Award className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                {t('specializations')}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {professor.specializations.map((spec, index) => (
-                <span 
-                  key={index}
-                  className={`px-3 py-1 text-xs font-medium rounded-full ${getSpecializationColor(spec)}`}
+        {/* Especialidades: tinte azul ordenado */}
+        {professor.specializations?.length > 0 && (
+          <div className="rounded-xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100/80 dark:border-blue-900/30 p-3">
+            <p className="text-xs font-medium text-blue-700 dark:text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Award className="h-3.5 w-3.5" />
+              {t('specializations')}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {professor.specializations.slice(0, 4).map((spec, i) => (
+                <span
+                  key={i}
+                  className="text-xs px-2.5 py-1 rounded-full bg-blue-100/90 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 border border-blue-200/60 dark:border-blue-800/40"
                 >
                   {spec}
                 </span>
               ))}
+              {professor.specializations.length > 4 && (
+                <span className="text-xs px-2.5 py-1 rounded-full bg-blue-100/70 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
+                  +{professor.specializations.length - 4}
+                </span>
+              )}
             </div>
           </div>
         )}
 
-        {/* Experiencia mejorada */}
-        <div className="mb-4 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
-          <div className="flex items-center">
-            <div className="p-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg mr-2">
-              <Award className="h-4 w-4 text-white" />
+        {/* Experiencia y disponibilidad: bloque violeta/slate suave */}
+        <div className="rounded-xl bg-violet-50/60 dark:bg-violet-950/20 border border-violet-100/80 dark:border-violet-900/30 p-3 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100/80 dark:bg-violet-900/40">
+              <Award className="h-4 w-4 text-violet-600 dark:text-violet-400" />
             </div>
-            <span className="text-sm font-semibold text-indigo-800 dark:text-indigo-200">
-              <strong className="text-lg">{professor.experience_years}</strong> {t('yearsExperience')}
+            <span className="text-sm text-foreground">
+              <strong>{professor.experience_years}</strong>{' '}
+              <span className="text-muted-foreground">{t('yearsExperience')}</span>
             </span>
+          </div>
+
+          <div className="flex items-start gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-100/80 dark:bg-teal-900/30">
+              <Calendar className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap gap-1.5">
+                {professor.availability_days.map((day, i) => (
+                  <span
+                    key={i}
+                    className="text-xs px-2 py-0.5 rounded-md bg-teal-100/90 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200 border border-teal-200/50 dark:border-teal-800/30"
+                  >
+                    {daysMap[day] || day}
+                  </span>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                {professor.availability_hours}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Disponibilidad mejorada */}
-        <div className="mb-4">
-          <div className="flex items-center mb-2">
-            <div className="p-1 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg mr-2">
-              <Calendar className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              {t('available')}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {professor.availability_days.map((day, index) => (
-              <span 
-                key={index}
-                className="px-3 py-1 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 text-xs font-medium rounded-full dark:from-green-900/30 dark:to-emerald-900/30 dark:text-green-200 border border-green-200 dark:border-green-800"
-              >
-                {daysMap[day as keyof typeof daysMap] || day}
-              </span>
-            ))}
-          </div>
-          <p className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg">
-            {professor.availability_hours}
-          </p>
-        </div>
-
-        {/* Valor por hora */}
+        {/* Valor por hora: destacado pero elegante */}
         {(professor.hourly_rate ?? 0) > 0 && (
-          <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-            <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-              ${professor.hourly_rate} / hora
-            </span>
+          <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 px-3 py-2.5">
+            <p className="text-xs font-medium text-emerald-800 dark:text-emerald-300 mb-0.5">
+              Valor por hora
+            </p>
+            <p className="text-lg font-semibold text-emerald-700 dark:text-emerald-400">
+              ${professor.hourly_rate} <span className="text-sm font-normal text-emerald-600 dark:text-emerald-500">/ hora</span>
+            </p>
           </div>
         )}
 
-        {/* Ver horas / Registrar clase */}
-        <Link href={`/professors/classes?professor_id=${professor.id}`} className="block mt-3">
-          <Button variant="outline" size="sm" className="w-full">
-            <Clock className="h-4 w-4 mr-2" />
-            Ver horas / Registrar clase
+        {/* CTA principal */}
+        <Link href={`/professors/classes?professor_id=${professor.id}`} className="block">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-10 border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/30 hover:border-emerald-300 dark:hover:border-emerald-700 text-foreground"
+          >
+            <Clock className="h-4 w-4 mr-2 text-emerald-600 dark:text-emerald-400" />
+            Ver clases / Registrar clase
           </Button>
         </Link>
 
-        {/* Contacto mejorado */}
-        <div className="space-y-2">
-          {professor.instagram_handle && (
-            <div className="flex items-center p-2 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-lg border border-pink-200 dark:border-pink-800">
-              <div className="p-1 bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg mr-2">
-                <Instagram className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-sm font-medium text-pink-800 dark:text-pink-200">@{professor.instagram_handle}</span>
-            </div>
-          )}
-          {professor.whatsapp_number && (
-            <div className="flex items-center p-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="p-1 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg mr-2">
-                <Phone className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-sm font-medium text-green-800 dark:text-green-200">{professor.whatsapp_number}</span>
-            </div>
-          )}
-        </div>
+        {/* Contacto: tintes suaves por tipo */}
+        {(professor.instagram_handle || professor.whatsapp_number) && (
+          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border/60">
+            {professor.instagram_handle && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-rose-50/80 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-100/80 dark:border-rose-900/30">
+                <Instagram className="h-3.5 w-3.5" />
+                @{professor.instagram_handle}
+              </span>
+            )}
+            {professor.whatsapp_number && (
+              <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-100/80 dark:border-emerald-900/30">
+                <Phone className="h-3.5 w-3.5" />
+                {professor.whatsapp_number}
+              </span>
+            )}
+          </div>
+        )}
       </div>
-    </div>
+    </article>
   );
 }

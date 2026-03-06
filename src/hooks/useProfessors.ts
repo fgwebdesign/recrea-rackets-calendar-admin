@@ -53,7 +53,11 @@ export function useProfessors() {
       formData.append('availability_days', JSON.stringify(professorData.availability_days));
       formData.append('availability_hours', professorData.availability_hours);
       formData.append('hourly_rate', String(professorData.hourly_rate ?? 0));
-      
+      if (professorData.commission_percent !== undefined && professorData.commission_percent !== null && professorData.commission_percent !== '') {
+        formData.append('commission_percent', String(professorData.commission_percent));
+      } else {
+        formData.append('commission_percent', '');
+      }
       if (professorData.instagram_handle) {
         formData.append('instagram_handle', professorData.instagram_handle);
       }
@@ -121,6 +125,7 @@ export function useProfessors() {
       if (professorData.availability_days !== undefined) formData.append('availability_days', JSON.stringify(professorData.availability_days));
       if (professorData.availability_hours !== undefined) formData.append('availability_hours', professorData.availability_hours);
       if (professorData.hourly_rate !== undefined) formData.append('hourly_rate', String(professorData.hourly_rate));
+      if (professorData.commission_percent !== undefined) formData.append('commission_percent', professorData.commission_percent === null || professorData.commission_percent === '' ? '' : String(professorData.commission_percent));
       if (professorData.instagram_handle !== undefined) formData.append('instagram_handle', professorData.instagram_handle || '');
       if (professorData.whatsapp_number !== undefined) formData.append('whatsapp_number', professorData.whatsapp_number || '');
       if (professorData.is_active !== undefined) formData.append('is_active', professorData.is_active.toString());

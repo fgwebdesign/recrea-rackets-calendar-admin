@@ -7,6 +7,7 @@ export interface Professor {
   availability_days: string[];
   availability_hours: string;
   hourly_rate?: number;
+  commission_percent?: number | null;
   instagram_handle?: string;
   whatsapp_number?: string;
   photo_url?: string;
@@ -23,6 +24,7 @@ export interface CreateProfessorData {
   availability_days: string[];
   availability_hours: string;
   hourly_rate?: number;
+  commission_percent?: number | null;
   instagram_handle?: string;
   whatsapp_number?: string;
   photo: File | null;
@@ -36,6 +38,7 @@ export interface UpdateProfessorData {
   availability_days?: string[];
   availability_hours?: string;
   hourly_rate?: number;
+  commission_percent?: number | null;
   instagram_handle?: string;
   whatsapp_number?: string;
   photo?: File | null;
@@ -57,7 +60,7 @@ export interface ProfessorClass {
   notes: string | null;
   created_at: string;
   updated_at: string;
-  professor?: { id: string; name: string; hourly_rate?: number };
+  professor?: { id: string; name: string; hourly_rate?: number; commission_percent?: number | null };
   venue?: { id: string; name: string };
   court?: { id: string; name: string } | null;
 }

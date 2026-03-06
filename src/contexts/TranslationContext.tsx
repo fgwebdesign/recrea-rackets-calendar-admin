@@ -224,6 +224,8 @@ const translations: Record<Locale, Record<string, any>> = {
       categories: 'Categorías',
       courts: 'Canchas',
       professors: 'Profesores',
+      viewProfessors: 'Ver profesores',
+      professorClasses: 'Registro de clases',
       sponsors: 'Patrocinadores',
       users: 'Usuarios',
       settings: 'Configuraciones',
@@ -796,6 +798,23 @@ const translations: Record<Locale, Record<string, any>> = {
           description: 'Revisa siempre la información antes de crear ligas o torneos para evitar errores.'
         }
       }
+    },
+    guideDocs: {
+      title: 'Documentación',
+      intro: 'Introducción',
+      prerequisites: 'Requisitos previos',
+      dashboard: 'Dashboard',
+      tournaments: 'Torneos',
+      leagues: 'Ligas',
+      venues: 'Sedes y canchas',
+      kiosk: 'Kiosco',
+      professors: 'Profesores y clases',
+      categories: 'Categorías',
+      users: 'Usuarios',
+      sponsors: 'Patrocinadores',
+      payments: 'Pagos e ingresos',
+      settings: 'Configuración',
+      tips: 'Tips y buenas prácticas'
     },
     settings: {
       title: 'Configuraciones',
@@ -1774,6 +1793,8 @@ const translations: Record<Locale, Record<string, any>> = {
       categories: 'Categories',
       courts: 'Courts',
       professors: 'Professors',
+      viewProfessors: 'View professors',
+      professorClasses: 'Class register',
       sponsors: 'Sponsors',
       users: 'Users',
       settings: 'Settings',
@@ -2398,6 +2419,23 @@ const translations: Record<Locale, Record<string, any>> = {
         description: 'Always review the information before creating leagues or tournaments to avoid errors.'
       }
     }
+  },
+  guideDocs: {
+    title: 'Documentation',
+    intro: 'Introduction',
+    prerequisites: 'Prerequisites',
+    dashboard: 'Dashboard',
+    tournaments: 'Tournaments',
+    leagues: 'Leagues',
+    venues: 'Venues & courts',
+    kiosk: 'Kiosk',
+    professors: 'Professors & classes',
+    categories: 'Categories',
+    users: 'Users',
+    sponsors: 'Sponsors',
+    payments: 'Payments & income',
+    settings: 'Settings',
+    tips: 'Tips & best practices'
   },
   // Loading Screen
   loading: {

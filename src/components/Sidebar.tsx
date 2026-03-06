@@ -23,6 +23,7 @@ import {
   TagIcon,
   CubeIcon,
   TvIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 import { ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -294,22 +295,37 @@ const Sidebar = () => {
       ]
     },
     
-    // 4. GESTIÓN DE CONTENIDO
+    // 4. GESTIÓN DE PERSONAS - Profesores
+    { 
+      name: t('professors'), 
+      href: '/professors', 
+      icon: AcademicCapIcon,
+      iconColor: 'text-indigo-500',
+      hoverColor: 'hover:bg-indigo-50',
+      submenu: [
+        { 
+          name: t('viewProfessors'), 
+          href: '/professors', 
+          icon: AcademicCapIcon,
+          iconColor: 'text-indigo-500' 
+        },
+        { 
+          name: t('professorClasses'), 
+          href: '/professors/classes', 
+          icon: ClockIcon,
+          iconColor: 'text-indigo-600',
+          textColor: 'text-indigo-600 font-medium'
+        },
+      ]
+    },
+    
+    // 5. GESTIÓN DE CONTENIDO
     { 
       name: t('categories'), 
       href: '/categories', 
       icon: TagIcon,
       iconColor: 'text-blue-500',
       hoverColor: 'hover:bg-blue-50'
-    },
-    
-    // 5. GESTIÓN DE PERSONAS
-    { 
-      name: t('professors'), 
-      href: '/professors', 
-      icon: AcademicCapIcon,
-      iconColor: 'text-indigo-500',
-      hoverColor: 'hover:bg-indigo-50'
     },
     { 
       name: t('users'), 

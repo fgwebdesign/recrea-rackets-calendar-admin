@@ -65,6 +65,7 @@ export default function EditProfessorModal({ isOpen, onClose, onSubmit, professo
         availability_days: professor.availability_days,
         availability_hours: professor.availability_hours,
         hourly_rate: professor.hourly_rate ?? 0,
+        commission_percent: professor.commission_percent ?? null,
         instagram_handle: professor.instagram_handle || "",
         whatsapp_number: professor.whatsapp_number || "",
         is_active: professor.is_active,
@@ -434,6 +435,26 @@ export default function EditProfessorModal({ isOpen, onClose, onSubmit, professo
                   className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Requerido para registrar clases.</p>
+              </div>
+              <div>
+                <Label htmlFor="commission_percent" className="text-gray-700 dark:text-gray-300 font-medium">
+                  Comisión del club para este profesor (%)
+                </Label>
+                <Input
+                  id="commission_percent"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  value={formData.commission_percent ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData(prev => ({ ...prev, commission_percent: v === '' ? null : parseFloat(v) || null }));
+                  }}
+                  placeholder="Vacío = usar comisión por defecto"
+                  className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Opcional. Si está vacío se usa la comisión por defecto del club.</p>
               </div>
 
               {/* Contacto */}

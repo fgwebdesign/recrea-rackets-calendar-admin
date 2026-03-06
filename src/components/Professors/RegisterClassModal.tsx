@@ -94,14 +94,14 @@ export default function RegisterClassModal({
     const hours = durationMinutes / 60;
     const hourlyRate = Number(selectedProfessor?.hourly_rate) || 0;
     const amountProfessor = Math.round(hourlyRate * hours * 100) / 100;
-    const commissionPercent = Number(clubSettings.club_commission_percent) || 0;
+    const commissionPercent = Number(selectedProfessor?.commission_percent ?? clubSettings.club_commission_percent) || 0;
     return {
       durationMinutes,
       hours,
       amountProfessor,
       amountClub: Math.round(amountProfessor * (commissionPercent / 100) * 100) / 100,
     };
-  }, [startTime, endTime, selectedProfessor?.hourly_rate, clubSettings.club_commission_percent]);
+  }, [startTime, endTime, selectedProfessor?.hourly_rate, selectedProfessor?.commission_percent, clubSettings.club_commission_percent]);
 
   const canSubmit =
     professorId &&

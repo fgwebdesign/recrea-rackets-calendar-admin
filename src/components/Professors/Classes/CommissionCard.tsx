@@ -36,9 +36,12 @@ export function CommissionCard({ clubSettings, onSave, isLoading }: CommissionCa
     <Card className="border-0 shadow-sm bg-card">
       <CardContent className="py-4">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Percent className="h-4 w-4" />
-            <span>Comisión del club</span>
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Percent className="h-4 w-4" />
+              <span>Comisión por defecto (%)</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Se usa cuando el profesor no tiene comisión propia.</p>
           </div>
           <div className="flex items-center gap-2">
             <Input

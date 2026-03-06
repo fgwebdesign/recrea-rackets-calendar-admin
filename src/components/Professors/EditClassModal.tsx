@@ -101,7 +101,7 @@ export default function EditClassModal({
   );
   const courts = selectedVenue?.courts ?? [];
 
-  const professor = professorClass as ProfessorClass & { professor?: { hourly_rate?: number } };
+  const professor = professorClass as ProfessorClass & { professor?: { hourly_rate?: number; commission_percent?: number | null } };
   const hourlyRate = Number(professor.professor?.hourly_rate ?? 0);
   const preview = useMemo(() => {
     const startMin = parseTimeToMinutes(startTime);
@@ -110,14 +110,14 @@ export default function EditClassModal({
     const durationMinutes = endMin - startMin;
     const hours = durationMinutes / 60;
     const amountProfessor = Math.round(hourlyRate * hours * 100) / 100;
-    const commissionPercent = Number(clubSettings.club_commission_percent) || 0;
+    const commissionPercent = Number(professor.professor?.commission_percent ?? clubSettings.club_commission_percent) || 0;
     return {
       durationMinutes,
       hours,
       amountProfessor,
       amountClub: Math.round(amountProfessor * (commissionPercent / 100) * 100) / 100,
     };
-  }, [startTime, endTime, hourlyRate, clubSettings.club_commission_percent]);
+  }, [startTime, endTime, hourlyRate, professor, clubSettings.club_commission_percent]);
 
   const canSubmit =
     venueId &&

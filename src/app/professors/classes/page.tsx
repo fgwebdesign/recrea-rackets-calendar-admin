@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Clock, PlusCircle, BarChart3, LayoutGrid, ListTodo, FileText } from 'lucide-react';
+import { Clock, PlusCircle, BarChart3, LayoutGrid, ListTodo, FileText, Wallet } from 'lucide-react';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -30,6 +30,7 @@ import {
   RevenueDistributionChart,
   SummaryTables,
   ExportReportButton,
+  PaymentReportSection,
 } from '@/components/Professors/Classes';
 
 function formatCurrency(n: number): string {
@@ -56,6 +57,7 @@ export default function ProfessorClassesPage() {
     classId: null,
     label: '',
   });
+  const [paymentRange, setPaymentRange] = useState<{ from: string; to: string } | null>(null);
 
   const filters = {
     professor_id: professorId || undefined,
@@ -74,6 +76,14 @@ export default function ProfessorClassesPage() {
     professor_id: professorId || undefined,
   };
   const { summary, isLoading: summaryLoading, fetchSummary } = useProfessorClassesSummary(summaryFilters);
+  const paymentSummaryFilters = paymentRange
+    ? { from_date: paymentRange.from, to_date: paymentRange.to }
+    : { from_date: undefined, to_date: undefined };
+  const {
+    summary: paymentSummary,
+    isLoading: paymentSummaryLoading,
+    fetchSummary: fetchPaymentSummary,
+  } = useProfessorClassesSummary(paymentSummaryFilters);
 
   const loadClasses = useCallback(() => {
     fetchClasses(page, 20);
@@ -92,6 +102,10 @@ export default function ProfessorClassesPage() {
   useEffect(() => {
     if (activeTab === 'dashboard' || activeTab === 'reports') fetchSummary();
   }, [activeTab, fetchSummary]);
+
+  useEffect(() => {
+    if (activeTab === 'payments' && paymentRange) fetchPaymentSummary();
+  }, [activeTab, paymentRange, fetchPaymentSummary]);
 
   const handleSaveCommission = async (percent: number) => {
     try {
@@ -224,7 +238,7 @@ export default function ProfessorClassesPage() {
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="h-11 rounded-lg bg-muted/60 p-1 grid grid-cols-3 w-full max-w-md">
+          <TabsList className="h-11 rounded-lg bg-muted/60 p-1 grid grid-cols-2 sm:grid-cols-4 w-full max-w-2xl">
             <TabsTrigger value="dashboard" className="rounded-md gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <LayoutGrid className="h-4 w-4" />
               Dashboard
@@ -236,6 +250,10 @@ export default function ProfessorClassesPage() {
             <TabsTrigger value="reports" className="rounded-md gap-2">
               <FileText className="h-4 w-4" />
               Reportes
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="rounded-md gap-2">
+              <Wallet className="h-4 w-4" />
+              Pagos
             </TabsTrigger>
           </TabsList>
 
@@ -384,6 +402,21 @@ export default function ProfessorClassesPage() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Pagos */}
+          <TabsContent value="payments" className="space-y-6 mt-0">
+            <PaymentReportSection
+              summary={paymentSummary ?? null}
+              isLoading={paymentSummaryLoading}
+              periodLabel={
+                paymentRange
+                  ? `${format(new Date(paymentRange.from), 'd MMM', { locale: es })} – ${format(new Date(paymentRange.to), 'd MMM yyyy', { locale: es })}`
+                  : undefined
+              }
+              onGenerate={(from, to) => setPaymentRange({ from, to })}
+              formatCurrency={formatCurrency}
+            />
           </TabsContent>
         </Tabs>
 
