@@ -55,6 +55,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
     experience_years: 0,
     availability_days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
     availability_hours: "",
+    hourly_rate: 0,
     instagram_handle: "",
     whatsapp_number: "",
     photo: null
@@ -152,6 +153,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
       experience_years: 0,
       availability_days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
       availability_hours: "",
+      hourly_rate: 0,
       instagram_handle: "",
       whatsapp_number: "",
       photo: null
@@ -411,6 +413,23 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                 {errors.availability_hours && (
                   <p className="text-sm text-red-500 dark:text-red-400 mt-1">{errors.availability_hours}</p>
                 )}
+              </div>
+              {/* Valor por hora */}
+              <div>
+                <Label htmlFor="hourly_rate" className="text-gray-700 dark:text-gray-300 font-medium">
+                  Valor por hora ($) *
+                </Label>
+                <Input
+                  id="hourly_rate"
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={formData.hourly_rate ?? ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, hourly_rate: parseFloat(e.target.value) || 0 }))}
+                  placeholder="0"
+                  className="mt-2"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Requerido para registrar clases de este profesor.</p>
               </div>
 
               {/* Contacto */}

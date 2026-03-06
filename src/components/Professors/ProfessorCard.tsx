@@ -1,7 +1,9 @@
 import Image from 'next/image';
-import { Trash2, Pencil, User, Instagram, Phone, Calendar, Award } from "lucide-react";
+import Link from 'next/link';
+import { Trash2, Pencil, User, Instagram, Phone, Calendar, Award, Clock } from "lucide-react";
 import { Professor } from '@/types/professor';
 import { useTranslations } from '@/contexts/TranslationContext';
+import { Button } from '@/components/ui/button';
 
 interface ProfessorCardProps {
   professor: Professor;
@@ -178,6 +180,23 @@ export default function ProfessorCard({ professor, onDelete, onEdit, priority = 
             {professor.availability_hours}
           </p>
         </div>
+
+        {/* Valor por hora */}
+        {(professor.hourly_rate ?? 0) > 0 && (
+          <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+            <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+              ${professor.hourly_rate} / hora
+            </span>
+          </div>
+        )}
+
+        {/* Ver horas / Registrar clase */}
+        <Link href={`/professors/classes?professor_id=${professor.id}`} className="block mt-3">
+          <Button variant="outline" size="sm" className="w-full">
+            <Clock className="h-4 w-4 mr-2" />
+            Ver horas / Registrar clase
+          </Button>
+        </Link>
 
         {/* Contacto mejorado */}
         <div className="space-y-2">

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { GraduationCap, PlusCircle } from "lucide-react";
+import Link from "next/link";
+import { GraduationCap, PlusCircle, Clock } from "lucide-react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import AddProfessorModal from '@/components/Professors/AddProfessorModal';
@@ -63,13 +64,21 @@ export default function ProfessorsPage() {
           icon={<GraduationCap className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
           description={t('description')}
           button={
-            <Button 
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
-            >
-              <PlusCircle className="mr-2 h-5 w-5" />
-              {t('addProfessor')}
-            </Button>
+            <div className="flex gap-2">
+              <Link href="/professors/classes">
+                <Button variant="outline">
+                  <Clock className="mr-2 h-4 w-4" />
+                  Registro de clases
+                </Button>
+              </Link>
+              <Button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
+              >
+                <PlusCircle className="mr-2 h-5 w-5" />
+                {t('addProfessor')}
+              </Button>
+            </div>
           }
         />
         

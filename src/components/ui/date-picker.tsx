@@ -17,6 +17,8 @@ interface DatePickerProps {
   disabled?: boolean
   className?: string
   error?: boolean
+  /** Cuando true, el Popover usa modal={false} para funcionar correctamente dentro de un Dialog. */
+  insideDialog?: boolean
   suggestedDates?: Date[] // Fechas sugeridas con color especial
   restrictedDates?: Date[] // Fechas restringidas
   startDate?: Date // Fecha de inicio para calcular fechas sugeridas
@@ -43,28 +45,14 @@ export function DatePicker({
   disabled = false,
   className,
   error = false,
+  insideDialog = false,
   suggestedDates = [],
   restrictedDates = [],
-  startDate
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
 
-  // Función para determinar si una fecha es sugerida
-  const isSuggestedDate = (date: Date) => {
-    return suggestedDates.some(suggestedDate => 
-      suggestedDate.getTime() === date.getTime()
-    );
-  };
-
-  // Función para determinar si una fecha está restringida
-  const isRestrictedDate = (date: Date) => {
-    return restrictedDates.some(restrictedDate => 
-      restrictedDate.getTime() === date.getTime()
-    );
-  };
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={!insideDialog}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"

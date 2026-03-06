@@ -64,6 +64,7 @@ export default function EditProfessorModal({ isOpen, onClose, onSubmit, professo
         experience_years: professor.experience_years,
         availability_days: professor.availability_days,
         availability_hours: professor.availability_hours,
+        hourly_rate: professor.hourly_rate ?? 0,
         instagram_handle: professor.instagram_handle || "",
         whatsapp_number: professor.whatsapp_number || "",
         is_active: professor.is_active,
@@ -417,6 +418,22 @@ export default function EditProfessorModal({ isOpen, onClose, onSubmit, professo
                 {errors.availability_hours && (
                   <p className="text-sm text-red-500 dark:text-red-400 mt-1">{errors.availability_hours}</p>
                 )}
+              </div>
+              <div>
+                <Label htmlFor="hourly_rate" className="text-gray-700 dark:text-gray-300 font-medium">
+                  Valor por hora ($) *
+                </Label>
+                <Input
+                  id="hourly_rate"
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={formData.hourly_rate ?? ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, hourly_rate: parseFloat(e.target.value) || 0 }))}
+                  placeholder="0"
+                  className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Requerido para registrar clases.</p>
               </div>
 
               {/* Contacto */}
