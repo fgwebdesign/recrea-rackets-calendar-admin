@@ -482,7 +482,7 @@ export default function AddProfessorModal({ isOpen, onClose, onSubmit }: AddProf
                         alt="Preview"
                         fill
                         className="object-cover"
-                        priority
+                        loading="lazy"
                         quality={90}
                         sizes="160px"
                         unoptimized={previewUrl.startsWith('blob:') || previewUrl.startsWith('data:')}

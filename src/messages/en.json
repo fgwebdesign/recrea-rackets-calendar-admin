@@ -228,6 +228,13 @@
         "title": "Period Reports"
       }
     },
+    "products": {
+      "stockIntake": "Stock intake",
+      "stockIntakePlaceholder": "e.g. 24",
+      "stockIntakeHelp": "If the distributor restocks, enter the quantity received. It will be added to current stock.",
+      "stockIntakeNotes": "Intake notes",
+      "stockIntakeNotesPlaceholder": "e.g. Restock from distributor X"
+    },
     "sales": {
       "title": "Sales",
       "description": "Sales history and management",

@@ -15,7 +15,8 @@ export default function EmptyState() {
             alt="No hay canchas disponibles"
             fill
             className="object-contain"
-            priority
+            loading="lazy"
+            sizes="192px"
           />
         </div>
         <p className="text-base font-semibold text-gray-700 dark:text-gray-300 text-center mb-1">

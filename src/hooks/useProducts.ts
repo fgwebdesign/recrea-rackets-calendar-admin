@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from '@/components/ui/use-toast';
-import { Product, CreateProductData, UpdateProductData, UpdateStockData, ProductFilters } from '@/types/kiosk';
+import { Product, CreateProductData, UpdateProductData, UpdateStockData, ProductFilters, StockIntakeApplied } from '@/types/kiosk';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -209,14 +209,23 @@ export function useProducts(filters?: ProductFilters) {
         throw new Error(errorData.message || 'Error updating product');
       }
 
-      const { product } = await response.json();
+      const data = await response.json();
+      const { product, stock_intake_applied } = data as { product: Product; stock_intake_applied?: StockIntakeApplied };
       setProducts(prev => prev.map(p => p.id === id ? product : p));
-      
-      toast({
-        title: "Éxito",
-        description: "Producto actualizado exitosamente",
-        variant: "success",
-      });
+
+      if (stock_intake_applied) {
+        toast({
+          title: "Éxito",
+          description: `Producto actualizado. Se sumaron ${stock_intake_applied.quantity_added} unidades al stock (antes ${stock_intake_applied.previous_stock}, ahora ${stock_intake_applied.new_stock}).`,
+          variant: "success",
+        });
+      } else {
+        toast({
+          title: "Éxito",
+          description: "Producto actualizado exitosamente",
+          variant: "success",
+        });
+      }
 
       return true;
     } catch (error) {

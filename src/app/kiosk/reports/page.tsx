@@ -16,7 +16,8 @@ import { SalesSummary, TopProduct, DashboardStats, LowStockAlert, ProfitabilityR
 import { useTranslations } from '@/contexts/TranslationContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { DatePicker, formatDateForInput } from '@/components/ui/date-picker';
+import { formatDateForInput } from '@/components/ui/date-picker';
+import { FilterBarPanel } from '@/components/Kiosk/FilterBarPanel';
 import { DashboardKPIs } from "@/components/Kiosk/Reports/DashboardKPIs";
 import { StockAlertsCard } from "@/components/Kiosk/Reports/StockAlertsCard";
 import { TopProductsCard } from "@/components/Kiosk/Reports/TopProductsCard";
@@ -40,14 +41,18 @@ export default function KioskReportsPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activePeriodTab, setActivePeriodTab] = useState('summary');
   const [hasGeneratedReport, setHasGeneratedReport] = useState(false);
-  
-  // Estados para las fechas como Date objects (para DatePicker)
-  const [startDate, setStartDate] = useState<Date>(() => {
-    const date = new Date();
-    date.setDate(1);
-    return date;
-  });
-  const [endDate, setEndDate] = useState<Date>(() => new Date());
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+
+  function getDefaultReportDateRange() {
+    const end = new Date();
+    end.setHours(0, 0, 0, 0);
+    const start = new Date(end);
+    start.setDate(1);
+    return { start, end };
+  }
+
+  const [startDate, setStartDate] = useState<Date>(() => getDefaultReportDateRange().start);
+  const [endDate, setEndDate] = useState<Date>(() => getDefaultReportDateRange().end);
   
   // Filtros inmediatos (para mostrar en la UI)
   const [filters, setFilters] = useState({
@@ -327,10 +332,15 @@ export default function KioskReportsPage() {
     }
   }, [startDate, endDate, selectedVenueId, getSalesSummary, getTopProducts, getProfitabilityReport, getExpensesReport]);
 
-  // Handler para el botón "Generar Reporte"
   const handleGenerateReport = () => {
     setHasGeneratedReport(false);
     loadPeriodReports(activePeriodTab);
+  };
+
+  const clearReportFilters = () => {
+    const { start, end } = getDefaultReportDateRange();
+    setStartDate(start);
+    setEndDate(end);
   };
 
   return (
@@ -493,69 +503,35 @@ export default function KioskReportsPage() {
               </div>
             </div>
             
-            {/* Filtros */}
+            {/* Filtros: panel desplegable + resumen */}
             <Card className="border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
               <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
-                      {t('reports.startDate')}
-                    </Label>
-                    <DatePicker
-                      value={startDate}
-                      onChange={(date) => date && setStartDate(date)}
-                      placeholder={t('reports.startDate')}
-                      className="h-10 bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
-                      {t('reports.endDate')}
-                    </Label>
-                    <DatePicker
-                      value={endDate}
-                      onChange={(date) => date && setEndDate(date)}
-                      placeholder={t('reports.endDate')}
-                      className="h-10 bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600"
-                    />
-                  </div>
-
-                  <div className="flex items-end gap-3">
-                    {hasGeneratedReport && !isLoading && (
-                      <Badge 
-                        variant="outline" 
-                        className="border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-3 py-2 h-10 flex items-center gap-2 shadow-sm"
-                      >
-                        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        <div className="flex flex-col items-start">
-                          <span className="text-xs font-semibold leading-tight">
-                            {t('reports.generated')}
-                          </span>
-                          <span className="text-[10px] leading-tight text-green-600 dark:text-green-400">
-                            {format(startDate, 'dd MMM yyyy', { locale: es })} - {format(endDate, 'dd MMM yyyy', { locale: es })}
-                          </span>
-                        </div>
-                      </Badge>
-                    )}
-                    <Button
-                      onClick={handleGenerateReport}
-                      disabled={loadingPeriodReports}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 h-10 shadow-lg hover:shadow-xl transition-all"
+                <div className="flex flex-wrap items-center gap-4">
+                  <FilterBarPanel
+                    variant="reports"
+                    open={filterPanelOpen}
+                    onOpenChange={setFilterPanelOpen}
+                    startDate={startDate}
+                    endDate={endDate}
+                    onStartDateChange={(d) => d && setStartDate(d)}
+                    onEndDateChange={(d) => d && setEndDate(d)}
+                    onApply={handleGenerateReport}
+                    onClear={clearReportFilters}
+                    disabled={loadingPeriodReports}
+                    applyLabel={loadingPeriodReports ? undefined : t('reports.generate')}
+                  />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {t('filters.appliedRange')}: {format(startDate, 'dd MMM yyyy', { locale: es })} – {format(endDate, 'dd MMM yyyy', { locale: es })}
+                  </span>
+                  {hasGeneratedReport && !isLoading && (
+                    <Badge
+                      variant="outline"
+                      className="border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-3 py-2 h-9 flex items-center gap-2"
                     >
-                      {loadingPeriodReports ? (
-                        <>
-                          <span className="animate-spin mr-2">⏳</span>
-                          Generando...
-                        </>
-                      ) : (
-                        <>
-                          <BarChart3 className="w-4 h-4 mr-2" />
-                          Generar Reporte
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                      <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      <span className="text-xs font-semibold">{t('reports.generated')}</span>
+                    </Badge>
+                  )}
                 </div>
               </CardContent>
             </Card>

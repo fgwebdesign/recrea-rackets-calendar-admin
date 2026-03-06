@@ -129,7 +129,7 @@ export default function IntegrationsPanel() {
                       src={integration.icon}
                       alt={integration.name}
                       fill
-                      priority
+                      loading="lazy"
                       sizes="(max-width: 640px) 48px, 56px"
                       className="object-contain"
                     />

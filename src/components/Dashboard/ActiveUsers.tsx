@@ -46,6 +46,8 @@ export default function ActiveUsers() {
                   alt={user.first_name}
                   fill
                   className="object-cover"
+                  loading="lazy"
+                  sizes="40px"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">

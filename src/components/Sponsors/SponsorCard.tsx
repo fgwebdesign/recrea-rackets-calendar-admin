@@ -1,25 +1,12 @@
 import Image from 'next/image';
-import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, Pencil, ImageIcon } from "lucide-react";
+import { Trash2, Pencil, ImageIcon } from "lucide-react";
 
 interface SponsorCardProps {
   id: string;
   name: string;
-  logo_url: string;
+  logo_url?: string | null;
   onDelete: (sponsor: { id: string; name: string }) => void;
   onEdit: (sponsor: { id: string; name: string; logo_url: string }) => void;
-}
-
-const DEFAULT_SPONSOR_IMAGE = '/assets/default-sponsor.jpg';
-
-function getImageUrl(logoUrl: string | null) {
-  if (!logoUrl) return DEFAULT_SPONSOR_IMAGE;
-  try {
-    if (logoUrl.includes('supabase.co')) return logoUrl;
-    return DEFAULT_SPONSOR_IMAGE;
-  } catch {
-    return DEFAULT_SPONSOR_IMAGE;
-  }
 }
 
 export default function SponsorCard({ id, name, logo_url, onDelete, onEdit }: SponsorCardProps) {
@@ -32,7 +19,7 @@ export default function SponsorCard({ id, name, logo_url, onDelete, onEdit }: Sp
             alt={name}
             fill
             className="object-contain p-4"
-            priority={true}
+            loading="lazy"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         ) : (
@@ -47,7 +34,7 @@ export default function SponsorCard({ id, name, logo_url, onDelete, onEdit }: Sp
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{name}</h3>
           <div className="flex space-x-2">
             <button
-              onClick={() => onEdit({ id, name, logo_url })}
+              onClick={() => onEdit({ id, name, logo_url: logo_url ?? '' })}
               className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
             >
               <Pencil className="h-5 w-5" />

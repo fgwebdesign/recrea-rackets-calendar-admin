@@ -14,6 +14,7 @@ export const TournamentCard = ({ tournament, categories }: TournamentCardProps) 
   const MAX_TEAMS = 12;
   const teamsCount = tournament.tournament_teams?.length || 0;
   const progressPercentage = (teamsCount / MAX_TEAMS) * 100;
+  const info = tournament.tournament_info;
 
   return (
     <Link
@@ -22,12 +23,12 @@ export const TournamentCard = ({ tournament, categories }: TournamentCardProps) 
                 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group"
     >
       <div className="relative h-48">
-        {tournament.tournament_info[0]?.tournament_thumbnail ? (
+        {info?.tournament_thumbnail ? (
           <Image
-            src={tournament.tournament_info[0].tournament_thumbnail}
+            src={info.tournament_thumbnail}
             alt={tournament.name}
             fill
-            priority
+            loading="lazy"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover"
           />
@@ -65,11 +66,11 @@ export const TournamentCard = ({ tournament, categories }: TournamentCardProps) 
             </span>
           </div>
 
-          {tournament.tournament_info[0] && (
+          {info && (
             <>
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                <span className="text-sm">{tournament.tournament_info[0].tournament_club_name}</span>
+                <span className="text-sm">{info.tournament_club_name}</span>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center justify-between">

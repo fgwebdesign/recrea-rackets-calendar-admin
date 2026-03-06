@@ -26,7 +26,7 @@ const TournamentCard = ({ tournament }: TournamentCardProps) => {
               src={tournament.tournament_info[0].tournament_thumbnail}
               alt={tournament.name}
               fill
-              priority
+              loading="lazy"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="object-cover"
             />

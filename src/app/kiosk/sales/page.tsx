@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { Receipt, Search, Package, Calendar, MapPin, CreditCard, CheckCircle2, Clock, XCircle, User, FileText } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Receipt, Package, Calendar, MapPin, CreditCard, CheckCircle2, Clock, XCircle, User, FileText, ArrowUp, ArrowDown } from "lucide-react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Pagination,
@@ -18,36 +17,111 @@ import { useSales } from "@/hooks/useSales";
 import { useKioskVenue } from "@/contexts/KioskVenueContext";
 import { Sale, SaleFilters } from "@/types/kiosk";
 import { useTranslations } from '@/contexts/TranslationContext';
-import { Building2 } from "lucide-react";
-import { Label } from "@/components/ui/label";
 import { format } from 'date-fns';
+import { formatDateForInput } from '@/components/ui/date-picker';
+import { FilterBarPanel } from '@/components/Kiosk/FilterBarPanel';
 import { es } from 'date-fns/locale';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Printer } from "lucide-react";
 
+function getDefaultDateRange(): { start: Date; end: Date } {
+  const end = new Date();
+  end.setHours(0, 0, 0, 0);
+  const start = new Date(end);
+  start.setDate(1);
+  return { start, end };
+}
+
 export default function SalesPage() {
   const t = useTranslations('kiosk');
-  const { selectedVenueId, selectedVenue, setSelectedVenueId, venues, loading: loadingVenues } = useKioskVenue();
+  const { selectedVenueId, setSelectedVenueId, venues, loading: loadingVenues } = useKioskVenue();
   const SALES_PER_PAGE = 20;
+  const defaultRange = useMemo(() => getDefaultDateRange(), []);
+
   const [currentPage, setCurrentPage] = useState(1);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+
+  // Estado aplicado (lo que se envía al API y se muestra)
+  const [appliedStartDate, setAppliedStartDate] = useState<Date>(() => defaultRange.start);
+  const [appliedEndDate, setAppliedEndDate] = useState<Date>(() => defaultRange.end);
+  const [appliedPaymentMethod, setAppliedPaymentMethod] = useState<string | undefined>(undefined);
+  const [appliedPaymentStatus, setAppliedPaymentStatus] = useState<string | undefined>(undefined);
+  const [appliedSearch, setAppliedSearch] = useState('');
+
+  // Estado borrador (solo dentro del panel; se sincroniza al abrir)
+  const [draftStartDate, setDraftStartDate] = useState<Date>(() => defaultRange.start);
+  const [draftEndDate, setDraftEndDate] = useState<Date>(() => defaultRange.end);
+  const [draftPaymentMethod, setDraftPaymentMethod] = useState<string | undefined>(undefined);
+  const [draftPaymentStatus, setDraftPaymentStatus] = useState<string | undefined>(undefined);
+  const [draftSearch, setDraftSearch] = useState('');
+
+  const [dateOrder, setDateOrder] = useState<'asc' | 'desc'>('desc');
   const [filters, setFilters] = useState<SaleFilters>({
     limit: SALES_PER_PAGE,
     offset: 0,
-    venue_id: selectedVenueId
+    venue_id: selectedVenueId,
+    start_date: formatDateForInput(defaultRange.start),
+    end_date: formatDateForInput(defaultRange.end),
+    order: 'desc'
   });
-  
-  // Actualizar filtros cuando cambia el venue seleccionado
+
+  // Sincronizar borrador desde aplicado al abrir el panel
+  useEffect(() => {
+    if (filterPanelOpen) {
+      setDraftStartDate(appliedStartDate);
+      setDraftEndDate(appliedEndDate);
+      setDraftPaymentMethod(appliedPaymentMethod);
+      setDraftPaymentStatus(appliedPaymentStatus);
+      setDraftSearch(appliedSearch);
+    }
+  }, [filterPanelOpen, appliedStartDate, appliedEndDate, appliedPaymentMethod, appliedPaymentStatus, appliedSearch]);
+
+  const applyDraft = () => {
+    setAppliedStartDate(draftStartDate);
+    setAppliedEndDate(draftEndDate);
+    setAppliedPaymentMethod(draftPaymentMethod);
+    setAppliedPaymentStatus(draftPaymentStatus);
+    setAppliedSearch(draftSearch);
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    const { start, end } = getDefaultDateRange();
+    setDraftStartDate(start);
+    setDraftEndDate(end);
+    setDraftPaymentMethod(undefined);
+    setDraftPaymentStatus(undefined);
+    setDraftSearch('');
+    setAppliedStartDate(start);
+    setAppliedEndDate(end);
+    setAppliedPaymentMethod(undefined);
+    setAppliedPaymentStatus(undefined);
+    setAppliedSearch('');
+    setCurrentPage(1);
+  };
+
+  // Construir filters desde estado aplicado
+  useEffect(() => {
+    setFilters(prev => ({
+      ...prev,
+      start_date: formatDateForInput(appliedStartDate),
+      end_date: formatDateForInput(appliedEndDate),
+      payment_method: appliedPaymentMethod,
+      payment_status: appliedPaymentStatus,
+      order: dateOrder
+    }));
+  }, [appliedStartDate, appliedEndDate, appliedPaymentMethod, appliedPaymentStatus, dateOrder]);
+
   useEffect(() => {
     setFilters(prev => ({ ...prev, venue_id: selectedVenueId }));
   }, [selectedVenueId]);
-  
+
   const { sales, isLoading, fetchSales, getSaleById, pagination } = useSales(filters);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [showSaleModal, setShowSaleModal] = useState(false);
 
-  // Actualizar offset cuando cambia la página
   useEffect(() => {
     setFilters(prev => ({
       ...prev,
@@ -55,16 +129,32 @@ export default function SalesPage() {
     }));
   }, [currentPage]);
 
-  // Resetear a página 1 cuando cambian otros filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.venue_id, filters.payment_method, filters.payment_status]);
+  }, [selectedVenueId, appliedStartDate, appliedEndDate, appliedPaymentMethod, appliedPaymentStatus, dateOrder]);
+
+  const handleDateSort = () => {
+    setDateOrder(prev => (prev === 'desc' ? 'asc' : 'desc'));
+    setCurrentPage(1);
+  };
 
   useEffect(() => {
-    // Solo hacer fetch si los filters realmente cambiaron
     fetchSales(filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filters)]);
+
+  const activeFilterCount = [appliedPaymentMethod, appliedPaymentStatus, appliedSearch.trim()].filter(Boolean).length;
+
+  const salesToShow = useMemo(() => {
+    if (!appliedSearch.trim()) return sales;
+    const q = appliedSearch.trim().toLowerCase();
+    return sales.filter(sale => {
+      const saleNum = String(sale.sale_number ?? '').toLowerCase();
+      const customerName = [sale.customer?.first_name, sale.customer?.last_name].filter(Boolean).join(' ').toLowerCase();
+      const productNames = (sale.items ?? []).map(i => (i.product_name ?? '').toLowerCase()).join(' ');
+      return saleNum.includes(q) || customerName.includes(q) || productNames.includes(q);
+    });
+  }, [sales, appliedSearch]);
 
   // Calcular total de páginas
   const totalPages = pagination ? Math.ceil(pagination.total / SALES_PER_PAGE) : 1;
@@ -272,6 +362,10 @@ export default function SalesPage() {
     return labels[status] || status;
   };
 
+  const fromItem = (currentPage - 1) * SALES_PER_PAGE + 1;
+  const toItem = Math.min(currentPage * SALES_PER_PAGE, pagination?.total ?? 0);
+  const totalItems = pagination?.total ?? 0;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <Header
@@ -280,88 +374,80 @@ export default function SalesPage() {
         icon={<Receipt className="w-6 h-6" />}
       />
 
-      {/* Selector de Venue */}
-      {!loadingVenues && venues.length > 1 && (
-        <div className="mt-6 mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-4">
-            <Building2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <div className="flex-1">
-              <Label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
-                {t('sales.venue')}
-              </Label>
-              <Select 
-                value={selectedVenueId || 'all'} 
-                onValueChange={(value) => {
-                  const venueId = value === 'all' ? undefined : value;
-                  setSelectedVenueId(venueId);
-                  setFilters(prev => ({ ...prev, venue_id: venueId }));
-                }}
-              >
-                <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 w-64">
-                  <SelectValue placeholder={t('sales.allVenues')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('sales.allVenues')}</SelectItem>
-                  {venues.filter(v => v.is_active).map((venue) => (
-                    <SelectItem key={venue.id} value={venue.id}>
-                      {venue.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedVenue && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t('sales.selectedVenue')}: <span className="font-semibold">{selectedVenue.name}</span>
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filtros */}
-      <div className="mt-6 mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[200px]">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder={t('sales.searchPlaceholder')}
-                className="pl-10 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-              />
+      {/* Barra de filtros unificada (estilo Haptic: filtros principales visibles + expandir) */}
+      <div className="mt-6 mb-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="px-5 py-4 flex flex-wrap items-center gap-6">
+          {/* Filtros principales: Sede + Rango */}
+          <div className="flex flex-wrap items-center gap-4">
+            {!loadingVenues && venues.length > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                  {t('filters.salesIn')}
+                </span>
+                <Select
+                  value={selectedVenueId || 'all'}
+                  onValueChange={(value) => {
+                    const venueId = value === 'all' ? undefined : value;
+                    setSelectedVenueId(venueId);
+                  }}
+                >
+                  <SelectTrigger className="w-[200px] h-9 bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 rounded-lg text-sm font-medium">
+                    <SelectValue placeholder={t('sales.allVenues')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('sales.allVenues')}</SelectItem>
+                    {venues.filter(v => v.is_active).map((venue) => (
+                      <SelectItem key={venue.id} value={venue.id}>
+                        {venue.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <span className="text-gray-500 dark:text-gray-400">{t('filters.from')}</span>
+              <time dateTime={format(appliedStartDate, 'yyyy-MM-dd')} className="font-medium">
+                {format(appliedStartDate, 'dd MMM yyyy', { locale: es })}
+              </time>
+              <span className="text-gray-400 dark:text-gray-500">–</span>
+              <span className="text-gray-500 dark:text-gray-400">{t('filters.to')}</span>
+              <time dateTime={format(appliedEndDate, 'yyyy-MM-dd')} className="font-medium">
+                {format(appliedEndDate, 'dd MMM yyyy', { locale: es })}
+              </time>
             </div>
           </div>
 
-          <Select
-            value={filters.payment_method || 'all'}
-            onValueChange={(value) => setFilters(prev => ({ ...prev, payment_method: value === 'all' ? undefined : value }))}
-          >
-            <SelectTrigger className="w-[200px] bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
-              <SelectValue placeholder={t('sales.allPaymentMethods')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('sales.allPaymentMethods')}</SelectItem>
-              <SelectItem value="cash">{t('sales.paymentMethods.cash')}</SelectItem>
-              <SelectItem value="transfer">{t('sales.paymentMethods.transfer')}</SelectItem>
-              <SelectItem value="card">{t('sales.paymentMethods.card')}</SelectItem>
-              <SelectItem value="mercadopago">{t('sales.paymentMethods.mercadopago')}</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Botón expandir filtros (búsqueda, método, estado) */}
+          <FilterBarPanel
+            variant="sales"
+            open={filterPanelOpen}
+            onOpenChange={setFilterPanelOpen}
+            startDate={draftStartDate}
+            endDate={draftEndDate}
+            onStartDateChange={(d) => d && setDraftStartDate(d)}
+            onEndDateChange={(d) => d && setDraftEndDate(d)}
+            paymentMethod={draftPaymentMethod}
+            paymentStatus={draftPaymentStatus}
+            search={draftSearch}
+            onPaymentMethodChange={setDraftPaymentMethod}
+            onPaymentStatusChange={setDraftPaymentStatus}
+            onSearchChange={setDraftSearch}
+            onApply={applyDraft}
+            onClear={clearFilters}
+            disabled={isLoading}
+            activeFilterCount={activeFilterCount}
+            triggerLabel={t('filters.expandFilters')}
+          />
 
-          <Select
-            value={filters.payment_status || 'all'}
-            onValueChange={(value) => setFilters(prev => ({ ...prev, payment_status: value === 'all' ? undefined : value }))}
-          >
-            <SelectTrigger className="w-[200px] bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
-              <SelectValue placeholder={t('sales.allStatus')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('sales.allStatus')}</SelectItem>
-              <SelectItem value="completed">{t('sales.paymentStatus.completed')}</SelectItem>
-              <SelectItem value="pending">{t('sales.paymentStatus.pending')}</SelectItem>
-              <SelectItem value="cancelled">{t('sales.paymentStatus.cancelled')}</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Resumen a la derecha */}
+          {!isLoading && totalItems >= 0 && (
+            <div className="ml-auto text-sm text-gray-500 dark:text-gray-400">
+              {totalItems === 0
+                ? t('sales.noSales')
+                : `${t('filters.showing')} ${fromItem}–${toItem} ${t('filters.of')} ${totalItems} ${t('sales.sales')}`}
+            </div>
+          )}
         </div>
       </div>
 
@@ -370,7 +456,7 @@ export default function SalesPage() {
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
         </div>
-      ) : sales.length === 0 ? (
+      ) : salesToShow.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
           <Receipt className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
           <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
@@ -381,10 +467,10 @@ export default function SalesPage() {
           </p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700">
+            <table className="w-full" role="grid" aria-label={t('sales.title')}>
+              <thead className="bg-gray-50 dark:bg-gray-700/80">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {t('sales.saleNumber')}
@@ -392,8 +478,23 @@ export default function SalesPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {t('sales.product')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    {t('sales.date')}
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    aria-sort={dateOrder === 'asc' ? 'ascending' : 'descending'}
+                  >
+                    <button
+                      type="button"
+                      onClick={handleDateSort}
+                      className="inline-flex items-center gap-1.5 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500/50 rounded"
+                      aria-label={dateOrder === 'asc' ? 'Ordenar por fecha descendente' : 'Ordenar por fecha ascendente'}
+                    >
+                      {t('sales.date')}
+                      {dateOrder === 'desc' ? (
+                        <ArrowDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                      ) : (
+                        <ArrowUp className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                      )}
+                    </button>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {t('sales.customer')}
@@ -416,7 +517,7 @@ export default function SalesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {sales.map((sale, index) => {
+                {salesToShow.map((sale, index) => {
                   const items = sale.items || [];
                   const hasMultipleItems = items.length > 1;
                   // Prioridad para las primeras 10 imágenes visibles (primeras filas de la tabla)
@@ -535,14 +636,15 @@ export default function SalesPage() {
             </table>
           </div>
           
-          {/* Paginación */}
-          {totalPages > 1 && (
-            <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {t('sales.showing')} {((currentPage - 1) * SALES_PER_PAGE) + 1} {t('sales.to')} {Math.min(currentPage * SALES_PER_PAGE, pagination?.total || 0)} {t('sales.of')} {pagination?.total || 0} {t('sales.sales')}
-                </div>
-                <Pagination>
+          {/* Paginación: clara y accesible */}
+          <div className="px-5 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-wrap items-center justify-between gap-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400" aria-live="polite">
+              {totalItems === 0
+                ? t('sales.noSales')
+                : `${t('filters.showing')} ${fromItem}–${toItem} ${t('filters.of')} ${totalItems} ${t('sales.sales')}`}
+            </p>
+            {totalPages > 1 && (
+              <Pagination>
                   <PaginationContent>
                     <PaginationItem>
                       <PaginationPrevious 
@@ -589,9 +691,8 @@ export default function SalesPage() {
                     </PaginationItem>
                   </PaginationContent>
                 </Pagination>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 

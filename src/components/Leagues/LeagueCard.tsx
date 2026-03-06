@@ -77,6 +77,7 @@ export function LeagueCard({ league, categories }: LeagueCardProps) {
               fill
               className="object-cover rounded-lg"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              loading="lazy"
             />
           </div>
         )}

@@ -187,7 +187,7 @@ export function SponsorSelector({ selectedSponsors, onSponsorsChange, error }: S
                             alt={sponsor.name}
                             fill
                             className="object-contain p-1"
-                            priority={false}
+                            loading="lazy"
                             sizes="48px"
                           />
                         ) : (

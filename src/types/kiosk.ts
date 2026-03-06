@@ -228,7 +228,17 @@ export interface CreateProductData {
   }>;
 }
 
-export type UpdateProductData = Partial<CreateProductData>;
+export type UpdateProductData = Partial<CreateProductData> & {
+  stock_intake?: number;       // cantidad a sumar al stock actual (solo en edición)
+  stock_intake_notes?: string; // notas del ingreso
+};
+
+/** Respuesta del backend cuando se aplica un ingreso de stock en PUT /kiosk/products/:id */
+export interface StockIntakeApplied {
+  quantity_added: number;
+  previous_stock: number;
+  new_stock: number;
+}
 
 export interface CreateSaleData {
   items: Array<{
@@ -401,6 +411,8 @@ export interface SaleFilters {
   sale_context?: string;
   start_date?: string;
   end_date?: string;
+  /** Orden por fecha: 'asc' (más antigua primero) | 'desc' (más reciente primero). Default 'desc'. */
+  order?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
 }

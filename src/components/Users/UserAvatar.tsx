@@ -38,6 +38,7 @@ export default function UserAvatar({ name, avatar, className = "" }: UserAvatarP
           width={40}
           height={40}
           className="object-cover w-full h-full"
+          loading="lazy"
         />
       </div>
     );

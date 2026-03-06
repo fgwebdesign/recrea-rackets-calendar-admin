@@ -416,7 +416,7 @@ export default function VenueForm({ isOpen, onClose, onSubmit, venue }: VenueFor
                       alt="Preview"
                       fill
                       className="object-cover rounded-md"
-                      priority
+                      loading="lazy"
                       quality={90}
                       sizes="(max-width: 1024px) 100vw, 33vw"
                       unoptimized={previewUrl?.startsWith('blob:') || previewUrl?.startsWith('data:')}

@@ -142,6 +142,8 @@ export default function EditCourtModal({ isOpen, onClose, onSubmit, court }: Edi
                       fill
                       className="object-cover rounded-md"
                       unoptimized
+                      loading="lazy"
+                      sizes="200px"
                     />
                   </div>
                 ) : (

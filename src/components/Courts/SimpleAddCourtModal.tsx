@@ -180,6 +180,8 @@ export default function SimpleAddCourtModal({ isOpen, onClose, onSubmit, initial
                       fill
                       className="object-contain rounded-lg"
                       unoptimized
+                      loading="lazy"
+                      sizes="200px"
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                       <button

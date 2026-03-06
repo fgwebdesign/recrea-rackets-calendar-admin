@@ -397,6 +397,8 @@ export default function TournamentsPage() {
                         alt={tournament.name}
                         fill
                         className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                        loading="lazy"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                       
                       {/* 🏷️ Badges superpuestos */}
@@ -527,6 +529,7 @@ export default function TournamentsPage() {
                                        fill
                                        className="object-contain p-1"
                                        sizes="32px"
+                                       loading="lazy"
                                      />
                                    ) : (
                                      <div className="flex items-center justify-center h-full bg-gray-100 dark:bg-gray-800">

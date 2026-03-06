@@ -242,6 +242,7 @@ export function VenueSelector({ selectedVenues, onChange }: VenueSelectorProps) 
                                 fill
                                 className="object-cover"
                                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                                loading="lazy"
                               />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center">

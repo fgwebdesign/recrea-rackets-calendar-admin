@@ -200,7 +200,12 @@
       "pagination": {
         "previous": "Anterior",
         "next": "Siguiente"
-      }
+      },
+      "stockIntake": "Ingreso de stock",
+      "stockIntakePlaceholder": "Ej: 24",
+      "stockIntakeHelp": "Si la distribuidora repone mercadería, ingresá la cantidad recibida. Se sumará al stock actual.",
+      "stockIntakeNotes": "Notas del ingreso",
+      "stockIntakeNotesPlaceholder": "Ej: Reposición distribuidora X"
     },
     "pos": {
       "title": "Punto de Venta",

@@ -38,6 +38,8 @@ export function GalleryPreview({ images, onRemove, onCaptionChange }: GalleryPre
                 alt={image.caption || image.file.name}
                 fill
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
+                loading="lazy"
+                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
               />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>

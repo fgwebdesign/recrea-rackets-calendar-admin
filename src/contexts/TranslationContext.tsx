@@ -306,6 +306,19 @@ const translations: Record<Locale, Record<string, any>> = {
     kiosk: {
       title: 'Kiosco',
       description: 'Sistema de ventas y gestión de productos',
+      filters: {
+        filters: 'Filtros',
+        expandFilters: 'Expandir filtros',
+        clearFilters: 'Limpiar filtros',
+        apply: 'Aplicar',
+        appliedRange: 'Rango aplicado',
+        dateRange: 'Rango de fechas',
+        salesIn: 'Ventas en',
+        from: 'Desde',
+        to: 'Hasta',
+        showing: 'Mostrando',
+        of: 'de'
+      },
       // Dashboard Widget
       lowStock: 'Stock Bajo',
       totalSales: 'Total Ventas',
@@ -424,6 +437,11 @@ const translations: Record<Locale, Record<string, any>> = {
         addProductDescription: 'Crea un nuevo producto para el kiosco',
         editProductDescription: 'Edita los detalles del producto',
         deleteConfirmation: '¿Estás seguro de eliminar el producto "{name}"?',
+        stockIntake: 'Ingreso de stock',
+        stockIntakePlaceholder: 'Ej: 24',
+        stockIntakeHelp: 'Si la distribuidora repone mercadería, ingresá la cantidad recibida. Se sumará al stock actual.',
+        stockIntakeNotes: 'Notas del ingreso',
+        stockIntakeNotesPlaceholder: 'Ej: Reposición distribuidora X',
         pagination: {
           previous: 'Anterior',
           next: 'Siguiente'
@@ -1887,6 +1905,19 @@ const translations: Record<Locale, Record<string, any>> = {
     kiosk: {
       title: 'Kiosk',
       description: 'Sales system and product management',
+      filters: {
+        filters: 'Filters',
+        expandFilters: 'Expand filters',
+        clearFilters: 'Clear filters',
+        apply: 'Apply',
+        appliedRange: 'Applied range',
+        dateRange: 'Date range',
+        salesIn: 'Sales in',
+        from: 'From',
+        to: 'To',
+        showing: 'Showing',
+        of: 'of'
+      },
       // Dashboard Widget
       lowStock: 'Low Stock',
       totalSales: 'Total Sales',
@@ -2005,6 +2036,11 @@ const translations: Record<Locale, Record<string, any>> = {
         addProductDescription: 'Create a new product for the kiosk',
         editProductDescription: 'Edit product details',
         deleteConfirmation: 'Are you sure you want to delete product "{name}"?',
+        stockIntake: 'Stock intake',
+        stockIntakePlaceholder: 'e.g. 24',
+        stockIntakeHelp: 'If the distributor restocks, enter the quantity received. It will be added to current stock.',
+        stockIntakeNotes: 'Intake notes',
+        stockIntakeNotesPlaceholder: 'e.g. Restock from distributor X',
         pagination: {
           previous: 'Previous',
           next: 'Next'

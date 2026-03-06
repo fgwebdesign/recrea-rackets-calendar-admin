@@ -21,6 +21,8 @@ export function TVLayout({ title, children, showExit = false, onExit }: TVLayout
               alt="Matchly"
               fill
               className="object-contain p-1.5"
+              priority
+              sizes="44px"
             />
           </div>
           <h1 className="font-orbitron text-xl sm:text-2xl font-bold tracking-wide text-white drop-shadow-sm truncate max-w-[55vw]">

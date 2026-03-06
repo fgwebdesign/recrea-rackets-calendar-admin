@@ -60,6 +60,8 @@ export default function SponsorsGrid() {
                 alt={sponsor.name}
                 fill
                 className="object-contain p-3"
+                loading="lazy"
+                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
               />
             </div>
             <div className="flex items-center justify-between">

@@ -384,6 +384,8 @@ export default function TournamentPage({ params }: PageProps) {
                       alt={tournament.name}
                       fill
                       className="object-cover"
+                      priority
+                      sizes="(max-width: 768px) 100vw, 144px"
                     />
                   ) : (
                     <TrophyIcon className="h-16 w-16 sm:h-20 sm:w-20 text-white/90" />
@@ -612,7 +614,7 @@ export default function TournamentPage({ params }: PageProps) {
                           <div key={index} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
                             {sponsor.logo_url && (
                               <div className="relative h-6 w-6 rounded overflow-hidden flex-shrink-0">
-                                <Image src={sponsor.logo_url} alt={sponsor.name} fill className="object-contain" sizes="24px" />
+                                <Image src={sponsor.logo_url} alt={sponsor.name} fill className="object-contain" sizes="24px" loading="lazy" />
                               </div>
                             )}
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{sponsor.name}</span>

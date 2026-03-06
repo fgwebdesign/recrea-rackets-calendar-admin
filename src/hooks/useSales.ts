@@ -42,6 +42,7 @@ export function useSales(filters?: SaleFilters) {
       if (activeFilters.sale_context) params.append('sale_context', activeFilters.sale_context);
       if (activeFilters.start_date) params.append('start_date', activeFilters.start_date);
       if (activeFilters.end_date) params.append('end_date', activeFilters.end_date);
+      if (activeFilters.order) params.append('order', activeFilters.order);
       if (activeFilters.limit) params.append('limit', String(activeFilters.limit));
       if (activeFilters.offset) params.append('offset', String(activeFilters.offset));
 
