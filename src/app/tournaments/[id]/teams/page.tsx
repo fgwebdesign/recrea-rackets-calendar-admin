@@ -222,6 +222,7 @@ export default function TournamentTeamsPage() {
                       team={team} 
                       index={index}
                       tournamentStartDate={tournament?.start_date}
+                      isAmericano={isAmericano}
                     />
                   ))}
                 </div>

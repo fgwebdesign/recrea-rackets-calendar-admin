@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Swords, AlertCircle, X, Info, CheckCircle2 } from 'lucide-react';
+import { Trophy, Swords, AlertCircle, Info, CheckCircle2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { TournamentMatch } from '@/types/tournament';
+import { TournamentMatch, Team, TournamentTeam } from '@/types/tournament';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -19,7 +19,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 
 interface SetScore {
   team1: number | null;
@@ -31,8 +30,8 @@ interface TournamentMatchModalProps {
   isOpen: boolean;
   onClose: () => void;
   match: TournamentMatch;
-  teams: any[];
-  onSubmit: (matchId: string, result: any) => void;
+  teams: TournamentTeam[];
+  onSubmit: (matchId: string, result: Record<string, unknown>) => void;
   isLoading?: boolean;
   error?: string | null;
   success?: string | null;
@@ -54,73 +53,36 @@ export function TournamentMatchModal({
   const [superTiebreak, setSuperTiebreak] = useState<{ team1: number; team2: number } | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  // Obtener equipo por ID
-  const getTeamById = (teamId: string): any => {
-    console.log(`🔍 Modal - Buscando equipo ${teamId} en teams:`, teams);
-    if (!Array.isArray(teams)) {
-      console.log('❌ Modal - teams no es un array:', teams);
-      return null;
-    }
-    const foundTeam = teams.find(team => team.team_id === teamId);
-    console.log(`🔍 Modal - Equipo encontrado:`, foundTeam);
-    return foundTeam || null;
+  const getTeamById = (teamId: string): TournamentTeam | null => {
+    if (!Array.isArray(teams)) return null;
+    return teams.find((t) => t.team_id === teamId) ?? null;
   };
 
-  // Formatear nombres de jugadores
-  const formatPlayerNames = (team: any): string => {
-    console.log(`🔍 Modal - Formateando nombres para equipo:`, team);
-    if (!team) {
-      console.log('❌ Modal - Equipo no encontrado');
-      return 'Equipo no encontrado';
-    }
-    
+  const formatEmbeddedTeam = (team: Team | null | undefined): string => {
+    if (!team || (!team.player1 && !team.player2)) return 'Equipo no encontrado';
+    const name1 = team.player1 ? `${team.player1.first_name ?? ''} ${team.player1.last_name ?? ''}`.trim() : '';
+    const name2 = team.player2 ? `${team.player2.first_name ?? ''} ${team.player2.last_name ?? ''}`.trim() : '';
+    if (!name1 && !name2) return 'Jugadores no disponibles';
+    return name2 ? `${name1} / ${name2}` : name1;
+  };
+
+  const formatPlayerNames = (team: TournamentTeam | null): string => {
+    if (!team) return 'Equipo no encontrado';
     const player1 = team.teams?.player1;
     const player2 = team.teams?.player2;
-    
-    console.log(`🔍 Modal - Jugadores:`, { player1, player2 });
-    
-    if (!player1 || !player2) {
-      console.log('❌ Modal - Jugadores faltantes');
-      return 'Jugadores no disponibles';
-    }
-    
-    const name1 = `${player1.first_name || ''} ${player1.last_name || ''}`.trim();
-    const name2 = `${player2.first_name || ''} ${player2.last_name || ''}`.trim();
-    
-    const result = `${name1} / ${name2}`;
-    console.log(`✅ Modal - Nombre formateado: ${result}`);
-    return result;
+    if (!player1 && !player2) return 'Jugadores no disponibles';
+    const name1 = player1 ? `${player1.first_name ?? ''} ${player1.last_name ?? ''}`.trim() : '';
+    const name2 = player2 ? `${player2.first_name ?? ''} ${player2.last_name ?? ''}`.trim() : '';
+    if (!name2) return name1 || 'Jugadores no disponibles';
+    return `${name1} / ${name2}`;
   };
 
-  const homeTeamName = formatPlayerNames(getTeamById(match.home_team_id));
-  const awayTeamName = formatPlayerNames(getTeamById(match.away_team_id));
-
-  // ===== DEBUG: Verificar nombres finales =====
-  console.log(`🎯 Modal - Nombres finales:`);
-  console.log(`  - Home Team: "${homeTeamName}"`);
-  console.log(`  - Away Team: "${awayTeamName}"`);
-  console.log(`  - Match ID: ${match.id}`);
-  console.log(`  - Modal isOpen: ${isOpen}`);
+  const homeTeamName = match.home_team ? formatEmbeddedTeam(match.home_team) : formatPlayerNames(getTeamById(match.home_team_id));
+  const awayTeamName = match.away_team ? formatEmbeddedTeam(match.away_team) : formatPlayerNames(getTeamById(match.away_team_id));
 
   useEffect(() => {
     setLocalError(null);
-    
-    // ===== DEBUG: Ver datos del partido =====
-    console.log(`🔍 Modal - Datos del partido:`, {
-      id: match.id,
-      status: match.status,
-      team1_sets1_won: match.team1_sets1_won,
-      team2_sets1_won: match.team2_sets1_won,
-      team1_sets2_won: match.team1_sets2_won,
-      team2_sets2_won: match.team2_sets2_won,
-      team1_tie1_won: match.team1_tie1_won,
-      team2_tie1_won: match.team2_tie1_won,
-      team1_tie2_won: match.team1_tie2_won,
-      team2_tie2_won: match.team2_tie2_won,
-      team1_tie3_won: match.team1_tie3_won,
-      team2_tie3_won: match.team2_tie3_won
-    });
-    
+
     // Inicializar con datos existentes del partido
     const set1Data = {
       team1: match.team1_sets1_won || null,
@@ -144,13 +106,7 @@ export function TournamentMatchModal({
       team1: match.team1_tie3_won || 0,
       team2: match.team2_tie3_won || 0
     } : null;
-    
-    console.log(`🔍 Modal - Datos inicializados:`, {
-      set1: set1Data,
-      set2: set2Data,
-      superTiebreak: superTiebreakData
-    });
-    
+
     setSet1(set1Data);
     setSet2(set2Data);
     setSuperTiebreak(superTiebreakData);
@@ -185,35 +141,6 @@ export function TournamentMatchModal({
     if (set.team1 > set.team2 && set.team1 >= 6 && (set.team1 - set.team2 >= 2)) return 1;
     if (set.team2 > set.team1 && set.team2 >= 6 && (set.team2 - set.team1 >= 2)) return 2;
     return 0;
-  };
-
-  const getMatchWinner = (): { winner: string | null; setsWon: { team1: number, team2: number } } => {
-    const set1Winner = getSetWinner(set1);
-    const set2Winner = getSetWinner(set2);
-    
-    const setsWon = {
-      team1: (set1Winner === 1 ? 1 : 0) + (set2Winner === 1 ? 1 : 0),
-      team2: (set1Winner === 2 ? 1 : 0) + (set2Winner === 2 ? 1 : 0)
-    };
-
-    // If super tiebreak is played and has valid scores
-    if (superTiebreak && superTiebreak.team1 !== null && superTiebreak.team2 !== null) {
-      if (superTiebreak.team1 > superTiebreak.team2) {
-        return { winner: match.home_team_id, setsWon };
-      } else if (superTiebreak.team2 > superTiebreak.team1) {
-        return { winner: match.away_team_id, setsWon };
-      }
-      return { winner: null, setsWon };
-    }
-
-    // If no super tiebreak, check sets won
-    if (setsWon.team1 > setsWon.team2) {
-      return { winner: match.home_team_id, setsWon };
-    } else if (setsWon.team2 > setsWon.team1) {
-      return { winner: match.away_team_id, setsWon };
-    }
-
-    return { winner: null, setsWon };
   };
 
   const showSuperTiebreak = getSetWinner(set1) && getSetWinner(set2) && getSetWinner(set1) !== getSetWinner(set2);

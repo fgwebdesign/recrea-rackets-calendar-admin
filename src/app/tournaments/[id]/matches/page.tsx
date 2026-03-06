@@ -63,6 +63,7 @@ export default function TournamentMatchesPage() {
   
   const { tournament, matches, teams, loading, error, refetch } = useTournament(tournamentId);
   const { categories } = useCategories();
+  const isAmericano = tournament?.tournament_type === 'AMERICANO';
   const { toast } = useToast();
   const [isGeneratingMatches, setIsGeneratingMatches] = useState(false);
   const [isSchedulingMatches, setIsSchedulingMatches] = useState(false);
@@ -195,19 +196,38 @@ export default function TournamentMatchesPage() {
     return team;
   };
 
-  // Formatear nombres de jugadores
+  // Formatear nombres cuando el partido trae home_team/away_team embebidos (ej. americano)
+  const formatEmbeddedTeamNames = (team: { player1?: { first_name?: string; last_name?: string }; player2?: { first_name?: string; last_name?: string } } | null | undefined): string => {
+    if (!team) return 'Equipo no encontrado';
+    const p1 = team.player1;
+    const p2 = team.player2;
+    const name1 = p1 ? `${p1.first_name || ''} ${p1.last_name || ''}`.trim() : '';
+    const name2 = p2 ? `${p2.first_name || ''} ${p2.last_name || ''}`.trim() : '';
+    if (!name1 && !name2) return 'Jugadores no disponibles';
+    if (!name2) return name1;
+    return `${name1} / ${name2}`;
+  };
+
+  // Formatear nombres de jugadores (equipo desde listado tournament_teams)
   const formatPlayerNames = (team: { teams?: { player1?: { first_name?: string; last_name?: string }; player2?: { first_name?: string; last_name?: string } } } | null): string => {
     if (!team) return 'Equipo no encontrado';
-    
-    const player1 = team.teams?.player1;
-    const player2 = team.teams?.player2;
-    
-    if (!player1 || !player2) return 'Jugadores no disponibles';
-    
-    const name1 = `${player1.first_name || ''} ${player1.last_name || ''}`.trim();
-    const name2 = `${player2.first_name || ''} ${player2.last_name || ''}`.trim();
-    
-    return `${name1} / ${name2}`;
+    if (team.teams && (team.teams.player1 || team.teams.player2)) {
+      const player1 = team.teams.player1;
+      const player2 = team.teams.player2;
+      const name1 = player1 ? `${player1.first_name || ''} ${player1.last_name || ''}`.trim() : '';
+      const name2 = player2 ? `${player2.first_name || ''} ${player2.last_name || ''}`.trim() : '';
+      if (!name1 && !name2) return 'Jugadores no disponibles';
+      if (!name2) return name1;
+      return `${name1} / ${name2}`;
+    }
+    return 'Jugadores no disponibles';
+  };
+
+  const getMatchTeamLabel = (match: TournamentMatch, side: 'home' | 'away'): string => {
+    const embedded = side === 'home' ? match.home_team : match.away_team;
+    if (embedded && (embedded.player1 || embedded.player2)) return formatEmbeddedTeamNames(embedded);
+    const teamId = side === 'home' ? match.home_team_id : match.away_team_id;
+    return formatPlayerNames(getTeamById(teamId));
   };
 
   // Función para obtener la fecha del calendario según el día del torneo
@@ -615,21 +635,23 @@ export default function TournamentMatchesPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <TabsList className="grid grid-cols-3 w-auto bg-gray-100 dark:bg-gray-700">
+              <TabsList className={`grid w-auto bg-gray-100 dark:bg-gray-700 ${isAmericano ? 'grid-cols-2' : 'grid-cols-3'}`}>
                 <TabsTrigger 
                   value="groups" 
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-blue-400"
                 >
                   <Users className="h-4 w-4" />
-                  Partidos de Grupos
+                  {isAmericano ? 'Partidos por ronda' : 'Partidos de Grupos'}
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="bracket" 
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-blue-400"
-                >
-                  <Trophy className="h-4 w-4" />
-                  Bracket Eliminatorio
-                </TabsTrigger>
+                {!isAmericano && (
+                  <TabsTrigger 
+                    value="bracket" 
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-blue-400"
+                  >
+                    <Trophy className="h-4 w-4" />
+                    Bracket Eliminatorio
+                  </TabsTrigger>
+                )}
                 <TabsTrigger 
                   value="manual" 
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-blue-400"
@@ -833,13 +855,15 @@ export default function TournamentMatchesPage() {
                       ).map(([groupKey, groupMatches]) => (
                         <div key={groupKey}>
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                            {groupKey === 'sin_grupo' ? 'Partidos Sin Grupo' : `Grupo ${groupKey}`}
+                            {groupKey === 'sin_grupo'
+                              ? (isAmericano ? 'Partidos sin ronda' : 'Partidos Sin Grupo')
+                              : (isAmericano ? `Ronda ${groupKey}` : `Grupo ${groupKey}`)}
                           </h3>
                           
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {groupMatches.map((match) => {
-                        const homeTeam = getTeamById(match.home_team_id);
-                        const awayTeam = getTeamById(match.away_team_id);
+                        const homeLabel = getMatchTeamLabel(match, 'home');
+                        const awayLabel = getMatchTeamLabel(match, 'away');
                         const isShowingForm = showResultForm === match.id;
                         const result = matchResults[match.id];
                         
@@ -906,11 +930,11 @@ export default function TournamentMatchesPage() {
                                     <div className={`rounded p-2 ${getMatchWinner(match) === 'home' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-white dark:bg-gray-800'}`}>
                                       <div className="flex items-center gap-2 mb-2">
                                         <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                          {formatPlayerNames(homeTeam).charAt(0)}
+                                          {homeLabel.charAt(0)}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                           <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
-                                            {formatPlayerNames(homeTeam)}
+                                            {homeLabel}
                                           </p>
                                         </div>
                                         {getMatchWinner(match) === 'home' && (
@@ -971,11 +995,11 @@ export default function TournamentMatchesPage() {
                                     <div className={`rounded p-2 ${getMatchWinner(match) === 'away' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-white dark:bg-gray-800'}`}>
                                       <div className="flex items-center gap-2 mb-2">
                                         <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                          {formatPlayerNames(awayTeam).charAt(0)}
+                                          {awayLabel.charAt(0)}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                           <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
-                                            {formatPlayerNames(awayTeam)}
+                                            {awayLabel}
                                           </p>
                                         </div>
                                         {getMatchWinner(match) === 'away' && (
@@ -1309,8 +1333,8 @@ export default function TournamentMatchesPage() {
                               </thead>
                               <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
                                 {roundMatches.map((match) => {
-                                  const homeTeam = getTeamById(match.home_team_id);
-                                  const awayTeam = getTeamById(match.away_team_id);
+                                  const homeLabel = getMatchTeamLabel(match, 'home');
+                                  const awayLabel = getMatchTeamLabel(match, 'away');
                                   const winner = getMatchWinner(match);
                                   
                                   return (
@@ -1335,10 +1359,10 @@ export default function TournamentMatchesPage() {
                                         <div className="space-y-2">
                                           <div className={`flex items-center gap-2 ${winner === 'home' ? 'font-semibold text-green-700 dark:text-green-400' : ''}`}>
                                             <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                              {formatPlayerNames(homeTeam).charAt(0)}
+                                              {homeLabel.charAt(0)}
                                             </div>
                                             <span className="text-sm truncate">
-                                              {formatPlayerNames(homeTeam)}
+                                              {homeLabel}
                                             </span>
                                             {winner === 'home' && <Trophy className="h-4 w-4 text-green-600" />}
                                           </div>
@@ -1347,10 +1371,10 @@ export default function TournamentMatchesPage() {
                                           
                                           <div className={`flex items-center gap-2 ${winner === 'away' ? 'font-semibold text-green-700 dark:text-green-400' : ''}`}>
                                             <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                              {formatPlayerNames(awayTeam).charAt(0)}
+                                              {awayLabel.charAt(0)}
                                             </div>
                                             <span className="text-sm truncate">
-                                              {formatPlayerNames(awayTeam)}
+                                              {awayLabel}
                                             </span>
                                             {winner === 'away' && <Trophy className="h-4 w-4 text-green-600" />}
                                           </div>

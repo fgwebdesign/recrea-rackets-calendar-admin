@@ -6,11 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { 
   TrophyIcon, 
   ClockIcon, 
-  MapPinIcon,
   UsersIcon,
   CheckIcon,
   XMarkIcon,
@@ -18,12 +16,13 @@ import {
   CalendarIcon
 } from '@heroicons/react/24/outline'
 import { cn } from '@/lib/utils'
+import { TournamentMatch, TournamentTeam } from '@/types/tournament'
 
 interface MatchResultModalProps {
   isOpen: boolean
   onClose: () => void
-  match: any
-  teams: any[]
+  match: TournamentMatch | null
+  teams: TournamentTeam[]
   onSave: (result: MatchResult) => Promise<void>
   loading?: boolean
 }
@@ -98,6 +97,7 @@ export default function MatchResultModal({
   // Validaciones en tiempo real
   useEffect(() => {
     validateResult()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- validateResult depende de result, ya en deps
   }, [result])
 
   const validateResult = () => {
@@ -202,17 +202,15 @@ export default function MatchResultModal({
     setResult(prev => ({ ...prev, [field]: numValue }))
   }
 
-  const calculateWinner = () => {
+  const calculateWinner = (): string => {
+    if (!match) return ''
     const team1SetsWon = (result.team1_sets1_won > result.team2_sets1_won ? 1 : 0) + 
                         (result.team1_sets2_won > result.team2_sets2_won ? 1 : 0)
     const team2SetsWon = (result.team2_sets1_won > result.team1_sets1_won ? 1 : 0) + 
                         (result.team2_sets2_won > result.team1_sets2_won ? 1 : 0)
 
-    if (team1SetsWon > team2SetsWon) {
-      return match.home_team_id
-    } else if (team2SetsWon > team1SetsWon) {
-      return match.away_team_id
-    }
+    if (team1SetsWon > team2SetsWon) return match.home_team_id
+    if (team2SetsWon > team1SetsWon) return match.away_team_id
     return ''
   }
 
@@ -232,25 +230,33 @@ export default function MatchResultModal({
                   (result.team1_sets1_won > 0 || result.team2_sets1_won > 0 || 
                    result.team1_sets2_won > 0 || result.team2_sets2_won > 0)
 
-  // Obtener equipo por ID
-  const getTeamById = (teamId: string): any => {
+  const getTeamById = (teamId: string): TournamentTeam | null => {
     if (!Array.isArray(teams)) return null
-    return teams.find(team => team.team_id === teamId) || null
+    return teams.find((t) => t.team_id === teamId) ?? null
   }
 
-  const formatPlayerNames = (team: any): string => {
-    if (!team) return 'Equipo no encontrado'
-    
-    const player1 = team.teams?.player1
-    const player2 = team.teams?.player2
-    
-    if (!player1 || !player2) return 'Jugadores no disponibles'
-    
-    const name1 = `${player1.first_name || ''} ${player1.last_name || ''}`.trim()
-    const name2 = `${player2.first_name || ''} ${player2.last_name || ''}`.trim()
-    
+  const formatEmbeddedTeam = (team: { player1?: { first_name?: string; last_name?: string }; player2?: { first_name?: string; last_name?: string } } | null | undefined): string => {
+    if (!team || (!team.player1 && !team.player2)) return 'Equipo no encontrado'
+    const name1 = team.player1 ? `${team.player1.first_name || ''} ${team.player1.last_name || ''}`.trim() : ''
+    const name2 = team.player2 ? `${team.player2.first_name || ''} ${team.player2.last_name || ''}`.trim() : ''
+    if (!name1 && !name2) return 'Jugadores no disponibles'
+    if (!name2) return name1
     return `${name1} / ${name2}`
   }
+
+  const formatPlayerNames = (team: TournamentTeam | null): string => {
+    if (!team) return 'Equipo no encontrado'
+    const player1 = team.teams?.player1
+    const player2 = team.teams?.player2
+    if (!player1 && !player2) return 'Jugadores no disponibles'
+    const name1 = player1 ? `${player1.first_name || ''} ${player1.last_name || ''}`.trim() : ''
+    const name2 = player2 ? `${player2.first_name || ''} ${player2.last_name || ''}`.trim() : ''
+    if (!name2) return name1 || 'Jugadores no disponibles'
+    return `${name1} / ${name2}`
+  }
+
+  const homeTeamName = match?.home_team ? formatEmbeddedTeam(match.home_team) : formatPlayerNames(getTeamById(match?.home_team_id ?? ''))
+  const awayTeamName = match?.away_team ? formatEmbeddedTeam(match.away_team) : formatPlayerNames(getTeamById(match?.away_team_id ?? ''))
 
   if (!match) return null
 
@@ -285,7 +291,7 @@ export default function MatchResultModal({
                       L
                     </div>
                     <span className="font-medium text-gray-900 dark:text-gray-100">
-                      {formatPlayerNames(getTeamById(match.home_team_id))}
+                      {homeTeamName}
                     </span>
                   </div>
                 </div>
@@ -300,7 +306,7 @@ export default function MatchResultModal({
                       V
                     </div>
                     <span className="font-medium text-gray-900 dark:text-gray-100">
-                      {formatPlayerNames(getTeamById(match.away_team_id))}
+                      {awayTeamName}
                     </span>
                   </div>
                 </div>

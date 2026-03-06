@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, RefreshCw, Plus, Settings, Loader2 } from 'lucide-react';
+import { AlertCircle, RefreshCw, Plus, Settings, Loader2, Play } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getCategoryName } from '@/utils/category';
 import { toast } from '@/components/ui/use-toast';
@@ -19,6 +19,7 @@ export default function TournamentGroupsPage() {
   const router = useRouter();
   const tournamentId = params.id as string;
   const [isGeneratingGroups, setIsGeneratingGroups] = useState(false);
+  const [isGeneratingAmericanoMatches, setIsGeneratingAmericanoMatches] = useState(false);
 
   const { 
     tournament, 
@@ -194,6 +195,7 @@ export default function TournamentGroupsPage() {
     );
   }
 
+  const isAmericano = tournament?.tournament_type === 'AMERICANO';
   const totalTeams = Array.isArray(teams) ? teams.length : 0;
   const totalGroups = Array.isArray(groups) ? groups.length : 0;
   const teamsPerGroup = totalGroups > 0 ? Math.ceil(totalTeams / totalGroups) : 0;
@@ -204,13 +206,125 @@ export default function TournamentGroupsPage() {
       case 'NINE_PLAYERS': return 9;
       case 'TWELVE_PLAYERS': return 12;
       case 'SIXTEEN_PLAYERS': return 16;
+      case 'AMERICANO': return tournament?.max_teams ?? 8;
       default: return 9;
     }
   };
 
   const tournamentCapacity = tournament?.tournament_type ? getTournamentCapacity(tournament.tournament_type) : 9;
   const isTournamentFull = totalTeams >= tournamentCapacity;
-  const canGenerateGroups = isTournamentFull && totalGroups === 0; // ✅ Solo permitir generar si NO hay grupos existentes
+  const canGenerateGroups = !isAmericano && isTournamentFull && totalGroups === 0; // ✅ Solo permitir generar si NO hay grupos existentes (y no es americano)
+
+  const handleGenerateAmericanoMatches = async () => {
+    setIsGeneratingAmericanoMatches(true);
+    try {
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        throw new Error('No estás autenticado');
+      }
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/tournaments/${tournamentId}/generate-americano-matches`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Error al generar partidos');
+      toast({
+        title: 'Partidos generados',
+        description: data.message ?? `Se generaron ${data.matches_count ?? 0} partidos en ${data.rounds_count ?? 0} rondas.`,
+        variant: 'default',
+      });
+      await refetch();
+      router.push(`/tournaments/${tournamentId}/matches`);
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Error al generar partidos del americano',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGeneratingAmericanoMatches(false);
+    }
+  };
+
+  const canGenerateAmericanoMatches = isAmericano && totalGroups === 0 && [4, 8, 12, 16].includes(totalTeams);
+
+  // Vista específica para torneo americano: no hay grupos fijos, las parejas rotan por ronda
+  if (isAmericano) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <Button
+              variant="ghost"
+              onClick={() => router.push(`/tournaments/${tournamentId}`)}
+              className="mb-4 p-0 h-auto font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              <ArrowLeftIcon className="h-4 w-4 mr-2" />
+              Volver al torneo
+            </Button>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Rondas - {tournament?.name || 'Torneo Americano'}
+            </h1>
+            <div className="flex items-center gap-3 mt-2">
+              <Badge variant="outline" className="bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800">
+                Americano
+              </Badge>
+              <Badge variant="outline" className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                {getCategoryName(tournament?.category_id || '', categories)}
+              </Badge>
+            </div>
+          </div>
+
+          <Card className="border-2 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10 mb-8">
+            <CardContent className="p-6">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                <div className="p-3 rounded-xl bg-amber-100 dark:bg-amber-900/30">
+                  <UsersIcon className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    En el torneo americano no hay grupos fijos
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    Cada jugador compite de forma individual. En cada ronda se forman parejas distintas (rotación): todos juegan con todos a lo largo del torneo. Los partidos y las parejas por ronda se gestionan en la sección <strong>Partidos</strong>.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {canGenerateAmericanoMatches && (
+                      <Button
+                        onClick={handleGenerateAmericanoMatches}
+                        disabled={isGeneratingAmericanoMatches}
+                        className="bg-amber-600 hover:bg-amber-700 text-white"
+                      >
+                        {isGeneratingAmericanoMatches ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Settings className="h-4 w-4 mr-2" />
+                        )}
+                        {isGeneratingAmericanoMatches ? 'Generando cruces...' : 'Generar partidos (cruces por ronda)'}
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => router.push(`/tournaments/${tournamentId}/matches`)}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Ir a Partidos
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

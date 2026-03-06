@@ -312,8 +312,8 @@ export default function TournamentPage({ params }: PageProps) {
       color: 'bg-green-500'
     },
     {
-      title: t('detail.navigation.groups'),
-      description: t('detail.navigation.groupsDescription'),
+      title: isAmericano ? t('detail.navigation.rounds') : t('detail.navigation.groups'),
+      description: isAmericano ? t('detail.navigation.roundsDescription') : t('detail.navigation.groupsDescription'),
       icon: Cog6ToothIcon,
       href: `/tournaments/${id}/groups`,
       color: 'bg-purple-500'

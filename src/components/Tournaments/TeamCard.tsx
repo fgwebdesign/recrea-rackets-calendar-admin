@@ -30,9 +30,11 @@ interface TeamCardProps {
   team: Team;
   index: number;
   tournamentStartDate?: string; // Fecha de inicio del torneo (YYYY-MM-DD)
+  /** Si true, torneo americano: se muestra como "Jugador N" y solo el jugador inscrito (sin pareja) */
+  isAmericano?: boolean;
 }
 
-export function TeamCard({ team, index, tournamentStartDate }: TeamCardProps) {
+export function TeamCard({ team, index, tournamentStartDate, isAmericano = false }: TeamCardProps) {
   const t = useTranslations('tournaments');
   
   // Función para obtener la fecha del calendario para un día del torneo
@@ -189,7 +191,7 @@ export function TeamCard({ team, index, tournamentStartDate }: TeamCardProps) {
   return (
     <Card className="hover:shadow-lg transition-all duration-200 hover:scale-105 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-gray-200 dark:border-gray-700">
       <CardContent className="p-6">
-        {/* Header con número de equipo y badges de estado */}
+        {/* Header con número de equipo/jugador y badges de estado */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
@@ -197,7 +199,7 @@ export function TeamCard({ team, index, tournamentStartDate }: TeamCardProps) {
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                {t('teamsPage.team')} {index + 1}
+                {isAmericano ? t('teamsPage.player') : t('teamsPage.team')} {index + 1}
               </h3>
             </div>
           </div>
@@ -215,12 +217,14 @@ export function TeamCard({ team, index, tournamentStartDate }: TeamCardProps) {
           </div>
         </div>
 
-        {/* Jugadores */}
+        {/* Jugadores (americano: solo uno, sin etiqueta "Jugador 1"; equipos: ambos con etiquetas) */}
         <div className="mb-6">
-          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-            <UsersIcon className="w-4 h-4" />
-            {t('teamsPage.players')}
-          </h4>
+          {!isAmericano && (
+            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+              <UsersIcon className="w-4 h-4" />
+              {t('teamsPage.players')}
+            </h4>
+          )}
           
           <div className="grid grid-cols-1 gap-3">
             {team.teams?.player1 && (
@@ -233,9 +237,11 @@ export function TeamCard({ team, index, tournamentStartDate }: TeamCardProps) {
                     {team.teams.player1.first_name} {team.teams.player1.last_name || ''}
                   </div>
                 </div>
-                <Badge className="bg-blue-500 text-white text-xs px-2 py-1 font-medium">
-                  {t('teamsPage.player1')}
-                </Badge>
+                {!isAmericano && (
+                  <Badge className="bg-blue-500 text-white text-xs px-2 py-1 font-medium">
+                    {t('teamsPage.player1')}
+                  </Badge>
+                )}
               </div>
             )}
 

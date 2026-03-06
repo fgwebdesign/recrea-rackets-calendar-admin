@@ -176,7 +176,9 @@ export default function TournamentStandingsPage() {
                 </Badge>
               </div>
               <p className="text-gray-600 dark:text-gray-400 mt-2">
-                Tabla de posiciones y clasificaciones por grupo
+                {isAmericano
+                  ? 'Ranking individual por puntos o juegos acumulados (parejas rotativas por ronda)'
+                  : 'Tabla de posiciones y clasificaciones por grupo'}
               </p>
             </div>
             
@@ -234,7 +236,7 @@ export default function TournamentStandingsPage() {
                     {Object.keys(standings.standings || {}).length}
                   </div>
                   <div className="text-sm text-yellow-600 dark:text-yellow-400">
-                    Grupos
+                    {isAmericano ? 'Rondas / Tablas' : 'Grupos'}
                   </div>
                 </div>
               </div>
@@ -252,9 +254,9 @@ export default function TournamentStandingsPage() {
                     <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                       <Trophy className="h-5 w-5 text-white" />
                     </div>
-                    Grupo {group.group_number}
+                    {isAmericano ? `Ronda ${group.group_number}` : `Grupo ${group.group_number}`}
                     <Badge variant="outline" className="ml-auto">
-                      {group.teams.length} equipos
+                      {group.teams.length} {isAmericano ? 'jugadores' : 'equipos'}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -326,7 +328,9 @@ export default function TournamentStandingsPage() {
                   </h3>
                   
                   <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">
-                    Las clasificaciones aparecerán una vez que se hayan completado algunos partidos de la fase de grupos.
+                    {isAmericano
+                      ? 'El ranking individual aparecerá cuando se carguen los resultados de los partidos de cada ronda.'
+                      : 'Las clasificaciones aparecerán una vez que se hayan completado algunos partidos de la fase de grupos.'}
                   </p>
                   
                   <Button
@@ -370,9 +374,9 @@ export default function TournamentStandingsPage() {
                       <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                         <Trophy className="h-6 w-6 text-white" />
                       </div>
-                      Grupo {group.group_number}
+                      {isAmericano ? `Ronda ${group.group_number}` : `Grupo ${group.group_number}`}
                       <Badge variant="outline" className="ml-auto">
-                        {group.teams.length} equipos
+                        {group.teams.length} {isAmericano ? 'jugadores' : 'equipos'}
                       </Badge>
                     </CardTitle>
                   </CardHeader>

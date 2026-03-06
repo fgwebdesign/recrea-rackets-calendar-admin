@@ -1055,6 +1055,8 @@ const translations: Record<Locale, Record<string, any>> = {
         playersDescription: 'Ver jugadores inscritos y pagos',
         groups: 'Grupos',
         groupsDescription: 'Generar y gestionar grupos',
+        rounds: 'Rondas',
+        roundsDescription: 'Organización por rondas y parejas rotativas (Americano)',
         matches: 'Partidos',
         matchesDescription: 'Gestionar partidos y resultados',
         standings: 'Clasificación',
@@ -1128,6 +1130,7 @@ const translations: Record<Locale, Record<string, any>> = {
       collected: 'recaudado',
       // Team Card translations
       team: 'Equipo',
+      player: 'Jugador',
       players: 'Jugadores',
       player1: 'Jugador 1',
       player2: 'Jugador 2',
@@ -2712,6 +2715,8 @@ const translations: Record<Locale, Record<string, any>> = {
         playersDescription: 'View registered players and payments',
         groups: 'Groups',
         groupsDescription: 'Generate and manage groups',
+        rounds: 'Rounds',
+        roundsDescription: 'Round layout and rotating pairs (Americano)',
         matches: 'Matches',
         matchesDescription: 'Manage matches and results',
         saveResult: 'Save Result',
@@ -2786,6 +2791,7 @@ const translations: Record<Locale, Record<string, any>> = {
       collected: 'collected',
       // Team Card translations
       team: 'Team',
+      player: 'Player',
       players: 'Players',
       player1: 'Player 1',
       player2: 'Player 2',
