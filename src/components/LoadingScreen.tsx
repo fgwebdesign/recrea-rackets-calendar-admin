@@ -8,14 +8,14 @@ export default function LoadingScreen({ message = "Cargando..." }: LoadingScreen
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center z-50">
       <div className="text-center">
-        <div className="relative w-40 h-32 mx-auto mb-8">
+        <div className="relative w-32 h-32 mx-auto mb-8 bg-white rounded-full p-4 shadow-2xl ring-4 ring-white/30">
           <Image
             src="/assets/matchlylogo.png"
             alt="Matchly"
             fill
-            className="object-contain relative z-10"
+            className="object-contain relative z-10 p-2"
             priority
-            sizes="160px"
+            sizes="128px"
             style={{ 
               objectFit: 'contain',
             }}
