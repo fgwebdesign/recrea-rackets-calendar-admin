@@ -48,7 +48,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
         setError(null);
         
         const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const url = `${baseUrl}/leagues/matches/league/${leagueId || 'all'}`;
+        const url = `${baseUrl}/leagues/matches/league/${leagueId || 'all'}?upcoming_only=true&limit=20`;
 
         const token = localStorage.getItem('adminToken');
         if (!token) {
@@ -76,7 +76,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
           throw new Error('No se recibieron datos del servidor');
         }
 
-        // El backend devuelve { completed: [], pending: [] }
+        // El backend ya devuelve solo los próximos partidos limitados
         const allMatches = [...(data.pending || []), ...(data.completed || [])];
         
         const scheduledMatches = allMatches
