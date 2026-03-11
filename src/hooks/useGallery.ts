@@ -18,7 +18,6 @@ interface GalleryResponse {
 export function useGallery(leagueId: string) {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [total, setTotal] = useState(0);
@@ -32,6 +31,12 @@ export function useGallery(leagueId: string) {
       );
 
       if (!response.ok) {
+        // Si es 404, simplemente no hay imágenes, no es un error
+        if (response.status === 404) {
+          setImages([]);
+          setTotal(0);
+          return { photos: [], page: pageToFetch, pageSize, total: 0 };
+        }
         throw new Error('Error al cargar las imágenes');
       }
 
@@ -50,15 +55,16 @@ export function useGallery(leagueId: string) {
       });
       
       setTotal(data.total);
-      setError(null);
       return data;
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Error desconocido'));
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudieron cargar las imágenes"
-      });
+      // Solo mostrar toast si es un error real, no 404
+      if (err instanceof Error && !err.message.includes('404')) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudieron cargar las imágenes"
+        });
+      }
       return null;
     } finally {
       setIsLoading(false);
@@ -80,6 +86,7 @@ export function useGallery(leagueId: string) {
       setPage(1);
       fetchImages(1, true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leagueId]);
 
   const deleteImage = async (imageId: string) => {
@@ -104,7 +111,7 @@ export function useGallery(leagueId: string) {
         description: "Imagen eliminada correctamente",
         className: "bg-green-500 text-white"
       });
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Error",
@@ -116,7 +123,6 @@ export function useGallery(leagueId: string) {
   return {
     images,
     isLoading,
-    error,
     page,
     pageSize,
     total,

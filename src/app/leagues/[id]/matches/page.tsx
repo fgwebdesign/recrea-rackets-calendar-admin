@@ -2,16 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner"
 import { useLeague } from "@/hooks/useLeague"
 import { useCategories } from "@/hooks/useCategories"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { ArrowLeft, CalendarDays, Clock, Filter, ListFilter, ChevronLeft, ChevronRight, CheckCircle, XCircle, Calendar, MapPin } from "lucide-react"
+import { ArrowLeft, Clock, Filter, ListFilter, CheckCircle, XCircle, Calendar, MapPin, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { LeagueMatchModal } from "@/components/Leagues/LeagueMatchModal"
-import { updateMatchResult, updateMatchSchedule } from "@/services/leagueService"
+import { updateMatchResult } from "@/services/leagueService"
 import { toast } from "@/components/ui/use-toast"
 import { formatUruguayDateTime } from "@/lib/utils"
 import {
@@ -24,31 +22,12 @@ import {
 import type { LeagueMatch } from "@/types/league"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-interface Match {
-  id: string;
-  category_id: string;
-  category_name: string;
-  team1: string;
-  team2: string;
-  match_date: string;
-  court_name: string;
-  status: "SCHEDULED" | "COMPLETED" | "WALKOVER";
-  team1_sets1_won: number;
-  team1_sets2_won: number;
-  team2_sets1_won: number;
-  team2_sets2_won: number;
-}
-
-interface MatchResult {
-  team1_sets1_won: number;
-  team1_sets2_won: number;
-  team2_sets1_won: number;
-  team2_sets2_won: number;
-}
-
-function formatMatchDate(dateStr: string) {
-  const { date, time } = formatUruguayDateTime(dateStr);
-  return { date, time };
+function formatMatchDate(dateStr: string, timeSlot?: string) {
+  const { date } = formatUruguayDateTime(dateStr);
+  return { 
+    date, 
+    time: timeSlot || formatUruguayDateTime(dateStr).time 
+  };
 }
 
 export default function LeagueMatchesPage() {
@@ -63,7 +42,10 @@ export default function LeagueMatchesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [groupFilter, setGroupFilter] = useState<string>("all")
   const [selectedRound, setSelectedRound] = useState<string>("all")
+  const [isGroupACollapsed, setIsGroupACollapsed] = useState(false)
+  const [isGroupBCollapsed, setIsGroupBCollapsed] = useState(false)
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
@@ -107,15 +89,25 @@ export default function LeagueMatchesPage() {
 
   useEffect(() => {
     fetchMatches()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leagueId])
 
   useEffect(() => {
-    if (statusFilter === "all") {
-      setFilteredMatches(matches)
-    } else {
-      setFilteredMatches(matches.filter(match => match.status === statusFilter))
+    let filtered = matches;
+    
+    // Filtrar por estado
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(match => match.status === statusFilter);
     }
-  }, [statusFilter, matches])
+    
+    // Filtrar por grupo
+    if (groupFilter !== "all") {
+      filtered = filtered.filter(match => match.group_name === groupFilter);
+    }
+    
+    setFilteredMatches(filtered);
+    setCurrentPage(1); // Reset a la primera página cuando cambian los filtros
+  }, [statusFilter, groupFilter, matches])
 
   const handleMatchClick = (match: LeagueMatch) => {
     setSelectedMatch(match)
@@ -127,7 +119,18 @@ export default function LeagueMatchesPage() {
     setSelectedMatch(null)
   }
 
-  const handleSaveResult = async (matchId: string, result: any) => {
+  const handleSaveResult = async (matchId: string, result: {
+    team1_sets1_won: number;
+    team2_sets1_won: number;
+    team1_sets2_won: number;
+    team2_sets2_won: number;
+    team1_tie1_won: number;
+    team2_tie1_won: number;
+    team1_tie2_won: number;
+    team2_tie2_won: number;
+    team1_tie3_won: number;
+    team2_tie3_won: number;
+  }) => {
     try {
       setIsUpdating(true)
       await updateMatchResult(matchId, result)
@@ -138,7 +141,7 @@ export default function LeagueMatchesPage() {
           ? {
               ...match,
               ...result,
-              status: 'COMPLETED',
+              status: 'COMPLETED' as const,
             }
           : match
       )
@@ -165,38 +168,6 @@ export default function LeagueMatchesPage() {
     }
   }
 
-  const handleScheduleUpdate = async (matchId: string, schedule: any) => {
-    try {
-      setIsUpdating(true)
-      await updateMatchSchedule(matchId, schedule)
-      
-      // Actualizar el estado local
-      const updatedMatches = matches.map(match =>
-        match.id === matchId
-          ? {
-              ...match,
-              match_date: `${schedule.date}T${schedule.time}`,
-            }
-          : match
-      )
-      
-      setMatches(updatedMatches)
-      toast({
-        title: 'Éxito',
-        description: 'Horario actualizado correctamente',
-      })
-      handleModalClose()
-    } catch (error) {
-      console.error('Error:', error)
-      toast({
-        title: 'Error',
-        description: 'No se pudo actualizar el horario',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsUpdating(false)
-    }
-  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -211,6 +182,22 @@ export default function LeagueMatchesPage() {
     }
   }
 
+  const getGroupBadge = (groupName: string | null | undefined) => {
+    if (!groupName) return null;
+    
+    return (
+      <Badge className={`${
+        groupName === 'A' 
+          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800' 
+          : 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+      } border`}>
+        Grupo {groupName}
+      </Badge>
+    );
+  }
+
+  const hasGroups = matches.some(m => m.group_name !== null);
+
   const getMatchesSummary = () => {
     const completed = matches.filter(match => match.status === 'COMPLETED').length
     const scheduled = matches.filter(match => match.status === 'SCHEDULED').length
@@ -219,14 +206,9 @@ export default function LeagueMatchesPage() {
   }
 
   // Pagination handlers
-  const totalPages = Math.ceil(filteredMatches.length / matchesPerPage)
   const startIndex = (currentPage - 1) * matchesPerPage
   const endIndex = startIndex + matchesPerPage
   const currentMatches = filteredMatches.slice(startIndex, endIndex)
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
-  }
 
   if (isLoading) {
     return (
@@ -427,23 +409,44 @@ export default function LeagueMatchesPage() {
                     )}
                   </div>
 
-                  <Select
-                    value={statusFilter}
-                    onValueChange={setStatusFilter}
-                  >
-                    <SelectTrigger className="w-[180px] bg-primary/10 hover:bg-primary/20 transition-colors border-primary/20">
-                      <div className="flex items-center gap-2">
-                        <Filter className="w-4 h-4" />
-                        <SelectValue placeholder="Filtrar por estado" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los estados</SelectItem>
-                      <SelectItem value="COMPLETED">Completados</SelectItem>
-                      <SelectItem value="SCHEDULED">Programados</SelectItem>
-                      <SelectItem value="WALKOVER">W.O.</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    {hasGroups && (
+                      <Select
+                        value={groupFilter}
+                        onValueChange={setGroupFilter}
+                      >
+                        <SelectTrigger className="w-[150px] bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors border-purple-200 dark:border-purple-800/30">
+                          <div className="flex items-center gap-2">
+                            <ListFilter className="w-4 h-4" />
+                            <SelectValue placeholder="Filtrar por grupo" />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos los grupos</SelectItem>
+                          <SelectItem value="A">Grupo A</SelectItem>
+                          <SelectItem value="B">Grupo B</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                    
+                    <Select
+                      value={statusFilter}
+                      onValueChange={setStatusFilter}
+                    >
+                      <SelectTrigger className="w-[180px] bg-primary/10 hover:bg-primary/20 transition-colors border-primary/20">
+                        <div className="flex items-center gap-2">
+                          <Filter className="w-4 h-4" />
+                          <SelectValue placeholder="Filtrar por estado" />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los estados</SelectItem>
+                        <SelectItem value="COMPLETED">Completados</SelectItem>
+                        <SelectItem value="SCHEDULED">Programados</SelectItem>
+                        <SelectItem value="WALKOVER">W.O.</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {/* Tabs */}
@@ -467,127 +470,426 @@ export default function LeagueMatchesPage() {
                   </TabsList>
 
                   <TabsContent value="all" className="mt-6">
-                    <div className="grid gap-4">
-                      {currentMatches.map((match) => {
-                        const { date, time } = formatMatchDate(match.match_date);
-                        return (
-                          <Card key={match.id} className="overflow-hidden bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700">
-                            <div className="p-6">
-                              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    {getStatusBadge(match.status)}
-                                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                                      {date}
-                                    </span>
-                                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                                      {time}
-                                    </span>
-                                    <div className="flex items-center gap-1">
-                                      <MapPin className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                                        {match.court_name || 'Sin asignar'}
-                                      </span>
+                    {hasGroups && groupFilter === "all" ? (
+                      <div className="space-y-8">
+                        {/* Grupo A */}
+                        {currentMatches.filter(m => m.group_name === 'A').length > 0 && (
+                          <div className="space-y-4">
+                            <button 
+                              onClick={() => setIsGroupACollapsed(!isGroupACollapsed)}
+                              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors cursor-pointer"
+                            >
+                              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500 dark:bg-blue-600">
+                                <span className="text-white font-bold text-lg">A</span>
+                              </div>
+                              <div className="flex-1 text-left">
+                                <h3 className="font-semibold text-blue-900 dark:text-blue-100 text-lg">Grupo A</h3>
+                                <p className="text-sm text-blue-600 dark:text-blue-400">
+                                  {currentMatches.filter(m => m.group_name === 'A' && m.status === 'COMPLETED').length} de {currentMatches.filter(m => m.group_name === 'A').length} completados
+                                </p>
+                              </div>
+                              <ChevronDown className={`w-5 h-5 text-blue-600 dark:text-blue-400 transition-transform ${isGroupACollapsed ? 'rotate-180' : ''}`} />
+                            </button>
+                            
+                            {!isGroupACollapsed && (
+                              <div className="grid gap-4">
+                              {currentMatches.filter(m => m.group_name === 'A').map((match) => {
+                                const { date, time } = formatMatchDate(match.match_date, match.time_slot);
+                                return (
+                                  <Card key={match.id} className="overflow-hidden bg-white dark:bg-gray-800/50 border-blue-200 dark:border-blue-800/50">
+                                    <div className="p-6">
+                                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                            {getStatusBadge(match.status)}
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">{date}</span>
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">{time}</span>
+                                            <div className="flex items-center gap-1">
+                                              <MapPin className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                              <span className="text-sm text-gray-500 dark:text-gray-400">{match.court_name || 'Sin asignar'}</span>
+                                            </div>
+                                          </div>
+                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                                            <div className="text-right md:text-left">
+                                              <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
+                                              {match.status === 'COMPLETED' && (
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">{match.team1_sets1_won + match.team1_sets2_won} sets</p>
+                                              )}
+                                            </div>
+                                            <div className="flex justify-center">
+                                              <Button
+                                                variant={match.status === 'COMPLETED' ? 'outline' : 'default'}
+                                                onClick={() => handleMatchClick(match)}
+                                                disabled={isUpdating}
+                                                className={match.status === 'COMPLETED' 
+                                                  ? 'bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-0' 
+                                                  : 'bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800'}
+                                              >
+                                                {match.status === 'COMPLETED' ? 'Ver resultado' : 'Gestionar partido'}
+                                              </Button>
+                                            </div>
+                                            <div className="text-left md:text-right">
+                                              <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+                                              {match.status === 'COMPLETED' && (
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">{match.team2_sets1_won + match.team2_sets2_won} sets</p>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                                    <div className="text-right md:text-left">
-                                      <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
-                                      {match.status === 'COMPLETED' && (
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                          {match.team1_sets1_won + match.team1_sets2_won} sets
-                                        </p>
-                                      )}
+                                  </Card>
+                                );
+                              })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Grupo B */}
+                        {currentMatches.filter(m => m.group_name === 'B').length > 0 && (
+                          <div className="space-y-4">
+                            <button 
+                              onClick={() => setIsGroupBCollapsed(!isGroupBCollapsed)}
+                              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors cursor-pointer"
+                            >
+                              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-purple-500 dark:bg-purple-600">
+                                <span className="text-white font-bold text-lg">B</span>
+                              </div>
+                              <div className="flex-1 text-left">
+                                <h3 className="font-semibold text-purple-900 dark:text-purple-100 text-lg">Grupo B</h3>
+                                <p className="text-sm text-purple-600 dark:text-purple-400">
+                                  {currentMatches.filter(m => m.group_name === 'B' && m.status === 'COMPLETED').length} de {currentMatches.filter(m => m.group_name === 'B').length} completados
+                                </p>
+                              </div>
+                              <ChevronDown className={`w-5 h-5 text-purple-600 dark:text-purple-400 transition-transform ${isGroupBCollapsed ? 'rotate-180' : ''}`} />
+                            </button>
+                            
+                            {!isGroupBCollapsed && (
+                              <div className="grid gap-4">
+                              {currentMatches.filter(m => m.group_name === 'B').map((match) => {
+                                const { date, time } = formatMatchDate(match.match_date, match.time_slot);
+                                return (
+                                  <Card key={match.id} className="overflow-hidden bg-white dark:bg-gray-800/50 border-purple-200 dark:border-purple-800/50">
+                                    <div className="p-6">
+                                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                            {getStatusBadge(match.status)}
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">{date}</span>
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">{time}</span>
+                                            <div className="flex items-center gap-1">
+                                              <MapPin className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                              <span className="text-sm text-gray-500 dark:text-gray-400">{match.court_name || 'Sin asignar'}</span>
+                                            </div>
+                                          </div>
+                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                                            <div className="text-right md:text-left">
+                                              <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
+                                              {match.status === 'COMPLETED' && (
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">{match.team1_sets1_won + match.team1_sets2_won} sets</p>
+                                              )}
+                                            </div>
+                                            <div className="flex justify-center">
+                                              <Button
+                                                variant={match.status === 'COMPLETED' ? 'outline' : 'default'}
+                                                onClick={() => handleMatchClick(match)}
+                                                disabled={isUpdating}
+                                                className={match.status === 'COMPLETED' 
+                                                  ? 'bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-0' 
+                                                  : 'bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800'}
+                                              >
+                                                {match.status === 'COMPLETED' ? 'Ver resultado' : 'Gestionar partido'}
+                                              </Button>
+                                            </div>
+                                            <div className="text-left md:text-right">
+                                              <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+                                              {match.status === 'COMPLETED' && (
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">{match.team2_sets1_won + match.team2_sets2_won} sets</p>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
                                     </div>
-                                    <div className="flex justify-center">
-                                      <Button
-                                        variant={match.status === 'COMPLETED' ? 'outline' : 'default'}
-                                        onClick={() => handleMatchClick(match)}
-                                        disabled={isUpdating}
-                                        className={match.status === 'COMPLETED' 
-                                          ? 'bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-0' 
-                                          : 'bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800'}
-                                      >
-                                        {match.status === 'COMPLETED' ? 'Ver resultado' : 'Gestionar partido'}
-                                      </Button>
+                                  </Card>
+                                );
+                              })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid gap-4">
+                        {currentMatches.map((match) => {
+                          const { date, time } = formatMatchDate(match.match_date, match.time_slot);
+                          return (
+                            <Card key={match.id} className="overflow-hidden bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700">
+                              <div className="p-6">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                      {getStatusBadge(match.status)}
+                                      {getGroupBadge(match.group_name)}
+                                      <span className="text-sm text-gray-500 dark:text-gray-400">{date}</span>
+                                      <span className="text-sm text-gray-500 dark:text-gray-400">{time}</span>
+                                      <div className="flex items-center gap-1">
+                                        <MapPin className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                        <span className="text-sm text-gray-500 dark:text-gray-400">{match.court_name || 'Sin asignar'}</span>
+                                      </div>
                                     </div>
-                                    <div className="text-left md:text-right">
-                                      <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
-                                      {match.status === 'COMPLETED' && (
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                          {match.team2_sets1_won + match.team2_sets2_won} sets
-                                        </p>
-                                      )}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                                      <div className="text-right md:text-left">
+                                        <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
+                                        {match.status === 'COMPLETED' && (
+                                          <p className="text-sm text-gray-500 dark:text-gray-400">{match.team1_sets1_won + match.team1_sets2_won} sets</p>
+                                        )}
+                                      </div>
+                                      <div className="flex justify-center">
+                                        <Button
+                                          variant={match.status === 'COMPLETED' ? 'outline' : 'default'}
+                                          onClick={() => handleMatchClick(match)}
+                                          disabled={isUpdating}
+                                          className={match.status === 'COMPLETED' 
+                                            ? 'bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-0' 
+                                            : 'bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800'}
+                                        >
+                                          {match.status === 'COMPLETED' ? 'Ver resultado' : 'Gestionar partido'}
+                                        </Button>
+                                      </div>
+                                      <div className="text-left md:text-right">
+                                        <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+                                        {match.status === 'COMPLETED' && (
+                                          <p className="text-sm text-gray-500 dark:text-gray-400">{match.team2_sets1_won + match.team2_sets2_won} sets</p>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          </Card>
-                        );
-                      })}
-                    </div>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    )}
                   </TabsContent>
 
-                  {Array.from(new Set(matches.map(match => match.match_number))).sort((a, b) => a - b).map((round) => (
-                    <TabsContent key={round} value={round.toString()} className="mt-6">
-                      <div className="grid gap-4">
-                        {matches
-                          .filter(match => match.match_number === round && (statusFilter === 'all' || match.status === statusFilter))
-                          .map((match) => {
-                            const { date, time } = formatMatchDate(match.match_date);
-                            return (
-                              <Card key={match.id} className="overflow-hidden bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700">
-                                <div className="p-6">
-                                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        {getStatusBadge(match.status)}
-                                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                                          {date}
-                                        </span>
-                                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                                          {time}
-                                        </span>
-                                        <div className="flex items-center gap-1">
-                                          <MapPin className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                                            {match.court_name || 'Sin asignar'}
-                                          </span>
+                  {Array.from(new Set(matches.map(match => match.match_number))).sort((a, b) => a - b).map((round) => {
+                    const roundMatches = matches.filter(match => 
+                      match.match_number === round && 
+                      (statusFilter === 'all' || match.status === statusFilter) &&
+                      (groupFilter === 'all' || match.group_name === groupFilter)
+                    );
+                    
+                    return (
+                      <TabsContent key={round} value={round.toString()} className="mt-6">
+                        {hasGroups && groupFilter === "all" ? (
+                          <div className="space-y-8">
+                            {/* Grupo A */}
+                            {roundMatches.filter(m => m.group_name === 'A').length > 0 && (
+                              <div className="space-y-4">
+                                <button 
+                                  onClick={() => setIsGroupACollapsed(!isGroupACollapsed)}
+                                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors cursor-pointer"
+                                >
+                                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500 dark:bg-blue-600">
+                                    <span className="text-white font-bold text-lg">A</span>
+                                  </div>
+                                  <div className="flex-1 text-left">
+                                    <h3 className="font-semibold text-blue-900 dark:text-blue-100 text-lg">Grupo A</h3>
+                                    <p className="text-sm text-blue-600 dark:text-blue-400">
+                                      {roundMatches.filter(m => m.group_name === 'A' && m.status === 'COMPLETED').length} de {roundMatches.filter(m => m.group_name === 'A').length} completados
+                                    </p>
+                                  </div>
+                                  <ChevronDown className={`w-5 h-5 text-blue-600 dark:text-blue-400 transition-transform ${isGroupACollapsed ? 'rotate-180' : ''}`} />
+                                </button>
+                                
+                                {!isGroupACollapsed && (
+                                  <div className="grid gap-4">
+                                  {roundMatches.filter(m => m.group_name === 'A').map((match) => {
+                                    const { date, time } = formatMatchDate(match.match_date, match.time_slot);
+                                    return (
+                                      <Card key={match.id} className="overflow-hidden bg-white dark:bg-gray-800/50 border-blue-200 dark:border-blue-800/50">
+                                        <div className="p-6">
+                                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                            <div className="flex-1">
+                                              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                                {getStatusBadge(match.status)}
+                                                <span className="text-sm text-gray-500 dark:text-gray-400">{date}</span>
+                                                <span className="text-sm text-gray-500 dark:text-gray-400">{time}</span>
+                                                <div className="flex items-center gap-1">
+                                                  <MapPin className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                                  <span className="text-sm text-gray-500 dark:text-gray-400">{match.court_name || 'Sin asignar'}</span>
+                                                </div>
+                                              </div>
+                                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                                                <div className="text-right md:text-left">
+                                                  <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
+                                                  {match.status === 'COMPLETED' && (
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">{match.team1_sets1_won + match.team1_sets2_won} sets</p>
+                                                  )}
+                                                </div>
+                                                <div className="flex justify-center">
+                                                  <Button
+                                                    variant={match.status === 'COMPLETED' ? 'outline' : 'default'}
+                                                    onClick={() => handleMatchClick(match)}
+                                                    disabled={isUpdating}
+                                                    className={match.status === 'COMPLETED' 
+                                                      ? 'bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-0' 
+                                                      : 'bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800'}
+                                                  >
+                                                    {match.status === 'COMPLETED' ? 'Ver resultado' : 'Gestionar partido'}
+                                                  </Button>
+                                                </div>
+                                                <div className="text-left md:text-right">
+                                                  <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+                                                  {match.status === 'COMPLETED' && (
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">{match.team2_sets1_won + match.team2_sets2_won} sets</p>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
                                         </div>
-                                      </div>
-                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                                        <div className="text-right md:text-left">
-                                          <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
-                                          {match.status === 'COMPLETED' && (
-                                            <p className="text-sm text-gray-500 dark:text-gray-400"></p>
-                                          )}
+                                      </Card>
+                                    );
+                                  })}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Grupo B */}
+                            {roundMatches.filter(m => m.group_name === 'B').length > 0 && (
+                              <div className="space-y-4">
+                                <button 
+                                  onClick={() => setIsGroupBCollapsed(!isGroupBCollapsed)}
+                                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors cursor-pointer"
+                                >
+                                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-purple-500 dark:bg-purple-600">
+                                    <span className="text-white font-bold text-lg">B</span>
+                                  </div>
+                                  <div className="flex-1 text-left">
+                                    <h3 className="font-semibold text-purple-900 dark:text-purple-100 text-lg">Grupo B</h3>
+                                    <p className="text-sm text-purple-600 dark:text-purple-400">
+                                      {roundMatches.filter(m => m.group_name === 'B' && m.status === 'COMPLETED').length} de {roundMatches.filter(m => m.group_name === 'B').length} completados
+                                    </p>
+                                  </div>
+                                  <ChevronDown className={`w-5 h-5 text-purple-600 dark:text-purple-400 transition-transform ${isGroupBCollapsed ? 'rotate-180' : ''}`} />
+                                </button>
+                                
+                                {!isGroupBCollapsed && (
+                                  <div className="grid gap-4">
+                                  {roundMatches.filter(m => m.group_name === 'B').map((match) => {
+                                    const { date, time } = formatMatchDate(match.match_date, match.time_slot);
+                                    return (
+                                      <Card key={match.id} className="overflow-hidden bg-white dark:bg-gray-800/50 border-purple-200 dark:border-purple-800/50">
+                                        <div className="p-6">
+                                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                            <div className="flex-1">
+                                              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                                {getStatusBadge(match.status)}
+                                                <span className="text-sm text-gray-500 dark:text-gray-400">{date}</span>
+                                                <span className="text-sm text-gray-500 dark:text-gray-400">{time}</span>
+                                                <div className="flex items-center gap-1">
+                                                  <MapPin className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                                  <span className="text-sm text-gray-500 dark:text-gray-400">{match.court_name || 'Sin asignar'}</span>
+                                                </div>
+                                              </div>
+                                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                                                <div className="text-right md:text-left">
+                                                  <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
+                                                  {match.status === 'COMPLETED' && (
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">{match.team1_sets1_won + match.team1_sets2_won} sets</p>
+                                                  )}
+                                                </div>
+                                                <div className="flex justify-center">
+                                                  <Button
+                                                    variant={match.status === 'COMPLETED' ? 'outline' : 'default'}
+                                                    onClick={() => handleMatchClick(match)}
+                                                    disabled={isUpdating}
+                                                    className={match.status === 'COMPLETED' 
+                                                      ? 'bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-0' 
+                                                      : 'bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800'}
+                                                  >
+                                                    {match.status === 'COMPLETED' ? 'Ver resultado' : 'Gestionar partido'}
+                                                  </Button>
+                                                </div>
+                                                <div className="text-left md:text-right">
+                                                  <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+                                                  {match.status === 'COMPLETED' && (
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">{match.team2_sets1_won + match.team2_sets2_won} sets</p>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
                                         </div>
-                                        <div className="flex justify-center">
-                                          <Button
-                                            variant={match.status === 'COMPLETED' ? 'outline' : 'default'}
-                                            onClick={() => handleMatchClick(match)}
-                                            disabled={isUpdating}
-                                            className={match.status === 'COMPLETED' 
-                                              ? 'bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-0' 
-                                              : 'bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800'}
-                                          >
-                                            {match.status === 'COMPLETED' ? 'Ver resultado' : 'Gestionar partido'}
-                                          </Button>
+                                      </Card>
+                                    );
+                                  })}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="grid gap-4">
+                            {roundMatches.map((match) => {
+                              const { date, time } = formatMatchDate(match.match_date, match.time_slot);
+                              return (
+                                <Card key={match.id} className="overflow-hidden bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700">
+                                  <div className="p-6">
+                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                          {getStatusBadge(match.status)}
+                                          {getGroupBadge(match.group_name)}
+                                          <span className="text-sm text-gray-500 dark:text-gray-400">{date}</span>
+                                          <span className="text-sm text-gray-500 dark:text-gray-400">{time}</span>
+                                          <div className="flex items-center gap-1">
+                                            <MapPin className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">{match.court_name || 'Sin asignar'}</span>
+                                          </div>
                                         </div>
-                                        <div className="text-left md:text-right">
-                                          <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                                          <div className="text-right md:text-left">
+                                            <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
+                                            {match.status === 'COMPLETED' && (
+                                              <p className="text-sm text-gray-500 dark:text-gray-400">{match.team1_sets1_won + match.team1_sets2_won} sets</p>
+                                            )}
+                                          </div>
+                                          <div className="flex justify-center">
+                                            <Button
+                                              variant={match.status === 'COMPLETED' ? 'outline' : 'default'}
+                                              onClick={() => handleMatchClick(match)}
+                                              disabled={isUpdating}
+                                              className={match.status === 'COMPLETED' 
+                                                ? 'bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white border-0' 
+                                                : 'bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800'}
+                                            >
+                                              {match.status === 'COMPLETED' ? 'Ver resultado' : 'Gestionar partido'}
+                                            </Button>
+                                          </div>
+                                          <div className="text-left md:text-right">
+                                            <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+                                            {match.status === 'COMPLETED' && (
+                                              <p className="text-sm text-gray-500 dark:text-gray-400">{match.team2_sets1_won + match.team2_sets2_won} sets</p>
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
-                              </Card>
-                            );
-                          })}
-                      </div>
-                    </TabsContent>
-                  ))}
+                                </Card>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </TabsContent>
+                    );
+                  })}
                 </Tabs>
               </div>
             </CardContent>

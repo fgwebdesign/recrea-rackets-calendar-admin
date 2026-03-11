@@ -292,8 +292,10 @@ export function LeagueBasicInfo({ formData, setFormData, categories = [], onSubm
             <div>
               <LabelWithTooltip
                 htmlFor="team_size"
-                label="Número de equipos por categoría"
-                tooltip="Cantidad máxima de equipos que pueden participar en cada categoría (Recomendado: 8)"
+                label={formData.has_groups ? "Número de equipos por grupo" : "Número de equipos por categoría"}
+                tooltip={formData.has_groups 
+                  ? "Cantidad de equipos por grupo (A y B). Total de equipos será el doble." 
+                  : "Cantidad máxima de equipos que pueden participar en cada categoría (Recomendado: 8)"}
               />
               <Input
                 id="team_size"
@@ -302,15 +304,53 @@ export function LeagueBasicInfo({ formData, setFormData, categories = [], onSubm
                 max="16"
                 value={formData.team_size}
                 onChange={(e) => setFormData({ ...formData, team_size: Number(e.target.value) })}
-                placeholder="Ingrese el numero de parejas por categoria"
+                placeholder={formData.has_groups ? "Ej: 8 (16 equipos totales)" : "Ingrese el numero de parejas por categoria"}
                 className={cn(
                   "bg-transparent dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 focus:border-primary",
                   errors.team_size && "border-red-500"
                 )}
               />
+              {formData.has_groups && (
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  💡 Total de equipos: {formData.team_size * 2} ({formData.team_size} por grupo)
+                </p>
+              )}
               {errors.team_size && (
                 <p className="text-sm text-red-500 mt-1">El número de equipos debe estar entre 4 y 16</p>
               )}
+            </div>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <LabelWithTooltip
+              label="Sistema de Grupos"
+              tooltip="Para categorías con más equipos, divide en grupos alternados"
+            />
+            <div className="flex items-start space-x-3 p-4 bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700">
+              <input
+                type="checkbox"
+                id="has_groups"
+                checked={formData.has_groups || false}
+                onChange={(e) => setFormData({ ...formData, has_groups: e.target.checked })}
+                className="mt-1 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-slate-600 rounded"
+              />
+              <div className="flex-1">
+                <label htmlFor="has_groups" className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                  Usar grupos alternados (A y B) para <strong>Tercera</strong> y <strong>Cuarta</strong> categoría
+                </label>
+                {formData.has_groups && (
+                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                    <p className="text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+                      <strong>ℹ️ Cómo funciona:</strong><br/>
+                      • Los equipos de <strong>Tercera y Cuarta</strong> se dividirán en <strong>Grupo A y Grupo B</strong><br/>
+                      • El número de equipos que ingreses será <strong>por grupo</strong> (total = doble)<br/>
+                      • Grupo A juega una semana, Grupo B la siguiente (alternancia semanal)<br/>
+                      • Cada grupo mantiene su frecuencia quincenal<br/>
+                      • Las demás categorías mantienen el formato normal (sin grupos)
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

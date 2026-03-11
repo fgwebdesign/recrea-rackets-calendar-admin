@@ -22,6 +22,7 @@ export interface LeagueFormData {
   team_size: number;
   image?: File | null;
   image_url?: string | null;
+  has_groups?: boolean;
 }
 
 const INITIAL_FORM_DATA: LeagueFormData = {
@@ -42,7 +43,8 @@ const INITIAL_FORM_DATA: LeagueFormData = {
   status: 'Inscribiendo',
   team_size: 8,
   image: null,
-  image_url: null
+  image_url: null,
+  has_groups: false
 };
 
 export function useLeagueForm() {
@@ -146,7 +148,7 @@ export function useLeagueForm() {
           const fileExt = file.name.split('.').pop();
           const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
           
-          const { error: uploadError, data: uploadData } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from('tournament-thumbnails')
             .upload(fileName, file);
 
@@ -213,7 +215,8 @@ export function useLeagueForm() {
           courts_available: formData.courts_available,
           team_size: formData.team_size,
           image_url: formData.image_url,
-          category_days: formData.category_days
+          category_days: formData.category_days,
+          has_groups: formData.has_groups || false
         })
       });
 

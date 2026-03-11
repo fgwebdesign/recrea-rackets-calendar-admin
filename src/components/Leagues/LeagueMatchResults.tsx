@@ -6,7 +6,7 @@ import type { LeagueMatch } from "@/types/league"
 import { LeagueMatchModal } from "./LeagueMatchModal"
 import { updateMatchResult, updateMatchSchedule } from "@/services/leagueService"
 import { toast } from "@/components/ui/use-toast"
-import { Trophy, Calendar, AlertCircle, Info } from "lucide-react"
+import { Trophy, Calendar, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
   Tooltip,
@@ -16,6 +16,25 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { formatUruguayDateTime } from "@/lib/utils";
+
+interface MatchResult {
+  team1_sets1_won: number;
+  team2_sets1_won: number;
+  team1_sets2_won: number;
+  team2_sets2_won: number;
+  team1_tie1_won?: number;
+  team2_tie1_won?: number;
+  team1_tie2_won?: number;
+  team2_tie2_won?: number;
+  team1_tie3_won?: number;
+  team2_tie3_won?: number;
+}
+
+interface MatchSchedule {
+  date: string;
+  time: string;
+  court_id?: string;
+}
 
 interface LeagueMatchResultsProps {
   matches: LeagueMatch[]
@@ -37,7 +56,7 @@ export function LeagueMatchResults({ matches, onSaveResults }: LeagueMatchResult
     setSelectedMatch(null)
   }
 
-  const handleSaveResult = async (matchId: string, result: any) => {
+  const handleSaveResult = async (matchId: string, result: MatchResult) => {
     try {
       console.log('Enviando resultado al backend:', {
         matchId,
@@ -82,7 +101,7 @@ export function LeagueMatchResults({ matches, onSaveResults }: LeagueMatchResult
     }
   }
 
-  const handleSaveSchedule = async (matchId: string, schedule: any) => {
+  const handleSaveSchedule = async (matchId: string, schedule: MatchSchedule) => {
     try {
       setIsLoading(true)
       await updateMatchSchedule(matchId, schedule)

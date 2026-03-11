@@ -15,6 +15,7 @@ export interface Standing {
   games_won: number;
   games_lost: number;
   sets_difference: number;
+  group_name?: 'A' | 'B' | null;
   team?: {
     player1: {
       first_name: string;

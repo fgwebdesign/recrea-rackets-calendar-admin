@@ -6,7 +6,7 @@ interface LeagueStandingsProps {
   categoryId?: string;
 }
 
-export function LeagueStandings({ leagueId, categoryId }: LeagueStandingsProps) {
+export function LeagueStandings({ categoryId }: LeagueStandingsProps) {
   const { standings, isLoading, error } = useStandings(categoryId);
 
   if (isLoading) {
@@ -42,9 +42,36 @@ export function LeagueStandings({ leagueId, categoryId }: LeagueStandingsProps) 
     );
   }
 
-  return (
+  // Separar por grupos
+  const hasGroups = standings.some(s => s.group_name);
+  const groupAStandings = standings.filter(s => s.group_name === 'A');
+  const groupBStandings = standings.filter(s => s.group_name === 'B');
+  const noGroupStandings = standings.filter(s => !s.group_name);
+
+  const renderStandingsTable = (standingsData: Standing[], title?: string, groupColor?: string) => (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Tabla de Posiciones</h2>
+      {title && (
+        <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
+          groupColor === 'blue' 
+            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+            : 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
+        }`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+            groupColor === 'blue'
+              ? 'bg-blue-500 dark:bg-blue-600'
+              : 'bg-purple-500 dark:bg-purple-600'
+          }`}>
+            <span className="text-white font-bold text-sm">{title}</span>
+          </div>
+          <h3 className={`font-semibold ${
+            groupColor === 'blue'
+              ? 'text-blue-900 dark:text-blue-100'
+              : 'text-purple-900 dark:text-purple-100'
+          }`}>
+            Grupo {title}
+          </h3>
+        </div>
+      )}
       <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-[#1D283A]">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-[#1D283A]">
           <thead>
@@ -85,7 +112,7 @@ export function LeagueStandings({ leagueId, categoryId }: LeagueStandingsProps) 
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-transparent divide-y divide-gray-200 dark:divide-[#1D283A]">
-            {standings.map((standing, index) => (
+            {standingsData.map((standing, index) => (
               <tr key={standing.id} 
                   className="hover:bg-gray-50 dark:hover:bg-[#1D283A]/50 transition-colors duration-150">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
@@ -130,6 +157,21 @@ export function LeagueStandings({ leagueId, categoryId }: LeagueStandingsProps) 
           </tbody>
         </table>
       </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Tabla de Posiciones</h2>
+      
+      {hasGroups ? (
+        <div className="space-y-8">
+          {groupAStandings.length > 0 && renderStandingsTable(groupAStandings, 'A', 'blue')}
+          {groupBStandings.length > 0 && renderStandingsTable(groupBStandings, 'B', 'purple')}
+        </div>
+      ) : (
+        renderStandingsTable(noGroupStandings)
+      )}
     </div>
   );
 }

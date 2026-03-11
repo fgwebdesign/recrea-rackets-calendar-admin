@@ -26,6 +26,7 @@ interface Team {
   alternate_player_2_id?: string;
   player1_shirt_size?: string;
   player2_shirt_size?: string;
+  group_name?: 'A' | 'B' | null;
   player1: {
     id: string;
     name: string;
@@ -170,6 +171,81 @@ export function LeagueTeams({ teams: initialTeams, maxTeams, status, leagueId, h
     }
   };
 
+  // Separar equipos por grupo
+  const hasGroups = teams.some(t => t.group_name);
+  const groupATeams = teams.filter(t => t.group_name === 'A');
+  const groupBTeams = teams.filter(t => t.group_name === 'B');
+  const noGroupTeams = teams.filter(t => !t.group_name);
+
+  const renderTeamCard = (team: Team) => (
+    <div
+      key={team.id}
+      className="p-4 rounded-xl bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 
+                hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 
+                dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 
+                transition-all duration-300 ease-in-out"
+    >
+      <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-6 items-center">
+        <div className="flex items-center gap-2">
+          <UserCircle2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {team.player1.name}
+              {team.player1_shirt_size && (
+                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">· {team.player1_shirt_size}</span>
+              )}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <UserCircle2 className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {team.player2.name}
+              {team.player2_shirt_size && (
+                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">· {team.player2_shirt_size}</span>
+              )}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <UserCircle2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Suplentes</span>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {[team.alternate_player, team.alternate_player_2].filter(Boolean).join(' · ') || 'No asignado'}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={team.inscription_paid}
+            onCheckedChange={(checked) => handlePaymentChange(team, checked)}
+            disabled={isUpdatingPayment}
+          />
+          <span className={`text-sm px-2 py-1 rounded-full ${
+            team.inscription_paid 
+              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+              : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+          }`}>
+            {team.inscription_paid ? 'Inscripción pagada' : 'Inscripción pendiente'}
+          </span>
+        </div>
+        <Button
+          variant="destructive"
+          size="sm"
+          className="flex items-center"
+          onClick={() => handleDeleteClick(team)}
+          disabled={hasGeneratedMatches}
+          title={hasGeneratedMatches ? "No se puede eliminar un equipo cuando ya hay partidos generados" : ""}
+        >
+          <Trash2 className="w-4 h-4 mr-2" />
+          Eliminar
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -185,76 +261,49 @@ export function LeagueTeams({ teams: initialTeams, maxTeams, status, leagueId, h
         </div>
       </div>
 
-      <div className="grid gap-4">
-        {teams.map((team) => (
-          <div
-            key={team.id}
-            className="p-4 rounded-xl bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 
-                      hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 
-                      dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 
-                      transition-all duration-300 ease-in-out"
-          >
-            <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-6 items-center">
-              <div className="flex items-center gap-2">
-                <UserCircle2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {team.player1.name}
-                    {team.player1_shirt_size && (
-                      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">· {team.player1_shirt_size}</span>
-                    )}
-                  </p>
+      {hasGroups ? (
+        <div className="space-y-6">
+          {/* Grupo A */}
+          {groupATeams.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="w-8 h-8 rounded-full bg-blue-500 dark:bg-blue-600 flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">A</span>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <UserCircle2 className="w-5 h-5 text-purple-500 dark:text-purple-400" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {team.player2.name}
-                    {team.player2_shirt_size && (
-                      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">· {team.player2_shirt_size}</span>
-                    )}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <UserCircle2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                <div className="flex flex-col">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Suplentes</span>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {[team.alternate_player, team.alternate_player_2].filter(Boolean).join(' · ') || 'No asignado'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={team.inscription_paid}
-                  onCheckedChange={(checked) => handlePaymentChange(team, checked)}
-                  disabled={isUpdatingPayment}
-                />
-                <span className={`text-sm px-2 py-1 rounded-full ${
-                  team.inscription_paid 
-                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                    : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-                }`}>
-                  {team.inscription_paid ? 'Inscripción pagada' : 'Inscripción pendiente'}
+                <h4 className="font-semibold text-blue-900 dark:text-blue-100">Grupo A</h4>
+                <span className="text-sm text-blue-600 dark:text-blue-400">
+                  ({groupATeams.length} equipos)
                 </span>
               </div>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="flex items-center"
-                onClick={() => handleDeleteClick(team)}
-                disabled={hasGeneratedMatches}
-                title={hasGeneratedMatches ? "No se puede eliminar un equipo cuando ya hay partidos generados" : ""}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Eliminar
-              </Button>
+              <div className="grid gap-4">
+                {groupATeams.map(renderTeamCard)}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          )}
+
+          {/* Grupo B */}
+          {groupBTeams.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                <div className="w-8 h-8 rounded-full bg-purple-500 dark:bg-purple-600 flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">B</span>
+                </div>
+                <h4 className="font-semibold text-purple-900 dark:text-purple-100">Grupo B</h4>
+                <span className="text-sm text-purple-600 dark:text-purple-400">
+                  ({groupBTeams.length} equipos)
+                </span>
+              </div>
+              <div className="grid gap-4">
+                {groupBTeams.map(renderTeamCard)}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {noGroupTeams.map(renderTeamCard)}
+        </div>
+      )}
 
       <ClientSideWrapper>
         <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>

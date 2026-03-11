@@ -21,8 +21,9 @@ export function LeagueHeader({ league, categories, onBack }: LeagueHeaderProps) 
     league.category_id && categories ? getCategoryName(league.category_id, categories) : "Categoría no especificada"
 
   const registeredTeams = league.registeredTeams || 0;
-  const registrationProgress = (registeredTeams / league.team_size) * 100;
-  const availableSpots = league.team_size - registeredTeams;
+  const totalCapacity = league.has_groups ? league.team_size : league.team_size;
+  const registrationProgress = (registeredTeams / totalCapacity) * 100;
+  const availableSpots = totalCapacity - registeredTeams;
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -88,7 +89,7 @@ export function LeagueHeader({ league, categories, onBack }: LeagueHeaderProps) 
                     Equipos registrados
                   </span>
                   <span className="font-medium text-gray-900 dark:text-white">
-                    {registeredTeams} / {league.team_size}
+                    {registeredTeams} / {totalCapacity}
                   </span>
                 </div>
                 <Progress value={registrationProgress} className="h-1.5" />
@@ -118,7 +119,16 @@ export function LeagueHeader({ league, categories, onBack }: LeagueHeaderProps) 
               <div className="flex items-center gap-2">
                 <Users2 className="w-4 h-4 text-purple-500/70 dark:text-purple-400/70" />
                 <span className="text-xs text-purple-600/90 dark:text-purple-400/90">
-                  {league.team_size} equipos máximo
+                  {league.has_groups ? (
+                    <>
+                      {league.team_size} equipos totales
+                      <span className="text-purple-500/60 dark:text-purple-400/60 ml-1">
+                        ({Math.floor(league.team_size / 2)} por grupo)
+                      </span>
+                    </>
+                  ) : (
+                    `${league.team_size} equipos máximo`
+                  )}
                 </span>
               </div>
             </div>

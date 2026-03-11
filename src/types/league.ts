@@ -20,6 +20,7 @@ export interface League {
   status: string;
   registration_status: 'open' | 'closed';
   team_size: number;
+  has_groups?: boolean;
   registeredTeams: number;
   teams?: {
     id: string;
@@ -85,6 +86,9 @@ export interface LeagueMatch {
   court_id: string;
   court?: Court;
   court_name?: string;
+  time_slot?: string;
+  group_name?: 'A' | 'B' | null;
+  round_number?: number;
 } 
 
 import type { Court } from './court'; 

@@ -15,12 +15,19 @@ export default function Home() {
     password: ''
   });
 
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!apiUrl) {
+      console.error('NEXT_PUBLIC_API_URL no está definida. Reiniciá el admin con: npm run dev:prod-local');
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+      const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -51,8 +58,8 @@ export default function Home() {
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
-    if (token) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+    if (token && apiUrl) {
+      fetch(`${apiUrl}/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

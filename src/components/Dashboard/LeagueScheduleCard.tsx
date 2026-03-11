@@ -1,4 +1,4 @@
-import { CalendarDays, Clock, ChevronLeft, ChevronRight, ListFilter, MapPin } from "lucide-react";
+import { CalendarDays, Clock, ChevronLeft, ChevronRight, ListFilter } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
@@ -11,9 +11,12 @@ interface Match {
   league_id: string;
   category_id: string;
   category_name: string;
+  group_name: string | null;
   team1: string;
   team2: string;
   match_date: string;
+  match_number: number;
+  time_slot?: string;
   court_name: string;
   status: "SCHEDULED" | "COMPLETED" | "WALKOVER";
   team1_sets1_won: number;
@@ -170,10 +173,41 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
 
   if (error) {
     return (
-      <div className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-gray-700/50 p-4">
-        <p className="text-red-500 dark:text-red-400 text-center">
-          {error}
-        </p>
+      <div className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-gray-700/50 overflow-hidden">
+        <div className="flex flex-col items-center justify-center p-8 text-center">
+          <div className="w-24 h-24 mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="w-12 h-12 text-red-500 dark:text-red-400" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            No se pudieron cargar los partidos
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 max-w-sm mb-4">
+            Ocurrió un problema al intentar cargar la información de los próximos partidos.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 text-sm font-medium text-white
+                     bg-gradient-to-r from-purple-500 to-purple-600 
+                     hover:from-purple-600 hover:to-purple-700
+                     rounded-lg transition-all duration-200
+                     shadow-lg shadow-purple-500/20 dark:shadow-purple-900/30"
+          >
+            Reintentar
+          </button>
+        </div>
       </div>
     );
   }
@@ -314,7 +348,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
                            backdrop-blur-sm"
                 >
                   {/* Categoría Badge */}
-                  <div className="absolute -top-3 left-4">
+                  <div className="absolute -top-3 left-4 flex gap-2">
                     <span className="px-3 py-1 rounded-full text-sm font-medium
                                  bg-gradient-to-r from-purple-500 to-purple-600 
                                  text-white shadow-lg shadow-purple-500/30
@@ -322,6 +356,14 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
                                  dark:shadow-purple-900/30">
                       {match.category_name}
                     </span>
+                    {match.group_name && (
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium text-white shadow-lg
+                                     ${match.group_name === 'A' 
+                                       ? 'bg-gradient-to-r from-blue-500 to-blue-600 shadow-blue-500/30 dark:from-blue-600 dark:to-blue-700 dark:shadow-blue-900/30' 
+                                       : 'bg-gradient-to-r from-purple-500 to-purple-600 shadow-purple-500/30 dark:from-purple-600 dark:to-purple-700 dark:shadow-purple-900/30'}`}>
+                        Grupo {match.group_name}
+                      </span>
+                    )}
                   </div>
 
                   {/* Court Badge */}
@@ -378,7 +420,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
                       <div className="flex items-center space-x-2">
                         <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                         <span className="text-sm text-gray-600 dark:text-gray-300">
-                          {formatDateTime(match.match_date).time}h
+                          {match.time_slot || formatDateTime(match.match_date).time}h
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">

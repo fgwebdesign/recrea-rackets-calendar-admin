@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Swords, AlertCircle, X, Info, CheckCircle2 } from 'lucide-react';
+import { Trophy, Swords, AlertCircle, Info, } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -21,25 +21,40 @@ import {
 } from "@/components/ui/tooltip";
 import { cn, formatUruguayDateTime } from "@/lib/utils";
 
-// Añadir estilos para el marcador digital
-const digitalScoreStyle = "font-['DS-Digital'] text-5xl font-bold tracking-wider";
-
 interface SetScore {
   team1: number | null;
   team2: number | null;
   tiebreak: { team1: number | null; team2: number | null } | null;
 }
 
+interface MatchResult {
+  team1_sets1_won: number;
+  team2_sets1_won: number;
+  team1_sets2_won: number;
+  team2_sets2_won: number;
+  team1_tie1_won: number;
+  team2_tie1_won: number;
+  team1_tie2_won: number;
+  team2_tie2_won: number;
+  team1_tie3_won: number;
+  team2_tie3_won: number;
+}
+
 interface LeagueMatchModalProps {
   isOpen: boolean;
   onClose: () => void;
   match: LeagueMatch;
-  onSubmit: (matchId: string, result: any) => void;
+  onSubmit: (matchId: string, result: MatchResult) => void;
+  onScheduleUpdate?: (matchId: string, schedule: { date: string; time: string; court_id?: string }) => void;
   isLoading?: boolean;
 }
 
-function formatMatchDate(dateStr: string) {
-  return formatUruguayDateTime(dateStr);
+function formatMatchDate(dateStr: string, timeSlot?: string) {
+  const { date } = formatUruguayDateTime(dateStr);
+  return { 
+    date, 
+    time: timeSlot || formatUruguayDateTime(dateStr).time 
+  };
 }
 
 export function LeagueMatchModal({
@@ -110,35 +125,6 @@ export function LeagueMatchModal({
     if (set.team2 > set.team1 && set.team2 >= 6 && (set.team2 - set.team1 >= 2)) return 2; // 6-1, 6-2, 6-3, 6-4
     
     return 0;
-  };
-
-  const getMatchWinner = (): { winner: string | null; setsWon: { team1: number, team2: number } } => {
-    const set1Winner = getSetWinner(set1);
-    const set2Winner = getSetWinner(set2);
-    
-    const setsWon = {
-      team1: (set1Winner === 1 ? 1 : 0) + (set2Winner === 1 ? 1 : 0),
-      team2: (set1Winner === 2 ? 1 : 0) + (set2Winner === 2 ? 1 : 0)
-    };
-
-    // If super tiebreak is played and has valid scores
-    if (superTiebreak && superTiebreak.team1 !== null && superTiebreak.team2 !== null) {
-      if (superTiebreak.team1 > superTiebreak.team2) {
-        return { winner: match.team1, setsWon };
-      } else if (superTiebreak.team2 > superTiebreak.team1) {
-        return { winner: match.team2, setsWon };
-      }
-      return { winner: null, setsWon };
-    }
-
-    // If no super tiebreak, check sets won
-    if (setsWon.team1 > setsWon.team2) {
-      return { winner: match.team1, setsWon };
-    } else if (setsWon.team2 > setsWon.team1) {
-      return { winner: match.team2, setsWon };
-    }
-
-    return { winner: null, setsWon };
   };
 
   const showSuperTiebreak = getSetWinner(set1) && getSetWinner(set2) && getSetWinner(set1) !== getSetWinner(set2);
@@ -321,7 +307,7 @@ export function LeagueMatchModal({
                 </div>
                 <div className="relative">
                   <Badge className="bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-500/50 text-sm px-4 py-1.5 rounded-full">
-                    {formatMatchDate(match.match_date).date} {formatMatchDate(match.match_date).time}
+                    {formatMatchDate(match.match_date, match.time_slot).date} {formatMatchDate(match.match_date, match.time_slot).time}
                   </Badge>
                 </div>
               </div>
