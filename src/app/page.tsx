@@ -75,6 +75,7 @@ export default function Home() {
         localStorage.removeItem('isAdmin');
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   return (
@@ -99,19 +100,19 @@ export default function Home() {
         <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-2xl shadow-xl p-8">
           {/* Logo y Título */}
           <div className="text-center mb-8">
-            <div className="relative w-24 h-24 mx-auto mb-4 bg-white dark:bg-gray-800 rounded-full shadow-lg ring-4 ring-blue-50 dark:ring-blue-900">
+            <div className="relative w-32 h-24 mx-auto mb-4">
               <Image
-                src="/assets/recrealogo.jpeg"
-                alt="Recrea Padel Club"
+                src="/assets/matchlylogo.png"
+                alt="Matchly"
                 fill
                 priority
-                sizes="96px"
-                className="object-contain p-2 rounded-full"
+                sizes="128px"
+                className="object-contain"
               />
             </div>
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Rackets Calendar</h1>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Matchly</h1>
             <p className="text-gray-600 dark:text-gray-300 mt-2 text-sm">
-              Sistema integral para la creacion de ligas, torneos, partidos y usuarios para tu club deportivo.
+              Sistema integral de gestión deportiva para ligas, torneos y partidos.
             </p>
             <div className="mt-4 inline-block px-4 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-full">
               <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Portal Administrativo</p>

@@ -7,11 +7,11 @@ import {
   HomeIcon,
   UsersIcon,
   Cog6ToothIcon as CogIcon,
+
   TrophyIcon,
   ArrowRightOnRectangleIcon as LogoutIcon,
   Bars3Icon,
   XMarkIcon,
-  PhotoIcon as ImageIcon,
   PlusIcon,
   TableCellsIcon,
 } from '@heroicons/react/24/outline';
@@ -23,13 +23,13 @@ import LoadingScreen from './LoadingScreen';
 interface MenuItem {
   name: string;
   href: string;
-  icon: React.ForwardRefExoticComponent<any>;
+  icon: React.ForwardRefExoticComponent<React.SVGProps<SVGSVGElement>>;
   iconColor?: string;
   hoverColor?: string;
   submenu?: {
     name: string;
     href: string;
-    icon: React.ForwardRefExoticComponent<any>;
+    icon: React.ForwardRefExoticComponent<React.SVGProps<SVGSVGElement>>;
     iconColor?: string;
     textColor?: string;
   }[];
@@ -180,7 +180,7 @@ const LogoCard = () => (
       </div>
     </div>
     <div className="p-3 bg-white dark:bg-gray-800">
-      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-0.5">Club:</h3>
+      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-0.5">Powered by Matchly</h3>
       <p className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-blue-400 dark:from-blue-500 dark:to-blue-300 bg-clip-text text-transparent">
         Recrea Padel Club
       </p>
@@ -188,21 +188,15 @@ const LogoCard = () => (
   </div>
 );
 
-interface SidebarProps {
-  username?: string;
-}
-
-const Sidebar = ({ username }: SidebarProps) => {
+const Sidebar = () => {
   const router = useRouter();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
       if (window.innerWidth >= 768) {
         setIsMobileMenuOpen(false);
       }
@@ -241,8 +235,6 @@ const Sidebar = ({ username }: SidebarProps) => {
       router.push('/');
     }
   };
-
-  const userName = localStorage.getItem('userName');
 
   const handleSubmenuToggle = (itemName: string) => {
     setOpenSubmenu(openSubmenu === itemName ? null : itemName);

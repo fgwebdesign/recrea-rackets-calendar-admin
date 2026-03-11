@@ -8,18 +8,16 @@ export default function LoadingScreen({ message = "Cargando..." }: LoadingScreen
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center z-50">
       <div className="text-center">
-        <div className="relative w-32 h-32 mx-auto mb-8 bg-white rounded-full p-2 shadow-lg ring-4 ring-white/30">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-white rounded-full"></div>
+        <div className="relative w-40 h-32 mx-auto mb-8">
           <Image
-            src="/assets/recrealogo.jpeg"
-            alt="Recrea Padel Club"
+            src="/assets/matchlylogo.png"
+            alt="Matchly"
             fill
-            className="object-contain p-2 rounded-full relative z-10"
+            className="object-contain relative z-10"
             priority
-            sizes="128px"
+            sizes="160px"
             style={{ 
               objectFit: 'contain',
-              background: 'white',
             }}
           />
         </div>

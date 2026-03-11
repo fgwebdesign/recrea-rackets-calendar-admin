@@ -17,8 +17,8 @@ const orbitron = Orbitron({
 });
 
 export const metadata: Metadata = {
-  title: 'Recrea Rackets Calendar Admin',
-  description: 'Admin panel for Recrea Rackets Calendar',
+  title: 'Matchly Admin',
+  description: 'Panel administrativo de Matchly - Sistema integral de gestión deportiva',
 };
 
 export default function RootLayout({
