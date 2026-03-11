@@ -12,18 +12,21 @@ import { useCourts } from '@/hooks/useCourts';
 
 const FREQUENCIES = ['Semanal', 'Quincenal', 'Mensual'];
 
+interface LeagueFormData {
+  start_date: string;
+  end_date: string;
+  frequency: string;
+  days_of_week: string[];
+  categories: string[];
+  team_size: number;
+  category_days: Record<string, string>;
+  has_groups?: boolean;
+}
+
 interface LeagueScheduleInfoProps {
-  formData: {
-    start_date: string;
-    end_date: string;
-    frequency: string;
-    days_of_week: string[];
-    categories: string[];
-    team_size: number;
-    category_days: Record<string, string>;
-  };
-  setFormData: (data: any) => void;
-  onSubmit: (data: any) => void;
+  formData: LeagueFormData;
+  setFormData: (data: LeagueFormData) => void;
+  onSubmit: (data: LeagueFormData) => void;
   onBack: () => void;
   categories: Category[];
 }
@@ -46,21 +49,32 @@ function LabelWithTooltip({ htmlFor, label, tooltip }: { htmlFor?: string; label
   );
 }
 
-function calculateMinimumDays(teamSize: number, frequency: string): number {
+function calculateMinimumDays(teamSize: number, frequency: string, hasGroups: boolean = false): number {
   const numberOfRounds = teamSize - 1;
   
-  // Restamos 1 ronda porque la primera fecha se juega en la semana inicial
-  const remainingRounds = numberOfRounds - 1;
-  
-  switch(frequency.toLowerCase()) {
-    case 'semanal':
-      return remainingRounds * 7;
-    case 'quincenal':
-      return remainingRounds * 14;
-    case 'mensual':
-      return remainingRounds * 30;
-    default:
-      return remainingRounds * 14; // Por defecto quincenal
+  if (hasGroups) {
+    // Con grupos alternados: cada grupo juega semanalmente en semanas alternadas
+    // Necesitamos (numberOfRounds * 2 - 1) semanas porque:
+    // - Grupo A: semanas 1, 3, 5, 7, 9, 11, 13 (7 fechas)
+    // - Grupo B: semanas 2, 4, 6, 8, 10, 12, 14 (7 fechas)
+    // Total: 14 semanas para 7 fechas por grupo
+    const weeksNeeded = numberOfRounds * 2 - 1;
+    return weeksNeeded * 7;
+  } else {
+    // Sin grupos: formato tradicional
+    // Restamos 1 ronda porque la primera fecha se juega en la semana inicial
+    const remainingRounds = numberOfRounds - 1;
+    
+    switch(frequency.toLowerCase()) {
+      case 'semanal':
+        return remainingRounds * 7;
+      case 'quincenal':
+        return remainingRounds * 14;
+      case 'mensual':
+        return remainingRounds * 30;
+      default:
+        return remainingRounds * 14; // Por defecto quincenal
+    }
   }
 }
 
@@ -92,6 +106,7 @@ export function LeagueScheduleInfo({
 
   useEffect(() => {
     fetchCourts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDaysAssigned = (categoryDays: Record<string, string[]>) => {
@@ -121,14 +136,16 @@ export function LeagueScheduleInfo({
   // Calcular fecha de fin sugerida cuando cambie la fecha de inicio o la frecuencia
   useEffect(() => {
     if (formData.start_date && formData.team_size) {
-      const startDate = new Date(formData.start_date);
-      const minimumDays = calculateMinimumDays(formData.team_size, formData.frequency);
+      const minimumDays = calculateMinimumDays(formData.team_size, formData.frequency, formData.has_groups);
       
       // Agregar un 5% más de días para flexibilidad
       const recommendedDays = Math.ceil(minimumDays * 1.05);
       
-      const suggestedDate = adjustDateToUruguay(new Date(startDate));
-      suggestedDate.setDate(startDate.getDate() + recommendedDays);
+      // Trabajar con fechas UTC para evitar problemas de timezone
+      const [year, month, day] = formData.start_date.split('-').map(Number);
+      const startDate = new Date(Date.UTC(year, month - 1, day));
+      const suggestedDate = new Date(startDate);
+      suggestedDate.setUTCDate(startDate.getUTCDate() + recommendedDays);
       
       const suggestedDateStr = formatDateForInput(suggestedDate);
       setSuggestedEndDate(suggestedDateStr);
@@ -140,7 +157,8 @@ export function LeagueScheduleInfo({
         });
       }
     }
-  }, [formData.start_date, formData.team_size, formData.frequency]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.start_date, formData.team_size, formData.frequency, formData.has_groups]);
 
   // Validar el formulario antes de enviar
   const handleSubmit = () => {
@@ -164,12 +182,12 @@ export function LeagueScheduleInfo({
       const start = adjustDateToUruguay(new Date(formData.start_date));
       const end = adjustDateToUruguay(new Date(formData.end_date));
       const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-      const minimumDays = calculateMinimumDays(formData.team_size, formData.frequency);
+      const minimumDays = calculateMinimumDays(formData.team_size, formData.frequency, formData.has_groups);
 
       if (diffDays < minimumDays) {
         console.warn('⚠️ Date range insufficient:', { diffDays, minimumDays });
         newErrors.push(
-          `El rango de fechas es insuficiente. Para ${formData.team_size} equipos con frecuencia ${
+          `El rango de fechas es insuficiente. Para ${formData.team_size} equipos${formData.has_groups ? ' con grupos alternados' : ''} con frecuencia ${
             formData.frequency.toLowerCase()
           }, necesitas al menos ${minimumDays} días (${Math.ceil(minimumDays/7)} semanas)`
         );
@@ -280,7 +298,7 @@ export function LeagueScheduleInfo({
                 htmlFor="end_date"
                 label="Fecha de Fin"
                 tooltip={suggestedEndDate ? 
-                  `Fecha sugerida: ${formatDisplayDate(suggestedEndDate)} (${Math.ceil(calculateMinimumDays(formData.team_size, formData.frequency)/7)} semanas)` : 
+                  `Fecha sugerida: ${formatDisplayDate(suggestedEndDate)} (${Math.ceil(calculateMinimumDays(formData.team_size, formData.frequency, formData.has_groups)/7)} semanas)` : 
                   'Selecciona primero la fecha de inicio'
                 }
               />
