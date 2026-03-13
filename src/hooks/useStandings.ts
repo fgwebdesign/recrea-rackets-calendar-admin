@@ -28,8 +28,21 @@ export interface Standing {
   };
 }
 
+export interface GroupedStandings {
+  groupA: Standing[];
+  groupB: Standing[];
+}
+
+export interface StandingsData {
+  standings: Standing[] | GroupedStandings;
+  hasGroups: boolean;
+}
+
 export function useStandings(categoryId?: string) {
-  const [standings, setStandings] = useState<Standing[]>([]);
+  const [standingsData, setStandingsData] = useState<StandingsData>({
+    standings: [],
+    hasGroups: false
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -39,7 +52,7 @@ export function useStandings(categoryId?: string) {
       
       if (!categoryId) {
         console.log('⚠️ No categoryId provided, clearing standings');
-        setStandings([]);
+        setStandingsData({ standings: [], hasGroups: false });
         setError(null);
         return;
       }
@@ -74,12 +87,14 @@ export function useStandings(categoryId?: string) {
         
         if (!leagues?.length) {
           console.log('⚠️ No active leagues found for category:', categoryId);
-          setStandings([]);
+          setStandingsData({ standings: [], hasGroups: false });
           return;
         }
 
         // Usar el endpoint correcto del backend para cada liga
         const allStandings: Standing[] = [];
+        let hasGroupsInCategory = false;
+        const groupedStandings: GroupedStandings = { groupA: [], groupB: [] };
         
         for (const league of leagues) {
           try {
@@ -109,7 +124,13 @@ export function useStandings(categoryId?: string) {
             const data = await response.json();
             console.log(`✅ Standings data for league ${league.id}:`, data);
             
-            if (data.standings && Array.isArray(data.standings)) {
+            // Verificar si la respuesta tiene grupos
+            if (data.standings && typeof data.standings === 'object' && 'groupA' in data.standings && 'groupB' in data.standings) {
+              console.log(`📊 Liga con grupos detectada: ${league.id}`);
+              hasGroupsInCategory = true;
+              groupedStandings.groupA.push(...data.standings.groupA);
+              groupedStandings.groupB.push(...data.standings.groupB);
+            } else if (data.standings && Array.isArray(data.standings)) {
               console.log(`📈 Adding ${data.standings.length} standings from league ${league.id}`);
               allStandings.push(...data.standings);
             } else {
@@ -121,14 +142,26 @@ export function useStandings(categoryId?: string) {
           }
         }
 
-        // El backend ya retorna los datos ordenados correctamente, no aplicar ordenamiento adicional
-        console.log(`🎯 Total standings collected: ${allStandings.length}`);
-        setStandings(allStandings);
-      } catch (error: any) {
+        // Retornar los datos según si hay grupos o no
+        if (hasGroupsInCategory) {
+          console.log(`🎯 Standings con grupos - Grupo A: ${groupedStandings.groupA.length}, Grupo B: ${groupedStandings.groupB.length}`);
+          setStandingsData({
+            standings: groupedStandings,
+            hasGroups: true
+          });
+        } else {
+          console.log(`🎯 Total standings collected: ${allStandings.length}`);
+          setStandingsData({
+            standings: allStandings,
+            hasGroups: false
+          });
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Error al cargar la tabla de posiciones';
         console.error('Error fetching standings:', error);
         toast.error('Error al cargar la tabla de posiciones');
-        setError(new Error(error.message || 'Error al cargar la tabla de posiciones'));
-        setStandings([]);
+        setError(new Error(errorMessage));
+        setStandingsData({ standings: [], hasGroups: false });
       } finally {
         setIsLoading(false);
       }
@@ -138,7 +171,7 @@ export function useStandings(categoryId?: string) {
   }, [categoryId]);
 
   return {
-    standings,
+    ...standingsData,
     isLoading,
     error
   };

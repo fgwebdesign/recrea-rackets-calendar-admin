@@ -34,7 +34,7 @@ export default function LeagueDetailsPage() {
 
   const { league, isLoading: isLoadingLeague, error: leagueError } = useLeague(leagueId)
   const { categories, isLoading: isLoadingCategories } = useCategories()
-  const { standings, isLoading: isLoadingStandings } = useStandings(
+  const { standings, hasGroups, isLoading: isLoadingStandings } = useStandings(
     league?.category_id // Usar el category_id de la liga
   )
   
@@ -46,7 +46,7 @@ export default function LeagueDetailsPage() {
     }
   })
 
-  // Verificar si ya hay partidos generados
+  // Verificar si ya hay partidos generados (optimizado con limit)
   useEffect(() => {
     const checkMatches = async () => {
       try {
@@ -54,7 +54,7 @@ export default function LeagueDetailsPage() {
         if (!adminToken) return;
         
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/leagues/matches/league/${leagueId}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/leagues/matches/league/${leagueId}?limit=1`,
           {
             headers: {
               'Authorization': `Bearer ${adminToken}`
@@ -380,6 +380,7 @@ export default function LeagueDetailsPage() {
                     selectedCategory={category?.id || ''}
                     onCategoryChange={() => {}}
                     standings={standings}
+                    hasGroups={hasGroups}
                     isLoading={isLoadingStandings}
                   />
                 </CardContent>

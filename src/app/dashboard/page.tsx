@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { HomeIcon } from '@heroicons/react/24/outline';
 import Header from '@/components/Header';
 import { DateTime } from '@/components/Dashboard/DateTime';
@@ -25,7 +25,7 @@ export default function Dashboard() {
   const { users, isLoading: isLoadingUsers } = useUsers();
   const { leagues, isLoading: isLoadingLeagues } = useLeagues();
   const { categories, isLoading: isLoadingCategories } = useCategories();
-  const { standings, isLoading: isLoadingStandings } = useStandings(selectedCategory);
+  const { standings, hasGroups, isLoading: isLoadingStandings } = useStandings(selectedCategory);
 
   const totalUsers = useMemo(() => {
     if (!users) return 0;
@@ -175,6 +175,7 @@ export default function Dashboard() {
                     selectedCategory={selectedCategory}
                     onCategoryChange={setSelectedCategory}
                     standings={standings}
+                    hasGroups={hasGroups}
                     isLoading={isLoadingStandings}
                   />
                 </CardContent>

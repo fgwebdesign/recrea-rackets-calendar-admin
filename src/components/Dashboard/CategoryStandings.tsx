@@ -1,16 +1,17 @@
-import { Standing } from '@/hooks/useStandings';
-import React from 'react';
+import { Standing, GroupedStandings } from '@/hooks/useStandings';
+import React, { useState } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Spinner } from '@/components/ui/Spinner';
-import { EmptyStandings } from './EmptyStandings';
 import { CategoryFilterTabs } from './CategoryFilterTabs';
 import { Category } from '@/types/category';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CategoryStandingsProps {
   categories: Category[];
   selectedCategory: string;
   onCategoryChange: (categoryId: string) => void;
-  standings: Standing[];
+  standings: Standing[] | GroupedStandings;
+  hasGroups: boolean;
   isLoading: boolean;
 }
 
@@ -40,9 +41,16 @@ export function CategoryStandings({
   selectedCategory,
   onCategoryChange,
   standings,
+  hasGroups,
   isLoading 
 }: CategoryStandingsProps) {
+  const [selectedGroup, setSelectedGroup] = useState<'A' | 'B'>('A');
   const currentCategory = categories?.find(cat => cat.id === selectedCategory)?.name || '';
+  
+  // Determinar qué standings mostrar según si hay grupos o no
+  const displayStandings: Standing[] = hasGroups 
+    ? (standings as GroupedStandings)[selectedGroup === 'A' ? 'groupA' : 'groupB']
+    : (standings as Standing[]);
 
   if (isLoading || !categories) {
     return (
@@ -65,26 +73,33 @@ export function CategoryStandings({
         className="px-0"
       />
 
-      {!standings.length ? (
+      {/* Tabs de grupos si la categoría tiene grupos */}
+      {hasGroups && (
+        <Tabs value={selectedGroup} onValueChange={(value) => setSelectedGroup(value as 'A' | 'B')}>
+          <TabsList>
+            <TabsTrigger value="A" className="text-sm">
+              Grupo A
+            </TabsTrigger>
+            <TabsTrigger value="B" className="text-sm">
+              Grupo B
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
+
+      {!displayStandings.length ? (
         <div className="text-center p-8 bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="text-red-500 dark:text-red-400 mb-2">
+          <div className="text-gray-400 dark:text-gray-500 mb-2">
             <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             Sin posiciones disponibles
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             No hay datos disponibles para la categoría {currentCategory}.
           </p>
-          <div className="text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 p-3 rounded">
-            <p><strong>Debug Info:</strong></p>
-            <p>• Categoría seleccionada: {selectedCategory}</p>
-            <p>• Nombre de categoría: {currentCategory}</p>
-            <p>• Total de standings: {standings?.length || 0}</p>
-            <p>• Estado de carga: {isLoading ? 'Cargando...' : 'Completado'}</p>
-          </div>
         </div>
       ) : (
         <div className="w-full overflow-x-auto rounded-lg bg-white dark:bg-gray-900 p-4 shadow-sm border border-gray-200 dark:border-gray-700">
@@ -105,7 +120,7 @@ export function CategoryStandings({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {standings.map((standing, index) => (
+              {displayStandings.map((standing, index) => (
                 <tr 
                   key={standing.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"

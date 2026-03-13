@@ -1,5 +1,5 @@
 import { CalendarDays, Clock, ChevronLeft, ChevronRight, ListFilter } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
 import { EmptySchedule } from "./EmptySchedule";
@@ -38,8 +38,26 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedGroup, setSelectedGroup] = useState<'all' | 'A' | 'B'>('all');
   const { categories, isLoading: isLoadingCategories } = useCategories();
   const sliderRef = useRef<HTMLDivElement>(null);
+
+  // Memoizar la detección de grupos para evitar recalcular en cada render
+  const selectedCategoryHasGroups = useMemo(() => {
+    return selectedCategory !== 'all' && 
+      matches.some(match => 
+        match.category_id === selectedCategory && 
+        match.group_name !== null && 
+        match.group_name !== undefined
+      );
+  }, [selectedCategory, matches]);
+
+  // Memoizar la función de notificación
+  const notifyMatchesLoaded = useCallback((hasMatches: boolean) => {
+    if (onMatchesLoaded) {
+      onMatchesLoaded(hasMatches);
+    }
+  }, [onMatchesLoaded]);
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -48,7 +66,9 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
         setError(null);
         
         const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const url = `${baseUrl}/leagues/matches/league/${leagueId || 'all'}?upcoming_only=true&limit=20`;
+        // Aumentar el límite a 40 para tener suficientes partidos de todas las categorías y grupos
+        // Esto asegura que haya partidos disponibles para filtrar por cada categoría/grupo
+        const url = `${baseUrl}/leagues/matches/league/${leagueId || 'all'}?upcoming_only=true&limit=40`;
 
         const token = localStorage.getItem('adminToken');
         if (!token) {
@@ -76,7 +96,6 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
           throw new Error('No se recibieron datos del servidor');
         }
 
-        // El backend ya devuelve solo los próximos partidos limitados
         const allMatches = [...(data.pending || []), ...(data.completed || [])];
         
         const scheduledMatches = allMatches
@@ -88,9 +107,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
         setMatches(scheduledMatches);
         
         // Notificar al componente padre si hay partidos
-        if (onMatchesLoaded) {
-          onMatchesLoaded(allMatches.length > 0);
-        }
+        notifyMatchesLoaded(allMatches.length > 0);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido');
       } finally {
@@ -99,21 +116,40 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
     };
 
     fetchMatches();
-  }, [leagueId, onMatchesLoaded]);
+  }, [leagueId, notifyMatchesLoaded]);
 
-  // Efecto para filtrar los partidos cuando cambia la categoría seleccionada
+  // Efecto para filtrar los partidos cuando cambia la categoría o grupo seleccionado
   useEffect(() => {
-    if (selectedCategory === 'all') {
-      setFilteredMatches(matches);
-    } else {
-      const filtered = matches.filter(match => match.category_id === selectedCategory);
-      setFilteredMatches(filtered);
+    let filtered = matches;
+
+    // Filtrar por categoría
+    if (selectedCategory !== 'all') {
+      const selectedCategoryName = categories.find(cat => cat.id === selectedCategory)?.name;
+      
+      filtered = filtered.filter(match => {
+        const matchesById = match.category_id === selectedCategory;
+        const matchesByName = selectedCategoryName && 
+          match.category_name?.toLowerCase() === selectedCategoryName.toLowerCase();
+        
+        return matchesById || matchesByName;
+      });
     }
-    setCurrentPage(0); // Reset page when changing category
+
+    // Filtrar por grupo si la categoría tiene grupos
+    if (selectedCategoryHasGroups && selectedGroup !== 'all') {
+      filtered = filtered.filter(match => match.group_name === selectedGroup);
+    }
+
+    // Limitar a los primeros 8 partidos para mantener rendimiento (2 páginas de 4)
+    const limitedFiltered = filtered.slice(0, 8);
+    
+    setFilteredMatches(limitedFiltered);
+    setCurrentPage(0);
+    
     if (sliderRef.current) {
       sliderRef.current.scrollTo({ left: 0, behavior: 'smooth' });
     }
-  }, [selectedCategory, matches]);
+  }, [selectedCategory, selectedGroup, matches, selectedCategoryHasGroups, categories]);
 
   const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
@@ -217,12 +253,28 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
   }
 
   if (filteredMatches.length === 0) {
+    const categoryName = categories.find(cat => cat.id === selectedCategory)?.name || '';
+    let emptyMessage = 'No hay partidos programados en ninguna categoría.';
+    
+    if (selectedCategory !== 'all') {
+      if (selectedCategoryHasGroups && selectedGroup !== 'all') {
+        emptyMessage = `No hay partidos programados para ${categoryName} - Grupo ${selectedGroup}.`;
+      } else if (selectedCategoryHasGroups) {
+        emptyMessage = `No hay partidos programados para ${categoryName} (todos los grupos).`;
+      } else {
+        emptyMessage = `No hay partidos programados para la categoría ${categoryName}.`;
+      }
+    }
+
     return (
       <div className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-gray-700/50 overflow-hidden">
         {/* Category Tabs */}
         <div className="px-6 pt-4">
           <div className="flex justify-between items-center mb-4">
-            <Tabs defaultValue="all" value={selectedCategory} onValueChange={setSelectedCategory}>
+            <Tabs defaultValue="all" value={selectedCategory} onValueChange={(value) => {
+              setSelectedCategory(value);
+              setSelectedGroup('all');
+            }}>
               <TabsList>
                 <TabsTrigger value="all" className="text-sm">
                   Todas las categorías
@@ -239,6 +291,25 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
               </TabsList>
             </Tabs>
           </div>
+
+          {/* Group Tabs */}
+          {selectedCategoryHasGroups && (
+            <div className="mb-4">
+              <Tabs value={selectedGroup} onValueChange={(value) => setSelectedGroup(value as 'all' | 'A' | 'B')}>
+                <TabsList>
+                  <TabsTrigger value="all" className="text-sm">
+                    Todos los grupos
+                  </TabsTrigger>
+                  <TabsTrigger value="A" className="text-sm">
+                    Grupo A
+                  </TabsTrigger>
+                  <TabsTrigger value="B" className="text-sm">
+                    Grupo B
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -249,9 +320,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
             No hay partidos programados
           </h3>
           <p className="text-gray-600 dark:text-gray-400 max-w-sm">
-            {selectedCategory === 'all' 
-              ? 'No hay partidos programados en ninguna categoría.'
-              : `No hay partidos programados para la categoría ${categories.find(cat => cat.id === selectedCategory)?.name || ''}.`}
+            {emptyMessage}
           </p>
         </div>
       </div>
@@ -263,7 +332,10 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
       {/* Category Tabs */}
       <div className="px-6 pt-4">
         <div className="flex justify-between items-center mb-4">
-          <Tabs defaultValue="all" value={selectedCategory} onValueChange={setSelectedCategory}>
+          <Tabs defaultValue="all" value={selectedCategory} onValueChange={(value) => {
+            setSelectedCategory(value);
+            setSelectedGroup('all'); // Reset group when changing category
+          }}>
             <TabsList>
               <TabsTrigger value="all" className="text-sm">
                 Todas las categorías
@@ -293,6 +365,25 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
             </button>
           )}
         </div>
+
+        {/* Group Tabs - Solo mostrar si la categoría seleccionada tiene grupos */}
+        {selectedCategoryHasGroups && (
+          <div className="mb-4">
+            <Tabs value={selectedGroup} onValueChange={(value) => setSelectedGroup(value as 'all' | 'A' | 'B')}>
+              <TabsList>
+                <TabsTrigger value="all" className="text-sm">
+                  Todos los grupos
+                </TabsTrigger>
+                <TabsTrigger value="A" className="text-sm">
+                  Grupo A
+                </TabsTrigger>
+                <TabsTrigger value="B" className="text-sm">
+                  Grupo B
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        )}
       </div>
       
       <div className="relative">
