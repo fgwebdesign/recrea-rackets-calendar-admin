@@ -13,7 +13,7 @@ export function useGenerateFixture({ leagueId, onSuccess }: UseGenerateFixturePr
     try {
       setIsGenerating(true);
 
-      const adminToken = localStorage.getItem('adminToken');
+      const adminToken = localStorage.getItem('adminToken') || localStorage.getItem('token');
       if (!adminToken) {
         toast({
           variant: "destructive",
@@ -23,19 +23,25 @@ export function useGenerateFixture({ leagueId, onSuccess }: UseGenerateFixturePr
         return;
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/leagues/${leagueId}/generate-fixture`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${adminToken}`
-          }
-        }
-      );
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9999';
+      const url = `${baseUrl.replace(/\/$/, '')}/leagues/generateStandings/${leagueId}`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          rounds: 1
+        })
+      });
+
+      const contentType = response.headers.get('content-type');
+      const isJson = contentType?.includes('application/json');
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = isJson ? await response.json() : { message: `Error ${response.status}: comprobá que el backend esté levantado y NEXT_PUBLIC_API_URL apunte a él (ej. http://localhost:9999)` };
         console.error('Error response:', error);
         toast({
           variant: "destructive",
@@ -46,12 +52,12 @@ export function useGenerateFixture({ leagueId, onSuccess }: UseGenerateFixturePr
         return;
       }
 
-      const data = await response.json();
+      const data = isJson ? await response.json() : {};
       console.log('Fixture generado:', data);
 
       toast({
         title: "¡Fixture generado con éxito!",
-        description: `Se generaron ${data.matches?.length || 0} partidos correctamente`,
+        description: `Se generaron ${data.data?.matches?.length ?? data.matches?.length ?? 0} partidos correctamente`,
         variant: "default",
         className: "bg-green-500 text-white border-green-600 dark:bg-green-500 dark:text-white dark:border-green-600"
       });

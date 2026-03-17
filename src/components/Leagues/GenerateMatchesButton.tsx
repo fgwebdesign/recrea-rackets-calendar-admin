@@ -78,7 +78,7 @@ export function GenerateMatchesButton({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}` // Aseguramos que se envía el token
+          'Authorization': `Bearer ${localStorage.getItem('adminToken') || localStorage.getItem('token')}`
         },
         body: JSON.stringify({
           rounds: 1 // Por ahora solo generamos una ronda
