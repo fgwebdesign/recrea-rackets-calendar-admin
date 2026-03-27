@@ -21,6 +21,9 @@
 /build
 
 # misc
+# Cursor: rules/skills locales (no versionar)
+.cursor/
+
 .DS_Store
 *.pem
 
