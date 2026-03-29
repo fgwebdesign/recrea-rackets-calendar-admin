@@ -15,6 +15,7 @@ import {
   ArrowLeftIcon,
   TrophyIcon,
   CalendarIcon,
+  CalendarDaysIcon,
   UsersIcon,
   ChartBarIcon,
   Cog6ToothIcon,
@@ -345,7 +346,14 @@ export default function TournamentPage({ params }: PageProps) {
       icon: BanknotesIcon,
       href: `/tournaments/${id}/payments`,
       color: 'bg-emerald-500'
-    }
+    },
+    ...(!isAmericano ? [{
+      title: 'Solicitudes',
+      description: 'Cambios de franja solicitados por jugadores',
+      icon: CalendarDaysIcon,
+      href: `/tournaments/${id}/reschedule-requests`,
+      color: 'bg-orange-500'
+    }] : [])
   ]
 
   return (

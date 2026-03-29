@@ -211,6 +211,7 @@ export interface TournamentGroup {
   group_number: number
   teams: string[] // Array de IDs de equipos
   status: 'IN_PROGRESS' | 'COMPLETED'
+  assigned_franja?: string | null
   created_at: string
   updated_at: string
 }

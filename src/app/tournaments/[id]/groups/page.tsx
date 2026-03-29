@@ -8,11 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, RefreshCw, Plus, Settings, Loader2, Play } from 'lucide-react';
+import { AlertCircle, RefreshCw, Plus, Settings, Loader2, Play, CalendarClock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getCategoryName } from '@/utils/category';
 import { toast } from '@/components/ui/use-toast';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { GroupFranjaRescheduler } from '@/components/Tournaments/admin/GroupFranjaRescheduler';
+import type { Franja } from '@/services/tournamentSchedulingService';
 
 export default function TournamentGroupsPage() {
   const params = useParams();
@@ -20,6 +22,7 @@ export default function TournamentGroupsPage() {
   const tournamentId = params.id as string;
   const [isGeneratingGroups, setIsGeneratingGroups] = useState(false);
   const [isGeneratingAmericanoMatches, setIsGeneratingAmericanoMatches] = useState(false);
+  const [reschedulingGroup, setReschedulingGroup] = useState<{ id: string; group_number: number; assigned_franja: string | null } | null>(null);
 
   const { 
     tournament, 
@@ -29,6 +32,12 @@ export default function TournamentGroupsPage() {
     error,
     refetch
   } = useTournament(tournamentId);
+
+  // Extraer franjas de fase de grupos del torneo
+  const tournamentFranjas: Franja[] = useMemo(() => {
+    const slots: Franja[] = (tournament as unknown as { group_time_slots?: Franja[] })?.group_time_slots || [];
+    return slots;
+  }, [tournament]);
   
   const { categories } = useCategories();
 
@@ -490,9 +499,25 @@ export default function TournamentGroupsPage() {
                         <TrophyIcon className="h-5 w-5 text-white" />
                       </div>
                       Grupo {group.group_number || index + 1}
-                      <span className="ml-auto text-sm font-normal text-gray-500 dark:text-gray-400">
+                      <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
                         {groupTeams.length} equipos
                       </span>
+                      {group.assigned_franja && (
+                        <Badge variant="outline" className="text-xs font-normal">
+                          {group.assigned_franja}
+                        </Badge>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="ml-auto h-7 text-xs border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-900/20"
+                        onClick={() => setReschedulingGroup({ id: group.id, group_number: group.group_number || index + 1, assigned_franja: group.assigned_franja || null })}
+                        disabled={tournamentFranjas.length === 0}
+                        title={tournamentFranjas.length === 0 ? 'No hay franjas configuradas' : 'Cambiar franja del grupo'}
+                      >
+                        <CalendarClock className="h-3.5 w-3.5 mr-1" />
+                        Cambiar franja
+                      </Button>
                     </CardTitle>
                   </CardHeader>
                   
@@ -611,6 +636,18 @@ export default function TournamentGroupsPage() {
           </Card>
         )}
       </div>
+
+      {/* Dialog para cambiar franja de grupo */}
+      {reschedulingGroup && (
+        <GroupFranjaRescheduler
+          open={!!reschedulingGroup}
+          onClose={() => setReschedulingGroup(null)}
+          onSuccess={refetch}
+          tournamentId={tournamentId}
+          group={reschedulingGroup}
+          franjas={tournamentFranjas}
+        />
+      )}
     </div>
   );
 }
