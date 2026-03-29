@@ -5,11 +5,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ImageUpload } from '@/components/ui/image-upload';
 import { DatePicker, formatDateForInput, parseDateFromInput } from '@/components/ui/date-picker';
 import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { cn } from "@/lib/utils";
-import { Info, Shirt, Clock, Wand2, Trash2, Plus } from "lucide-react";
+import { Info, Shirt, Clock, Wand2, Trash2, Plus, AlertTriangle, Link2 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TournamentFormData, generateDefaultFranjas } from '@/hooks/useTournamentForm';
 import { tournamentCreationService } from '@/services/tournamentCreationService';
 import { Category } from '@/types/category';
@@ -57,6 +59,45 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
   const [loadingFranjas, setLoadingFranjas] = useState(false);
   const [franjasError, setFranjasError] = useState<string | null>(null);
   const [showFranjasModal, setShowFranjasModal] = useState(false);
+
+  // Feature #8: check de solapamiento de torneos sin common_code
+  const [overlapWarning, setOverlapWarning] = useState<{
+    count: number;
+    names: string[];
+    existing_codes: string[];
+  } | null>(null);
+  const overlapCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!formData.start_date || !formData.end_date) {
+      setOverlapWarning(null);
+      return;
+    }
+    // Debounce 600ms para no llamar en cada keypress
+    if (overlapCheckTimer.current) clearTimeout(overlapCheckTimer.current);
+    overlapCheckTimer.current = setTimeout(async () => {
+      try {
+        const venueIds = (formData.venues || []).flatMap(v => v.venue_id ? [v.venue_id] : []);
+        const result = await tournamentCreationService.checkOverlapping(
+          formData.start_date,
+          formData.end_date,
+          venueIds
+        );
+        if (result.warning) {
+          setOverlapWarning({
+            count: result.without_common_code_count,
+            names: result.without_common_code.map(t => t.name),
+            existing_codes: result.existing_codes
+          });
+        } else {
+          setOverlapWarning(null);
+        }
+      } catch {
+        setOverlapWarning(null);
+      }
+    }, 600);
+    return () => { if (overlapCheckTimer.current) clearTimeout(overlapCheckTimer.current); };
+  }, [formData.start_date, formData.end_date, formData.venues]);
 
   // 1. Generar franjas estándar: llama al backend y popula directamente (sin modal)
   const handleGenerateDefaultFranjas = async () => {
@@ -507,6 +548,66 @@ export function TournamentBasicInfo({ formData, setFormData, categories = [], on
               </div>
             </div>
           </div>
+
+          {/* Feature #8: Alerta de solapamiento + campo common_code */}
+          {overlapWarning && (
+            <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <AlertTitle className="text-amber-800 dark:text-amber-300 text-sm font-semibold">
+                ⚠️ Hay {overlapWarning.count} torneo{overlapWarning.count !== 1 ? 's' : ''} en esas fechas sin código común
+              </AlertTitle>
+              <AlertDescription className="text-amber-700 dark:text-amber-400 text-sm space-y-2 mt-1">
+                <p>
+                  Los torneos <strong>{overlapWarning.names.join(', ')}</strong> comparten las mismas sedes en ese período.
+                  Sin un <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded text-xs">common_code</code> compartido,
+                  el sistema no considera sus partidos al generar el scheduling y pueden producirse colisiones de canchas.
+                </p>
+                {overlapWarning.existing_codes.length > 0 && (
+                  <p className="flex items-center gap-2 flex-wrap">
+                    <Link2 className="w-3.5 h-3.5 shrink-0" />
+                    Códigos ya usados en esas fechas:
+                    {overlapWarning.existing_codes.map(code => (
+                      <Badge
+                        key={code}
+                        variant="outline"
+                        className="cursor-pointer border-amber-400 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-xs"
+                        onClick={() => setFormData({ ...formData, common_code: code })}
+                      >
+                        {code} (usar este)
+                      </Badge>
+                    ))}
+                  </p>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Campo common_code (visible siempre para torneos no-americanos, pero resaltado si hay warning) */}
+          {formData.tournament_type !== 'AMERICANO' && (
+            <div>
+              <LabelWithTooltip
+                htmlFor="common_code"
+                label="Código de evento (common_code)"
+                tooltip="Si este torneo comparte canchas con otras categorías del mismo evento (ej. Masculino 3ra, Femenino 3ra), asigná el mismo código en todos. Esto evita colisiones de horarios al generar el scheduling automático."
+              />
+              <Input
+                id="common_code"
+                placeholder="Ej: VERANO_2026, OPEN_MAYO"
+                value={formData.common_code || ''}
+                onChange={e => setFormData({ ...formData, common_code: e.target.value.toUpperCase() })}
+                className={cn(
+                  'mt-1 bg-white dark:bg-slate-800/50 font-mono text-sm',
+                  overlapWarning && !formData.common_code && 'border-amber-400 ring-1 ring-amber-400'
+                )}
+              />
+              {overlapWarning && !formData.common_code && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  Recomendado: completá este campo para evitar colisiones de scheduling
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Franjas Horarias (solo formato clásico) */}
           {formData.tournament_type !== 'AMERICANO' && (

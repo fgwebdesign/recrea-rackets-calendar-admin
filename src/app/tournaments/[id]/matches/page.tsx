@@ -27,7 +27,8 @@ import {
   AlertCircle,
   ArrowLeft,
   CalendarDays,
-  Settings
+  Settings,
+  ArrowLeftRight
 } from 'lucide-react';
 import { TournamentMatch, MatchResultData } from '@/types/tournament';
 import { TournamentMatchModal } from '@/components/Tournaments/TournamentMatchModal';
@@ -39,6 +40,7 @@ import { useToast } from '@/hooks/use-toast';
 import { UnscheduledMatchesView } from '@/components/Tournaments/admin/UnscheduledMatchesView';
 import { MatchRescheduler } from '@/components/Tournaments/admin/MatchRescheduler';
 import { GroupFranjaScheduler } from '@/components/Tournaments/admin/GroupFranjaScheduler';
+import { MatchSwapper } from '@/components/Tournaments/admin/MatchSwapper';
 
 interface MatchResult {
   matchId: string;
@@ -124,6 +126,8 @@ export default function TournamentMatchesPage() {
   }
 
   const [selectedMatchForReschedule, setSelectedMatchForReschedule] = useState<MatchForReschedule | null>(null);
+  const [swapOpen, setSwapOpen] = useState(false);
+  const [swapPreSelected, setSwapPreSelected] = useState<MatchForReschedule | null>(null);
   const [groups, setGroups] = useState<GroupForDayAssign[]>([]);
 
   // Calcular estadísticas
@@ -1557,6 +1561,29 @@ export default function TournamentMatchesPage() {
                   </CardContent>
                 </Card>
               </div>
+              {/* Sección: Swap entre dos partidos */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ArrowLeftRight className="h-5 w-5 text-blue-500" />
+                    Intercambiar slots entre dos partidos
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground font-normal mt-1">
+                    Operación atómica: los horarios y canchas de ambos partidos se intercambian. El sistema verifica que no haya conflictos con otros partidos.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    variant="outline"
+                    onClick={() => { setSwapPreSelected(null); setSwapOpen(true) }}
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/20"
+                  >
+                    <ArrowLeftRight className="h-4 w-4 mr-2" />
+                    Abrir herramienta de swap
+                  </Button>
+                </CardContent>
+              </Card>
+
             </TabsContent>
           </Tabs>
         </div>
@@ -1574,6 +1601,27 @@ export default function TournamentMatchesPage() {
             }}
           />
         )}
+
+        {/* Modal de swap entre dos partidos */}
+        <MatchSwapper
+          open={swapOpen}
+          onClose={() => { setSwapOpen(false); setSwapPreSelected(null) }}
+          onSuccess={refetch}
+          tournamentId={tournamentId}
+          preSelectedMatch={swapPreSelected || undefined}
+          scheduledMatches={(matches ?? [])
+            .filter(m => m.tournament_day && m.start_time && m.court_id)
+            .map(m => ({
+              id: m.id,
+              group_number: (m as { group_number?: number }).group_number ?? 0,
+              match_number: (m as { match_number?: number }).match_number ?? 0,
+              tournament_day: m.tournament_day ?? null,
+              start_time: m.start_time ?? null,
+              court_id: m.court_id ?? null,
+              home_label: (m as { home_team?: { team_name?: string } }).home_team?.team_name,
+              away_label: (m as { away_team?: { team_name?: string } }).away_team?.team_name
+            }))}
+        />
 
         {/* Modal para setear resultados */}
         {selectedMatch && (

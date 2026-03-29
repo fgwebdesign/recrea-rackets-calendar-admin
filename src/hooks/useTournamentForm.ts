@@ -56,6 +56,8 @@ export interface TournamentFormData {
   first_place_prize: string;
   second_place_prize: string;
   third_place_prize: string;
+  /** Código compartido entre categorías del mismo evento. Evita colisiones de scheduling. */
+  common_code?: string;
   time_slots: number[][];
   group_time_slots: {
     id: string;
@@ -97,7 +99,8 @@ const INITIAL_FORM_DATA: TournamentFormData = {
     [14, 22],  // tarde/noche
   ],
   group_time_slots: [],
-  americano_config: undefined
+  americano_config: undefined,
+  common_code: ''
 };
 
 /**
@@ -381,6 +384,7 @@ export function useTournamentForm() {
           venues: data.venues || [],
           latitude: data.latitude || null,
           longitude: data.longitude || null,
+          common_code: data.common_code?.trim() || undefined,
         };
 
         // Validar datos antes de enviar

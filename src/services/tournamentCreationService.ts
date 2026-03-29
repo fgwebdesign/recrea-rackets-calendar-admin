@@ -24,6 +24,8 @@ export interface TournamentCreationData {
   requires_shirts: boolean;
   // ✨ NUEVO: Multi-sede support
   venues?: VenueConfig[];
+  /** Código compartido con otras categorías del mismo evento */
+  common_code?: string;
   
   // Información detallada (tournament_info)
   description: string;
@@ -97,6 +99,27 @@ export class TournamentCreationService {
       throw new Error(err.message || 'Error al obtener franjas estándar');
     }
     return response.json();
+  }
+
+  /**
+   * Feature #8: Verificar torneos solapados en el mismo rango de fechas + sedes
+   */
+  async checkOverlapping(
+    startDate: string,
+    endDate: string,
+    venueIds: string[] = []
+  ): Promise<{
+    overlapping: Array<{ id: string; name: string; start_date: string; end_date: string; common_code: string | null; category: string | null; has_common_code: boolean }>;
+    warning: boolean;
+    without_common_code_count: number;
+    without_common_code: Array<{ id: string; name: string; category: string | null }>;
+    existing_codes: string[];
+  }> {
+    const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+    venueIds.forEach(id => params.append('venue_ids[]', id));
+    const res = await fetch(`${this.baseUrl}/check-overlapping?${params}`);
+    if (!res.ok) return { overlapping: [], warning: false, without_common_code_count: 0, without_common_code: [], existing_codes: [] };
+    return res.json();
   }
 
   /**
