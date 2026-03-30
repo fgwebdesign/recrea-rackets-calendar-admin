@@ -28,30 +28,11 @@ function formatTeamFromObject(team: TeamInfo | null | undefined): string {
   return p1 || p2 || 'TBD';
 }
 
-function getTeamName(match: Match, side: 'home' | 'away', teamsMap?: Map<string, string>): string {
-  const team = side === 'home' ? match.home_team : match.away_team;
-  if (team) return formatTeamFromObject(team);
-  const id = side === 'home' ? match.home_team_id : match.away_team_id;
-  if (id && teamsMap?.get(id)) return teamsMap.get(id)!;
-  return 'TBD';
-}
-
-function formatTime(t?: string, day?: string): string {
-  if (t) return t.slice(0, 5);
-  if (day) return day;
-  return '—';
-}
-
 interface TeamEntry {
   id?: string;
   team_id?: string;
   teams?: TeamInfo;
   team?: TeamInfo;
-}
-
-interface TVUpcomingMatchesViewProps {
-  matches: Match[];
-  teams?: TeamEntry[];
 }
 
 function buildTeamsMap(teams?: TeamEntry[]): Map<string, string> {
@@ -66,69 +47,141 @@ function buildTeamsMap(teams?: TeamEntry[]): Map<string, string> {
   return m;
 }
 
-const CARD_ACCENTS = ['border-l-blue-500', 'border-l-emerald-500', 'border-l-amber-500', 'border-l-violet-500', 'border-l-rose-500', 'border-l-cyan-500'] as const;
+function getTeamName(match: Match, side: 'home' | 'away', teamsMap: Map<string, string>): string {
+  const team = side === 'home' ? match.home_team : match.away_team;
+  if (team) return formatTeamFromObject(team);
+  const id = side === 'home' ? match.home_team_id : match.away_team_id;
+  if (id && teamsMap.get(id)) return teamsMap.get(id)!;
+  return 'TBD';
+}
+
+function formatTime(t?: string): string {
+  if (t) return t.slice(0, 5);
+  return '—';
+}
+
+const GROUP_VARS = ['--tv-g1', '--tv-g2', '--tv-g3', '--tv-g4', '--tv-accent', '--tv-g2'] as const;
+
+interface TVUpcomingMatchesViewProps {
+  matches: Match[];
+  teams?: TeamEntry[];
+}
 
 export function TVUpcomingMatchesView({ matches, teams }: TVUpcomingMatchesViewProps) {
   const teamsMap = buildTeamsMap(teams);
+
   const scheduled = matches
     .filter((m) => m.status === 'scheduled' || m.status === 'in_progress')
-    .sort((a, b) => {
-      const ta = a.start_time || a.match_day || '';
-      const tb = b.start_time || b.match_day || '';
-      return ta.localeCompare(tb);
-    })
-    .slice(0, 12);
+    .filter((m) => !m.round || m.round === 'group')
+    .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))
+    .slice(0, 10);
 
   if (scheduled.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh] rounded-2xl bg-slate-100 border-2 border-dashed border-slate-300 text-slate-500">
-        <p className="text-xl font-semibold">No hay partidos programados</p>
-        <p className="text-sm mt-1">para esta categoría</p>
+      <div
+        className="h-full flex flex-col items-center justify-center rounded-2xl border-2 border-dashed"
+        style={{ borderColor: 'var(--tv-border)', color: 'var(--tv-text-muted)' }}
+      >
+        <p className="text-2xl font-bold font-orbitron">Sin partidos programados</p>
+        <p className="text-base mt-1">Todos los partidos han finalizado o no hay fixtures generados</p>
       </div>
     );
   }
 
+  // Distribute matches in 2 columns, rows fill height equally
+  const cols = scheduled.length > 5 ? 2 : 1;
+
   return (
-    <div className="max-w-6xl mx-auto [color-scheme:light]" style={{ color: '#0f172a' }}>
-      <h2 className="text-xl font-bold text-center mb-8 font-orbitron tracking-wide" style={{ color: '#0f172a' }}>
+    <div className="h-full flex flex-col overflow-hidden">
+      <h2
+        className="flex-shrink-0 text-center font-orbitron font-extrabold tracking-widest mb-3 text-sm uppercase"
+        style={{ color: 'var(--tv-text-muted)' }}
+      >
         Próximos partidos
       </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
-        {scheduled.map((match, i) => (
-          <div
-            key={match.id}
-            className={`rounded-2xl border-2 border-slate-200 border-l-4 ${CARD_ACCENTS[i % CARD_ACCENTS.length]} bg-white px-5 py-4 shadow-md hover:shadow-lg transition-shadow`}
-            style={{ color: '#0f172a' }}
-          >
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0 w-24 text-center rounded-xl bg-slate-200 py-2 px-3">
-                <div className="text-2xl font-bold tabular-nums font-orbitron" style={{ color: '#1e3a8a' }}>
-                  {formatTime(match.start_time, match.match_day)}
-                </div>
+
+      <div
+        className="flex-1 min-h-0 overflow-hidden"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gap: '0.6rem',
+        }}
+      >
+        {scheduled.map((match, i) => {
+          const gVar = GROUP_VARS[i % GROUP_VARS.length];
+          const isLive = match.status === 'in_progress';
+
+          return (
+            <div
+              key={match.id}
+              className="flex items-center gap-3 rounded-2xl overflow-hidden"
+              style={{
+                background: 'var(--tv-surface)',
+                border: `2px solid var(--tv-border)`,
+                borderLeft: `5px solid var(${gVar})`,
+                paddingLeft: '0',
+              }}
+            >
+              {/* Time + court block */}
+              <div
+                className="flex-shrink-0 flex flex-col items-center justify-center self-stretch px-4"
+                style={{
+                  background: `color-mix(in srgb, var(${gVar}) 15%, var(--tv-surface))`,
+                  minWidth: '5.5rem',
+                }}
+              >
+                {isLive && (
+                  <span
+                    className="text-[0.5rem] font-extrabold font-orbitron tracking-widest mb-0.5 px-1.5 py-0.5 rounded-full"
+                    style={{ background: '#dc2626', color: '#fff' }}
+                  >
+                    LIVE
+                  </span>
+                )}
+                <span
+                  className="text-xl font-extrabold tabular-nums font-orbitron leading-none"
+                  style={{ color: `var(${gVar})` }}
+                >
+                  {formatTime(match.start_time)}
+                </span>
                 {match.court_name && (
-                  <div className="text-xs font-bold mt-1" style={{ color: '#1e293b' }}>
+                  <span
+                    className="text-xs font-bold mt-1 text-center leading-tight"
+                    style={{ color: 'var(--tv-text-muted)' }}
+                  >
                     {match.court_name}
-                  </div>
+                  </span>
                 )}
               </div>
-              <div className="flex-1 flex items-center gap-5 min-w-0">
-                <div className="flex-1 text-right min-w-0">
-                  <span className="text-lg font-bold truncate block" style={{ color: '#0f172a' }}>
-                    {getTeamName(match, 'home', teamsMap)}
-                  </span>
-                </div>
-                <div className="flex-shrink-0 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-sm font-bold font-orbitron shadow">
+
+              {/* Teams */}
+              <div className="flex-1 flex items-center gap-2 px-2 min-w-0">
+                <span
+                  className="flex-1 text-right text-base font-bold truncate font-orbitron"
+                  style={{ color: 'var(--tv-text)' }}
+                >
+                  {getTeamName(match, 'home', teamsMap)}
+                </span>
+                <span
+                  className="flex-shrink-0 text-xs font-extrabold font-orbitron px-2.5 py-1.5 rounded-xl shadow"
+                  style={{
+                    background: `linear-gradient(135deg, var(--tv-from), var(--tv-to))`,
+                    color: 'var(--tv-text-inv)',
+                  }}
+                >
                   VS
-                </div>
-                <div className="flex-1 text-left min-w-0">
-                  <span className="text-lg font-bold truncate block" style={{ color: '#0f172a' }}>
-                    {getTeamName(match, 'away', teamsMap)}
-                  </span>
-                </div>
+                </span>
+                <span
+                  className="flex-1 text-left text-base font-bold truncate font-orbitron"
+                  style={{ color: 'var(--tv-text)' }}
+                >
+                  {getTeamName(match, 'away', teamsMap)}
+                </span>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -7,38 +7,67 @@ interface TVSummaryCardsProps {
   groupsCount: number;
 }
 
-const CARD_STYLES = [
-  { light: 'bg-blue-50', border: 'border-blue-200', label: 'text-blue-800', number: 'text-blue-900' },
-  { light: 'bg-emerald-50', border: 'border-emerald-200', label: 'text-emerald-800', number: 'text-emerald-900' },
-  { light: 'bg-amber-50', border: 'border-amber-200', label: 'text-amber-800', number: 'text-amber-900' },
-  { light: 'bg-violet-50', border: 'border-violet-200', label: 'text-violet-800', number: 'text-violet-900' },
+const STATS = [
+  { key: 'teams',   label: 'EQUIPOS',          gVar: '--tv-g1' },
+  { key: 'matches', label: 'PRÓXIMOS',          gVar: '--tv-g2' },
+  { key: 'groups',  label: 'GRUPOS',            gVar: '--tv-g3' },
 ] as const;
 
 export function TVSummaryCards({ tournamentName, teamsCount, upcomingMatchesCount, groupsCount }: TVSummaryCardsProps) {
+  const values = { teams: teamsCount, matches: upcomingMatchesCount, groups: groupsCount };
+
   return (
-    <div className="mb-8 space-y-4">
-      <div className="rounded-2xl border-2 border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-50 px-6 py-4 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wider text-indigo-700 font-orbitron">Categoría</p>
-        <p className="text-lg sm:text-xl font-bold text-slate-900 truncate mt-0.5">{tournamentName}</p>
+    <div
+      className="flex-shrink-0 flex items-stretch gap-3 mb-3"
+      style={{ height: '5rem' }}
+    >
+      {/* Category name — grows */}
+      <div
+        className="flex-1 flex flex-col justify-center px-5 rounded-2xl min-w-0"
+        style={{
+          background: `color-mix(in srgb, var(--tv-accent) 12%, var(--tv-surface))`,
+          border: `1.5px solid color-mix(in srgb, var(--tv-accent) 28%, transparent)`,
+        }}
+      >
+        <p
+          className="text-xs font-bold uppercase tracking-widest font-orbitron mb-0.5"
+          style={{ color: 'var(--tv-accent)' }}
+        >
+          Categoría
+        </p>
+        <p
+          className="text-lg sm:text-xl font-extrabold leading-tight truncate font-orbitron"
+          style={{ color: 'var(--tv-text)' }}
+        >
+          {tournamentName}
+        </p>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className={`rounded-2xl border-2 ${CARD_STYLES[0].border} ${CARD_STYLES[0].light} px-5 py-4 shadow-sm`}>
-          <p className={`text-xs font-semibold uppercase tracking-wider ${CARD_STYLES[0].label} font-orbitron`}>Equipos</p>
-          <p className={`text-3xl font-bold tabular-nums ${CARD_STYLES[0].number} font-orbitron mt-1`}>{teamsCount}</p>
+
+      {/* Stat cards — fixed width */}
+      {STATS.map(({ key, label, gVar }) => (
+        <div
+          key={key}
+          className="flex-shrink-0 flex flex-col justify-center items-center px-5 rounded-2xl"
+          style={{
+            minWidth: '7rem',
+            background: `color-mix(in srgb, var(${gVar}) 12%, var(--tv-surface))`,
+            border: `1.5px solid color-mix(in srgb, var(${gVar}) 30%, transparent)`,
+          }}
+        >
+          <p
+            className="text-[0.6rem] font-bold uppercase tracking-widest font-orbitron"
+            style={{ color: `var(${gVar})` }}
+          >
+            {label}
+          </p>
+          <p
+            className="text-4xl font-extrabold tabular-nums font-orbitron leading-none mt-0.5"
+            style={{ color: `var(${gVar})` }}
+          >
+            {values[key]}
+          </p>
         </div>
-        <div className={`rounded-2xl border-2 ${CARD_STYLES[1].border} ${CARD_STYLES[1].light} px-5 py-4 shadow-sm`}>
-          <p className={`text-xs font-semibold uppercase tracking-wider ${CARD_STYLES[1].label} font-orbitron`}>Próximos partidos</p>
-          <p className={`text-3xl font-bold tabular-nums ${CARD_STYLES[1].number} font-orbitron mt-1`}>{upcomingMatchesCount}</p>
-        </div>
-        <div className={`rounded-2xl border-2 ${CARD_STYLES[2].border} ${CARD_STYLES[2].light} px-5 py-4 shadow-sm`}>
-          <p className={`text-xs font-semibold uppercase tracking-wider ${CARD_STYLES[2].label} font-orbitron`}>Grupos</p>
-          <p className={`text-3xl font-bold tabular-nums ${CARD_STYLES[2].number} font-orbitron mt-1`}>{groupsCount}</p>
-        </div>
-        <div className={`rounded-2xl border-2 ${CARD_STYLES[3].border} ${CARD_STYLES[3].light} px-5 py-4 shadow-sm`}>
-          <p className={`text-xs font-semibold uppercase tracking-wider ${CARD_STYLES[3].label} font-orbitron`}>Resumen</p>
-          <p className="text-sm font-semibold text-slate-800 mt-1">Pantalla TV</p>
-        </div>
-      </div>
+      ))}
     </div>
   );
 }

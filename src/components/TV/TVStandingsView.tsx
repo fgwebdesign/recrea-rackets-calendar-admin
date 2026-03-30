@@ -18,29 +18,21 @@ interface GroupData {
   category_name?: string;
 }
 
-function formatPlayerNames(teamInfo: { player1?: string; player2?: string } | null | undefined): string {
-  if (!teamInfo) return '—';
-  const n1 = String(teamInfo.player1 || '').trim();
-  const n2 = String(teamInfo.player2 || '').trim();
+function formatPlayerNames(info: { player1?: string; player2?: string } | null | undefined): string {
+  if (!info) return '—';
+  const n1 = String(info.player1 || '').trim();
+  const n2 = String(info.player2 || '').trim();
   if (n1 && n2) return `${n1} / ${n2}`;
   return n1 || n2 || '—';
 }
 
-const GROUP_COLORS = [
-  { card: 'bg-blue-50 border-blue-200', header: 'bg-blue-500 text-white', pos1: 'bg-amber-400 text-amber-900', pos2: 'bg-slate-300 text-slate-800', pos3: 'bg-amber-700 text-amber-100', posRest: 'bg-slate-100 text-slate-700', pts: 'bg-blue-500 text-white' },
-  { card: 'bg-emerald-50 border-emerald-200', header: 'bg-emerald-500 text-white', pos1: 'bg-amber-400 text-amber-900', pos2: 'bg-slate-300 text-slate-800', pos3: 'bg-amber-700 text-amber-100', posRest: 'bg-slate-100 text-slate-700', pts: 'bg-emerald-500 text-white' },
-  { card: 'bg-amber-50 border-amber-200', header: 'bg-amber-500 text-amber-900', pos1: 'bg-amber-400 text-amber-900', pos2: 'bg-slate-300 text-slate-800', pos3: 'bg-amber-700 text-amber-100', posRest: 'bg-slate-100 text-slate-700', pts: 'bg-amber-500 text-amber-900' },
-  { card: 'bg-violet-50 border-violet-200', header: 'bg-violet-500 text-white', pos1: 'bg-amber-400 text-amber-900', pos2: 'bg-slate-300 text-slate-800', pos3: 'bg-amber-700 text-amber-100', posRest: 'bg-slate-100 text-slate-700', pts: 'bg-violet-500 text-white' },
-] as const;
+const GROUP_VARS = ['--tv-g1', '--tv-g2', '--tv-g3', '--tv-g4'] as const;
 
-function getPositionStyle(position: number, colors: (typeof GROUP_COLORS)[number]): string {
-  switch (position) {
-    case 1: return colors.pos1;
-    case 2: return colors.pos2;
-    case 3: return colors.pos3;
-    default: return colors.posRest;
-  }
-}
+const MEDAL: Record<number, { bg: string; color: string }> = {
+  1: { bg: '#f59e0b', color: '#78350f' },
+  2: { bg: '#94a3b8', color: '#1e293b' },
+  3: { bg: '#92400e', color: '#fef3c7' },
+};
 
 interface TVStandingsViewProps {
   standings: Record<string, GroupData> | null;
@@ -49,72 +41,138 @@ interface TVStandingsViewProps {
 export function TVStandingsView({ standings }: TVStandingsViewProps) {
   if (!standings || Object.keys(standings).length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh] rounded-2xl bg-slate-100 border-2 border-dashed border-slate-300 text-slate-500">
-        <p className="text-xl font-semibold">No hay clasificaciones</p>
-        <p className="text-sm mt-1">para esta categoría</p>
+      <div
+        className="h-full flex flex-col items-center justify-center rounded-2xl border-2 border-dashed"
+        style={{ borderColor: 'var(--tv-border)', color: 'var(--tv-text-muted)' }}
+      >
+        <p className="text-2xl font-bold font-orbitron">Sin clasificaciones</p>
+        <p className="text-base mt-1" style={{ color: 'var(--tv-text-muted)' }}>Los grupos aún no tienen partidos registrados</p>
       </div>
     );
   }
 
   const entries = Object.entries(standings).slice(0, 4);
+  const cols = entries.length <= 2 ? entries.length : 2;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
+    <div
+      className="h-full overflow-hidden"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${cols}, 1fr)`,
+        gridTemplateRows: entries.length > 2 ? '1fr 1fr' : '1fr',
+        gap: '0.75rem',
+      }}
+    >
       {entries.map(([, group], idx) => {
-        const colors = GROUP_COLORS[idx % GROUP_COLORS.length];
+        const gVar = GROUP_VARS[idx % GROUP_VARS.length];
+        // Show at most 4 teams per group
+        const teams = group.teams.slice(0, 4);
+
         return (
           <div
             key={group.group_number}
-            className={`rounded-2xl border-2 ${colors.card} overflow-hidden shadow-md`}
+            className="flex flex-col overflow-hidden rounded-2xl"
+            style={{
+              background: 'var(--tv-surface)',
+              border: `2px solid color-mix(in srgb, var(${gVar}) 40%, transparent)`,
+            }}
           >
-            <div className={`px-6 py-4 flex items-center justify-between ${colors.header} font-orbitron font-bold`}>
-              <span className="text-lg tracking-wide">Grupo {group.group_number}</span>
-              <span className="text-sm opacity-90">{group.teams.length} equipos</span>
+            {/* Group header */}
+            <div
+              className="flex-shrink-0 flex items-center justify-between px-5 py-2.5 font-orbitron font-bold"
+              style={{ background: `var(${gVar})`, color: 'var(--tv-text-inv)' }}
+            >
+              <span className="text-base tracking-widest">GRUPO {group.group_number}</span>
+              <span className="text-sm opacity-80">{group.teams.length} equipos</span>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-100">
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-700 font-orbitron">Pos</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-700 font-orbitron">Equipo</th>
-                    <th className="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-700 font-orbitron">PJ</th>
-                    <th className="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-700 font-orbitron">PG</th>
-                    <th className="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-700 font-orbitron">PP</th>
-                    <th className="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-700 font-orbitron">Sets</th>
-                    <th className="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-700 font-orbitron">Pts</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {group.teams.map((team) => (
-                    <tr key={team.team_id} className="border-b border-slate-100 last:border-0 hover:bg-white/60">
-                      <td className="px-4 py-4">
-                        <span className={`inline-flex items-center justify-center min-w-[2.5rem] px-2.5 py-1 rounded-lg text-sm font-bold tabular-nums ${getPositionStyle(team.position, colors)} font-orbitron`}>
-                          {team.position}°
-                        </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 font-bold text-sm flex-shrink-0 font-orbitron">
-                            {formatPlayerNames(team.team_info).charAt(0) || '?'}
-                          </div>
-                          <span className="text-base font-semibold text-slate-900 truncate max-w-[200px]">
-                            {formatPlayerNames(team.team_info)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-4 text-center text-base text-slate-800 tabular-nums font-medium">{team.matches_played}</td>
-                      <td className="px-3 py-4 text-center text-base text-emerald-600 font-bold tabular-nums">{team.matches_won}</td>
-                      <td className="px-3 py-4 text-center text-base text-rose-600 font-bold tabular-nums">{team.matches_lost}</td>
-                      <td className="px-3 py-4 text-center text-base text-slate-800 tabular-nums font-medium">{team.sets_won}-{team.sets_lost}</td>
-                      <td className="px-3 py-4 text-center">
-                        <span className={`inline-flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm tabular-nums ${colors.pts} font-orbitron`}>
-                          {team.points}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+            {/* Column headers */}
+            <div
+              className="flex-shrink-0 grid font-orbitron text-xs font-bold uppercase tracking-wider px-4 py-2"
+              style={{
+                gridTemplateColumns: '3rem 1fr 2.5rem 2.5rem 2.5rem 3.5rem 3rem',
+                background: `color-mix(in srgb, var(${gVar}) 8%, var(--tv-surface))`,
+                color: 'var(--tv-text-muted)',
+                borderBottom: '1px solid var(--tv-border)',
+              }}
+            >
+              <span className="text-center">#</span>
+              <span>Equipo</span>
+              <span className="text-center">PJ</span>
+              <span className="text-center">PG</span>
+              <span className="text-center">PP</span>
+              <span className="text-center">Sets</span>
+              <span className="text-center">Pts</span>
+            </div>
+
+            {/* Team rows — distribute remaining height */}
+            <div className="flex-1 flex flex-col min-h-0">
+              {teams.map((team, ti) => {
+                const medal = MEDAL[team.position];
+                const isLast = ti === teams.length - 1;
+                return (
+                  <div
+                    key={team.team_id}
+                    className="flex-1 grid items-center px-4"
+                    style={{
+                      gridTemplateColumns: '3rem 1fr 2.5rem 2.5rem 2.5rem 3.5rem 3rem',
+                      borderBottom: isLast ? 'none' : '1px solid var(--tv-border)',
+                      minHeight: 0,
+                    }}
+                  >
+                    {/* Position */}
+                    <div className="flex justify-center">
+                      <span
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-xl text-sm font-extrabold font-orbitron"
+                        style={medal
+                          ? { background: medal.bg, color: medal.color }
+                          : { background: 'var(--tv-border)', color: 'var(--tv-text-muted)' }
+                        }
+                      >
+                        {team.position}°
+                      </span>
+                    </div>
+
+                    {/* Name */}
+                    <div className="flex items-center gap-2.5 min-w-0 pr-3">
+                      <div
+                        className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold font-orbitron"
+                        style={{
+                          background: `color-mix(in srgb, var(${gVar}) 20%, var(--tv-border))`,
+                          color: `var(${gVar})`,
+                        }}
+                      >
+                        {formatPlayerNames(team.team_info).charAt(0) || '?'}
+                      </div>
+                      <span
+                        className="text-base font-semibold truncate"
+                        style={{ color: 'var(--tv-text)' }}
+                      >
+                        {formatPlayerNames(team.team_info)}
+                      </span>
+                    </div>
+
+                    {/* Stats */}
+                    <span className="text-center text-base tabular-nums font-medium" style={{ color: 'var(--tv-text)' }}>{team.matches_played}</span>
+                    <span className="text-center text-base font-bold tabular-nums" style={{ color: '#059669' }}>{team.matches_won}</span>
+                    <span className="text-center text-base font-bold tabular-nums" style={{ color: '#dc2626' }}>{team.matches_lost}</span>
+                    <span className="text-center text-sm tabular-nums font-medium" style={{ color: 'var(--tv-text-muted)' }}>
+                      {team.sets_won}-{team.sets_lost}
+                    </span>
+
+                    {/* Points badge */}
+                    <div className="flex justify-center">
+                      <span
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-extrabold tabular-nums font-orbitron"
+                        style={{ background: `var(${gVar})`, color: 'var(--tv-text-inv)' }}
+                      >
+                        {team.points}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
