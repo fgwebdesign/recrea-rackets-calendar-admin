@@ -20,62 +20,58 @@ export const ProfitabilityCard = memo(function ProfitabilityCard({ profitability
       {/* Cards de Resumen */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Ingresos Totales */}
-        <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 shadow-lg">
+        <Card className="border border-border bg-blue-50 dark:bg-blue-500/10 dark:border-l-[3px] dark:border-l-blue-500/70 shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-2">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+            <CardTitle className="text-sm font-semibold text-blue-700 dark:text-foreground flex items-center gap-2">
+              <div className="p-2 bg-blue-100 dark:bg-blue-500/15 rounded-lg">
                 <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               {t('reports.profitability.totalRevenue')}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">
+            <p className="text-3xl font-bold text-blue-700 dark:text-blue-400">
               {formatCurrency(profitability.summary.total_revenue)}
             </p>
           </CardContent>
         </Card>
 
         {/* Costos Totales */}
-        <Card className="border-2 border-red-200 dark:border-red-800 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 shadow-lg">
+        <Card className="border border-border bg-red-50 dark:bg-red-500/10 dark:border-l-[3px] dark:border-l-red-500/70 shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-red-700 dark:text-red-300 flex items-center gap-2">
-              <div className="p-2 bg-red-100 dark:bg-red-900/50 rounded-lg">
+            <CardTitle className="text-sm font-semibold text-red-700 dark:text-foreground flex items-center gap-2">
+              <div className="p-2 bg-red-100 dark:bg-red-500/15 rounded-lg">
                 <DollarSign className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               {t('reports.profitability.totalCost')}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-red-700 dark:text-red-300">
+            <p className="text-3xl font-bold text-red-700 dark:text-red-400">
               {formatCurrency(profitability.summary.total_cost)}
             </p>
           </CardContent>
         </Card>
 
         {/* Ganancia Total */}
-        <Card className={`border-2 shadow-lg ${
+        <Card className={`border border-border shadow-sm ${
           profitability.summary.total_profit >= 0
-            ? 'border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20'
-            : 'border-red-200 dark:border-red-800 bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20'
+            ? 'bg-emerald-50 dark:bg-emerald-500/10 dark:border-l-[3px] dark:border-l-emerald-500/70'
+            : 'bg-red-50 dark:bg-red-500/10 dark:border-l-[3px] dark:border-l-red-500/70'
         }`}>
           <CardHeader className="pb-3">
             <CardTitle className={`text-sm font-semibold flex items-center gap-2 ${
               profitability.summary.total_profit >= 0
-                ? 'text-green-700 dark:text-green-300'
-                : 'text-red-700 dark:text-red-300'
+                ? 'text-emerald-700 dark:text-foreground'
+                : 'text-red-700 dark:text-foreground'
             }`}>
               <div className={`p-2 rounded-lg ${
                 profitability.summary.total_profit >= 0
-                  ? 'bg-green-100 dark:bg-green-900/50'
-                  : 'bg-red-100 dark:bg-red-900/50'
+                  ? 'bg-emerald-100 dark:bg-emerald-500/15'
+                  : 'bg-red-100 dark:bg-red-500/15'
               }`}>
                 {profitability.summary.total_profit >= 0 ? (
-                  <TrendingUp className={`w-5 h-5 ${
-                    profitability.summary.total_profit >= 0
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-red-600 dark:text-red-400'
-                  }`} />
+                  <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 ) : (
                   <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
                 )}
@@ -86,8 +82,8 @@ export const ProfitabilityCard = memo(function ProfitabilityCard({ profitability
           <CardContent>
             <p className={`text-3xl font-bold ${
               profitability.summary.total_profit >= 0
-                ? 'text-green-700 dark:text-green-300'
-                : 'text-red-700 dark:text-red-300'
+                ? 'text-emerald-700 dark:text-emerald-400'
+                : 'text-red-700 dark:text-red-400'
             }`}>
               {formatCurrency(profitability.summary.total_profit)}
             </p>
@@ -95,33 +91,33 @@ export const ProfitabilityCard = memo(function ProfitabilityCard({ profitability
         </Card>
 
         {/* Margen de Ganancia */}
-        <Card className={`border-2 shadow-lg ${
+        <Card className={`border border-border shadow-sm ${
           profitability.summary.profit_margin_percent >= 30
-            ? 'border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20'
+            ? 'bg-emerald-50 dark:bg-emerald-500/10 dark:border-l-[3px] dark:border-l-emerald-500/70'
             : profitability.summary.profit_margin_percent >= 15
-            ? 'border-yellow-200 dark:border-yellow-800 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20'
-            : 'border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20'
+            ? 'bg-amber-50 dark:bg-amber-500/10 dark:border-l-[3px] dark:border-l-amber-500/70'
+            : 'bg-orange-50 dark:bg-orange-500/10 dark:border-l-[3px] dark:border-l-orange-500/70'
         }`}>
           <CardHeader className="pb-3">
             <CardTitle className={`text-sm font-semibold flex items-center gap-2 ${
               profitability.summary.profit_margin_percent >= 30
-                ? 'text-emerald-700 dark:text-emerald-300'
+                ? 'text-emerald-700 dark:text-foreground'
                 : profitability.summary.profit_margin_percent >= 15
-                ? 'text-yellow-700 dark:text-yellow-300'
-                : 'text-orange-700 dark:text-orange-300'
+                ? 'text-amber-700 dark:text-foreground'
+                : 'text-orange-700 dark:text-foreground'
             }`}>
               <div className={`p-2 rounded-lg ${
                 profitability.summary.profit_margin_percent >= 30
-                  ? 'bg-emerald-100 dark:bg-emerald-900/50'
+                  ? 'bg-emerald-100 dark:bg-emerald-500/15'
                   : profitability.summary.profit_margin_percent >= 15
-                  ? 'bg-yellow-100 dark:bg-yellow-900/50'
-                  : 'bg-orange-100 dark:bg-orange-900/50'
+                  ? 'bg-amber-100 dark:bg-amber-500/15'
+                  : 'bg-orange-100 dark:bg-orange-500/15'
               }`}>
                 <Percent className={`w-5 h-5 ${
                   profitability.summary.profit_margin_percent >= 30
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : profitability.summary.profit_margin_percent >= 15
-                    ? 'text-yellow-600 dark:text-yellow-400'
+                    ? 'text-amber-600 dark:text-amber-400'
                     : 'text-orange-600 dark:text-orange-400'
                 }`} />
               </div>

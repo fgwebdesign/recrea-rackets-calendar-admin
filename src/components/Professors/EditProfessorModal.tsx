@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, ImageIcon, GraduationCap, Trophy, Heart, Settings } from "lucide-react";
+import { User, GraduationCap, Upload, X, ChevronDown, Award, Calendar, Wallet, Phone } from "lucide-react";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
 import { Professor, UpdateProfessorData } from '@/types/professor';
@@ -21,31 +21,47 @@ interface EditProfessorModalProps {
   professor: Professor | null;
 }
 
-const SPECIALIZATIONS = [
-  // Pádel
-  'Todos los niveles', 'Principiantes', 'Nivel Intermedio', 'Avanzado',
-  'Entrenamiento personalizado', 'Clases grupales', 'Técnica básica', 
-  'Técnica avanzada', 'Torneos y competencias',
-  // Fútbol
-  'Entrenador de fútbol', 'Preparador físico', 'Técnica de fútbol', 
-  'Táctica de fútbol', 'Fútbol juvenil', 'Fútbol competitivo', 
-  'Entrenamiento de porteros',
-  // Salud y Bienestar
-  'Fisioterapeuta', 'Masajista deportivo', 'Rehabilitación deportiva',
-  'Prevención de lesiones', 'Nutrición deportiva', 'Psicología deportiva',
-  // Otros Servicios
-  'Coordinador deportivo', 'Árbitro de pádel', 'Árbitro de fútbol',
-  'Instructor de fitness', 'Yoga para deportistas', 'Pilates terapéutico'
+const SPECIALIZATIONS_BY_GROUP = [
+  {
+    label: 'Pádel',
+    items: [
+      'Todos los niveles', 'Principiantes', 'Nivel Intermedio', 'Avanzado',
+      'Entrenamiento personalizado', 'Clases grupales', 'Técnica básica',
+      'Técnica avanzada', 'Torneos y competencias',
+    ],
+  },
+  {
+    label: 'Fútbol',
+    items: [
+      'Entrenador de fútbol', 'Preparador físico', 'Técnica de fútbol',
+      'Táctica de fútbol', 'Fútbol juvenil', 'Fútbol competitivo',
+      'Entrenamiento de porteros',
+    ],
+  },
+  {
+    label: 'Salud y Bienestar',
+    items: [
+      'Fisioterapeuta', 'Masajista deportivo', 'Rehabilitación deportiva',
+      'Prevención de lesiones', 'Nutrición deportiva', 'Psicología deportiva',
+    ],
+  },
+  {
+    label: 'Otros',
+    items: [
+      'Coordinador deportivo', 'Árbitro de pádel', 'Árbitro de fútbol',
+      'Instructor de fitness', 'Yoga para deportistas', 'Pilates terapéutico',
+    ],
+  },
 ];
 
 const DAYS_OF_WEEK = [
-  { value: 'monday', label: 'monday' },
-  { value: 'tuesday', label: 'tuesday' },
-  { value: 'wednesday', label: 'wednesday' },
-  { value: 'thursday', label: 'thursday' },
-  { value: 'friday', label: 'friday' },
-  { value: 'saturday', label: 'saturday' },
-  { value: 'sunday', label: 'sunday' }
+  { value: 'monday',    label: 'Lun' },
+  { value: 'tuesday',   label: 'Mar' },
+  { value: 'wednesday', label: 'Mié' },
+  { value: 'thursday',  label: 'Jue' },
+  { value: 'friday',    label: 'Vie' },
+  { value: 'saturday',  label: 'Sáb' },
+  { value: 'sunday',    label: 'Dom' },
 ];
 
 export default function EditProfessorModal({ isOpen, onClose, onSubmit, professor }: EditProfessorModalProps) {
@@ -54,6 +70,16 @@ export default function EditProfessorModal({ isOpen, onClose, onSubmit, professo
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    specializations: false,
+    availability: false,
+    rates: false,
+    contact: false,
+  });
+
+  const toggleSection = (key: string) =>
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
 
   useEffect(() => {
     if (professor) {
@@ -69,83 +95,61 @@ export default function EditProfessorModal({ isOpen, onClose, onSubmit, professo
         instagram_handle: professor.instagram_handle || "",
         whatsapp_number: professor.whatsapp_number || "",
         is_active: professor.is_active,
-        photo: undefined
+        photo: undefined,
       });
       setPreviewUrl(professor.photo_url || null);
+      setOpenSections({ specializations: false, availability: false, rates: false, contact: false });
     }
   }, [professor]);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({ ...prev, photo: t('imageTooLarge') }));
-        return;
-      }
-      setFormData(prev => ({ ...prev, photo: file }));
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      setErrors(prev => ({ ...prev, photo: "" }));
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, photo: t('imageTooLarge') }));
+      return;
     }
+    setFormData(prev => ({ ...prev, photo: file }));
+    const reader = new FileReader();
+    reader.onloadend = () => setPreviewUrl(reader.result as string);
+    reader.readAsDataURL(file);
+    setErrors(prev => ({ ...prev, photo: "" }));
   };
 
-  const handleSpecializationChange = (specialization: string, checked: boolean) => {
-    const currentSpecializations = formData.specializations || [];
+  const toggleSpec = (spec: string) => {
+    const current = formData.specializations || [];
     setFormData(prev => ({
       ...prev,
-      specializations: checked 
-        ? [...currentSpecializations, specialization]
-        : currentSpecializations.filter(s => s !== specialization)
+      specializations: current.includes(spec) ? current.filter(s => s !== spec) : [...current, spec],
     }));
   };
 
-  const handleDayChange = (day: string, checked: boolean) => {
-    const currentDays = formData.availability_days || [];
+  const toggleDay = (day: string) => {
+    const current = formData.availability_days || [];
     setFormData(prev => ({
       ...prev,
-      availability_days: checked 
-        ? [...currentDays, day]
-        : currentDays.filter(d => d !== day)
+      availability_days: current.includes(day) ? current.filter(d => d !== day) : [...current, day],
     }));
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
-    if (formData.name !== undefined && !formData.name.trim()) {
-      newErrors.name = t('nameRequired');
-    }
-    if (formData.description !== undefined && !formData.description.trim()) {
-      newErrors.description = t('descriptionRequired');
-    }
-    if (formData.availability_hours !== undefined && !formData.availability_hours.trim()) {
-      newErrors.availability_hours = t('availabilityHoursRequired');
-    }
-    if (formData.specializations !== undefined && formData.specializations.length === 0) {
-      newErrors.specializations = t('specializationsRequired');
-    }
-    if (formData.availability_days !== undefined && formData.availability_days.length === 0) {
-      newErrors.availability_days = t('availabilityDaysRequired');
-    }
-
+    if (formData.name !== undefined && !formData.name.trim()) newErrors.name = t('nameRequired');
+    if (formData.description !== undefined && !formData.description.trim()) newErrors.description = t('descriptionRequired');
+    if (formData.availability_hours !== undefined && !formData.availability_hours.trim()) newErrors.availability_hours = t('availabilityHoursRequired');
+    if (formData.specializations !== undefined && formData.specializations.length === 0) newErrors.specializations = t('specializationsRequired');
+    if (formData.availability_days !== undefined && formData.availability_days.length === 0) newErrors.availability_days = t('availabilityDaysRequired');
     setErrors(newErrors);
+    // Abrir secciones con errores automáticamente
+    if (newErrors.specializations) setOpenSections(p => ({ ...p, specializations: true }));
+    if (newErrors.availability_days || newErrors.availability_hours) setOpenSections(p => ({ ...p, availability: true }));
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!professor) return;
-    
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!professor || !validateForm()) return;
     setIsLoading(true);
-
     try {
       await onSubmit(professor.id, formData);
       handleClose();
@@ -169,442 +173,289 @@ export default function EditProfessorModal({ isOpen, onClose, onSubmit, professo
 
   if (!professor) return null;
 
+  const selectedSpecs = formData.specializations || [];
+  const selectedDays = formData.availability_days || [];
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 max-w-4xl max-h-[95vh] overflow-y-auto border-2 border-blue-200 dark:border-blue-800 shadow-2xl custom-scrollbar">
-        <DialogHeader className="pb-8 px-8 pt-8">
-          <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg">
-              <GraduationCap className="w-6 h-6 text-white" />
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-0">
+
+        {/* ── Header ───────────────────────────────────────────── */}
+        <DialogHeader className="px-6 pt-5 pb-4 border-b border-border">
+          <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
+            <div className="p-1.5 rounded-lg bg-violet-100 dark:bg-violet-900/40">
+              <GraduationCap className="h-4 w-4 text-violet-600 dark:text-violet-400" />
             </div>
-{t('editProfessor')}
+            {t('editProfessor')}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-8 px-8 pb-8">
-          {/* Información Personal */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border-2 border-blue-100 dark:border-blue-900/30 hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
-            <div className="flex items-center gap-2 mb-4">
-              <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('personalInfo')}</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Nombre */}
-              <div>
-                <Label htmlFor="name" className="text-gray-700 dark:text-gray-300 font-medium">
-                  {t('fullName')} *
-                </Label>
-                <Input
-                  id="name"
-                  value={formData.name || ""}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, name: e.target.value }));
-                    if (errors.name) setErrors(prev => ({ ...prev, name: "" }));
-                  }}
-                  placeholder={t('fullNamePlaceholder')}
-                  className={`mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 ${
-                    errors.name ? 'border-red-500 dark:border-red-400' : ''
-                  }`}
-                />
-                {errors.name && (
-                  <p className="text-sm text-red-500 dark:text-red-400 mt-1">{errors.name}</p>
-                )}
-              </div>
+        <form onSubmit={handleSubmit} className="divide-y divide-border">
 
-              {/* Años de experiencia */}
-              <div>
-                <Label htmlFor="experience_years" className="text-gray-700 dark:text-gray-300 font-medium">
-                  {t('experienceYears')}
-                </Label>
-                <Input
-                  id="experience_years"
-                  type="number"
-                  min="0"
-                  value={formData.experience_years || 0}
-                  onChange={(e) => setFormData(prev => ({ ...prev, experience_years: parseInt(e.target.value) || 0 }))}
-                  className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500"
-                />
+          {/* ── Sección fija: Información principal ──────────── */}
+          <div className="px-6 py-5 space-y-4">
+            <div className="flex items-start gap-4">
+              {/* Avatar upload */}
+              <label className="shrink-0 cursor-pointer group">
+                <div className="relative h-16 w-16 rounded-xl overflow-hidden border-2 border-dashed border-border group-hover:border-violet-400 transition-colors bg-muted">
+                  {previewUrl ? (
+                    <Image src={previewUrl} alt="Preview" fill className="object-cover" sizes="64px"
+                      unoptimized={previewUrl.startsWith('blob:') || previewUrl.startsWith('data:')} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="h-6 w-6 text-muted-foreground/40" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Upload className="h-4 w-4 text-white" />
+                  </div>
+                </div>
+                <Input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+              </label>
+
+              {/* Nombre + Experiencia */}
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="grid grid-cols-[1fr_90px] gap-2">
+                  <div>
+                    <Label htmlFor="name" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('fullName')} *</Label>
+                    <Input id="name" value={formData.name || ""}
+                      onChange={(e) => { setFormData(p => ({ ...p, name: e.target.value })); if (errors.name) setErrors(p => ({ ...p, name: "" })); }}
+                      className={`mt-1 h-8 text-sm ${errors.name ? 'border-destructive' : ''}`} />
+                    {errors.name && <p className="text-xs text-destructive mt-0.5">{errors.name}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="exp" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Exp.</Label>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Input id="exp" type="number" min="0" value={formData.experience_years || 0}
+                        onChange={(e) => setFormData(p => ({ ...p, experience_years: parseInt(e.target.value) || 0 }))}
+                        className="h-8 text-sm" />
+                      <span className="text-xs text-muted-foreground shrink-0">años</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="description" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('description')} *</Label>
+                  <Textarea id="description" value={formData.description || ""}
+                    onChange={(e) => { setFormData(p => ({ ...p, description: e.target.value })); if (errors.description) setErrors(p => ({ ...p, description: "" })); }}
+                    placeholder={t('descriptionPlaceholder')}
+                    className={`mt-1 resize-none text-sm ${errors.description ? 'border-destructive' : ''}`} rows={2} />
+                  {errors.description && <p className="text-xs text-destructive mt-0.5">{errors.description}</p>}
+                </div>
               </div>
             </div>
 
-            {/* Descripción */}
-            <div className="mt-6">
-              <Label htmlFor="description" className="text-gray-700 dark:text-gray-300 font-medium">
-                {t('description')} *
-              </Label>
-              <Textarea
-                id="description"
-                value={formData.description || ""}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, description: e.target.value }));
-                  if (errors.description) setErrors(prev => ({ ...prev, description: "" }));
-                }}
-                placeholder={t('descriptionPlaceholder')}
-                className={`mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 ${
-                  errors.description ? 'border-red-500 dark:border-red-400' : ''
-                }`}
-                rows={3}
+            {/* Foto: revertir + error */}
+            {previewUrl && previewUrl !== (professor.photo_url || null) && (
+              <button type="button" onClick={() => { setFormData(p => ({ ...p, photo: undefined })); setPreviewUrl(professor.photo_url || null); }}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors">
+                <X className="h-3 w-3" /> Revertir foto
+              </button>
+            )}
+            {errors.photo && <p className="text-xs text-destructive">{errors.photo}</p>}
+
+            {/* Estado activo inline */}
+            <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2.5">
+              <span className="text-sm font-medium text-foreground">{t('professorActive')}</span>
+              <Switch
+                id="is_active"
+                checked={formData.is_active !== undefined ? formData.is_active : professor.is_active}
+                onCheckedChange={(checked) => setFormData(p => ({ ...p, is_active: checked }))}
               />
-              {errors.description && (
-                <p className="text-sm text-red-500 dark:text-red-400 mt-1">{errors.description}</p>
-              )}
             </div>
           </div>
 
-          {/* Especialidades */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border-2 border-amber-100 dark:border-amber-900/30 hover:border-amber-200 dark:hover:border-amber-800 transition-colors">
-            <div className="flex items-center gap-2 mb-6">
-              <Trophy className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('specializations')} *</h3>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Pádel */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-1.5 bg-blue-500 rounded-lg">
-                    <Trophy className="w-4 h-4 text-white" />
+          {/* ── Acordeón: Especialidades ─────────────────────── */}
+          <AccordionSection
+            id="specializations"
+            open={openSections.specializations}
+            onToggle={() => toggleSection('specializations')}
+            icon={<Award className="h-3.5 w-3.5" />}
+            label="Especialidades"
+            required
+            badge={selectedSpecs.length > 0 ? `${selectedSpecs.length} seleccionadas` : undefined}
+            hasError={!!errors.specializations}
+          >
+            <div className="space-y-3">
+              {SPECIALIZATIONS_BY_GROUP.map((group) => (
+                <div key={group.label}>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">{group.label}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {group.items.map((spec) => {
+                      const active = selectedSpecs.includes(spec);
+                      return (
+                        <button key={spec} type="button" onClick={() => toggleSpec(spec)}
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                            active
+                              ? 'bg-violet-600 text-white border-violet-600'
+                              : 'bg-background text-muted-foreground border-border hover:border-violet-400 hover:text-foreground'
+                          }`}>
+                          {spec}
+                        </button>
+                      );
+                    })}
                   </div>
-                  <h4 className="text-base font-semibold text-blue-800 dark:text-blue-300">{t('padel')}</h4>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {SPECIALIZATIONS.slice(0, 9).map((spec) => (
-                    <div key={spec} className="flex items-center space-x-3 bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">
-                      <Checkbox
-                        id={spec}
-                        checked={(formData.specializations || []).includes(spec)}
-                        onCheckedChange={(checked) => handleSpecializationChange(spec, checked as boolean)}
-                        className="border-blue-500 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
-                      />
-                      <Label htmlFor={spec} className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer flex-1">
-                        {spec}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Fútbol */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-1.5 bg-green-500 rounded-lg">
-                    <Trophy className="w-4 h-4 text-white" />
-                  </div>
-                  <h4 className="text-base font-semibold text-green-800 dark:text-green-300">{t('football')}</h4>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {SPECIALIZATIONS.slice(9, 16).map((spec) => (
-                    <div key={spec} className="flex items-center space-x-3 bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-600 transition-colors">
-                      <Checkbox
-                        id={spec}
-                        checked={(formData.specializations || []).includes(spec)}
-                        onCheckedChange={(checked) => handleSpecializationChange(spec, checked as boolean)}
-                        className="border-green-500 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-                      />
-                      <Label htmlFor={spec} className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer flex-1">
-                        {spec}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Salud y Bienestar */}
-              <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-1.5 bg-purple-500 rounded-lg">
-                    <Heart className="w-4 h-4 text-white" />
-                  </div>
-                  <h4 className="text-base font-semibold text-purple-800 dark:text-purple-300">{t('healthWellness')}</h4>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {SPECIALIZATIONS.slice(16, 22).map((spec) => (
-                    <div key={spec} className="flex items-center space-x-3 bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-600 transition-colors">
-                      <Checkbox
-                        id={spec}
-                        checked={(formData.specializations || []).includes(spec)}
-                        onCheckedChange={(checked) => handleSpecializationChange(spec, checked as boolean)}
-                        className="border-purple-500 data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
-                      />
-                      <Label htmlFor={spec} className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer flex-1">
-                        {spec}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Otros Servicios */}
-              <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-1.5 bg-orange-500 rounded-lg">
-                    <Settings className="w-4 h-4 text-white" />
-                  </div>
-                  <h4 className="text-base font-semibold text-orange-800 dark:text-orange-300">{t('otherServices')}</h4>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {SPECIALIZATIONS.slice(22).map((spec) => (
-                    <div key={spec} className="flex items-center space-x-3 bg-white dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600 hover:border-orange-300 dark:hover:border-orange-600 transition-colors">
-                      <Checkbox
-                        id={spec}
-                        checked={(formData.specializations || []).includes(spec)}
-                        onCheckedChange={(checked) => handleSpecializationChange(spec, checked as boolean)}
-                        className="border-orange-500 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
-                      />
-                      <Label htmlFor={spec} className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer flex-1">
-                        {spec}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
-            {errors.specializations && (
-              <p className="text-sm text-red-500 dark:text-red-400 mt-3">{errors.specializations}</p>
-            )}
-          </div>
+            {errors.specializations && <p className="text-xs text-destructive mt-2">{errors.specializations}</p>}
+          </AccordionSection>
 
-          {/* Disponibilidad y Contacto */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border-2 border-indigo-100 dark:border-indigo-900/30 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
-            <div className="flex items-center gap-2 mb-6">
-              <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('availabilityContact')}</h3>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Días de disponibilidad */}
+          {/* ── Acordeón: Disponibilidad ─────────────────────── */}
+          <AccordionSection
+            id="availability"
+            open={openSections.availability}
+            onToggle={() => toggleSection('availability')}
+            icon={<Calendar className="h-3.5 w-3.5" />}
+            label="Disponibilidad"
+            badge={selectedDays.length > 0 ? selectedDays.map(d => DAYS_OF_WEEK.find(x => x.value === d)?.label).join(', ') : undefined}
+            hasError={!!(errors.availability_days || errors.availability_hours)}
+          >
+            <div className="space-y-4">
               <div>
-                <Label className="text-gray-700 dark:text-gray-300 font-medium">
-                  {t('availabilityDays')} *
-                </Label>
-                <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {DAYS_OF_WEEK.map((day) => (
-                    <div key={day.value} className="flex items-center space-x-3 bg-gray-50 dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-600 transition-colors">
-                      <Checkbox
-                        id={day.value}
-                        checked={(formData.availability_days || []).includes(day.value)}
-                        onCheckedChange={(checked) => handleDayChange(day.value, checked as boolean)}
-                        className="border-indigo-500 data-[state=checked]:bg-indigo-500 data-[state=checked]:border-indigo-500"
-                      />
-                      <Label htmlFor={day.value} className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer flex-1">
-                        {t(day.label)}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-                {errors.availability_days && (
-                  <p className="text-sm text-red-500 dark:text-red-400 mt-2">{errors.availability_days}</p>
-                )}
-              </div>
-
-              {/* Horarios de disponibilidad */}
-              <div>
-                <Label htmlFor="availability_hours" className="text-gray-700 dark:text-gray-300 font-medium">
-                  {t('availabilityHours')} *
-                </Label>
-                <Textarea
-                  id="availability_hours"
-                  value={formData.availability_hours || ""}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, availability_hours: e.target.value }));
-                    if (errors.availability_hours) setErrors(prev => ({ ...prev, availability_hours: "" }));
-                  }}
-                  placeholder={t('availabilityHoursPlaceholder')}
-                  className={`mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 ${
-                    errors.availability_hours ? 'border-red-500 dark:border-red-400' : ''
-                  }`}
-                  rows={2}
-                />
-                {errors.availability_hours && (
-                  <p className="text-sm text-red-500 dark:text-red-400 mt-1">{errors.availability_hours}</p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="hourly_rate" className="text-gray-700 dark:text-gray-300 font-medium">
-                  Valor por hora ($) *
-                </Label>
-                <Input
-                  id="hourly_rate"
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={formData.hourly_rate ?? ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, hourly_rate: parseFloat(e.target.value) || 0 }))}
-                  placeholder="0"
-                  className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Requerido para registrar clases.</p>
-              </div>
-              <div>
-                <Label htmlFor="commission_percent" className="text-gray-700 dark:text-gray-300 font-medium">
-                  Comisión del club para este profesor (%)
-                </Label>
-                <Input
-                  id="commission_percent"
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.5}
-                  value={formData.commission_percent ?? ''}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setFormData(prev => ({ ...prev, commission_percent: v === '' ? null : parseFloat(v) || null }));
-                  }}
-                  placeholder="Vacío = usar comisión por defecto"
-                  className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Opcional. Si está vacío se usa la comisión por defecto del club.</p>
-              </div>
-
-              {/* Contacto */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label htmlFor="instagram_handle" className="text-gray-700 dark:text-gray-300 font-medium">
-                    {t('instagramOptional')}
-                  </Label>
-                  <Input
-                    id="instagram_handle"
-                    value={formData.instagram_handle || ""}
-                    onChange={(e) => setFormData(prev => ({ ...prev, instagram_handle: e.target.value }))}
-                    placeholder={t('instagramPlaceholder')}
-                    className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="whatsapp_number" className="text-gray-700 dark:text-gray-300 font-medium">
-                    {t('whatsappOptional')}
-                  </Label>
-                  <Input
-                    id="whatsapp_number"
-                    value={formData.whatsapp_number || ""}
-                    onChange={(e) => setFormData(prev => ({ ...prev, whatsapp_number: e.target.value }))}
-                    placeholder={t('whatsappPlaceholder')}
-                    className="mt-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              {/* Estado activo */}
-              <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                <Label htmlFor="is_active" className="text-gray-700 dark:text-gray-300 font-medium">
-                  {t('professorActive')}
-                </Label>
-                <Switch
-                  id="is_active"
-                  checked={formData.is_active !== undefined ? formData.is_active : professor.is_active}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Foto */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border-2 border-pink-100 dark:border-pink-900/30 hover:border-pink-200 dark:hover:border-pink-800 transition-colors">
-            <div className="flex items-center gap-2 mb-4">
-              <ImageIcon className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('professorPhoto')}</h3>
-            </div>
-            
-            <div className="bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 border border-pink-200 dark:border-pink-800 rounded-lg p-4 mb-4">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  <ImageIcon className="h-5 w-5 text-pink-500 dark:text-pink-400 mt-0.5" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-pink-800 dark:text-pink-300">
-                    {t('imageRecommendation')}
-                  </h4>
-                  <ul className="mt-1 text-sm text-pink-700 dark:text-pink-400 space-y-1">
-                    <li>• {t('recommendedSize')}</li>
-                    <li>• {t('format')}</li>
-                    <li>• {t('maxSize')}</li>
-                  </ul>
-                  <p className="mt-2 text-sm text-pink-600 dark:text-pink-400">
-                    {t('imageDescription')}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 hover:border-pink-400 dark:hover:border-pink-500 transition-colors">
-              <div className="flex flex-col items-center">
-                {previewUrl ? (
-                  <div className="relative group">
-                    <div className="relative h-40 w-40 rounded-lg overflow-hidden shadow-lg">
-                      <Image
-                        src={previewUrl}
-                        alt="Preview"
-                        fill
-                        className="object-cover"
-                        loading="lazy"
-                        quality={90}
-                        sizes="160px"
-                        unoptimized={previewUrl.startsWith('blob:') || previewUrl.startsWith('data:')}
-                      />
-                    </div>
-                    <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData(prev => ({ ...prev, photo: undefined }));
-                          setPreviewUrl(professor.photo_url || null);
-                        }}
-                        className="text-white hover:text-red-400 bg-red-500 hover:bg-red-600 px-3 py-1 rounded-lg transition-colors"
-                      >
-                        {t('changeImage')}
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Días *</Label>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {DAYS_OF_WEEK.map((day) => {
+                    const active = selectedDays.includes(day.value);
+                    return (
+                      <button key={day.value} type="button" onClick={() => toggleDay(day.value)}
+                        className={`w-11 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                          active
+                            ? 'bg-violet-600 text-white border-violet-600'
+                            : 'bg-background text-muted-foreground border-border hover:border-violet-400 hover:text-foreground'
+                        }`}>
+                        {day.label}
                       </button>
-                    </div>
-                  </div>
-                ) : (
-                  <label className="w-full cursor-pointer">
-                    <div className="flex flex-col items-center">
-                      <div className="p-4 bg-gradient-to-r from-pink-100 to-rose-100 dark:from-pink-900/30 dark:to-rose-900/30 rounded-full mb-3">
-                        <User className="h-12 w-12 text-pink-500 dark:text-pink-400" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        {t('clickToUpload')}
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        {t('fileFormat')}
-                      </p>
-                    </div>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                      className="hidden"
-                    />
-                  </label>
-                )}
+                    );
+                  })}
+                </div>
+                {errors.availability_days && <p className="text-xs text-destructive mt-1">{errors.availability_days}</p>}
+              </div>
+
+              <div>
+                <Label htmlFor="availability_hours" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Horario *</Label>
+                <Textarea id="availability_hours" value={formData.availability_hours || ""}
+                  onChange={(e) => { setFormData(p => ({ ...p, availability_hours: e.target.value })); if (errors.availability_hours) setErrors(p => ({ ...p, availability_hours: "" })); }}
+                  placeholder={t('availabilityHoursPlaceholder')}
+                  className={`mt-1 resize-none text-sm ${errors.availability_hours ? 'border-destructive' : ''}`} rows={2} />
+                {errors.availability_hours && <p className="text-xs text-destructive mt-1">{errors.availability_hours}</p>}
               </div>
             </div>
-            {errors.photo && (
-              <p className="text-sm text-red-500 dark:text-red-400 mt-2">{errors.photo}</p>
-            )}
-          </div>
+          </AccordionSection>
 
-          <DialogFooter className="gap-3 pt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={isLoading}
-              className="border-gray-300 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 hover:bg-gray-50"
-            >
+          {/* ── Acordeón: Tarifas ────────────────────────────── */}
+          <AccordionSection
+            id="rates"
+            open={openSections.rates}
+            onToggle={() => toggleSection('rates')}
+            icon={<Wallet className="h-3.5 w-3.5" />}
+            label="Tarifas"
+            badge={(formData.hourly_rate ?? 0) > 0 ? `$${formData.hourly_rate}/hr` : undefined}
+          >
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="hourly_rate" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Valor por hora ($)</Label>
+                <Input id="hourly_rate" type="number" min={0} step={0.01} value={formData.hourly_rate ?? ''}
+                  onChange={(e) => setFormData(p => ({ ...p, hourly_rate: parseFloat(e.target.value) || 0 }))}
+                  placeholder="0" className="mt-1 h-8 text-sm" />
+              </div>
+              <div>
+                <Label htmlFor="commission_percent" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Comisión club (%)</Label>
+                <Input id="commission_percent" type="number" min={0} max={100} step={0.5} value={formData.commission_percent ?? ''}
+                  onChange={(e) => { const v = e.target.value; setFormData(p => ({ ...p, commission_percent: v === '' ? null : parseFloat(v) || null })); }}
+                  placeholder="Default del club" className="mt-1 h-8 text-sm" />
+                <p className="text-xs text-muted-foreground mt-1">Vacío = default del club</p>
+              </div>
+            </div>
+          </AccordionSection>
+
+          {/* ── Acordeón: Contacto ───────────────────────────── */}
+          <AccordionSection
+            id="contact"
+            open={openSections.contact}
+            onToggle={() => toggleSection('contact')}
+            icon={<Phone className="h-3.5 w-3.5" />}
+            label="Contacto"
+            badge={formData.instagram_handle || formData.whatsapp_number ? 'Configurado' : undefined}
+          >
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="instagram_handle" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('instagramOptional')}</Label>
+                <Input id="instagram_handle" value={formData.instagram_handle || ""}
+                  onChange={(e) => setFormData(p => ({ ...p, instagram_handle: e.target.value }))}
+                  placeholder={t('instagramPlaceholder')} className="mt-1 h-8 text-sm" />
+              </div>
+              <div>
+                <Label htmlFor="whatsapp_number" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('whatsappOptional')}</Label>
+                <Input id="whatsapp_number" value={formData.whatsapp_number || ""}
+                  onChange={(e) => setFormData(p => ({ ...p, whatsapp_number: e.target.value }))}
+                  placeholder={t('whatsappPlaceholder')} className="mt-1 h-8 text-sm" />
+              </div>
+            </div>
+          </AccordionSection>
+
+          {/* ── Footer ───────────────────────────────────────── */}
+          <DialogFooter className="px-6 py-4 gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={handleClose} disabled={isLoading}>
               {t('cancel')}
             </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 dark:from-green-700 dark:to-emerald-700 dark:hover:from-green-800 dark:hover:to-emerald-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-            >
+            <Button type="submit" size="sm" disabled={isLoading}
+              className="bg-violet-600 hover:bg-violet-700 text-white font-semibold min-w-[110px]">
               {isLoading ? t('saving') : t('saveChanges')}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ── Sub-componente acordeón ───────────────────────────────────────────
+interface AccordionSectionProps {
+  id: string;
+  open: boolean;
+  onToggle: () => void;
+  icon: React.ReactNode;
+  label: string;
+  required?: boolean;
+  badge?: string;
+  hasError?: boolean;
+  children: React.ReactNode;
+}
+
+function AccordionSection({ open, onToggle, icon, label, required, badge, hasError, children }: AccordionSectionProps) {
+  return (
+    <Collapsible open={open} onOpenChange={onToggle}>
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className="w-full flex items-center justify-between px-6 py-3.5 hover:bg-muted/50 transition-colors text-left"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className={hasError ? 'text-destructive' : 'text-muted-foreground'}>{icon}</span>
+            <span className={`text-sm font-semibold ${hasError ? 'text-destructive' : 'text-foreground'}`}>
+              {label}
+              {required && <span className="text-destructive ml-0.5">*</span>}
+            </span>
+            {badge && !open && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-medium">
+                {badge}
+              </span>
+            )}
+            {hasError && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-medium">
+                Revisar
+              </span>
+            )}
+          </div>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="px-6 pb-5 pt-1">
+          {children}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

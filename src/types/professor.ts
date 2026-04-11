@@ -85,6 +85,7 @@ export interface UpdateProfessorClassData {
 }
 
 export interface ProfessorClassesSummary {
+  total_classes: number;
   total_hours: number;
   total_amount_professor: number;
   total_amount_club: number;
@@ -105,4 +106,25 @@ export interface ProfessorClassesSummary {
 
 export interface ClubSettings {
   club_commission_percent: number;
+}
+
+/** Respuesta de GET /professors/:id/profile */
+export interface ProfessorProfileData {
+  professor: Professor & {
+    effective_commission_percent: number;
+    commission_source: 'professor' | 'club';
+    club_default_commission_percent: number;
+  };
+  all_time: {
+    total_classes: number;
+    total_hours: number;
+    total_amount_professor: number;
+    total_amount_club: number;
+    best_month: {
+      month: string;        // YYYY-MM
+      total_hours: number;
+      total_classes: number;
+    } | null;
+  };
+  recent_classes: ProfessorClass[];
 }

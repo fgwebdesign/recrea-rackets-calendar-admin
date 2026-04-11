@@ -26,7 +26,7 @@ export const StockAlertsCard = memo(function StockAlertsCard({ stockAlerts }: St
   if (stockAlerts.summary.total_alerts === 0) return null;
 
   return (
-    <Card className="border-2 border-orange-300 dark:border-orange-700 bg-gradient-to-br from-orange-50 via-red-50 to-amber-50 dark:from-orange-900/30 dark:via-red-900/20 dark:to-amber-900/20 shadow-lg">
+    <Card className="border border-border bg-orange-50 dark:[background-image:none] dark:border-l-[3px] dark:border-l-orange-500/70 shadow-sm">
       <CardHeader>
         <div className="flex items-center gap-3">
           <div className="p-2 bg-orange-100 dark:bg-orange-900/50 rounded-lg">
@@ -55,7 +55,7 @@ export const StockAlertsCard = memo(function StockAlertsCard({ stockAlerts }: St
                 {stockAlerts.out_of_stock.slice(0, 5).map((product) => (
                   <div
                     key={product.id}
-                    className="flex items-center justify-between p-4 bg-red-100 dark:bg-red-900/30 rounded-xl border-2 border-red-300 dark:border-red-700 shadow-sm"
+                    className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-500/10 rounded-xl border border-red-200 dark:border-red-500/20 shadow-sm"
                   >
                     <div>
                       <p className="font-bold text-sm text-gray-900 dark:text-white">
@@ -85,7 +85,7 @@ export const StockAlertsCard = memo(function StockAlertsCard({ stockAlerts }: St
                 {stockAlerts.low_stock.slice(0, 5).map((product) => (
                   <div
                     key={product.id}
-                    className="flex items-center justify-between p-4 bg-orange-100 dark:bg-orange-900/30 rounded-xl border-2 border-orange-300 dark:border-orange-700 shadow-sm"
+                    className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-500/10 rounded-xl border border-orange-200 dark:border-orange-500/20 shadow-sm"
                   >
                     <div>
                       <p className="font-bold text-sm text-gray-900 dark:text-white">

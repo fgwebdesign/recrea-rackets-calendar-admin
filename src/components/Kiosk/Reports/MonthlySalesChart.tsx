@@ -216,8 +216,8 @@ export function MonthlySalesChart({
   if (dailyBreakdown.length === 0) return null;
 
   return (
-    <Card className="border-2 border-violet-200 dark:border-violet-800 bg-white dark:bg-gray-800 shadow-xl overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 border-b border-violet-100 dark:border-violet-800">
+    <Card className="border border-border shadow-sm overflow-hidden">
+      <CardHeader className="bg-violet-50/60 dark:[background-image:none] dark:bg-muted/40 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-violet-100 dark:bg-violet-900/50 rounded-xl shadow-inner">
@@ -250,32 +250,21 @@ export function MonthlySalesChart({
       <CardContent className="pt-6">
         {/* KPIs del mes */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-100 dark:border-blue-800">
+          <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20">
             <p className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">Total Mes</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-              {formatCurrency(summary.total_revenue)}
-            </p>
+            <p className="text-2xl font-bold text-foreground mt-1">{formatCurrency(summary.total_revenue)}</p>
           </div>
-          
-          <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-100 dark:border-emerald-800">
+          <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20">
             <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Promedio/Día</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-              {formatCurrency(summary.average_daily)}
-            </p>
+            <p className="text-2xl font-bold text-foreground mt-1">{formatCurrency(summary.average_daily)}</p>
           </div>
-          
-          <div className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-100 dark:border-amber-800">
+          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20">
             <p className="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wide">Ticket Promedio</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-              {formatCurrency(summary.average_ticket)}
-            </p>
+            <p className="text-2xl font-bold text-foreground mt-1">{formatCurrency(summary.average_ticket)}</p>
           </div>
-          
-          <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-100 dark:border-purple-800">
-            <p className="text-xs font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wide">Total Ventas</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-              {summary.total_sales}
-            </p>
+          <div className="p-4 rounded-xl bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20">
+            <p className="text-xs font-medium text-violet-600 dark:text-violet-400 uppercase tracking-wide">Total Ventas</p>
+            <p className="text-2xl font-bold text-foreground mt-1">{summary.total_sales}</p>
           </div>
         </div>
 
@@ -293,7 +282,7 @@ export function MonthlySalesChart({
         {/* Mejor día */}
         {bestDay && (
           <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 dark:from-green-900/20 dark:via-emerald-900/20 dark:to-teal-900/20 border-2 border-green-200 dark:border-green-800">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
               <div className="flex items-center gap-3">
                 <Trophy className="w-8 h-8 text-yellow-500 dark:text-yellow-400" />
                 <div>

@@ -173,17 +173,29 @@ export default function ProfessorCard({ professor, onDelete, onEdit, priority = 
           </div>
         )}
 
-        {/* CTA principal */}
-        <Link href={`/professors/classes?professor_id=${professor.id}`} className="block">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full h-10 border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/30 hover:border-emerald-300 dark:hover:border-emerald-700 text-foreground"
-          >
-            <Clock className="h-4 w-4 mr-2 text-emerald-600 dark:text-emerald-400" />
-            Ver clases / Registrar clase
-          </Button>
-        </Link>
+        {/* CTAs */}
+        <div className="flex gap-2">
+          <Link href={`/professors/${professor.id}`} className="flex-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-10 border-violet-200 dark:border-violet-800/60 hover:bg-violet-50/80 dark:hover:bg-violet-950/30 hover:border-violet-300 dark:hover:border-violet-700 text-foreground"
+            >
+              <Award className="h-4 w-4 mr-2 text-violet-600 dark:text-violet-400" />
+              Ver perfil
+            </Button>
+          </Link>
+          <Link href={`/professors/classes?professor_id=${professor.id}`} className="flex-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-10 border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/30 hover:border-emerald-300 dark:hover:border-emerald-700 text-foreground"
+            >
+              <Clock className="h-4 w-4 mr-2 text-emerald-600 dark:text-emerald-400" />
+              Ver clases
+            </Button>
+          </Link>
+        </div>
 
         {/* Contacto: tintes suaves por tipo */}
         {(professor.instagram_handle || professor.whatsapp_number) && (

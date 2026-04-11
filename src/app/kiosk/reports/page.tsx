@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense, useRef } from "react";
-import { BarChart3, Calendar, Building2, LineChart, Package, TrendingUp, TrendingDown, CheckCircle2 } from "lucide-react";
+import { BarChart3, Calendar, Building2, LineChart, Package, TrendingUp, TrendingDown, CheckCircle2, RefreshCw, Play } from "lucide-react";
 import Header from "@/components/Header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,8 @@ import { SalesSummary, TopProduct, DashboardStats, LowStockAlert, ProfitabilityR
 import { useTranslations } from '@/contexts/TranslationContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { formatDateForInput } from '@/components/ui/date-picker';
-import { FilterBarPanel } from '@/components/Kiosk/FilterBarPanel';
+import { formatDateForInput, DatePicker } from '@/components/ui/date-picker';
+import { toast } from '@/components/ui/use-toast';
 import { DashboardKPIs } from "@/components/Kiosk/Reports/DashboardKPIs";
 import { StockAlertsCard } from "@/components/Kiosk/Reports/StockAlertsCard";
 import { TopProductsCard } from "@/components/Kiosk/Reports/TopProductsCard";
@@ -33,15 +33,65 @@ import { FileDown } from "lucide-react";
 // Lazy load del componente de gráficas para mejor rendimiento
 const SalesTrendChart = lazy(() => import("@/components/Kiosk/Reports/SalesTrendChart").then(module => ({ default: module.SalesTrendChart })));
 
+// Empty state reutilizable para sub-tabs del período
+function PeriodEmptyState({
+  icon,
+  title,
+  description,
+  onGenerate,
+  loading,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  onGenerate: () => void;
+  loading: boolean;
+}) {
+  return (
+    <Card className="border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30 shadow-sm">
+      <CardContent className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+        <div className="rounded-full bg-white dark:bg-gray-800 p-4 shadow-sm">{icon}</div>
+        <div>
+          <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{description}</p>
+        </div>
+        <Button
+          onClick={onGenerate}
+          disabled={loading}
+          className="mt-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold shadow-md"
+        >
+          {loading ? (
+            <>
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              Generando…
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4 mr-2" />
+              Generar Reporte
+            </>
+          )}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function KioskReportsPage() {
   const t = useTranslations('kiosk');
-  const { getSalesSummary, getTopProducts, getDashboardStats, getLowStockAlerts, getSalesTrend, getCategoryReport, getVenueComparisonReport, getMonthlyReport, getProfitabilityReport, getExpensesReport, isLoading } = useKioskReports();
+  const { getSalesSummary, getTopProducts, getDashboardStats, getLowStockAlerts, getSalesTrend, getCategoryReport, getVenueComparisonReport, getMonthlyReport, getProfitabilityReport, getExpensesReport } = useKioskReports();
   const { selectedVenueId, selectedVenue, setSelectedVenueId, venues, loading: loadingVenues } = useKioskVenue();
   
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activePeriodTab, setActivePeriodTab] = useState('summary');
   const [hasGeneratedReport, setHasGeneratedReport] = useState(false);
-  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+
+  // Snapshot de los filtros con los que se generó el último reporte
+  const [lastGeneratedFilters, setLastGeneratedFilters] = useState<{
+    start_date: string;
+    end_date: string;
+    venue_id: string;
+  } | null>(null);
 
   function getDefaultReportDateRange() {
     const end = new Date();
@@ -327,20 +377,65 @@ export default function KioskReportsPage() {
           break;
       }
       setHasGeneratedReport(true);
+      setLastGeneratedFilters(currentFilters);
     } finally {
       setLoadingPeriodReports(false);
     }
   }, [startDate, endDate, selectedVenueId, getSalesSummary, getTopProducts, getProfitabilityReport, getExpensesReport]);
 
+  // Detecta si los filtros actuales difieren del último reporte generado
+  const filtersAreDirty = useMemo(() => {
+    if (!lastGeneratedFilters) return false;
+    return (
+      lastGeneratedFilters.start_date !== formatDateForInput(startDate) ||
+      lastGeneratedFilters.end_date !== formatDateForInput(endDate) ||
+      lastGeneratedFilters.venue_id !== (selectedVenueId || '')
+    );
+  }, [lastGeneratedFilters, startDate, endDate, selectedVenueId]);
+
   const handleGenerateReport = () => {
-    setHasGeneratedReport(false);
+    // Si ya está generado con exactamente los mismos filtros, avisar
+    if (hasGeneratedReport && !filtersAreDirty) {
+      toast({
+        title: 'El reporte ya está actualizado',
+        description: `Los datos mostrados corresponden al período ${format(startDate, 'dd MMM', { locale: es })} – ${format(endDate, 'dd MMM yyyy', { locale: es })}. Modificá las fechas para generar uno nuevo.`,
+        variant: 'default',
+      });
+      return;
+    }
     loadPeriodReports(activePeriodTab);
+  };
+
+  // Al cambiar de sub-tab: si ya se generó un reporte, recargar automáticamente
+  const handlePeriodTabChange = (tab: string) => {
+    setActivePeriodTab(tab);
+    if (hasGeneratedReport) {
+      loadPeriodReports(tab);
+    }
   };
 
   const clearReportFilters = () => {
     const { start, end } = getDefaultReportDateRange();
     setStartDate(start);
     setEndDate(end);
+    setHasGeneratedReport(false);
+    setLastGeneratedFilters(null);
+  };
+
+  // Presets de rango rápido
+  const applyPreset = (preset: 'last7' | 'thisMonth' | 'lastMonth') => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (preset === 'last7') {
+      const s = new Date(today); s.setDate(s.getDate() - 6);
+      setStartDate(s); setEndDate(today);
+    } else if (preset === 'thisMonth') {
+      setStartDate(new Date(today.getFullYear(), today.getMonth(), 1));
+      setEndDate(today);
+    } else {
+      const s = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const e = new Date(today.getFullYear(), today.getMonth(), 0);
+      setStartDate(s); setEndDate(e);
+    }
   };
 
   return (
@@ -490,54 +585,128 @@ export default function KioskReportsPage() {
           </TabsContent>
 
           {/* Tab 2: Reportes por Período */}
-          <TabsContent value="period" className="space-y-6 mt-6">
-            <div className="flex items-center gap-3">
-              <div className="h-1 w-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"></div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {t('reports.periodReports.title')}
-                </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {t('reports.periodReports.description')}
-                </p>
+          <TabsContent value="period" className="space-y-5 mt-6">
+
+            {/* ── Barra de filtros horizontal unificada ───────────────── */}
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm">
+              <div className="flex flex-wrap items-center gap-0 divide-x divide-gray-100 dark:divide-gray-800">
+
+                {/* Título */}
+                <div className="px-5 py-4 shrink-0">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap">Reportes por Período</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 whitespace-nowrap">Filtrá por rango de fechas</p>
+                </div>
+
+                {/* Presets */}
+                <div className="px-5 py-4 flex items-center gap-2">
+                  {([
+                    { label: '7 días', key: 'last7' as const },
+                    { label: 'Este mes', key: 'thisMonth' as const },
+                    { label: 'Mes anterior', key: 'lastMonth' as const },
+                  ] as const).map(({ label, key }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => applyPreset(key)}
+                      className="px-3 py-1.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-purple-100 hover:text-purple-700 dark:hover:bg-purple-900/40 dark:hover:text-purple-300 transition-colors whitespace-nowrap"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Date pickers */}
+                <div className="px-5 py-4 flex items-center gap-3">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Desde</span>
+                    <DatePicker
+                      value={startDate}
+                      onChange={(d) => d && setStartDate(d)}
+                      placeholder="Fecha inicio"
+                    />
+                  </div>
+                  <span className="text-gray-300 dark:text-gray-600 mt-4 text-sm">→</span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Hasta</span>
+                    <DatePicker
+                      value={endDate}
+                      onChange={(d) => d && setEndDate(d)}
+                      placeholder="Fecha fin"
+                    />
+                  </div>
+                </div>
+
+                {/* CTA + estado */}
+                <div className="px-5 py-4 flex items-center gap-3 ml-auto">
+                  {/* Badge de estado: filtros modificados vs. actualizado */}
+                  {hasGeneratedReport && !loadingPeriodReports && (
+                    filtersAreDirty ? (
+                      <Badge
+                        variant="outline"
+                        className="border-amber-400 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 flex items-center gap-1.5 px-2.5 py-1 whitespace-nowrap animate-pulse"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span className="text-[11px] font-semibold">Filtros modificados</span>
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="border-green-400 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 flex items-center gap-1.5 px-2.5 py-1 whitespace-nowrap"
+                      >
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span className="text-[11px] font-semibold">{t('reports.generated')}</span>
+                      </Badge>
+                    )
+                  )}
+                  {hasGeneratedReport && (
+                    <button
+                      type="button"
+                      onClick={clearReportFilters}
+                      className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 underline transition-colors whitespace-nowrap"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                  <Button
+                    onClick={handleGenerateReport}
+                    disabled={loadingPeriodReports}
+                    className={
+                      loadingPeriodReports
+                        ? 'bg-purple-400 text-white font-semibold shadow-sm whitespace-nowrap cursor-not-allowed'
+                        : hasGeneratedReport && !filtersAreDirty
+                          ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-semibold shadow-sm whitespace-nowrap cursor-default'
+                          : 'bg-purple-600 hover:bg-purple-700 text-white font-semibold shadow-sm whitespace-nowrap'
+                    }
+                  >
+                    {loadingPeriodReports ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Generando…
+                      </>
+                    ) : hasGeneratedReport && !filtersAreDirty ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        Actualizado
+                      </>
+                    ) : hasGeneratedReport && filtersAreDirty ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Actualizar Reporte
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 mr-2" />
+                        {t('reports.generate')}
+                      </>
+                    )}
+                  </Button>
+                </div>
+
               </div>
             </div>
-            
-            {/* Filtros: panel desplegable + resumen */}
-            <Card className="border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
-              <CardContent className="pt-6">
-                <div className="flex flex-wrap items-center gap-4">
-                  <FilterBarPanel
-                    variant="reports"
-                    open={filterPanelOpen}
-                    onOpenChange={setFilterPanelOpen}
-                    startDate={startDate}
-                    endDate={endDate}
-                    onStartDateChange={(d) => d && setStartDate(d)}
-                    onEndDateChange={(d) => d && setEndDate(d)}
-                    onApply={handleGenerateReport}
-                    onClear={clearReportFilters}
-                    disabled={loadingPeriodReports}
-                    applyLabel={loadingPeriodReports ? undefined : t('reports.generate')}
-                  />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {t('filters.appliedRange')}: {format(startDate, 'dd MMM yyyy', { locale: es })} – {format(endDate, 'dd MMM yyyy', { locale: es })}
-                  </span>
-                  {hasGeneratedReport && !isLoading && (
-                    <Badge
-                      variant="outline"
-                      className="border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-3 py-2 h-9 flex items-center gap-2"
-                    >
-                      <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
-                      <span className="text-xs font-semibold">{t('reports.generated')}</span>
-                    </Badge>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Sub-tabs para diferentes reportes */}
-            <Tabs value={activePeriodTab} onValueChange={setActivePeriodTab} className="w-full">
+            <Tabs value={activePeriodTab} onValueChange={handlePeriodTabChange} className="w-full">
               <TabsList className="grid w-full grid-cols-4 bg-gray-100 dark:bg-gray-800/50 p-1 rounded-lg">
                 <TabsTrigger 
                   value="summary" 
@@ -569,8 +738,8 @@ export default function KioskReportsPage() {
                 </TabsTrigger>
               </TabsList>
 
-              {/* Sub-tab: Resumen */}
-              <TabsContent value="summary" className="space-y-6 mt-6">
+              {/* ── Sub-tab: Resumen ────────────────────────────────────── */}
+              <TabsContent value="summary" className="space-y-5 mt-5">
                 {loadingPeriodReports ? (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -611,7 +780,6 @@ export default function KioskReportsPage() {
                           </p>
                         </CardContent>
                       </Card>
-
                       <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 shadow-lg">
                         <CardContent className="pt-6">
                           <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -629,34 +797,18 @@ export default function KioskReportsPage() {
                     <TopProductsCard topProducts={topProducts} />
                   </>
                 ) : (
-                  <Card className="border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
-                    <CardContent className="pt-12 pb-12 text-center">
-                      <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
-                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        No hay reporte generado
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Selecciona un rango de fechas y haz clic en &quot;Generar Reporte&quot; para ver los datos.
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <PeriodEmptyState
+                    icon={<BarChart3 className="w-12 h-12 text-purple-400" />}
+                    title="Sin datos de resumen"
+                    description={`Período seleccionado: ${format(startDate, 'dd MMM', { locale: es })} – ${format(endDate, 'dd MMM yyyy', { locale: es })}`}
+                    onGenerate={handleGenerateReport}
+                    loading={loadingPeriodReports}
+                  />
                 )}
               </TabsContent>
 
-              {/* Sub-tab: Rentabilidad */}
-              <TabsContent value="profitability" className="space-y-6 mt-6">
-                {profitability && !loadingPeriodReports && (
-                  <div className="flex justify-end">
-                    <Button
-                      onClick={() => exportProfitabilityReportToExcel(profitability, formatCurrency)}
-                      variant="outline"
-                      className="border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-                    >
-                      <FileDown className="w-4 h-4 mr-2" />
-                      Exportar a Excel
-                    </Button>
-                  </div>
-                )}
+              {/* ── Sub-tab: Rentabilidad ───────────────────────────────── */}
+              <TabsContent value="profitability" className="space-y-5 mt-5">
                 {loadingPeriodReports ? (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -681,36 +833,33 @@ export default function KioskReportsPage() {
                     </Card>
                   </>
                 ) : profitability ? (
-                  <ProfitabilityCard profitability={profitability} formatCurrency={formatCurrency} />
+                  <>
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={() => exportProfitabilityReportToExcel(profitability, formatCurrency)}
+                        variant="outline"
+                        size="sm"
+                        className="border-green-600 text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                      >
+                        <FileDown className="w-4 h-4 mr-2" />
+                        Exportar a Excel
+                      </Button>
+                    </div>
+                    <ProfitabilityCard profitability={profitability} formatCurrency={formatCurrency} />
+                  </>
                 ) : (
-                  <Card className="border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
-                    <CardContent className="pt-12 pb-12 text-center">
-                      <TrendingUp className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
-                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        No hay reporte generado
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Selecciona un rango de fechas y haz clic en &quot;Generar Reporte&quot; para ver los datos.
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <PeriodEmptyState
+                    icon={<TrendingUp className="w-12 h-12 text-green-400" />}
+                    title="Sin datos de rentabilidad"
+                    description={`Período seleccionado: ${format(startDate, 'dd MMM', { locale: es })} – ${format(endDate, 'dd MMM yyyy', { locale: es })}`}
+                    onGenerate={handleGenerateReport}
+                    loading={loadingPeriodReports}
+                  />
                 )}
               </TabsContent>
 
-              {/* Sub-tab: Gastos */}
-              <TabsContent value="expenses" className="space-y-6 mt-6">
-                {expenses && !loadingPeriodReports && (
-                  <div className="flex justify-end">
-                    <Button
-                      onClick={() => exportExpensesReportToExcel(expenses, formatCurrency)}
-                      variant="outline"
-                      className="border-orange-600 text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20"
-                    >
-                      <FileDown className="w-4 h-4 mr-2" />
-                      Exportar a Excel
-                    </Button>
-                  </div>
-                )}
+              {/* ── Sub-tab: Gastos ─────────────────────────────────────── */}
+              <TabsContent value="expenses" className="space-y-5 mt-5">
                 {loadingPeriodReports ? (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -735,24 +884,33 @@ export default function KioskReportsPage() {
                     </Card>
                   </>
                 ) : expenses ? (
-                  <ExpensesCard expenses={expenses} formatCurrency={formatCurrency} />
+                  <>
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={() => exportExpensesReportToExcel(expenses, formatCurrency)}
+                        variant="outline"
+                        size="sm"
+                        className="border-orange-600 text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                      >
+                        <FileDown className="w-4 h-4 mr-2" />
+                        Exportar a Excel
+                      </Button>
+                    </div>
+                    <ExpensesCard expenses={expenses} formatCurrency={formatCurrency} />
+                  </>
                 ) : (
-                  <Card className="border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
-                    <CardContent className="pt-12 pb-12 text-center">
-                      <TrendingDown className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
-                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        No hay reporte generado
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Selecciona un rango de fechas y haz clic en &quot;Generar Reporte&quot; para ver los datos.
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <PeriodEmptyState
+                    icon={<TrendingDown className="w-12 h-12 text-orange-400" />}
+                    title="Sin datos de gastos"
+                    description={`Período seleccionado: ${format(startDate, 'dd MMM', { locale: es })} – ${format(endDate, 'dd MMM yyyy', { locale: es })}`}
+                    onGenerate={handleGenerateReport}
+                    loading={loadingPeriodReports}
+                  />
                 )}
               </TabsContent>
 
-              {/* Sub-tab: Top Productos */}
-              <TabsContent value="top-products" className="space-y-6 mt-6">
+              {/* ── Sub-tab: Top Productos ──────────────────────────────── */}
+              <TabsContent value="top-products" className="space-y-5 mt-5">
                 {loadingPeriodReports ? (
                   <Card className="border-2 border-gray-200 dark:border-gray-700">
                     <CardContent className="pt-6">
@@ -767,17 +925,13 @@ export default function KioskReportsPage() {
                 ) : topProducts && topProducts.length > 0 ? (
                   <TopProductsCard topProducts={topProducts} />
                 ) : (
-                  <Card className="border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
-                    <CardContent className="pt-12 pb-12 text-center">
-                      <Package className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" />
-                      <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        No hay reporte generado
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Selecciona un rango de fechas y haz clic en &quot;Generar Reporte&quot; para ver los datos.
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <PeriodEmptyState
+                    icon={<Package className="w-12 h-12 text-blue-400" />}
+                    title="Sin datos de productos"
+                    description={`Período seleccionado: ${format(startDate, 'dd MMM', { locale: es })} – ${format(endDate, 'dd MMM yyyy', { locale: es })}`}
+                    onGenerate={handleGenerateReport}
+                    loading={loadingPeriodReports}
+                  />
                 )}
               </TabsContent>
             </Tabs>
