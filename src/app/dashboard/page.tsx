@@ -8,15 +8,18 @@ import { LeagueStatsCard } from '@/components/Dashboard/LeagueStatsCard';
 import { LeagueScheduleCard } from '@/components/Dashboard/LeagueScheduleCard';
 import { CategoryStandings } from '@/components/Dashboard/CategoryStandings';
 import { LeagueRegistrationProgress } from '@/components/Dashboard/LeagueRegistrationProgress';
+import { FootballDashboardPanel } from '@/components/Dashboard/Football/FootballDashboardPanel';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { ChevronDown } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUsers } from '@/hooks/useUsers';
 import { useLeagues } from '@/hooks/useLeagues';
 import { useCategories } from '@/hooks/useCategories';
 import { useStandings } from '@/hooks/useStandings';
 
 export default function Dashboard() {
+  const [sportTab, setSportTab] = useState<'padel' | 'football'>('padel');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [isStatsOpen, setIsStatsOpen] = useState(true);
   const [isScheduleOpen, setIsScheduleOpen] = useState(true);
@@ -46,12 +49,27 @@ export default function Dashboard() {
           <div className="flex flex-col space-y-6">
             <Header 
               title="Panel de Control"
-              description="Gestión y visualización de ligas de pádel."
+              description={
+                sportTab === 'padel'
+                  ? 'Gestión y visualización de ligas de pádel.'
+                  : 'Gestión y visualización de ligas de fútbol.'
+              }
               icon={<HomeIcon className="w-6 h-6 text-gray-900 dark:text-gray-100" />}
             />
             <DateTime />
           </div>
 
+          <Tabs value={sportTab} onValueChange={(v) => setSportTab(v as 'padel' | 'football')} className="w-full">
+            <TabsList className="grid w-full max-w-md grid-cols-2 h-11">
+              <TabsTrigger value="padel" className="text-sm font-medium">
+                Ligas pádel
+              </TabsTrigger>
+              <TabsTrigger value="football" className="text-sm font-medium data-[state=active]:text-green-700 dark:data-[state=active]:text-green-400">
+                Fútbol
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="padel" className="mt-6 space-y-6 outline-none">
           {/* Stats Cards */}
           <Collapsible.Root
             open={isStatsOpen}
@@ -182,6 +200,12 @@ export default function Dashboard() {
               </Collapsible.Content>
             </Card>
           </Collapsible.Root>
+            </TabsContent>
+
+            <TabsContent value="football" className="mt-6 space-y-6 outline-none">
+              <FootballDashboardPanel />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

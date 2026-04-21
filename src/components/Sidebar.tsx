@@ -44,7 +44,7 @@ const MENU_ITEMS: MenuItem[] = [
     hoverColor: 'hover:bg-blue-50'
   },
   { 
-    name: 'Ligas', 
+    name: 'Ligas Pádel', 
     href: '/leagues', 
     icon: TableCellsIcon,
     iconColor: 'text-green-500',
@@ -62,6 +62,28 @@ const MENU_ITEMS: MenuItem[] = [
         icon: PlusIcon,
         iconColor: 'text-emerald-500',
         textColor: 'text-emerald-600 font-medium'
+      },
+    ]
+  },
+  { 
+    name: 'Fútbol',
+    href: '/football/leagues',
+    icon: TrophyIcon,
+    iconColor: 'text-lime-500',
+    hoverColor: 'hover:bg-lime-50',
+    submenu: [
+      {
+        name: 'Ver ligas',
+        href: '/football/leagues',
+        icon: TableCellsIcon,
+        iconColor: 'text-lime-500'
+      },
+      {
+        name: 'Crear liga',
+        href: '/football/leagues/create',
+        icon: PlusIcon,
+        iconColor: 'text-lime-600',
+        textColor: 'text-lime-600 font-medium'
       },
     ]
   },
