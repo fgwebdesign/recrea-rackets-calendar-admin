@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { format, addDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { CalendarDays, Users, Info, ImageIcon } from 'lucide-react'
@@ -14,11 +15,16 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
-import { FOOTBALL_TEAM_LOGOS_BUCKET, uploadFootballTeamLogo } from '@/lib/footballTeamLogosStorage'
+import {
+  MAX_TEAM_DISPLAY_NAME_LEN,
+  uploadFootballTeamLogo,
+  validateTeamLogoFile
+} from '@/lib/footballTeamLogosStorage'
 import {
   FootballDraftTeamSlot,
   FootballLeagueFormData,
-  FootballTournamentPhase
+  FootballTournamentPhase,
+  FootballHomeAwayFormat
 } from '@/types/footballLeague'
 import { createFootballLeague } from '@/services/footballLeagueService'
 import { toast } from '@/components/ui/use-toast'
@@ -43,11 +49,28 @@ const INITIAL: FootballLeagueFormData = {
   team_size: 8,
   frequency: 'weekly',
   tournament_phase: 'Apertura + Clausura',
+  home_away_format: 'home_only',
   time_slots: DEFAULT_SLOTS
 }
 
-function calcSuggestedEndDate(startYmd: string, teamSize: number, phase: FootballTournamentPhase): string {
-  const rounds = phase === 'Apertura + Clausura' ? (teamSize - 1) * 2 : teamSize - 1
+function calcSuggestedEndDate(
+  startYmd: string,
+  teamSize: number,
+  phase: FootballTournamentPhase,
+  homeAwayFormat: FootballHomeAwayFormat
+): string {
+  let rounds = teamSize - 1
+  
+  // Si es ida y vuelta, duplicar las fechas
+  if (homeAwayFormat === 'home_away') {
+    rounds *= 2
+  }
+  
+  // Si además es Apertura + Clausura, duplicar nuevamente
+  if (phase === 'Apertura + Clausura') {
+    rounds *= 2
+  }
+  
   const [y, m, d] = startYmd.split('-').map(Number)
   const start = new Date(y, m - 1, d)
   const dayOfWeek = start.getDay()
@@ -152,18 +175,21 @@ export function FootballLeagueForm({ step, onStepChange }: FootballLeagueFormPro
       setSuggestedEndDate('')
       return
     }
-    const suggested = calcSuggestedEndDate(form.start_date, form.team_size, form.tournament_phase)
+    const suggested = calcSuggestedEndDate(form.start_date, form.team_size, form.tournament_phase, form.home_away_format)
     setSuggestedEndDate(suggested)
     setForm((prev) => ({ ...prev, end_date: prev.end_date || suggested }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.start_date, form.team_size, form.tournament_phase])
+  }, [form.start_date, form.team_size, form.tournament_phase, form.home_away_format])
 
   const toggleSlot = (slot: string) => {
     const cur = form.time_slots
     set('time_slots', cur.includes(slot) ? cur.filter((s) => s !== slot) : [...cur, slot].sort())
   }
 
-  const matchdays = Math.max(form.team_size - 1, 1)
+  // Calcular fechas totales considerando ida/vuelta y tipo de torneo
+  const baseRounds = Math.max(form.team_size - 1, 1)
+  const roundsWithHomeAway = form.home_away_format === 'home_away' ? baseRounds * 2 : baseRounds
+  const matchdays = form.tournament_phase === 'Apertura + Clausura' ? roundsWithHomeAway * 2 : roundsWithHomeAway
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -226,6 +252,14 @@ export function FootballLeagueForm({ step, onStepChange }: FootballLeagueFormPro
         })
         return false
       }
+      if (teamSlots[i].display_name.trim().length > MAX_TEAM_DISPLAY_NAME_LEN) {
+        toast({
+          title: 'Error',
+          description: `El nombre del equipo ${i + 1} no puede superar ${MAX_TEAM_DISPLAY_NAME_LEN} caracteres`,
+          variant: 'destructive'
+        })
+        return false
+      }
     }
     return true
   }
@@ -234,6 +268,11 @@ export function FootballLeagueForm({ step, onStepChange }: FootballLeagueFormPro
     if (!validateStep1()) return
 
     if (imageFile) {
+      const coverErr = validateTeamLogoFile(imageFile)
+      if (coverErr) {
+        toast({ title: 'Portada no válida', description: coverErr, variant: 'destructive' })
+        return
+      }
       try {
         const fileExt = imageFile.name.split('.').pop()
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
@@ -262,8 +301,9 @@ export function FootballLeagueForm({ step, onStepChange }: FootballLeagueFormPro
   const onTeamLogoPick = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: 'Archivo muy grande', description: 'Máximo 5MB por escudo', variant: 'destructive' })
+    const logoErr = validateTeamLogoFile(file)
+    if (logoErr) {
+      toast({ title: 'Escudo no válido', description: logoErr, variant: 'destructive' })
       return
     }
     const reader = new FileReader()
@@ -282,9 +322,19 @@ export function FootballLeagueForm({ step, onStepChange }: FootballLeagueFormPro
     setIsSubmitting(true)
     try {
       const teamsPayload: { display_name: string; image_url: string | null }[] = []
-      for (const slot of teamSlots) {
+      for (let i = 0; i < teamSlots.length; i++) {
+        const slot = teamSlots[i]
         let url: string | null = slot.imageUrl
         if (slot.imageFile) {
+          const slotLogoErr = validateTeamLogoFile(slot.imageFile)
+          if (slotLogoErr) {
+            toast({
+              title: 'Escudo no válido',
+              description: `Equipo ${i + 1}: ${slotLogoErr}`,
+              variant: 'destructive'
+            })
+            return
+          }
           url = await uploadFootballTeamLogo(slot.imageFile)
         }
         teamsPayload.push({
@@ -302,6 +352,7 @@ export function FootballLeagueForm({ step, onStepChange }: FootballLeagueFormPro
         team_size: form.team_size,
         frequency: 'weekly',
         tournament_phase: form.tournament_phase,
+        home_away_format: form.home_away_format,
         time_slots: form.time_slots,
         image_url: imageUrl || undefined,
         teams: teamsPayload
@@ -391,17 +442,37 @@ export function FootballLeagueForm({ step, onStepChange }: FootballLeagueFormPro
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div>
+                <LabelWithTooltip label="Formato de partidos" tooltip="Elegí si querés solo ida o ida y vuelta completa" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {([
+                    { value: 'home_only' as FootballHomeAwayFormat, label: 'Solo ida' },
+                    { value: 'home_away' as FootballHomeAwayFormat, label: 'Ida y vuelta' }
+                  ]).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => set('home_away_format', option.value)}
+                      className={phaseButtonClass(form.home_away_format === option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
                 <div className="mt-3 flex items-start gap-2 p-4 bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400">
                   <Users className="w-4 h-4 shrink-0 mt-0.5 text-slate-500" />
                   <span>
                     Con <strong className="text-slate-800 dark:text-slate-200">{form.team_size} equipos</strong> se
                     generarán{' '}
-                    <strong className="text-emerald-700 dark:text-emerald-300">
-                      {form.tournament_phase === 'Apertura + Clausura'
-                        ? `${matchdays * 2} fechas (${matchdays} + ${matchdays})`
-                        : `${matchdays} fechas`}
-                    </strong>{' '}
-                    — {form.tournament_phase}
+                    <strong className="text-emerald-700 dark:text-emerald-300">{matchdays} fechas</strong>
+                    {form.home_away_format === 'home_away' && (
+                      <span> (ida y vuelta con localías invertidas)</span>
+                    )}
+                    {form.tournament_phase === 'Apertura + Clausura' && (
+                      <span> — {form.tournament_phase}</span>
+                    )}
                   </span>
                 </div>
               </div>
@@ -411,8 +482,14 @@ export function FootballLeagueForm({ step, onStepChange }: FootballLeagueFormPro
                 <div className="mt-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
                   <div className="flex flex-col items-center">
                     {previewUrl ? (
-                      <div className="relative group">
-                        <img src={previewUrl} alt="Vista previa" className="h-40 w-40 object-contain rounded-lg" />
+                      <div className="relative group h-40 w-40">
+                        <Image 
+                          src={previewUrl} 
+                          alt="Vista previa" 
+                          fill
+                          className="object-contain rounded-lg" 
+                          unoptimized
+                        />
                         <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                           <button
                             type="button"
@@ -563,8 +640,7 @@ export function FootballLeagueForm({ step, onStepChange }: FootballLeagueFormPro
               <div className="border-t border-border pt-6 space-y-4">
                 <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Equipos de la liga</h3>
                 <p className="text-sm text-muted-foreground">
-                  Un cupo por equipo ({form.team_size} en total). Nombre obligatorio; escudo opcional (bucket{' '}
-                  <span className="font-mono text-xs">{FOOTBALL_TEAM_LOGOS_BUCKET}</span>).
+                  Un cupo por equipo ({form.team_size} en total). Nombre obligatorio; escudo opcional.
                 </p>
                 <div className="max-h-[min(55vh,480px)] overflow-y-auto space-y-4 pr-1">
                   {teamSlots.map((slot, index) => (
@@ -587,9 +663,9 @@ export function FootballLeagueForm({ step, onStepChange }: FootballLeagueFormPro
                       <div className="flex flex-col gap-2">
                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Escudo</span>
                         <div className="flex items-center gap-3">
-                          <div className="w-16 h-16 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 overflow-hidden flex items-center justify-center shrink-0">
+                          <div className="relative w-16 h-16 rounded-lg border border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 overflow-hidden flex items-center justify-center shrink-0">
                             {slot.preview ? (
-                              <img src={slot.preview} alt="" className="w-full h-full object-cover" />
+                              <Image src={slot.preview} alt="" fill className="object-cover" unoptimized />
                             ) : (
                               <ImageIcon className="w-6 h-6 text-slate-400" />
                             )}

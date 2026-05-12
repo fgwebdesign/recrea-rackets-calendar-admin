@@ -1,6 +1,7 @@
 export type FootballLeagueStatus = 'Inscribiendo' | 'Activa' | 'Finalizada'
 export type FootballMatchStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'
 export type FootballTournamentPhase = 'Apertura' | 'Clausura' | 'Apertura + Clausura'
+export type FootballHomeAwayFormat = 'home_only' | 'home_away'
 
 export interface FootballLeague {
   id: string
@@ -15,6 +16,7 @@ export interface FootballLeague {
   time_slots: string[]
   frequency: 'weekly' | 'biweekly'
   tournament_phase: FootballTournamentPhase
+  home_away_format: FootballHomeAwayFormat
   created_at: string
   updated_at: string
   registeredTeams?: number
@@ -101,6 +103,7 @@ export interface FootballLeagueFormData {
   team_size: number
   frequency: 'weekly'
   tournament_phase: FootballTournamentPhase
+  home_away_format: FootballHomeAwayFormat
   time_slots: string[]
   image_url?: string | null
 }

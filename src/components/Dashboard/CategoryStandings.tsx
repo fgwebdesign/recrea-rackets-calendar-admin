@@ -113,6 +113,9 @@ export function CategoryStandings({
                 <HeaderWithTooltip short="PJ" full="Partidos Jugados" />
                 <HeaderWithTooltip short="PG" full="Partidos Ganados" />
                 <HeaderWithTooltip short="PP" full="Partidos Perdidos" />
+                <HeaderWithTooltip short="SG" full="Sets Ganados" />
+                <HeaderWithTooltip short="SP" full="Sets Perdidos" />
+                <HeaderWithTooltip short="DS" full="Diferencia de Sets" />
                 <HeaderWithTooltip short="JG" full="Juegos Ganados" />
                 <HeaderWithTooltip short="JP" full="Juegos Perdidos" />
                 <HeaderWithTooltip short="DJ" full="Diferencia de Juegos" />
@@ -144,12 +147,32 @@ export function CategoryStandings({
                     {standing.losses}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-green-600 dark:text-green-400">
+                    {standing.sets_won}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-red-600 dark:text-red-500">
+                    {standing.sets_lost}
+                  </td>
+                  <td className={`px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron ${
+                    standing.sets_difference > 0 ? 'text-green-600 dark:text-green-400' : 
+                    standing.sets_difference < 0 ? 'text-red-600 dark:text-red-500' : 
+                    'text-gray-600 dark:text-gray-400'
+                  }`}>
+                    {standing.sets_difference > 0 ? `+${standing.sets_difference}` : standing.sets_difference}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-green-600 dark:text-green-400">
                     {standing.games_won}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-red-600 dark:text-red-500">
                     {standing.games_lost}
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-green-600 dark:text-green-400">
+                  <td className={`px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron ${
+                    (() => {
+                      const gamesDifference = standing.games_won - standing.games_lost;
+                      return gamesDifference > 0 ? 'text-green-600 dark:text-green-400' : 
+                             gamesDifference < 0 ? 'text-red-600 dark:text-red-500' : 
+                             'text-gray-600 dark:text-gray-400';
+                    })()
+                  }`}>
                     {(() => {
                       const gamesDifference = standing.games_won - standing.games_lost;
                       return gamesDifference > 0 ? `+${gamesDifference}` : gamesDifference;

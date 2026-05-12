@@ -66,7 +66,7 @@ const MENU_ITEMS: MenuItem[] = [
     ]
   },
   { 
-    name: 'Fútbol',
+    name: 'Ligas Fútbol',
     href: '/football/leagues',
     icon: TrophyIcon,
     iconColor: 'text-lime-500',

@@ -41,6 +41,9 @@ export default function Dashboard() {
     }
   }, [categories, isLoadingCategories, selectedCategory]);
 
+  const sportTabTriggerClassName =
+    `relative shrink-0 rounded-none border-0 px-5 py-3 -mb-px text-sm font-medium uppercase tracking-[0.12em] text-gray-500 shadow-none outline-none ring-0 ring-offset-0 transition-colors hover:bg-transparent hover:text-gray-800 focus-visible:bg-transparent focus-visible:ring-2 focus-visible:ring-gray-400/40 focus-visible:ring-offset-0 dark:hover:bg-transparent data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:shadow-none dark:bg-transparent dark:text-gray-400 dark:hover:text-gray-200 dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-gray-100 after:pointer-events-none after:absolute after:bottom-0 after:left-5 after:right-5 after:h-px after:rounded-full after:bg-gray-900 after:opacity-0 after:transition-opacity after:content-[''] data-[state=active]:after:opacity-100 dark:after:bg-gray-100`;
+
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-gray-900">
       <div className="max-w-[1600px] mx-auto p-8">
@@ -60,11 +63,11 @@ export default function Dashboard() {
           </div>
 
           <Tabs value={sportTab} onValueChange={(v) => setSportTab(v as 'padel' | 'football')} className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-2 h-11">
-              <TabsTrigger value="padel" className="text-sm font-medium">
+            <TabsList className="flex h-auto w-full max-w-full flex-none justify-start gap-6 rounded-none border-b border-gray-200/90 bg-transparent p-0 pb-px dark:border-gray-700 dark:bg-transparent">
+              <TabsTrigger value="padel" className={sportTabTriggerClassName}>
                 Ligas pádel
               </TabsTrigger>
-              <TabsTrigger value="football" className="text-sm font-medium data-[state=active]:text-green-700 dark:data-[state=active]:text-green-400">
+              <TabsTrigger value="football" className={sportTabTriggerClassName}>
                 Fútbol
               </TabsTrigger>
             </TabsList>

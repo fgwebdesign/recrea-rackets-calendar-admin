@@ -5,7 +5,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ImageIcon, Loader2, Upload } from 'lucide-react'
 import { FootballLeagueTeam } from '@/types/footballLeague'
 import { updateFootballTeam } from '@/services/footballLeagueService'
-import { uploadFootballTeamLogo } from '@/lib/footballTeamLogosStorage'
+import {
+  MAX_TEAM_DISPLAY_NAME_LEN,
+  uploadFootballTeamLogo,
+  validateTeamLogoFile
+} from '@/lib/footballTeamLogosStorage'
 import { toast } from '@/components/ui/use-toast'
 import {
   Dialog,
@@ -53,8 +57,9 @@ export function FootballTeamEditDialog({ open, onOpenChange, leagueId, leagueTea
   }, [open, leagueTeam])
 
   const processFile = useCallback(async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast({ title: 'Usá solo archivos de imagen', variant: 'destructive' })
+    const bad = validateTeamLogoFile(file)
+    if (bad) {
+      toast({ title: 'Archivo no válido', description: bad, variant: 'destructive' })
       return
     }
     setUploading(true)
@@ -96,6 +101,14 @@ export function FootballTeamEditDialog({ open, onOpenChange, leagueId, leagueTea
     const name = displayName.trim()
     if (!name) {
       toast({ title: 'Nombre requerido', variant: 'destructive' })
+      return
+    }
+    if (name.length > MAX_TEAM_DISPLAY_NAME_LEN) {
+      toast({
+        title: 'Nombre muy largo',
+        description: `Máximo ${MAX_TEAM_DISPLAY_NAME_LEN} caracteres`,
+        variant: 'destructive'
+      })
       return
     }
     setSaving(true)

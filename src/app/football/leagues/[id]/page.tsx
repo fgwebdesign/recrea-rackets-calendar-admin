@@ -4,14 +4,14 @@ import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { ChevronDown, Trophy } from 'lucide-react'
+import { CalendarDays, CalendarRange, ChevronDown, Clock, DollarSign, Trophy } from 'lucide-react'
 import { FootballLeagueHeader } from '@/components/Football/FootballLeagueHeader'
 import { FootballTeams } from '@/components/Football/FootballTeams'
 import { FootballSchedule } from '@/components/Football/FootballSchedule'
 import { FootballStandings } from '@/components/Football/FootballStandings'
 import { useFootballLeague, useFootballMatches, useGenerateFootballFixture } from '@/hooks/useFootballLeague'
 import { useFootballStandings } from '@/hooks/useFootballStandings'
-import { CalendarDays, DollarSign, Clock } from 'lucide-react'
+import type { FootballLeague } from '@/types/footballLeague'
 
 function Section({
   title,
@@ -26,21 +26,27 @@ function Section({
 }) {
   return (
     <Collapsible.Root open={open} onOpenChange={onToggle} className="w-full">
-      <Card className="w-full bg-white dark:bg-[#0E1629] border-gray-200 dark:border-gray-700/50 shadow-sm overflow-hidden">
+      <Card className="w-full overflow-hidden border-border/80 bg-card shadow-sm dark:border-gray-700/50 dark:bg-[#0E1629]">
         <Collapsible.Trigger asChild>
-          <CardHeader className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${open ? 'border-b border-gray-200 dark:border-gray-700/50' : ''}`}>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">{title}</CardTitle>
-              <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+          <CardHeader
+            className={`cursor-pointer transition-colors hover:bg-muted/40 dark:hover:bg-white/[0.03] ${open ? 'border-b border-border/60 dark:border-gray-700/50' : ''}`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-base font-medium text-foreground">{title}</CardTitle>
+              <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
             </div>
           </CardHeader>
         </Collapsible.Trigger>
         <Collapsible.Content>
-          <CardContent className="p-6">{children}</CardContent>
+          <CardContent className="p-5 sm:p-6">{children}</CardContent>
         </Collapsible.Content>
       </Card>
     </Collapsible.Root>
   )
+}
+
+function footballFrequencyLabel(f: FootballLeague['frequency']) {
+  return f === 'biweekly' ? 'Fixture quincenal' : 'Fixture semanal'
 }
 
 export default function FootballLeagueDetailPage() {
@@ -100,7 +106,7 @@ export default function FootballLeagueDetailPage() {
       <main className="container mx-auto px-4 py-8 flex flex-col gap-6">
 
         {/* Equipos */}
-        <Section title="Equipos Registrados" open={openTeams} onToggle={() => setOpenTeams((v) => !v)}>
+        <Section title="Equipos registrados" open={openTeams} onToggle={() => setOpenTeams((v) => !v)}>
           <FootballTeams
             teams={league.teams ?? []}
             maxTeams={league.team_size}
@@ -142,69 +148,102 @@ export default function FootballLeagueDetailPage() {
         </Section>
 
         {/* Tabla de posiciones */}
-        <Section title="Tabla de Posiciones" open={openStandings} onToggle={() => setOpenStandings((v) => !v)}>
+        <Section title="Tabla de posiciones" open={openStandings} onToggle={() => setOpenStandings((v) => !v)}>
           <FootballStandings standings={standings} isLoading={isLoadingStandings} />
         </Section>
 
         {/* Información */}
-        <Section title="Información de la Liga" open={openInfo} onToggle={() => setOpenInfo((v) => !v)}>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 space-y-1">
-              <p className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Descripción</p>
-              <p className="text-sm text-slate-700 dark:text-slate-300">{league.description || '—'}</p>
-            </div>
-
-            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-5 space-y-1">
-              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                <DollarSign className="w-4 h-4" />
-                <p className="text-xs font-semibold uppercase">Inscripción</p>
-              </div>
-              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">${league.inscription_cost}</p>
-            </div>
-
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-5 space-y-2">
-              <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                <CalendarDays className="w-4 h-4" />
-                <p className="text-xs font-semibold uppercase">Fechas</p>
-              </div>
-              <p className="text-sm text-blue-700 dark:text-blue-300">
-                {new Date(league.start_date.replace('Z', '')).toLocaleDateString('es-UY', { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric' })}
-                {' → '}
-                {new Date(league.end_date.replace('Z', '')).toLocaleDateString('es-UY', { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric' })}
-              </p>
-              <p className="text-sm text-blue-600 dark:text-blue-400">Todos los sábados</p>
-            </div>
-
-            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-5 space-y-2 md:col-span-2 lg:col-span-3">
-              <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
-                <Trophy className="w-4 h-4" />
-                <p className="text-xs font-semibold uppercase">Sistema de puntos</p>
-              </div>
-              <div className="flex gap-4 flex-wrap">
-                {[{ label: 'Victoria', value: 3 }, { label: 'Empate', value: 1 }, { label: 'Derrota', value: 0 }].map((item) => (
-                  <div key={item.label} className="bg-white dark:bg-purple-900/30 rounded-lg px-5 py-3 text-center min-w-[80px]">
-                    <p className="text-xs text-purple-500 dark:text-purple-400">{item.label}</p>
-                    <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{item.value}</p>
-                    <p className="text-xs text-purple-400">pts</p>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-purple-500 dark:text-purple-400 mt-1">
-                Desempate: diferencia de goles → goles a favor
+        <Section title="Información de la liga" open={openInfo} onToggle={() => setOpenInfo((v) => !v)}>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-4 sm:col-span-2 lg:col-span-3">
+              <p className="text-xs font-medium text-muted-foreground">Descripción</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                {league.description?.trim() || 'Sin descripción.'}
               </p>
             </div>
 
-            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-5 space-y-2">
-              <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
-                <Clock className="w-4 h-4" />
-                <p className="text-xs font-semibold uppercase">Horarios</p>
+            <div className="rounded-xl border border-border/70 bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <DollarSign className="h-3.5 w-3.5" />
+                <p className="text-xs font-medium">Inscripción por equipo</p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {(league.time_slots || []).map((slot) => (
-                  <span key={slot} className="text-sm bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full font-medium">
-                    {slot}
+              <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight">${league.inscription_cost}</p>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <CalendarDays className="h-3.5 w-3.5" />
+                <p className="text-xs font-medium">Calendario</p>
+              </div>
+              <p className="mt-2 text-sm font-medium leading-snug text-foreground">
+                {new Date(league.start_date.replace('Z', '')).toLocaleDateString('es-UY', {
+                  timeZone: 'UTC',
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                })}{' '}
+                <span className="text-muted-foreground">→</span>{' '}
+                {new Date(league.end_date.replace('Z', '')).toLocaleDateString('es-UY', {
+                  timeZone: 'UTC',
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+              </p>
+              <p className="mt-1.5 text-xs text-muted-foreground">{footballFrequencyLabel(league.frequency)}</p>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <CalendarRange className="h-3.5 w-3.5" />
+                <p className="text-xs font-medium">Fase / formato</p>
+              </div>
+              <p className="mt-2 text-sm font-medium text-foreground">{league.tournament_phase}</p>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-card p-4 sm:col-span-2 lg:col-span-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Trophy className="h-3.5 w-3.5" />
+                  <p className="text-xs font-medium">Puntuación (fútbol)</p>
+                </div>
+                <p className="text-xs text-muted-foreground">Desempate: diferencia de goles, luego goles a favor</p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[
+                  { label: 'Victoria', pts: 3 },
+                  { label: 'Empate', pts: 1 },
+                  { label: 'Derrota', pts: 0 }
+                ].map((row) => (
+                  <span
+                    key={row.label}
+                    className="inline-flex items-baseline gap-2 rounded-lg border border-border/80 bg-background px-3 py-2 text-sm shadow-sm"
+                  >
+                    <span className="text-muted-foreground">{row.label}</span>
+                    <span className="font-semibold tabular-nums">{row.pts} pts</span>
                   </span>
                 ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border/70 bg-card p-4 sm:col-span-2 lg:col-span-3">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <p className="text-xs font-medium">Franja horaria de partidos</p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(league.time_slots || []).length ? (
+                  (league.time_slots || []).map((slot) => (
+                    <span
+                      key={slot}
+                      className="rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium tabular-nums text-foreground"
+                    >
+                      {slot}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-muted-foreground">Sin horarios definidos</span>
+                )}
               </div>
             </div>
           </div>
