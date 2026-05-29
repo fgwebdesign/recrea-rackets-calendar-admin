@@ -110,11 +110,11 @@ export const updateFootballTeam = (
   }).then(handleResponse)
 
 // Fixture
-export const generateFootballFixture = (leagueId: string, court_id?: string) =>
+export const generateFootballFixture = (leagueId: string) =>
   fetch(`${API()}/football/leagues/${leagueId}/generate-fixture`, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify(court_id ? { court_id } : {})
+    body: JSON.stringify({})
   }).then(handleResponse)
 
 // Partidos
@@ -137,3 +137,7 @@ export const recalculateFootballStandings = (leagueId: string) =>
     method: 'POST',
     headers: authHeaders()
   }).then(handleResponse)
+
+// Plantel
+export const getFootballTeamMembers = (teamId: string) =>
+  fetch(`${API()}/football/teams/${teamId}/members`, { headers: authHeaders() }).then(handleResponse)

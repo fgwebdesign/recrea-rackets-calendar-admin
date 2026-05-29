@@ -28,6 +28,7 @@ import {
 } from '@/types/footballLeague'
 import { createFootballLeague } from '@/services/footballLeagueService'
 import { toast } from '@/components/ui/use-toast'
+import { totalLeagueMatchdays } from '@/lib/footballFixtureUtils'
 
 const DEFAULT_SLOTS = ['09:00', '10:00', '11:00', '12:00']
 
@@ -48,7 +49,7 @@ const INITIAL: FootballLeagueFormData = {
   end_date: '',
   team_size: 8,
   frequency: 'weekly',
-  tournament_phase: 'Apertura + Clausura',
+  tournament_phase: 'Apertura',
   home_away_format: 'home_only',
   time_slots: DEFAULT_SLOTS
 }
@@ -59,17 +60,7 @@ function calcSuggestedEndDate(
   phase: FootballTournamentPhase,
   homeAwayFormat: FootballHomeAwayFormat
 ): string {
-  let rounds = teamSize - 1
-  
-  // Si es ida y vuelta, duplicar las fechas
-  if (homeAwayFormat === 'home_away') {
-    rounds *= 2
-  }
-  
-  // Si además es Apertura + Clausura, duplicar nuevamente
-  if (phase === 'Apertura + Clausura') {
-    rounds *= 2
-  }
+  const rounds = totalLeagueMatchdays(teamSize, homeAwayFormat, phase)
   
   const [y, m, d] = startYmd.split('-').map(Number)
   const start = new Date(y, m - 1, d)
@@ -187,9 +178,7 @@ export function FootballLeagueForm({ step, onStepChange }: FootballLeagueFormPro
   }
 
   // Calcular fechas totales considerando ida/vuelta y tipo de torneo
-  const baseRounds = Math.max(form.team_size - 1, 1)
-  const roundsWithHomeAway = form.home_away_format === 'home_away' ? baseRounds * 2 : baseRounds
-  const matchdays = form.tournament_phase === 'Apertura + Clausura' ? roundsWithHomeAway * 2 : roundsWithHomeAway
+  const matchdays = totalLeagueMatchdays(form.team_size, form.home_away_format, form.tournament_phase)
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -283,8 +272,7 @@ export function FootballLeagueForm({ step, onStepChange }: FootballLeagueFormPro
         } = supabase.storage.from('tournament-thumbnails').getPublicUrl(fileName)
         setImageUrl(publicUrl)
         setImageFile(null)
-      } catch (err) {
-        console.error(err)
+      } catch {
         toast({ title: 'Error', description: 'Error al subir la imagen', variant: 'destructive' })
         return
       }

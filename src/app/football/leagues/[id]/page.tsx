@@ -144,6 +144,7 @@ export default function FootballLeagueDetailPage() {
             onResultSaved={() => { refetchMatches(); refetchStandings() }}
             tournamentPhase={league.tournament_phase}
             teamSize={league.team_size}
+            homeAwayFormat={league.home_away_format}
           />
         </Section>
 

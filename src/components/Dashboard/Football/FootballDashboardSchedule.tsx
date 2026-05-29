@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, ListFilter, MapPin } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, ListFilter } from 'lucide-react'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptySchedule } from '@/components/Dashboard/EmptySchedule'
 import { getFootballUpcomingMatches } from '@/services/footballLeagueService'
@@ -15,7 +15,6 @@ export type FootballUpcomingMatch = {
   team2: string
   match_date: string | null
   time_slot: string | null
-  court_name: string | null
 }
 
 function formatDateTime(dateTime: string | null) {
@@ -181,13 +180,6 @@ export function FootballDashboardSchedule() {
                       >
                         {match.league_name}
                       </h3>
-                      <p
-                        className="flex items-start gap-1.5 text-xs text-muted-foreground"
-                        title={match.court_name || undefined}
-                      >
-                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600/80 dark:text-emerald-400/80" />
-                        <span className="line-clamp-2 leading-relaxed">{match.court_name || 'Sin cancha asignada'}</span>
-                      </p>
                     </header>
 
                     <div className="flex flex-1 flex-col justify-center gap-5 px-4 py-6">

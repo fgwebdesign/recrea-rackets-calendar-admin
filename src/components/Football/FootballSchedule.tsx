@@ -1,11 +1,12 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { FootballMatch, FootballTournamentPhase } from '@/types/footballLeague'
+import { FootballHomeAwayFormat, FootballMatch, FootballTournamentPhase } from '@/types/footballLeague'
 import { FootballMatchResultModal } from './FootballMatchResultModal'
-import { CalendarDays, MapPin, CheckCircle2, Clock, ChevronRight } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { matchdaysPerTournamentPhase, roundRobinIdaMatchdays } from '@/lib/footballFixtureUtils'
 
 /**
  * Misma lectura que en Supabase: fecha según calendario UTC del `match_date`,
@@ -47,7 +48,13 @@ function groupMatchesByRound(matches: FootballMatch[]): [number, FootballMatch[]
     )
 }
 
-type PhaseKey = 'apertura' | 'clausura' | 'single'
+type PhaseKey =
+  | 'apertura'
+  | 'apertura-vuelta'
+  | 'clausura'
+  | 'clausura-ida'
+  | 'clausura-vuelta'
+  | 'single'
 
 interface PhaseBlock {
   key: PhaseKey
@@ -57,34 +64,89 @@ interface PhaseBlock {
   accent: 'purple' | 'emerald'
 }
 
+function matchTeamLabel(match: FootballMatch, side: 1 | 2): string {
+  if (side === 1) {
+    return match.team1_label || match.team1_name || 'Equipo 1'
+  }
+  return match.team2_label || match.team2_name || 'Equipo 2'
+}
+
 function buildPhaseBlocks(
   rounds: [number, FootballMatch[]][],
   tournamentPhase: FootballTournamentPhase | undefined,
-  teamSize: number | undefined
+  teamSize: number | undefined,
+  homeAwayFormat: FootballHomeAwayFormat | undefined
 ): PhaseBlock[] {
   const n = teamSize && teamSize >= 2 ? teamSize : 8
-  const roundsPer = Math.max(n - 1, 1)
+  const ida = roundRobinIdaMatchdays(n)
+  const homeAway = homeAwayFormat === 'home_away'
+  const perHalf = matchdaysPerTournamentPhase(n, homeAway)
   const maxRound = rounds.length ? Math.max(...rounds.map(([r]) => r)) : 0
+
+  const aperturaIdaVueltaBlocks = (): PhaseBlock[] => {
+    const idaRounds = rounds.filter(([r]) => r <= ida)
+    const vueltaRounds = rounds.filter(([r]) => r > ida)
+    const blocks: PhaseBlock[] = [
+      {
+        key: 'apertura',
+        title: 'Apertura — Ida',
+        subtitle: `Fechas 1 a ${ida}`,
+        rounds: idaRounds,
+        accent: 'purple'
+      }
+    ]
+    if (vueltaRounds.length > 0) {
+      blocks.push({
+        key: 'apertura-vuelta',
+        title: 'Apertura — Vuelta',
+        subtitle: `Fechas ${ida + 1} a ${maxRound}`,
+        rounds: vueltaRounds,
+        accent: 'purple'
+      })
+    }
+    return blocks
+  }
 
   if (!tournamentPhase) {
     return [{ key: 'single', title: 'Calendario', rounds, accent: 'purple' }]
   }
   if (tournamentPhase === 'Apertura') {
+    if (homeAway && maxRound > ida) {
+      return aperturaIdaVueltaBlocks()
+    }
     return [{ key: 'single', title: 'Apertura', rounds, accent: 'purple' }]
   }
   if (tournamentPhase === 'Clausura') {
+    if (homeAway && maxRound > ida) {
+      return [
+        {
+          key: 'clausura-ida',
+          title: 'Clausura — Ida',
+          subtitle: `Fechas 1 a ${ida}`,
+          rounds: rounds.filter(([r]) => r <= ida),
+          accent: 'emerald'
+        },
+        {
+          key: 'clausura-vuelta',
+          title: 'Clausura — Vuelta',
+          subtitle: `Fechas ${ida + 1} a ${maxRound}`,
+          rounds: rounds.filter(([r]) => r > ida),
+          accent: 'emerald'
+        }
+      ]
+    }
     return [{ key: 'single', title: 'Clausura', rounds, accent: 'emerald' }]
   }
 
-  // Apertura + Clausura: si hay más de (n-1) fechas, segunda mitad = Clausura
-  if (maxRound > roundsPer) {
-    const aper = rounds.filter(([r]) => r <= roundsPer)
-    const claus = rounds.filter(([r]) => r > roundsPer)
+  // Apertura + Clausura: la Clausura solo aparece si el fixture tiene más fechas que una fase completa (ida ± vuelta).
+  if (maxRound > perHalf) {
+    const aper = rounds.filter(([r]) => r <= perHalf)
+    const claus = rounds.filter(([r]) => r > perHalf)
     const out: PhaseBlock[] = [
       {
         key: 'apertura',
         title: 'Apertura',
-        subtitle: `Fechas 1 a ${roundsPer}`,
+        subtitle: homeAway ? `Fechas 1 a ${perHalf} (ida y vuelta)` : `Fechas 1 a ${perHalf}`,
         rounds: aper,
         accent: 'purple'
       }
@@ -93,7 +155,7 @@ function buildPhaseBlocks(
       out.push({
         key: 'clausura',
         title: 'Clausura',
-        subtitle: `Fechas ${roundsPer + 1} a ${maxRound}`,
+        subtitle: `Fechas ${perHalf + 1} a ${maxRound}`,
         rounds: claus,
         accent: 'emerald'
       })
@@ -101,14 +163,16 @@ function buildPhaseBlocks(
     return out
   }
 
+  // Solo Apertura generada (ej. 3 equipos ida y vuelta = 6 fechas, sin Clausura aún).
+  if (homeAway && maxRound > ida) {
+    return aperturaIdaVueltaBlocks()
+  }
+
   return [
     {
       key: 'apertura',
       title: 'Apertura',
-      subtitle:
-        maxRound === roundsPer
-          ? 'Fase de ida. Cuando el fixture incluya la vuelta, la Clausura aparecerá en una sección aparte.'
-          : undefined,
+      subtitle: `Fechas 1 a ${maxRound}`,
       rounds,
       accent: 'purple'
     }
@@ -145,7 +209,7 @@ function MatchRow({
 
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="text-sm font-medium text-slate-900 dark:text-white truncate text-right flex-1">
-            {match.team1_label}
+            {matchTeamLabel(match, 1)}
           </span>
 
           {done ? (
@@ -156,7 +220,7 @@ function MatchRow({
             <span className="text-xs font-bold text-slate-400 dark:text-slate-500 shrink-0 px-1">vs</span>
           )}
 
-          <span className="text-sm font-medium text-slate-900 dark:text-white truncate flex-1">{match.team2_label}</span>
+          <span className="text-sm font-medium text-slate-900 dark:text-white truncate flex-1">{matchTeamLabel(match, 2)}</span>
         </div>
       </div>
 
@@ -166,12 +230,6 @@ function MatchRow({
             <CalendarDays className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
             <span>{formatMatchDateTime(match)}</span>
           </div>
-          {match.court && (
-            <div className="flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-slate-400" />
-              <span>{match.court.name}</span>
-            </div>
-          )}
         </div>
 
         {done ? (
@@ -272,7 +330,8 @@ export function FootballSchedule({
   isLoading,
   onResultSaved,
   tournamentPhase,
-  teamSize
+  teamSize,
+  homeAwayFormat
 }: {
   pending: FootballMatch[]
   completed: FootballMatch[]
@@ -280,6 +339,7 @@ export function FootballSchedule({
   onResultSaved: () => void
   tournamentPhase?: FootballTournamentPhase
   teamSize?: number
+  homeAwayFormat?: FootballHomeAwayFormat
 }) {
   const [editing, setEditing] = useState<FootballMatch | null>(null)
   const [tab, setTab] = useState<'pending' | 'completed'>('pending')
@@ -287,8 +347,8 @@ export function FootballSchedule({
   const shown = tab === 'pending' ? pending : completed
 
   const phaseBlocks = useMemo(
-    () => buildPhaseBlocks(groupMatchesByRound(shown), tournamentPhase, teamSize),
-    [shown, tournamentPhase, teamSize]
+    () => buildPhaseBlocks(groupMatchesByRound(shown), tournamentPhase, teamSize, homeAwayFormat),
+    [shown, tournamentPhase, teamSize, homeAwayFormat]
   )
 
   if (isLoading) {

@@ -35,6 +35,26 @@ export interface FootballLeagueTeam {
   }
 }
 
+export interface FootballTeamMember {
+  id: string
+  role: 'player' | 'captain'
+  joined_at: string
+  first_name: string | null
+  last_name: string | null
+  email: string
+  profile_photo: string | null
+}
+
+export interface FootballTeamMembersResponse {
+  team: {
+    id: string
+    display_name: string | null
+    image_url: string | null
+  }
+  members: FootballTeamMember[]
+  total: number
+}
+
 export interface FootballMatch {
   id: string
   league_id: string
@@ -50,6 +70,8 @@ export interface FootballMatch {
   status: FootballMatchStatus
   walkover: boolean
   winner_league_team_id: string | null
+  team1_name?: string
+  team2_name?: string
   team1_label?: string
   team2_label?: string
   court?: { id: string; name: string } | null

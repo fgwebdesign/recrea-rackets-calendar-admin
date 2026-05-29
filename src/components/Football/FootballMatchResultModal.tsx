@@ -54,7 +54,7 @@ export function FootballMatchResultModal({
                 <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <span className="text-sm font-medium text-gray-900 dark:text-white text-center line-clamp-2">
-                {match.team1_label || 'Local'}
+                {match.team1_label || match.team1_name || 'Local'}
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -81,7 +81,7 @@ export function FootballMatchResultModal({
                 <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <span className="text-sm font-medium text-gray-900 dark:text-white text-center line-clamp-2">
-                {match.team2_label || 'Visitante'}
+                {match.team2_label || match.team2_name || 'Visitante'}
               </span>
               <div className="flex items-center gap-2">
                 <button
