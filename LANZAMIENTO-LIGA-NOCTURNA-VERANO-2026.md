@@ -43,6 +43,23 @@ Arrancando el lunes 7/9/2026:
 | 1 | Sexta, Quinta, Tercera, Cuarta | **04/09 al 06/09** (cualquier día antes del lunes 7) | Lunes 7/9 (Sexta), Martes 8/9 (Quinta), Miércoles 9/9 (Tercera, Grupo A), Jueves 10/9 (Cuarta, Grupo A) |
 | 2 | Segunda | **09/09 al 14/09** (después del martes 8, antes del martes 15) | Martes 15/9 |
 
+## 3.1 ✅ Ya ejecutado (04/09/2026) — IDs reales de las 5 ligas creadas
+
+Las 5 ligas de esta temporada ya están creadas en producción (Tanda 1 y Tanda 2, con
+`start_date` 04/09 y 10/09 respectivamente, `inscription_cost: 4000`). Guardo los IDs acá para
+no tener que buscarlos de nuevo cuando haga falta generar el fixture o el Grupo B:
+
+| Categoría | `league_id` |
+|---|---|
+| Sexta | `fde80ca3-6e40-4556-9a1e-3e9e1aeab2b1` |
+| Quinta | `14a6e3ce-1f46-474b-a6d3-cb9b763bfa16` |
+| Tercera | `ec789c38-3f46-4849-80c4-d224f3974d06` |
+| Cuarta | `fcc619bc-fc1b-4273-8927-80a4c984655f` |
+| Segunda | `aa20b5ce-d62a-4fdf-b57d-bdd321a7e5c1` |
+
+Si en algún momento hay que recrear alguna liga (o para chequear rápido desde el admin), se
+puede ir directo a `recrea-rackets-calendar-admin.vercel.app/leagues/<league_id>`.
+
 ## 4. Orden de carga en el admin
 
 1. **Tanda 1**: un solo wizard de "Crear liga", seleccionando las 4 categorías juntas
@@ -69,15 +86,38 @@ Arrancando el lunes 7/9/2026:
 
 El backend sí tiene el endpoint (`POST /leagues/:leagueId/generate-group-fixture` con
 `{ "groupName": "B" }`), pero **el admin no tiene ninguna pantalla conectada a él todavía**.
-Hasta que se agregue esa pantalla, cuando el Grupo B de Tercera o Cuarta se complete hay que
-llamarlo a mano (con el token de admin real, no el de prueba):
+Hasta que se agregue esa pantalla, cuando el Grupo B de Tercera o Cuarta se complete (8/8
+equipos en ese grupo) hay que llamarlo a mano. Pasos:
 
-```
-curl -X POST "https://recrea-backend-itrk.onrender.com/leagues/<leagueId>/generate-group-fixture" \
-  -H "Authorization: Bearer <token_admin>" \
-  -H "Content-Type: application/json" \
-  -d '{"groupName": "B", "rounds": 1}'
-```
+1. **Confirmar que el Grupo B ya está lleno** — en el admin, `/leagues/<league_id>` (ver IDs
+   reales en el punto 3.1), sección "Equipos Registrados", filtrar por Grupo B: tiene que
+   mostrar 8/8. Si todavía no está lleno, esperar — el endpoint tira error si se llama con el
+   grupo incompleto.
+2. **Conseguir un token de admin real**: loguearse en `recrea-rackets-calendar-admin.vercel.app`
+   con una cuenta admin, abrir la consola del navegador (F12) y correr:
+   ```js
+   localStorage.getItem('adminToken')
+   ```
+   Copiar el valor (sin comillas).
+3. **Llamar al endpoint** con el `league_id` que corresponda (Tercera o Cuarta, del punto 3.1):
+   ```bash
+   curl -X POST "https://recrea-backend-itrk.onrender.com/leagues/<league_id>/generate-group-fixture" \
+     -H "Authorization: Bearer <token_admin>" \
+     -H "Content-Type: application/json" \
+     -d '{"groupName": "B", "rounds": 1}'
+   ```
+   Ejemplo concreto para Tercera (reemplazando `<token_admin>`):
+   ```bash
+   curl -X POST "https://recrea-backend-itrk.onrender.com/leagues/ec789c38-3f46-4849-80c4-d224f3974d06/generate-group-fixture" \
+     -H "Authorization: Bearer <token_admin>" \
+     -H "Content-Type: application/json" \
+     -d '{"groupName": "B", "rounds": 1}'
+   ```
+   Y para Cuarta, usar `fcc619bc-fc1b-4273-8927-80a4c984655f` en vez del ID de Tercera.
+4. **Verificar el resultado**: en el admin, `/leagues/<league_id>/matches`, confirmar que
+   aparecieron las fechas del Grupo B alternando semana por medio con las del Grupo A ya
+   generadas, y que ninguna fecha/cancha/horario se repite (mismo chequeo que se hizo el día
+   del lanzamiento con `tools/prod-test-lifecycle.js`).
 
 ## 6. Cuándo termina la temporada (arrancando el 7/9)
 
