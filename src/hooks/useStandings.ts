@@ -17,6 +17,7 @@ export interface Standing {
   sets_difference: number;
   group_name?: 'A' | 'B' | null;
   team?: {
+    display_name?: string | null;
     player1: {
       first_name: string;
       last_name: string;

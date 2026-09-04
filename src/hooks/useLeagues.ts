@@ -16,7 +16,10 @@ export function useLeagues() {
           throw new Error('No authentication token found');
         }
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leagues/all?page=1&pageSize=10&include=teams`, {
+        // pageSize alto a propósito: no hay UI de "cargar más", así que traemos todo de una para
+        // que las ligas viejas (temporadas anteriores) sigan apareciendo en el listado como
+        // historial, no solo las 10 más recientes.
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leagues/all?page=1&pageSize=200&include=teams`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

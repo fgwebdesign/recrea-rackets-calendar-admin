@@ -5,6 +5,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { CategoryFilterTabs } from './CategoryFilterTabs';
 import { Category } from '@/types/category';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatTeamName } from '@/utils/formatTeamName';
 
 interface CategoryStandingsProps {
   categories: Category[];
@@ -132,10 +133,7 @@ export function CategoryStandings({
                     {index + 1}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
-                    {standing.team ? 
-                      `${standing.team.player1.first_name} ${standing.team.player1.last_name} - 
-                       ${standing.team.player2.first_name} ${standing.team.player2.last_name}` : 
-                      'Equipo no disponible'}
+                    {formatTeamName(standing.team)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-2xl text-center font-orbitron text-green-600 dark:text-green-400">
                     {standing.games_played}

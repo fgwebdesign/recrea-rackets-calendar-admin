@@ -20,6 +20,7 @@ interface Team {
   id: string;
   league_team_id: string;
   inscription_paid: boolean;
+  team_name?: string | null;
   alternate_player: string;
   alternate_player_2?: string;
   alternate_player_id?: string;
@@ -185,6 +186,11 @@ export function LeagueTeams({ teams: initialTeams, maxTeams, status, leagueId, h
                 dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 
                 transition-all duration-300 ease-in-out"
     >
+      {team.team_name && (
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          {team.team_name}
+        </p>
+      )}
       <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-6 items-center">
         <div className="flex items-center gap-2">
           <UserCircle2 className="w-5 h-5 text-blue-500 dark:text-blue-400" />
@@ -316,6 +322,11 @@ export function LeagueTeams({ teams: initialTeams, maxTeams, status, leagueId, h
                 </DialogDescription>
                 {selectedTeam && (
                   <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
+                    {selectedTeam.team_name && (
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-0.5">
+                        {selectedTeam.team_name}
+                      </p>
+                    )}
                     <p className="font-medium text-gray-900 dark:text-white">
                       {selectedTeam.player1.name} - {selectedTeam.player2.name}
                     </p>

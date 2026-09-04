@@ -1,5 +1,6 @@
 import { useStandings } from '@/hooks/useStandings';
 import { Standing } from '@/hooks/useStandings';
+import { formatTeamName } from '@/utils/formatTeamName';
 
 interface LeagueStandingsProps {
   leagueId: string;
@@ -121,7 +122,7 @@ export function LeagueStandings({ categoryId }: LeagueStandingsProps) {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {standing.team?.player1?.first_name} {standing.team?.player1?.last_name} / {standing.team?.player2?.first_name} {standing.team?.player2?.last_name}
+                      {formatTeamName(standing.team)}
                     </div>
                   </div>
                 </td>
