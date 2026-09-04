@@ -2,6 +2,11 @@ export interface League {
   id: string;
   name: string;
   category_id: string;
+  category?: {
+    id: string;
+    name: string;
+    play_day?: string;
+  };
   image_url: string | null;
   created_at: string;
   updated_at: string;

@@ -5,6 +5,7 @@ import { League } from '@/types/league';
 import { Category } from '@/hooks/useCategories';
 import { getCategoryName } from '@/utils/category';
 import { Progress } from '@/components/ui/progress';
+import { getFirstMatchDate } from '@/utils/getFirstMatchDate';
 
 interface LeagueCardProps {
   league: League;
@@ -13,6 +14,8 @@ interface LeagueCardProps {
 
 export function LeagueCard({ league, categories }: LeagueCardProps) {
   const categoryName = getCategoryName(league.category_id, categories);
+  const category = categories.find((c) => c.id === league.category_id);
+  const firstMatchDate = getFirstMatchDate(league.start_date, category?.play_day);
   const registeredTeams = league.registeredTeams || 0;
   const registrationProgress = (registeredTeams / league.team_size) * 100;
   const availableSpots = league.team_size - registeredTeams;
@@ -91,9 +94,9 @@ export function LeagueCard({ league, categories }: LeagueCardProps) {
           {/* Fecha de inicio y fin */}
           <div className="flex flex-col gap-2">
             <div className="p-3 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-              <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">Fecha de inicio</p>
+              <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">Primer partido</p>
               <p className="text-sm text-emerald-800 dark:text-emerald-200">
-                {formatDate(league.start_date)}
+                {firstMatchDate ? firstMatchDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : formatDate(league.start_date)}
               </p>
             </div>
             <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30">

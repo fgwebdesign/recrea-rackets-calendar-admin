@@ -4,6 +4,7 @@ import { toast } from '@/components/ui/use-toast';
 export interface Category {
   id: string;
   name: string;
+  play_day?: string;
 }
 
 interface CreateCategoryData {
