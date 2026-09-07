@@ -15,7 +15,15 @@ interface LeagueCardProps {
 export function LeagueCard({ league, categories }: LeagueCardProps) {
   const categoryName = getCategoryName(league.category_id, categories);
   const category = categories.find((c) => c.id === league.category_id);
-  const firstMatchDate = getFirstMatchDate(league.start_date, category?.play_day);
+  const rawFirstMatchDate = getFirstMatchDate(league.start_date, category?.play_day);
+  // Si la liga sigue en inscripción pero el "primer partido" calculado ya pasó, la fecha
+  // real todavía no está definida (ej. la categoría se posterga). Mostrar "A definir" en vez
+  // de una fecha vieja que confunde. Para ligas ya en curso/finalizadas se muestra igual.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const firstMatchPending =
+    league.status === 'Inscribiendo' && !!rawFirstMatchDate && rawFirstMatchDate < today;
+  const firstMatchDate = firstMatchPending ? null : rawFirstMatchDate;
   const registeredTeams = league.registeredTeams || 0;
   const registrationProgress = (registeredTeams / league.team_size) * 100;
   const availableSpots = league.team_size - registeredTeams;
@@ -96,7 +104,11 @@ export function LeagueCard({ league, categories }: LeagueCardProps) {
             <div className="p-3 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
               <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">Primer partido</p>
               <p className="text-sm text-emerald-800 dark:text-emerald-200">
-                {firstMatchDate ? firstMatchDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : formatDate(league.start_date)}
+                {firstMatchDate
+                  ? firstMatchDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+                  : firstMatchPending
+                    ? 'A definir'
+                    : formatDate(league.start_date)}
               </p>
             </div>
             <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30">

@@ -299,6 +299,13 @@ export default function LeagueDetailsPage() {
                           <span className="text-sm font-medium text-blue-900 dark:text-blue-200">
                             {(() => {
                               const firstMatch = getFirstMatchDate(league.start_date, league.category?.play_day);
+                              // Liga aún en inscripción con primer partido calculado ya vencido:
+                              // la fecha real todavía no está definida (ej. la categoría se posterga).
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              if (league.status === 'Inscribiendo' && firstMatch && firstMatch < today) {
+                                return 'A definir';
+                              }
                               return firstMatch
                                 ? firstMatch.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: 'numeric' })
                                 : new Date(league.start_date.replace('Z', '')).toLocaleDateString('es-UY', {
