@@ -76,15 +76,19 @@ export function useStandings(categoryId?: string, leagueId?: string) {
           console.log('🔍 Fetching leagues for category:', categoryId);
           const { data, error: leaguesError } = await supabase
             .from('leagues')
-            .select('id, name, status, category_id')
-            .eq('category_id', categoryId);
+            .select('id, name, status, category_id, created_at')
+            .eq('category_id', categoryId)
+            .order('created_at', { ascending: false });
 
           if (leaguesError) {
             console.error('❌ Error fetching leagues:', leaguesError);
             throw leaguesError;
           }
-          leagues = data;
-          console.log('📋 Found leagues:', leagues);
+          // Una categoría puede arrastrar ligas de temporadas anteriores. Nos quedamos SOLO con
+          // la liga más reciente de la categoría (la temporada vigente, hoy la de Verano), para
+          // que la tabla no mezcle standings de temporadas distintas.
+          leagues = data && data.length > 1 ? [data[0]] : data;
+          console.log('📋 Liga vigente de la categoría:', leagues);
         }
 
         if (!leagues?.length) {
