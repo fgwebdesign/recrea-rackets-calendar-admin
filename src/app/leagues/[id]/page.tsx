@@ -36,7 +36,8 @@ export default function LeagueDetailsPage() {
   const { league, isLoading: isLoadingLeague, error: leagueError } = useLeague(leagueId)
   const { categories, isLoading: isLoadingCategories } = useCategories()
   const { standings, hasGroups, isLoading: isLoadingStandings } = useStandings(
-    league?.category_id // Usar el category_id de la liga
+    league?.category_id, // categoría (para saber si aplica grupos)
+    leagueId // acotar los standings a ESTA liga, no mezclar con otras de la misma categoría
   )
   
   const { generateFixture, isGenerating } = useGenerateFixture({

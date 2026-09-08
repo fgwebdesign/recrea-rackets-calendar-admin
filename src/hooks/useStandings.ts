@@ -39,7 +39,7 @@ export interface StandingsData {
   hasGroups: boolean;
 }
 
-export function useStandings(categoryId?: string) {
+export function useStandings(categoryId?: string, leagueId?: string) {
   const [standingsData, setStandingsData] = useState<StandingsData>({
     standings: [],
     hasGroups: false
@@ -49,10 +49,10 @@ export function useStandings(categoryId?: string) {
 
   useEffect(() => {
     const fetchStandings = async () => {
-      console.log('🚀 useStandings hook triggered with categoryId:', categoryId);
-      
-      if (!categoryId) {
-        console.log('⚠️ No categoryId provided, clearing standings');
+      console.log('🚀 useStandings hook triggered with categoryId:', categoryId, 'leagueId:', leagueId);
+
+      if (!categoryId && !leagueId) {
+        console.log('⚠️ No categoryId/leagueId provided, clearing standings');
         setStandingsData({ standings: [], hasGroups: false });
         setError(null);
         return;
@@ -61,33 +61,34 @@ export function useStandings(categoryId?: string) {
       try {
         setIsLoading(true);
         setError(null);
-        
-        // Primero obtenemos las ligas de la categoría
-        console.log('🔍 Fetching leagues for category:', categoryId);
-        const { data: leagues, error: leaguesError } = await supabase
-          .from('leagues')
-          .select('id, name, status, category_id')
-          .eq('category_id', categoryId);
 
-        if (leaguesError) {
-          console.error('❌ Error fetching leagues:', leaguesError);
-          throw leaguesError;
+        let leagues: { id: string; name?: string; status?: string; category_id?: string }[] | null;
+
+        if (leagueId) {
+          // Vista de UNA liga puntual (detalle de liga): NO mezclar con otras ligas de la misma
+          // categoría. Una categoría puede tener varias ligas a la vez (ej. la temporada vieja
+          // "En Curso" y la nueva "Inscribiendo" comparten categoría) y traer todas concatenaba
+          // los standings de ambas en una sola tabla.
+          console.log('🔍 Standings acotados a la liga:', leagueId);
+          leagues = [{ id: leagueId }];
+        } else {
+          // Primero obtenemos las ligas de la categoría
+          console.log('🔍 Fetching leagues for category:', categoryId);
+          const { data, error: leaguesError } = await supabase
+            .from('leagues')
+            .select('id, name, status, category_id')
+            .eq('category_id', categoryId);
+
+          if (leaguesError) {
+            console.error('❌ Error fetching leagues:', leaguesError);
+            throw leaguesError;
+          }
+          leagues = data;
+          console.log('📋 Found leagues:', leagues);
         }
-        
-        console.log('📋 Found leagues:', leagues);
-        
-        // También buscar todas las ligas para debug
-        const { data: allLeagues, error: allLeaguesError } = await supabase
-          .from('leagues')
-          .select('id, name, status, category_id')
-          .limit(10);
-        
-        if (!allLeaguesError) {
-          console.log('🌍 All leagues in database (first 10):', allLeagues);
-        }
-        
+
         if (!leagues?.length) {
-          console.log('⚠️ No active leagues found for category:', categoryId);
+          console.log('⚠️ No leagues found for', leagueId ? `league ${leagueId}` : `category ${categoryId}`);
           setStandingsData({ standings: [], hasGroups: false });
           return;
         }
@@ -169,7 +170,7 @@ export function useStandings(categoryId?: string) {
     };
 
     fetchStandings();
-  }, [categoryId]);
+  }, [categoryId, leagueId]);
 
   return {
     ...standingsData,
