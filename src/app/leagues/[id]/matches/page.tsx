@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { LeagueMatchModal } from "@/components/Leagues/LeagueMatchModal"
 import { updateMatchResult } from "@/services/leagueService"
+import { TeamLabel } from "@/utils/teamLabel"
 import { toast } from "@/components/ui/use-toast"
 import { formatUruguayDateTime } from "@/lib/utils"
 import {
@@ -511,7 +512,7 @@ export default function LeagueMatchesPage() {
                                           </div>
                                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                                             <div className="text-right md:text-left">
-                                              <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
+                                              <TeamLabel label={match.team1} />
                                               {match.status === 'COMPLETED' && (
                                                 <p className="text-sm text-gray-500 dark:text-gray-400">{match.team1_sets1_won + match.team1_sets2_won} sets</p>
                                               )}
@@ -529,7 +530,7 @@ export default function LeagueMatchesPage() {
                                               </Button>
                                             </div>
                                             <div className="text-left md:text-right">
-                                              <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+                                              <TeamLabel label={match.team2} />
                                               {match.status === 'COMPLETED' && (
                                                 <p className="text-sm text-gray-500 dark:text-gray-400">{match.team2_sets1_won + match.team2_sets2_won} sets</p>
                                               )}
@@ -585,7 +586,7 @@ export default function LeagueMatchesPage() {
                                           </div>
                                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                                             <div className="text-right md:text-left">
-                                              <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
+                                              <TeamLabel label={match.team1} />
                                               {match.status === 'COMPLETED' && (
                                                 <p className="text-sm text-gray-500 dark:text-gray-400">{match.team1_sets1_won + match.team1_sets2_won} sets</p>
                                               )}
@@ -603,7 +604,7 @@ export default function LeagueMatchesPage() {
                                               </Button>
                                             </div>
                                             <div className="text-left md:text-right">
-                                              <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+                                              <TeamLabel label={match.team2} />
                                               {match.status === 'COMPLETED' && (
                                                 <p className="text-sm text-gray-500 dark:text-gray-400">{match.team2_sets1_won + match.team2_sets2_won} sets</p>
                                               )}
@@ -641,7 +642,7 @@ export default function LeagueMatchesPage() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                                       <div className="text-right md:text-left">
-                                        <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
+                                        <TeamLabel label={match.team1} />
                                         {match.status === 'COMPLETED' && (
                                           <p className="text-sm text-gray-500 dark:text-gray-400">{match.team1_sets1_won + match.team1_sets2_won} sets</p>
                                         )}
@@ -659,7 +660,7 @@ export default function LeagueMatchesPage() {
                                         </Button>
                                       </div>
                                       <div className="text-left md:text-right">
-                                        <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+                                        <TeamLabel label={match.team2} />
                                         {match.status === 'COMPLETED' && (
                                           <p className="text-sm text-gray-500 dark:text-gray-400">{match.team2_sets1_won + match.team2_sets2_won} sets</p>
                                         )}
@@ -725,7 +726,7 @@ export default function LeagueMatchesPage() {
                                               </div>
                                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                                                 <div className="text-right md:text-left">
-                                                  <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
+                                                  <TeamLabel label={match.team1} />
                                                   {match.status === 'COMPLETED' && (
                                                     <p className="text-sm text-gray-500 dark:text-gray-400">{match.team1_sets1_won + match.team1_sets2_won} sets</p>
                                                   )}
@@ -743,7 +744,7 @@ export default function LeagueMatchesPage() {
                                                   </Button>
                                                 </div>
                                                 <div className="text-left md:text-right">
-                                                  <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+                                                  <TeamLabel label={match.team2} />
                                                   {match.status === 'COMPLETED' && (
                                                     <p className="text-sm text-gray-500 dark:text-gray-400">{match.team2_sets1_won + match.team2_sets2_won} sets</p>
                                                   )}
@@ -799,7 +800,7 @@ export default function LeagueMatchesPage() {
                                               </div>
                                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                                                 <div className="text-right md:text-left">
-                                                  <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
+                                                  <TeamLabel label={match.team1} />
                                                   {match.status === 'COMPLETED' && (
                                                     <p className="text-sm text-gray-500 dark:text-gray-400">{match.team1_sets1_won + match.team1_sets2_won} sets</p>
                                                   )}
@@ -817,7 +818,7 @@ export default function LeagueMatchesPage() {
                                                   </Button>
                                                 </div>
                                                 <div className="text-left md:text-right">
-                                                  <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+                                                  <TeamLabel label={match.team2} />
                                                   {match.status === 'COMPLETED' && (
                                                     <p className="text-sm text-gray-500 dark:text-gray-400">{match.team2_sets1_won + match.team2_sets2_won} sets</p>
                                                   )}
@@ -855,7 +856,7 @@ export default function LeagueMatchesPage() {
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                                           <div className="text-right md:text-left">
-                                            <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
+                                            <TeamLabel label={match.team1} />
                                             {match.status === 'COMPLETED' && (
                                               <p className="text-sm text-gray-500 dark:text-gray-400">{match.team1_sets1_won + match.team1_sets2_won} sets</p>
                                             )}
@@ -873,7 +874,7 @@ export default function LeagueMatchesPage() {
                                             </Button>
                                           </div>
                                           <div className="text-left md:text-right">
-                                            <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+                                            <TeamLabel label={match.team2} />
                                             {match.status === 'COMPLETED' && (
                                               <p className="text-sm text-gray-500 dark:text-gray-400">{match.team2_sets1_won + match.team2_sets2_won} sets</p>
                                             )}

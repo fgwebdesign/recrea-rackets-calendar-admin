@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { EmptySchedule } from "./EmptySchedule";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCategories } from "@/hooks/useCategories";
+import { TeamLabel } from "@/utils/teamLabel";
 
 interface Match {
   id: string;
@@ -473,10 +474,8 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
                     <div className="space-y-4">
                       {/* Team 1 */}
                       <div className="flex items-center justify-between space-x-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={match.team1}>
-                            {match.team1}
-                          </p>
+                        <div className="flex-1 min-w-0">
+                          <TeamLabel label={match.team1} />
                         </div>
                       </div>
 
@@ -487,7 +486,7 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
                             <div className="w-full border-t border-gray-200 dark:border-gray-700/30"></div>
                           </div>
                           <div className="relative flex justify-center">
-                            <span className="px-3 text-sm font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 
+                            <span className="px-3 text-sm font-bold bg-gradient-to-r from-emerald-500 to-emerald-600
                                          text-white rounded-full py-1 shadow-lg shadow-emerald-500/20
                                          dark:shadow-emerald-900/30">
                               VS
@@ -498,10 +497,8 @@ export function LeagueScheduleCard({ leagueId, onMatchesLoaded }: LeagueSchedule
 
                       {/* Team 2 */}
                       <div className="flex items-center justify-between space-x-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={match.team2}>
-                            {match.team2}
-                          </p>
+                        <div className="flex-1 min-w-0">
+                          <TeamLabel label={match.team2} />
                         </div>
                       </div>
                     </div>

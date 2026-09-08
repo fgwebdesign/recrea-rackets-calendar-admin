@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { formatUruguayDateTime } from "@/lib/utils";
+import { TeamLabel } from "@/utils/teamLabel";
 
 interface MatchResult {
   team1_sets1_won: number;
@@ -256,8 +257,8 @@ export function LeagueMatchResults({ matches, onSaveResults }: LeagueMatchResult
                 )}
               >
                 <div className="grid grid-cols-7 gap-4 items-center">
-                  <div className="col-span-3 text-right md:text-left">
-                    <p className="font-medium text-gray-800 dark:text-gray-200">{match.team1}</p>
+                  <div className="col-span-3 min-w-0 text-right md:text-left">
+                    <TeamLabel label={match.team1} />
                     {match.status === "COMPLETED" && (
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {match.team1_sets1_won + match.team1_sets2_won} sets
@@ -291,8 +292,8 @@ export function LeagueMatchResults({ matches, onSaveResults }: LeagueMatchResult
                     )}
                   </div>
 
-                  <div className="col-span-3 text-left md:text-right">
-                    <p className="font-medium text-gray-800 dark:text-gray-200">{match.team2}</p>
+                  <div className="col-span-3 min-w-0 text-left md:text-right">
+                    <TeamLabel label={match.team2} />
                     {match.status === "COMPLETED" && (
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {match.team2_sets1_won + match.team2_sets2_won} sets

@@ -10,6 +10,7 @@ import { LeagueMatchModal } from "./LeagueMatchModal"
 import { updateMatchResult } from "@/services/leagueService"
 import { toast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
+import { TeamLabel } from "@/utils/teamLabel"
 
 interface MatchResultFromModal {
   team1_sets1_won: number;
@@ -141,9 +142,9 @@ export function LeagueRoundMatches({ matches, onMatchUpdate }: LeagueRoundMatche
     )}>
       <CardContent className="pt-6">
         <div className="grid grid-cols-7 gap-4 items-center">
-          <div className="col-span-3">
-            <div className="flex flex-col items-end md:items-start">
-              <p className="font-medium text-gray-900 dark:text-white">{match.team1}</p>
+          <div className="col-span-3 min-w-0">
+            <div className="text-right md:text-left">
+              <TeamLabel label={match.team1} />
             </div>
           </div>
 
@@ -187,9 +188,9 @@ export function LeagueRoundMatches({ matches, onMatchUpdate }: LeagueRoundMatche
             )}
           </div>
 
-          <div className="col-span-3">
-            <div className="flex flex-col items-start md:items-end">
-              <p className="font-medium text-gray-900 dark:text-white">{match.team2}</p>
+          <div className="col-span-3 min-w-0">
+            <div className="text-left md:text-right">
+              <TeamLabel label={match.team2} />
             </div>
           </div>
         </div>
